@@ -666,7 +666,7 @@ private impl Panel
         entries.add(strings.ui_ShowPages, .Grid, func|view = me|() { view.openPages() }, disabled: not .pdfView.pageCount(), bindId: "scope.pdf.thumbnails")
         .steps.addPageJump(entries, "scope.pdf.goToPage")
         entries.add(strings.ui_ExportPage, .SaveAs, func|view = me|() { view.promptExportPage() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportPage")
-        entries.add(strings.ui_ExportRange, .SaveAs, func|view = me|() { view.promptExportRange() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportRange")
+        entries.add(strings.ui_ExportRange, .Export, func|view = me|() { view.promptExportRange() }, disabled: not .pdfView.pageCount() or .pageExporting, bindId: "scope.pdf.exportRange")
         entries.add(strings.ui_Back, .ChevronLeft, func|view = me|() { view.goBack() }, disabled: not .history.canGoBack(), defaultKey: {modifiers: .Alt, key: .Left}, bindId: "scope.pdf.back")
         entries.add(strings.ui_Forward, .ChevronRight, func|view = me|() { view.goForward() }, disabled: not .history.canGoForward(), defaultKey: {modifiers: .Alt, key: .Right}, bindId: "scope.pdf.forward")
 
@@ -678,6 +678,8 @@ private impl Panel
         entries.addZoom(.Reset, .zoomPercent(), func|view = me|() { view.pdfView.actualSize() })
         entries.add(strings.ui_Fit, .FitView, func|view = me|() { view.pdfView.zoomToFit() }, checked: .pdfView.zoomMode == .FitPage, defaultKey: {modifiers: .None, key: .F}, bindId: "scope.pdf.fit")
         entries.add(strings.ui_FitWidth, .FitWidth, func|view = me|() { view.pdfView.zoomToFitWidth() }, checked: .pdfView.zoomMode == .FitWidth, defaultKey: {modifiers: .None, key: .W}, bindId: "scope.pdf.fitWidth")
+        entries.add(strings.ui_Continuous, .Outline, func|view = me|() { view.pdfView.setPageLayout(.Continuous) }, checked: .pdfView.pageLayout == .Continuous, bindId: "scope.pdf.layoutContinuous")
+        entries.add(strings.ui_SinglePage, .File, func|view = me|() { view.pdfView.setPageLayout(.Single) }, checked: .pdfView.pageLayout == .Single, bindId: "scope.pdf.layoutSingle")
         entries.add(appStrings().cmd_ZoomMenu, .ZoomLevels, func|view = me|() { view.showZoomMenu() }, bindId: "scope.pdf.zoomMenu")
 
         // The commands of the page's context menu, so none of them needs a right click.
@@ -768,7 +770,7 @@ private impl Panel
             return
         let menu = MenuCtrl.createPopup(me, owner: me)
         menu.addItem(texts().ui_ExportPage, "scope.pdf.exportCurrent", .theme().icon(.SaveAs, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts().ui_ExportRange, "scope.pdf.exportRange", .theme().icon(.SaveAs, themeRowIconSize(.themeMetrics())))
+        menu.addItem(texts().ui_ExportRange, "scope.pdf.exportRange", .theme().icon(.Export, themeRowIconSize(.themeMetrics())))
         switch menu.doModal(.exportPageButton, autoDestroy: true) orelse ""
         {
         case "scope.pdf.exportCurrent": .promptExportPage()
@@ -939,7 +941,11 @@ private impl Panel
             view.history.visit(view.pdfView.readingPosition())
             view.pdfView.showPage(index)
         })
-        .steps.labelAt = func|view = me|(index)->string => view.pageLabelOf(index)
+        .steps.labelAt = func|view = me|(index)->string
+        {
+            return view.pageLabelOf(index)
+        }
+
         .steps.resolveLabel = func|view = me|(typed)->u64
         {
             for label, index in view.pageLabels where not label.isEmpty() and Utf8.compare(label.toString(), typed, .Latin1NoCase) == 0 do

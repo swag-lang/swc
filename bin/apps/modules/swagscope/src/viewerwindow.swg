@@ -815,14 +815,20 @@ impl ViewerWindow
     {
         if not plugin.iconAtlas do
             return {}
-        let resolvedSize = size ? size : themeRowIconSize(.themeMetrics())
-        for &set in .pluginIcons where set.atlas == plugin.iconAtlas do
-            return set.icons.icon(plugin.iconIndex, resolvedSize, .theme().res.atlasScale)
+        return .atlasIcon(plugin.iconAtlas, plugin.iconIndex, size ? size : themeRowIconSize(.themeMetrics()))
+    }
+
+    mtd scopeIcon(glyph: ViewerIcons)->Icon => .atlasIcon(viewerIcons(), cast(s32, glyph), .themeMetrics().menuPopup_IconSize)
+
+    private mtd atlasIcon(atlas: *IconAtlas, index: s32, size: f32)->Icon
+    {
+        for &set in .pluginIcons where set.atlas == atlas do
+            return set.icons.icon(index, size, .theme().res.atlasScale)
 
         let added = .pluginIcons.emplaceInitAddress()
-        added.atlas = plugin.iconAtlas
-        added.icons.setup(.app().renderer, plugin.iconAtlas)
-        return added.icons.icon(plugin.iconIndex, resolvedSize, .theme().res.atlasScale)
+        added.atlas = atlas
+        added.icons.setup(.app().renderer, atlas)
+        return added.icons.icon(index, size, .theme().res.atlasScale)
     }
 
     // Resolves one descriptor-owned glyph without leaking plugin metadata into the window.
@@ -1294,8 +1300,10 @@ impl ViewerWindow
         else do
             surface.showNormalAt(.fullScreenRestorePosition)
 
-        if workspace and not workspace.isPendingDestroy do
+        if workspace and not workspace.isPendingDestroy
+        {
             workspace.layoutScene()
+        }
         else
         {
             .applyLayout()

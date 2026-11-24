@@ -144,9 +144,9 @@ func loadThumbnail(fileName: string, maxSide: u32)->Image fail
         if largest > side
         {
             let scale = cast(f32, side) / cast(f32, largest)
-            image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
-                         Math.max(1, cast(s32, cast(f32, image.height) * scale)),
-                         .Bilinear)
+            image.resize(Math.max(1, cast(s32, Math.round(cast(f32, image.width) * scale))),
+                         Math.max(1, cast(s32, Math.round(cast(f32, image.height) * scale))),
+                         .CatmullRom)
         }
 
         return image

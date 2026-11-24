@@ -33,6 +33,18 @@ enum ViewerIcons
     Ods          // OpenDocument workbook reading grid.
     Odp          // OpenDocument presentation reading canvas.
     Notebook     // Jupyter notebook cell reader.
+
+    // Scope-specific layout and listing commands.
+    SingleView
+    GridThree
+    GridFour
+    GridAuto
+    Compare
+    OpenBeside
+    EqualCells
+    Names
+    Details
+    Captions
 }
 
 const ViewerIconValues: [25] ViewerIcons = [

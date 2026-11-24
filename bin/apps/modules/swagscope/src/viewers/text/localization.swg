@@ -10,7 +10,7 @@ using Core, Gui
 struct Texts
 {
     ui_Name:         string = "Basic Text"             // Name of this viewer in the viewer selector.
-    ui_Wrap:         string = "Wrap Long Lines"        // Option folding long lines into the view; Ctrl+W also switches it.
+    ui_Wrap:                    string = "Wrap Long Lines"                                                                        // Option folding long lines into the view; Ctrl+Shift+W also switches it.
     ui_Numbers:      string = "Line Numbers"           // Option numbering the lines in a gutter.
     ui_Blanks:       string = "Show Whitespace"        // Option marking each space with a dot and each tabulation with an arrow.
     ui_TabWidth:     string = "Tab Width"              // Option placing a tab stop every 2, 4 or 8 spaces.

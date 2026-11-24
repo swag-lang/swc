@@ -40,7 +40,7 @@ using Core, Pixel, Video, Gui, Viewers
     var host: Testing.HeadlessHost
     let window   = boardWindow(&host, true, films: false, width: 880, height: 560)
     let explorer = unwrap window.explorer
-    var image    = Image.create(160, 80, .RGB8)
+    var image    = Image.create(320, 80, .RGB8)
     image.visitPixels()
     {
         pix[0] = x < 24 ? 220 : 0
@@ -58,6 +58,9 @@ using Core, Pixel, Video, Gui, Viewers
     let left = grid.localToSurface(Math.Point{tile.x + grid.themeMetrics().fileTile_Inset + 3, tile.vertCenter()})
     let x    = cast(s32, left.x)
     let y    = cast(s32, left.y)
+
+    let automatic = host.renderSettled(&host.surfaceWnd)
+    Swag.require(automatic.pixelColor(x, y).r > 200 and automatic.pixelColor(x, y).b < 10)
 
     window.sendCommandEvent(ViewerCommands.ThumbnailCrops[2])
     let cover = host.renderSettled(&host.surfaceWnd)

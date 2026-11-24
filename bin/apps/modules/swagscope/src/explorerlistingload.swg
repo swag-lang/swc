@@ -65,29 +65,11 @@ impl ExplorerListingLoad
         return .restartWatch or not batch.changes.isEmpty()
     }
 
-    // Keeps folders first, then orders the members by the chosen field and naturally by name.
     mtd sortEntries()
     {
-        let operation = me
-        .result.entries.sort(func|operation|(a, b)->s32
-        {
-            if a.directory != b.directory do
-                return a.directory ? -1 : 1
-            var order: s32
-            switch operation.sortColumn
-            {
-            case 1: order = Text.compareNames(Path.extension(a.name) orelse "",
-                                              Path.extension(b.name) orelse "")
-
-            case 2:  order = a.size == b.size ? 0 : (a.size < b.size ? -1 : 1)
-            case 3:  order = Latin1.compareNatural(a.modified, b.modified)
-            default: order = Text.compareNames(a.name, b.name)
-            }
-
-            if order == 0 do
-                order = Text.compareNames(a.name, b.name)
-            return operation.descending ? -order : order
-        })
+        let column     = .sortColumn
+        let descending = .descending
+        .result.entries.sort(func|column, descending|(a, b)->s32 => a.compareForSort(&b, column, descending))
     }
 
     mtd finish(result: *ExplorerListing)->String

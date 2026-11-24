@@ -191,22 +191,34 @@ impl IWnd for SceneTabs
 
 impl ViewerWorkspace
 {
-    mtd dividerRect()->Math.Rectangle
+    mtd dividerRect(columns = true, track = 1'u64)->Math.Rectangle
     {
         let scene = .scene()
-        if not scene or
-           scene.views.count != 2 or
-           scene.maximized or
-           scene.layout == .Single or
-           scene.compared do
+        if not scene or not .isTiled() or scene.compared do
             return {}
         let grid  = scene.dimensions()
-        let first = .viewRect(scene, 0)
-        if grid.y == 1 do
-            return {first.right() - 3, first.y, 7, first.height}
-        if grid.x == 1 do
-            return {first.x, first.bottom() - 3, first.width, 7}
+        if track >= cast(u64, columns ? grid.x : grid.y) do
         return {}
+        let body   = .gridBody()
+        let band   = .themeMetrics().splitView_BarSize
+        let offset = (.gridGap() - band) * 0.5
+        if columns
+        {
+            let cell = .gridCellRect(scene, track - 1)
+            return {cell.right() + offset, body.y, band, body.height}
+        }
+
+        let cell = .gridCellRect(scene, (track - 1) * cast(u64, grid.x))
+        return {body.x, cell.bottom() + offset, body.width, band}
+    }
+
+    mtd stopDividerDrags()
+    {
+        for index in .columnDividers.count
+        {
+            .columnDividers[index]!.stopDrag()
+            .rowDividers[index]!.stopDrag()
+        }
     }
 
     mtd cellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
@@ -353,17 +365,25 @@ struct SceneDivider
 {
     using wnd:      Wnd
     late workspace: *ViewerWorkspace
+    track:          u64
+    columns:        bool
+    hot:            bool
     dragging:       bool
+    grabOffset:     f32
 }
 
 impl SceneDivider
 {
-    func create(workspace: *ViewerWorkspace)->*SceneDivider
+    func create(workspace: *ViewerWorkspace, track: u64, columns: bool)->*SceneDivider
     {
         let result = Wnd.create'SceneDivider(workspace, "scope.scene.divider")
         result.workspace       = workspace
+        result.track           = track
+        result.columns         = columns
+        result.cursor          = Cursor.from(columns ? CursorShape.ResizeHorizontal : CursorShape.ResizeVertical)
         result.backgroundStyle = .Transparent
         result.wndFlags.add(.TopMost)
+        result.hide()
         return result
     }
 
@@ -372,6 +392,7 @@ impl SceneDivider
         if bounds.isEmpty()
         {
             .stopDrag()
+            .hot = false
             .hide()
             return
         }
@@ -387,11 +408,23 @@ impl SceneDivider
         .dragging = false
         if .mouseCapture() == me do
             .releaseMouse()
+        .invalidate()
     }
 }
 
 impl IWnd for SceneDivider
 {
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        if not .hot and not .dragging do
+            return
+        let area = .clientRect()
+        let size = .themeMetrics().splitView_HotRule
+        let line = .columns ? Math.Rectangle{Math.floor(area.horzCenter() - size * 0.5), 0, size, area.height} :
+                   Math.Rectangle{0, Math.floor(area.vertCenter() - size * 0.5), area.width, size}
+        evt.paintContext.painter.fillRect(line, .themeColors().arc)
+    }
+
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
         let scene = .workspace.scene()
@@ -402,20 +435,31 @@ impl IWnd for SceneDivider
         case .Accept:
             evt.accepted = hit or .dragging and .mouseCapture() == me
 
+        case .Enter, .Leave:
+            .hot = evt.kind == .Enter
+            .invalidate()
+
         case .Pressed where hit and evt.button == .Left:
             .dragging = true
+            .grabOffset = .columns ? point.x - .position.horzCenter() : point.y - .position.vertCenter()
             .captureMouse()
+            .invalidate()
 
         case .Released where .dragging and evt.button == .Left:
             .stopDrag()
             catch .workspace.primary.saveState()
 
         case .DoubleClick where hit and evt.button == .Left:
-            if scene
-            {
+            let grid  = scene!.dimensions()
+            let count = cast(u64, .columns ? grid.x : grid.y)
+            if grid.x == 1 or grid.y == 1 do
                 scene.split = 0.5
+            elif .columns do
+                scene.columnCuts.clear(count)
+            else do
+                scene.rowCuts.clear(count)
                 .workspace.layoutScene()
-            }
+            catch .workspace.primary.saveState()
 
         case .Move where .dragging:
             if not scene or .mouseCapture() != me
@@ -425,11 +469,19 @@ impl IWnd for SceneDivider
                 return
             }
 
-            let area  = .workspace.clientRect()
-            let inset = .workspace.stripInset()
-            let ratio = scene.dimensions().y == 1 ? point.x / Math.max(area.width, 1) :
-                        (point.y - inset) / Math.max(area.height - inset, 1)
+            let grid  = scene.dimensions()
+            let count = cast(u64, .columns ? grid.x : grid.y)
+            let area  = .workspace.gridBody()
+            let span  = .columns ? area.width : area.height
+            let gap   = .workspace.gridGap()
+            let at    = (.columns ? point.x - area.x : point.y - area.y) - .grabOffset
+            let ratio = (at - (cast(f32, .track) - 0.5) * gap) / Math.max(span - cast(f32, count - 1) * gap, 1)
+            if grid.x == 1 or grid.y == 1 do
             scene.split = Math.clamp(ratio, 0.18, 0.82)
+            elif .columns do
+                scene.columnCuts.resize(.track, count, ratio)
+            else do
+                scene.rowCuts.resize(.track, count, ratio)
             .workspace.layoutScene()
 
         default:
@@ -592,8 +644,10 @@ impl ViewerWorkspace
         if evt.kind == .Drop
         {
             .clearDropHighlight()
-            if not one do
+            if not one
+            {
                 .openScene(evt.data.files.toSlice(), .Auto)
+            }
             elif index != Swag.U64.Max
             {
                 let view = scene!.viewInCell(index)
@@ -608,8 +662,10 @@ impl ViewerWorkspace
                     .replaceDocument(view, evt.data.files[0])
                 }
             }
-            else do
+            else
+            {
                 .openDocument(evt.data.files[0])
+            }
         }
         elif index == Swag.U64.Max
         {
@@ -669,19 +725,25 @@ impl ViewerWorkspace
             .selectView(.scene()!.active)
             return true
         }
+
+        let shortcut = document.keyShortcut(evt.modifiers, evt.key) orelse ""
+        let swap     = Slice.findLinear(SceneCommands.SwapDirections, shortcut) != Swag.U64.Max
         if source is EditBox or .focusedWindow() is EditBox do
-            return false
+            return shortcut == SceneCommands.Maximize or swap
         if .vacancy and evt.modifiers == .None and evt.key == .Return
         {
             .vacancy.chooseFile()
             return true
         }
-        if (evt.modifiers == .Alt or evt.modifiers == .CtrlAlt) and .moveView(evt.key, evt.modifiers == .CtrlAlt) do
+
+        if swap do
+            return document.runCommand(shortcut)
+        if evt.modifiers == .Alt and .moveView(evt.key, swap: false) do
             return true
         if .routeComparisonKey(evt, source) or .routeSceneMediaKey(evt, source) do
             return true
         if (document.informationOpen() or (.scene()?.maximized orelse false)) and
-           document.keyShortcut(evt.modifiers, evt.key) == ViewerCommands.Dismiss do
+           shortcut == ViewerCommands.Dismiss do
             return document.runCommand(ViewerCommands.Dismiss)
 
         return false

@@ -420,7 +420,7 @@ using Core, Gui, Audio
     host.doubleClick(divider)
     Swag.require(scene.split == 0.5)
 
-    host.keyPress(.F)
+    host.keyPress(.F6)
     Swag.require(scene.maximized and not scene.views[1].document!.isLocallyVisible())
     Swag.require(workspace.maxHint!.surfaceRect().bottom() <= workspace.activeDocument().readingLine.surfaceRect().y)
     host.keyPress(.Right, .Alt)
@@ -465,11 +465,11 @@ using Core, Gui, Audio
     Swag.require(document.lens.isOpen())
     host.keyPress(.Escape)
     Swag.require(not document.lens.isOpen())
-    document.registerKeyShortcut(.None, .F, ViewerCommands.Information)
+    document.registerKeyShortcut(.None, .F6, ViewerCommands.Information)
     document.registerKeyShortcut(.Control, .W, ViewerCommands.Information)
     document.registerKeyShortcut(.CtrlShift, .F8, SceneCommands.Maximize)
     document.registerKeyShortcut(.CtrlShift, .F9, ViewerCommands.Close)
-    host.keyPress(.F)
+    host.keyPress(.F6)
     host.keyPress(.W, .Control)
     Swag.require(not scene.maximized and scene.views.count == 2)
     host.keyPress(.F8, .CtrlShift)
@@ -537,4 +537,46 @@ using Core, Gui, Audio
     Swag.require(listing.hintLine.isVisible() and listing.informationCaptionButton.isEnabled())
     host.click(title)
     Swag.require(not workspace.focusOnGrid and listing.hintLine.isVisible())
+}
+
+// Both grid axes resize without moving other tracks, and the scene keeps its dividers on disk.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let files = [scopeTestDataPath("viewer.pdf"), scopeTestDataPath("sample.cpp"), scopeTestDataPath("comprehensive.txt")]
+    workspace.openScene(files, .Grid3)
+    openViews(&host, workspace)
+
+    let scene  = unwrap workspace.scene()
+    let corner = workspace.gridCellRect(scene, 8)
+
+    func screen(host: *Testing.HeadlessHost, workspace: *ViewerWorkspace, point: Math.Point)->Math.Point
+    {
+        var result = workspace.localToSurface(point)
+        host.surface.surfaceToScreen(&result)
+        return result
+    }
+
+    host.paint(&host.surfaceWnd)
+    let column = screen(&host, workspace, workspace.dividerRect(columns: true).center())
+    host.drag(column, column + Math.Point{78, 0})
+    let row = screen(&host, workspace, workspace.dividerRect(columns: false).center())
+    host.drag(row, row + Math.Point{0, 48})
+    Swag.require(scene.columnCuts.fraction(1, 3) > 0.37 and scene.rowCuts.fraction(1, 3) > 0.37)
+    Swag.require(workspace.gridCellRect(scene, 8) == corner)
+
+    let document = workspace.activeDocument()
+    Swag.require(document.runCommand(SceneCommands.SwapDirections[1]))
+    Swag.require(workspace.activeDocument() == document and scene.cellOf(scene.active) == 1)
+    let saved = saveViewerState(workspace.primary)
+    loadViewerState(workspace.primary, saved.toSlice())
+    let state = &workspace.restored[0]
+    Swag.require(state.columnCuts.fraction(1, 3) == scene.columnCuts.fraction(1, 3))
+    Swag.require(state.rowCuts.fraction(1, 3) == scene.rowCuts.fraction(1, 3))
+    Swag.require(state.views[scene.active].cellPlusOne == 2)
+
+    Swag.require(document.runCommand(SceneCommands.Equalize))
+    Swag.require(scene.columnCuts.fraction(1, 3) == 1.0 / 3 and scene.rowCuts.fraction(1, 3) == 1.0 / 3)
 }

@@ -39,6 +39,27 @@ struct ExplorerEntry
     onlinePending: bool
 }
 
+impl ExplorerEntry
+{
+    // Keeps folders first, then orders by the current field with a natural-name tiebreaker.
+    mtd const compareForSort(other: const *ExplorerEntry, column: u32, descending: bool)->s32
+    {
+        if .directory != other.directory do
+            return .directory ? -1 : 1
+        var order: s32
+        switch column
+        {
+        case 1: order = Text.compareNames(Path.extension(.name) orelse "", Path.extension(other.name) orelse "")
+        case 2: order = .size == other.size ? 0 : (.size < other.size ? -1 : 1)
+        case 3: order = Latin1.compareNatural(.modified, other.modified)
+        }
+
+        if order == 0 do
+            order = Text.compareNames(.name, other.name)
+        return descending ? -order : order
+    }
+}
+
 // The extensions whose content a cell of the mixed board draws, compared without case.
 private const ProbeCodeExtensions     = [".swg", ".swgs", ".c", ".cpp", ".h", ".hpp", ".cs", ".js", ".ts", ".py", ".rs", ".go", ".java", ".json", ".xml", ".css", ".sh", ".lua", ".toml", ".yaml", ".yml", ".ini", ".cfg", ".conf", ".properties", ".txt"]
 private const ProbeImageExtensions    = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tga", ".webp", ".qoi", ".ico"]

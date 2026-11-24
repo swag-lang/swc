@@ -54,11 +54,16 @@ F5 refreshes the location.
 In a grid, click an empty cell or move to it with Alt and an arrow key. Ctrl+O opens a file
 there and Ctrl+E opens a folder. Dropping one file into the cell also opens it in place.
 Ctrl+W leaves an empty cell or closes the selected document. Closing down to one document
-returns it to the full window.
+returns it to the full window. Drag a row or column divider to resize its cells, or
+double-click it to give that axis equal space again. The lens also offers **Equalize Grid
+Cells** for both axes and **Swap View** actions for neighboring cells. Ctrl+Alt and an arrow
+key swaps a view with its neighbor or moves it into a free cell. F6 maximizes the selected
+view and Esc returns to the grid. Text and Code use Ctrl+Shift+W to wrap long lines.
 
-Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
-Lists and thumbnail grids render only their visible rows. Two background tasks at most produce
-thumbnails through the viewer registry, reusing a renderer in each task. Image, Video, Comic,
+Initial enumeration, metadata, archive extraction and thumbnail decoding run asynchronously.
+Changing the sort reorders the current listing and keeps its preview cache. Lists and thumbnail
+grids render only their visible rows. Background jobs produce previews through the viewer
+registry, reusing a renderer in each job. Image, Video, Comic,
 PDF and Sound supply decoded content previews; MP3 and FLAC use local cover art when available
 and otherwise try a waveform. Textual formats use a bounded source sample. Other formats show
 neutral file facts instead of patterns made from binary bytes. Thumbnail work does not play media

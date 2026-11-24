@@ -13,6 +13,7 @@ struct ExplorerFolderState
     kind:       ExplorerKindFilter
     sortColumn: u32
     descending: bool
+    showTileCaption: bool                  = true
     query:      String
     selected:   String
     scroll:     Math.Point
@@ -36,6 +37,7 @@ impl ExplorerFolderState
             .kind       = explorer.kindFilter
             .sortColumn = explorer.sortColumn
             .descending = explorer.descending
+            .showTileCaption = explorer.showTileCaption
             .query      = explorer.filter.text()
             let scroll = explorer.isThumbnailView() ? explorer.scroll : explorer.list.scrollWnd
             .scroll = scroll.scrollPosition()
@@ -56,6 +58,7 @@ impl ExplorerFolderState
         explorer.kindFilter    = cast(u32, .kind) < ExplorerKindFilterValues.count ? .kind : .All
         explorer.sortColumn    = Math.min(.sortColumn, 3)
         explorer.descending    = .descending
+        explorer.showTileCaption = .showTileCaption
         explorer.filter.setText(.query, notify: false)
         if explorer.window.isExploring() do
             explorer.window.searchBox.setText(.query, notify: false)

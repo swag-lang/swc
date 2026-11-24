@@ -59,10 +59,11 @@ using Core, Gui
     explorer.forceBoard(true, .Grid)
     explorer.setArtworkSource(.Local)
     explorer.setThumbnailCrop(.None)
+    explorer.setTileCaption(false)
     explorer.setKindFilter(.Documents)
     explorer.filter.setText("item")
     explorer.sortBy(2, true)
-    completeExplorer(&host, explorer)
+    Swag.require(not explorer.load.started)
     explorer.grid.select(8)
     explorer.scroll.setScrollPos(0, 100)
     let selected = explorer.entries[explorer.selected].path
@@ -80,6 +81,7 @@ using Core, Gui
     completeExplorer(&host, explorer)
     Swag.require(explorer.mode == .Large and explorer.forced and explorer.forcedBoard == .Grid)
     Swag.require(explorer.artworkSource == .Local and explorer.kindFilter == .Documents)
+    Swag.require(not explorer.showTileCaption)
     Swag.require(explorer.thumbnailCrop == .None)
     Swag.require(explorer.sortColumn == 2 and explorer.descending and explorer.filter.text() == "item")
     Swag.require(explorer.selected < explorer.entries.count and explorer.entries[explorer.selected].path == selected)
@@ -89,7 +91,11 @@ using Core, Gui
     window.folderViews.clear()
     loadViewerState(window, cast(const [..] u8, saved))
     let state = unwrap window.privacy.folderView(first, "")
-    Swag.require(state.mode == .Large and state.crop == .None and state.descending and state.query == "item")
+    Swag.require(state.mode == .Large and
+                 not state.showTileCaption and
+                 state.crop == .None and
+                 state.descending and
+                 state.query == "item")
 }
 
 // A public-to-private switch redacts saved views while keeping them usable until exit.

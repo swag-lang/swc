@@ -326,6 +326,11 @@ scene_Compare       Comparer
 scene_CloseView    Fermer la vue
 scene_Maximize      Agrandir la vue
 scene_RestoreLayout Rétablir la disposition
+scene_Equalize       Égaliser les cellules
+scene_SwapLeft       Permuter vers la gauche
+scene_SwapRight      Permuter vers la droite
+scene_SwapUp         Permuter vers le haut
+scene_SwapDown       Permuter vers le bas
 scene_Curtain        Rideau
 scene_OnionSkin      Pelure d’oignon
 scene_Difference     Différence

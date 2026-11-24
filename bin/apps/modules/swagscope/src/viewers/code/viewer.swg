@@ -617,7 +617,7 @@ impl Panel
         // The pair is offered only when the caret stands by a bracket, which is when it means something.
         if .delimiterAtCaret().lineIndex != Swag.U64.Max do
             entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, defaultKey: {modifiers: .Control, key: .Oem6}, bindId: "scope.code.matchingDelimiter")
-        entries.add(texts().ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .editor.flags.has(.WordWrap), defaultKey: {modifiers: .Control, key: .W}, bindId: "scope.code.wrap")
+        entries.add(texts().ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .editor.flags.has(.WordWrap), defaultKey: {modifiers: .CtrlShift, key: .W}, bindId: "scope.code.wrap")
         entries.add(texts().ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .editor.flags.has(.LineNumbers), bindId: "scope.code.numbers")
         entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks), bindId: "scope.code.blanks")
 

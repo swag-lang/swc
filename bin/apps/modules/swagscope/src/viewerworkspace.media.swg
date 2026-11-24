@@ -509,12 +509,9 @@ impl ViewerWorkspace
                      {
                          let current = unwrap workspace.scene()
                          for layout in SceneCommands.LayoutValues where current.supportsLayout(layout) do
-                             layouts.addChoice(sceneLayoutTitle(layout), current.visibleLayout() == layout,
-                                               func|workspace, layout|() { workspace.setLayout(layout) },
-                                               disabled: workspace.focusOnGrid and layout == .Single,
-                                               icon: workspace.theme().icon(sceneLayoutIcon(layout), themeRowIconSize(workspace.themeMetrics())))
+                             layouts.addChoice(sceneLayoutTitle(layout), current.visibleLayout() == layout, func|workspace, layout|() { workspace.setLayout(layout) }, disabled: workspace.focusOnGrid and layout == .Single, icon: workspace.activeDocument().sceneLayoutGlyph(layout))
                      },
-                     icon: .theme().icon(sceneLayoutIcon(scene.visibleLayout()), size))
+                     icon: .activeDocument().sceneLayoutGlyph(scene.visibleLayout()))
         page.addAction(scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize,
                        func|workspace|() { workspace.toggleMaximized() }, disabled: .focusOnGrid,
                        icon: .theme().icon(scene.maximized ? .ExitFullScreen : .FullScreen, size))
@@ -622,8 +619,10 @@ impl ViewerWorkspace
         let scene = .scene()
         if scene
         {
-            if .comparisonVisible() do
+            if .comparisonVisible()
+            {
                 .comparison!.refresh()
+            }
             else
             {
                 for view in scene.views where view.document do

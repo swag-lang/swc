@@ -312,16 +312,16 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     let lineDetails = Format.toString(PlainText.texts().ui_Lines, view.statistics.lines)
     Swag.require(Utf8.contains(view.detailsText().toSlice(), lineDetails.toSlice()))
 
-    var toggleWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
+    var toggleWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
     Swag.require(view.hookOnChildEvent!(view.editor, &toggleWrap) and not view.wrapping)
 
-    // Ctrl+Shift+W is not the wrap shortcut, whether the editor or the panel receives it.
-    var shiftedChild = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
-    Swag.require(not view.hookOnChildEvent(view.editor, &shiftedChild) and not view.wrapping)
-    var shiftedPanel = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
-    view.sendEvent(&shiftedPanel)
-    Swag.require(not shiftedPanel.accepted and not view.wrapping)
-    var panelWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
+    // Ctrl+W is not the wrap shortcut, whether the editor or the panel receives it.
+    var closeChild = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
+    Swag.require(not view.hookOnChildEvent(view.editor, &closeChild) and not view.wrapping)
+    var closePanel = KeyEvent{kind: .Pressed, key: .W, modifiers: .Control}
+    view.sendEvent(&closePanel)
+    Swag.require(not closePanel.accepted and not view.wrapping)
+    var panelWrap = KeyEvent{kind: .Pressed, key: .W, modifiers: .CtrlShift}
     view.sendEvent(&panelWrap)
     Swag.require(panelWrap.accepted and view.wrapping)
     view.sendEvent(&panelWrap)

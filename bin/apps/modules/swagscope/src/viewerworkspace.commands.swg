@@ -10,6 +10,9 @@ namespace SceneCommands
     const OpenGrid         = "scope.scene.openGrid"
     const Compare          = "scope.scene.compare"
     const Maximize         = "scope.scene.maximize"
+    const Equalize         = "scope.scene.equalize"
+    const SwapDirections   = ["scope.scene.swapLeft", "scope.scene.swapRight", "scope.scene.swapUp", "scope.scene.swapDown"]
+    const ArrowKeys        = [Input.Key.Left, .Right, .Up, .Down]
     const LayoutValues     = [SceneLayout.Single, .SideBySide, .Stacked, .Grid2, .Grid3, .Grid4, .Auto]
     const Layouts          = ["scope.scene.single", "scope.scene.sideBySide", "scope.scene.stacked",
                               "scope.scene.grid2", "scope.scene.grid3", "scope.scene.grid4", "scope.scene.auto"]
@@ -30,17 +33,6 @@ func sceneLayoutTitle(layout: SceneLayout)->string
     }
 }
 
-func sceneLayoutIcon(layout: SceneLayout)->ThemeIcons
-{
-    switch #complete layout
-    {
-    case .Single:                       return .FitView
-    case .SideBySide:                   return .Columns
-    case .Stacked:                      return .Rows
-    case .Auto, .Grid2, .Grid3, .Grid4: return .Grid
-    }
-}
-
 func sceneGrid(count: u64)->SceneLayout
 {
     if count <= 4 do
@@ -56,10 +48,13 @@ impl ViewerWindow
         .lens.addCommands(layoutLabel, SceneCommands.Layouts[0 until 6], inLens: false)
         .lens.addCommands(func()->string => appStrings().scene_SceneList, [SceneCommands.Layouts[6], SceneCommands.OpenGrid])
         .lens.addCommands(func()->string => appStrings().lens_File, [SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.CompareSelection])
-        .lens.addCommands(func()->string => appStrings().lens_View, [SceneCommands.Compare, SceneCommands.Maximize])
+        .lens.addCommands(func()->string => appStrings().lens_View, [SceneCommands.Compare, SceneCommands.Maximize, SceneCommands.Equalize])
+        .lens.addCommands(func()->string => appStrings().scene_Controls, SceneCommands.SwapDirections)
+        for id, index in SceneCommands.SwapDirections do
+            .registerKeyShortcut(.CtrlAlt, SceneCommands.ArrowKeys[index], id)
         .lens.addSource(.Action, func|document = me|(results) { document.describeScenes(results, atRest: false) })
         .registerKeyShortcut(.Control, .W, ViewerCommands.Close)
-        .registerKeyShortcut(.None, .F, SceneCommands.Maximize)
+        .registerKeyShortcut(.None, .F6, SceneCommands.Maximize)
         .registerKeyShortcut(.Control, .Oem5, SceneCommands.Layouts[1])
         .registerKeyShortcut(.CtrlAlt, .D2, SceneCommands.Layouts[3])
         .registerKeyShortcut(.CtrlAlt, .D3, SceneCommands.Layouts[4])
@@ -110,6 +105,21 @@ impl ViewerWindow
         }
     }
 
+    mtd sceneLayoutGlyph(layout: SceneLayout)->Icon
+    {
+        let size = .themeMetrics().menuPopup_IconSize
+        switch #complete layout
+        {
+        case .Single:     return .scopeIcon(.SingleView)
+        case .SideBySide: return .theme().icon(.Columns, size)
+        case .Stacked:    return .theme().icon(.Rows, size)
+        case .Grid2:      return .theme().icon(.Grid, size)
+        case .Grid3:      return .scopeIcon(.GridThree)
+        case .Grid4:      return .scopeIcon(.GridFour)
+        case .Auto:       return .scopeIcon(.GridAuto)
+        }
+    }
+
     mtd computeSceneCommand(evt: *CommandStateEvent)->bool
     {
         let workspace = .workspace
@@ -122,46 +132,67 @@ impl ViewerWindow
         var disabled     = false
         var checkable    = false
         var checked      = false
-        var icon         = ThemeIcons.SelectAll
+        var icon: Icon
+        let size         = .themeMetrics().menuPopup_IconSize
         switch evt.id
         {
         case SceneCommands.Beside:
-            icon   = .Duplicate
+            icon   = .scopeIcon(.OpenBeside)
             name   = text.scene_OpenBeside
             hidden = not scene or workspace.vacancy != null or scene.views.count >= ViewerWorkspace.MaxViews
 
         case SceneCommands.CompareSelection:
-            icon   = .Duplicate
+            icon   = .scopeIcon(.Compare)
             name   = text.scene_Compare
             hidden = not .isExploring() or .explorer!.selectionPaths().count != 2
 
         case SceneCommands.CompareWith:
-            icon     = .Duplicate
+            icon     = .scopeIcon(.Compare)
             name     = text.scene_CompareWith
             hidden   = not scene or workspace.vacancy != null or .isExploring()
             disabled = scene and scene.views.count > 1 and workspace.scenes.count >= ViewerWorkspace.MaxScenes
 
         case SceneCommands.OpenGrid:
-            icon = .OpenFile
+            icon = .theme().icon(.Grid, size)
             name = text.scene_OpenGrid
 
         case SceneCommands.Compare:
-            icon      = .Duplicate
+            icon      = .scopeIcon(.Compare)
             name      = text.scene_Compare
             hidden    = not scene or scene.views.count != 2
             checkable = true
             checked   = scene and scene.compared
 
         case SceneCommands.Maximize:
-            icon   = scene and scene.maximized ? .ExitFullScreen : .FullScreen
+            icon     = .theme().icon(scene and scene.maximized ? ThemeIcons.ExitFullScreen : ThemeIcons.FullScreen, size)
             name   = scene and scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize
             hidden = not scene or workspace.vacancy != null or scene.views.count < 2
+            disabled = workspace.focusOnGrid
+
+        case SceneCommands.Equalize:
+            name   = text.scene_Equalize
+            icon   = .scopeIcon(.EqualCells)
+            hidden = not workspace.isTiled() or (scene?.compared orelse false)
 
         default:
+            let swapNames = [text.scene_SwapLeft, text.scene_SwapRight, text.scene_SwapUp, text.scene_SwapDown]
+            let swapIcons = [ThemeIcons.ChevronLeft, .ChevronRight, .ChevronUp, .ChevronDown]
+            for id, index in SceneCommands.SwapDirections where id == evt.id
+            {
+                name   = swapNames[index]
+                icon   = .theme().icon(swapIcons[index], size)
+                hidden = not workspace.isTiled()
+                let cell = workspace.neighbourCell(SceneCommands.ArrowKeys[index])
+                disabled = workspace.focusOnGrid or
+                           cell == Swag.U64.Max or
+                           (workspace.vacancy and scene!.viewInCell(cell) == Swag.U64.Max)
+                break
+            }
+
             for id, index in SceneCommands.Layouts where id == evt.id
             {
                 let layout = SceneCommands.LayoutValues[index]
-                icon      = sceneLayoutIcon(layout)
+                icon      = .sceneLayoutGlyph(layout)
                 name      = sceneLayoutTitle(layout)
                 hidden    = not scene or scene.views.count < 2
                 disabled  = scene and not scene.supportsLayout(layout)
@@ -176,7 +207,7 @@ impl ViewerWindow
         evt.name          = name
         evt.hidden        = hidden
         evt.disabled      = disabled
-        evt.icon          = .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
+        evt.icon          = icon
         evt.updatedFields |= .Name | .Hidden | .Disabled | .Icon
         if checkable
         {
@@ -239,7 +270,29 @@ impl ViewerWindow
         case SceneCommands.Maximize:
             workspace.toggleMaximized()
 
+        case SceneCommands.Equalize:
+            let scene = workspace.scene()
+            if scene and workspace.isTiled() and not scene.compared
+            {
+                let grid = scene.dimensions()
+                if grid.x == 1 or grid.y == 1
+                {
+                    scene.split = 0.5
+                }
+                else
+                {
+                    scene.columnCuts.clear(cast(u64, grid.x))
+                    scene.rowCuts.clear(cast(u64, grid.y))
+                }
+
+                workspace.layoutScene()
+                catch workspace.primary.saveState()
+            }
+
         default:
+            for item, index in SceneCommands.SwapDirections where item == id do
+                return workspace.moveView(SceneCommands.ArrowKeys[index], swap: true)
+
             for item, index in SceneCommands.Layouts where item == id
             {
                 workspace.setLayout(SceneCommands.LayoutValues[index])

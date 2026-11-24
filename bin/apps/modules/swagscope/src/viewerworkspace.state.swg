@@ -18,7 +18,9 @@ struct SavedScene
     layout:     SceneLayout
     active:     u64
     recent:     u64
-    split:      f32
+    split:        f32 = 0.5
+    columnCuts:   SceneTrackCuts
+    rowCuts:      SceneTrackCuts
     maximized:  bool
     compared:   bool
     linked:     bool
@@ -55,6 +57,8 @@ impl ViewerWorkspace
             record.layout       = scene.layout
             record.recent       = scene.recent
             record.split        = scene.split
+            record.columnCuts   = scene.columnCuts
+            record.rowCuts      = scene.rowCuts
             record.maximized    = scene.maximized
             record.compared     = scene.compared
             record.linked       = scene.linked
@@ -107,6 +111,10 @@ impl ViewerWorkspace
             if cast(u32, record.layout) <= cast(u32, SceneLayout.Auto) do
                 scene.layout = record.layout
             scene.split = Math.clamp(record.split, 0.18, 0.82)
+            scene.columnCuts = record.columnCuts
+            scene.rowCuts    = record.rowCuts
+            scene.columnCuts.validate()
+            scene.rowCuts.validate()
             for &view in record.views
             {
                 if scene.views.count >= MaxViews do
@@ -195,8 +203,9 @@ impl IWnd for SceneSwitcherList
                 let cols   = cast(u64, size.x)
                 let width  = preview.width / size.x
                 let height = preview.height / size.y
-                for view, cell in scene.views
+                for view, index in scene.views
                 {
+                    let cell = scene.cellOf(index)
                     let x = preview.x + cast(f32, cell % cols) * width
                     let y = preview.y + cast(f32, cell / cols) * height
                     if y + height <= preview.bottom()

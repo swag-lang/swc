@@ -148,6 +148,7 @@ struct Explorer
     history:         NavigationHistory
     listing:         ExplorerListing
     entries:         Array'ExplorerEntry
+    sortOrder:       Array'u64
     shown:           Array'u64
     folder:          String
     requested:       String
@@ -197,8 +198,8 @@ func kindFilterIcon(filter: ExplorerKindFilter)->ThemeIcons
     case .Videos:    return .FileVideo
     case .Images:    return .FileImage
     case .Audio:     return .FileAudio
-    case .Documents: return .FileCode
-    case .Subtitles: return .FileCode
+    case .Documents: return .File
+    case .Subtitles: return .Outline
     case .Archives:  return .FileArchive
     case .Folders:   return .Folder
     default:         return .File
@@ -663,26 +664,16 @@ impl Explorer
 
     mtd describeViewOptions(page: *OptionSheet.Page)
     {
-        let text      = appStrings()
-        let modeNames = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-        page.addLink(text.explore_View,
-                     modeNames[cast(u64, .mode)],
-                     func|view = me, text|(choices)
-                     {
-                         let names = [text.explore_Names, text.explore_Details, text.explore_Small, text.explore_Medium, text.explore_Large]
-                         for mode, index in ExplorerMode do
-                             choices.addChoice(names[index], cast(u64, view.mode) == index, func|view, mode|() { view.setMode(mode) })
-                     },
-                     icon: .theme().icon(.Outline, themeRowIconSize(.themeMetrics())))
+        let text = appStrings()
+        let size = themeRowIconSize(.themeMetrics())
+        page.addCommandLink(text.explore_View, ViewerCommands.Modes, .window, .window.explorerModeIcon(.mode))
 
         if not .sortMenu.isLocallyVisible()
         {
             const SortOptions = [ViewerCommands.SortName, ViewerCommands.SortType, ViewerCommands.SortSize,
                                  ViewerCommands.SortModified, ViewerCommands.SortAscending, ViewerCommands.SortDescending]
             const TextOptions = [ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression]
-            let size = themeRowIconSize(.themeMetrics())
-            page.addCommandLink(text.explore_Sort, SortOptions,
-                                .window, .theme().icon(.Sort, size))
+            page.addCommandLink(text.explore_Sort, SortOptions, .window, .theme().icon(.Sort, size))
             page.addCommandLink(text.explore_FilterByType, ViewerCommands.KindFilters, .window, .theme().icon(.Filter, size))
             page.addCommandLink(text.ui_SearchOptions, TextOptions,
                                 .window, .theme().icon(.Search, size))
@@ -692,53 +683,25 @@ impl Explorer
 
         if .isThumbnailView()
         {
+            if not .listing.isArchive
+            {
             page.addLink(text.explore_Organization,
                          .viewName(),
-                         func|view = me, text|(choices)
-                         {
-                             for _, index in ViewerCommands.Boards
-                             {
-                                 let checked = index == 0 ? not view.forced : (view.forced and cast(u64, view.forcedBoard) == index - 1)
-                                 choices.addChoice(explorerBoardName(text, index), checked, func|view, index|()
-                                 {
-                                     if index == 0 do
-                                         view.forceBoard(false)
-                                     else do
-                                         view.forceBoard(true, ExplorerBoardValues[index - 1])
-                                 })
-                             }
-                         },
-                         icon: .theme().icon(.ExploreFolder, themeRowIconSize(.themeMetrics())))
-
-            page.addLink(text.explore_ThumbnailFraming,
-                         thumbnailCropNames()[cast(u64, .thumbnailCrop)],
                          func|view = me|(choices)
                          {
-                             for mode, index in ThumbnailCropModes do
-                                 choices.addChoice(thumbnailCropNames()[index], mode == view.thumbnailCrop, func|view, mode|() { view.setThumbnailCrop(mode) })
+                                 for id in ViewerCommands.Boards do
+                                     choices.addCommand(id, view.window)
                          },
-                         icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
+                             icon: .theme().icon(.Grid, size))
         }
 
-        if .showsMedia()
-        {
-            let artworkNames = [text.artwork_Online, text.artwork_Local]
-            page.addLink(text.explore_ArtworkSection,
-                         artworkNames[cast(u64, .artworkSource)],
-                         func|view = me, artworkNames|(choices)
-                         {
-                             for source, index in ExplorerArtworkSource do
-                                 choices.addChoice(artworkNames[index], cast(u64, view.artworkSource) == index, func|view, source|() { view.setArtworkSource(source) })
-                         },
-                         icon: .theme().icon(.FileImage, themeRowIconSize(.themeMetrics())))
+            page.addCommandLink(text.explore_ThumbnailFraming, ViewerCommands.ThumbnailCrops, .window, .theme().icon(.CenterCrop, size))
         }
 
-        if .isThumbnailView() and .listingBoard() != .Album
-        {
-            page.addToggle(text.explore_ShowTileCaption, .showTileCaption,
-                           func|view = me|(show) { view.setTileCaption(show) },
-                           icon: .theme().icon(.File, themeRowIconSize(.themeMetrics())))
-        }
+        if .showsMedia() do
+            page.addCommandLink(text.explore_ArtworkSection, ViewerCommands.Artwork, .window, .theme().icon(.FileImage, size))
+
+        page.addCommand(ViewerCommands.ThumbnailCaptions, .window)
     }
 
     mtd setTileCaption(show: bool)
@@ -748,6 +711,7 @@ impl Explorer
         .showTileCaption = show
         .grid.toolTip    = ""
         .grid.refreshLayout()
+        .prioritizeVisible()
     }
 
     // Reports whether the thumbnails show films or music, whose illustrations may come from
@@ -849,13 +813,39 @@ impl Explorer
         .fill()
     }
 
-    // Orders the listing by `column`, backward when `descending`, and lists the folder again.
+    // Sorts the published entries by index so selection, active jobs and cached tiles keep their identity.
     mtd sortBy(column: u32, descending: bool)
     {
+        if .sortColumn == column and .descending == descending do
+            return
         .sortColumn = column
         .descending = descending
+        if .load.started
+        {
         .refreshQuietMenus()
-        .navigate(.listing.path, .folder, false)
+            return
+        }
+
+        let explorer = me
+        .sortOrder.resize(.entries.count)
+        for position in .sortOrder.count do
+            .sortOrder[position] = position
+        .sortOrder.sort(func|explorer, column, descending|(first, second)->s32
+        {
+            return explorer.entries[first].compareForSort(&explorer.entries[second], column, descending)
+        })
+        .updateSortIndicators()
+        .fill()
+    }
+
+    private mtd updateSortIndicators()
+    {
+        let direction = .descending ? HeaderSortDirection.Descending : .Ascending
+        .list.header.setSortIndicator(.sortColumn, direction)
+        if .archiveHeader.itemAt(.sortColumn).isClickable do
+            .archiveHeader.setSortIndicator(.sortColumn, direction)
+        else do
+            .archiveHeader.clearSortIndicator()
     }
 
     // Writes the order, filter, and presentation on their menus. The words of each name what the
@@ -912,24 +902,6 @@ impl Explorer
         }
     }
 
-    // Returns the glyph of what the page shows, as the view menu's entries draw it.
-    mtd viewIcon()->ThemeIcons
-    {
-        switch .mode
-        {
-        case .Names:   return .File
-        case .Details: return .Outline
-        case .Small, .Medium, .Large: break
-        }
-
-        switch .listingBoard()
-        {
-        case .Posters:        return .FileVideo
-        case .Covers, .Album: return .FileAudio
-        default:              return .ExploreFolder
-        }
-    }
-
     // Returns the name of the explored location, as the page title and the window title show it.
     mtd locationName()->String
     {
@@ -966,8 +938,11 @@ impl Explorer
         .window.teachHints(visible)
         .showMediaInfo()
         .window.updateSearchAvailability()
-        if visible do
+        if visible
+        {
             .setStatus(.status.text())
+            .requestPreview()
+        }
     }
 
     // Reports what the location holds, or why it holds nothing, on the shared bottom line.
@@ -1703,24 +1678,18 @@ impl Explorer
         .clearTextures()
         let entering = .listing.isArchive and not .grid.rows
         .entries = #move .listing.entries
+        .sortOrder.clear()
         .shown.clear()
         .selected = Swag.U64.Max
         .selectedFiles.clear()
         .showMediaInfo()
         .updateBreadcrumb()
 
-        let direction = .descending ? HeaderSortDirection.Descending : .Ascending
-        .list.header.setSortIndicator(.sortColumn, direction)
-        if .archiveHeader.itemAt(.sortColumn).isClickable do
-            .archiveHeader.setSortIndicator(.sortColumn, direction)
-        else do
-            .archiveHeader.clearSortIndicator()
+        .updateSortIndicators()
         if entering and not .restoringView do
             .setMode(.Details)
         else do
             .setMode(.mode)
-        .window.teachHints(.isLocallyVisible())
-        .fill()
         .scroll.setScrollPos(0, 0)
         if .restoringView
         {
@@ -1878,8 +1847,11 @@ impl Explorer
             matcher = assume Viewer.createNameMatcher(query, options)
 
         var matches: Array'Viewer.SearchMatch
-        for &entry, index in .entries
+        let sorted = .sortOrder.count == .entries.count
+        for position in .entries.count
         {
+            let index = sorted ? .sortOrder[position] : position
+            let entry = &.entries[index]
             if not .matchesKind(index) do
                 continue
             if query.count
@@ -1993,7 +1965,7 @@ impl Explorer
 
         .grid.refreshLayout()
         .refreshQuietMenus()
-        .requestPreview()
+        .prioritizeVisible()
         .window.teachHints(.isLocallyVisible())
     }
 
@@ -2006,22 +1978,20 @@ impl Explorer
 
     mtd setMode(mode: ExplorerMode)
     {
-        let previous = .mode
-        .mode = mode
-        if mode != previous
-        {
+        if mode != .mode do
             .clearFileDrag()
-            if mode == .Names
-            {
-                .detailNameWidth = .list.header.itemWidthForColumn(0)
-                .list.scrollWnd.updateFlags(.DisableHorizontal)
-                .fitNameColumn()
-            }
-            elif previous == .Names
-            {
-                .list.header.setItemWidthForColumn(0, .detailNameWidth)
-                .list.scrollWnd.updateFlags(remove: .DisableHorizontal)
-            }
+        .mode = mode
+        let namesOnly = .list.scrollWnd.flags.has(.DisableHorizontal)
+        if mode == .Names and not namesOnly
+        {
+            .detailNameWidth = .list.header.itemWidthForColumn(0)
+            .list.scrollWnd.updateFlags(.DisableHorizontal)
+            .fitNameColumn()
+        }
+        elif mode != .Names and namesOnly
+        {
+            .list.header.setItemWidthForColumn(0, .detailNameWidth)
+            .list.scrollWnd.updateFlags(remove: .DisableHorizontal)
         }
         .refreshQuietMenus()
 
@@ -2160,15 +2130,23 @@ impl Explorer
     private mtd prioritizeVisible()
     {
         .grid.hovered = Swag.U64.Max
-        for preview in .previews where preview.started and not preview.opening
+        let tiles = .isThumbnailView() or .grid.rows
+        var range: #decltype(.grid.visibleRange())
+        if tiles do
+            range = .grid.visibleRange()
+        for preview in .previews where preview.started and not preview.opening and preview.generation == .generation
         {
-            let range   = .grid.visibleRange()
-            var visible = false
-            for row in range.first until range.end where .shown[row] == preview.index do
-                visible = true
-            if not visible
+            var visible = not tiles and preview.index == .selected
+            for row in range.first until range.end where .shown[row] == preview.index
             {
-                if preview.generation == .generation and preview.index < .entries.count
+                visible = true
+                break
+            }
+
+            if visible do
+                continue
+
+            if preview.index < .entries.count
                 {
                     if preview.online do
                         .entries[preview.index].onlinePending = true
@@ -2178,7 +2156,6 @@ impl Explorer
 
                 preview.generation = Swag.U64.Max
                 preview.task.cancel()
-            }
         }
 
         .requestPreview()
@@ -2251,7 +2228,7 @@ impl Explorer
     // Submit every useful visible preview; the runtime admits background work for the host.
     mtd requestPreview()
     {
-        if .clearingCaches do
+        if .clearingCaches or .load.started or (.shown.isEmpty() and .pendingOpen == Swag.U64.Max) do
             return
         .refreshPreviewSettings()
 
@@ -2856,7 +2833,7 @@ impl ExplorerGrid
         case .Names, .Details, .Medium: break
         }
 
-        let room = Math.max(.clientRect().width - 2 * CellInset, narrowest)
+        let room = Math.max(.clientRect().width - 2 * CellInset, 1)
         .columns = Math.max(1'u64, cast(u64, (room + Gap) / (narrowest + Gap)))
         let width = Math.floor((room - Gap * cast(f32, .columns - 1)) / cast(f32, .columns))
         .tile = Math.Point{width, Math.round(width * cast(f32, aspect))}
@@ -3006,12 +2983,17 @@ impl ExplorerGrid
             if entry.texture.isValid() and
                (entry.texture.width > 1 or entry.texture.height > 1 or glyph.index == cast(s32, ThemeIcons.FileImage) or glyph.index == cast(s32, ThemeIcons.FileVideo))
             {
-                if grid.explorer.thumbnailCrop == .None do
+                let mode = grid.explorer.thumbnailCrop
+                let relativeAspect = cast(f32, entry.texture.width) * tile.height /
+                                     (cast(f32, entry.texture.height) * tile.width)
+                // Automatic framing keeps the whole image when filling would discard over two thirds.
+                let severeCrop = relativeAspect > 3 or relativeAspect < 1.0'f32 / 3
+                if mode == .None or (mode != .Center and severeCrop) do
                     return false
                 let shape: ThumbnailShape = grid.posters ? .Poster :
                                             (grid.board == .Covers ? .Square :
                                              (grid.explorer.previewAspect == ExplorerFilmPreviewAspect ? .Wide : .Grid))
-                entry.framing.paint(grid, painter, entry.texture, tile, shape, grid.explorer.thumbnailCrop)
+                entry.framing.paint(grid, painter, entry.texture, tile, shape, mode)
                 return true
             }
 
@@ -3621,8 +3603,12 @@ impl IWnd for ExplorerGrid
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .explorer != null do
+        if .explorer != null
+        {
             .refreshLayout()
+            if .isVisible() do
+                .explorer.prioritizeVisible()
+        }
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -3631,7 +3617,8 @@ impl IWnd for ExplorerGrid
         let range   = .visibleRange()
         if .explorer.shown.isEmpty()
         {
-            let text = .explorer.filter.text().count ? appStrings().explore_NoMatches : appStrings().explore_Empty
+            let filtered = .explorer.filter.text().count or .explorer.kindFilter != .All
+            let text     = filtered ? appStrings().explore_NoMatches : appStrings().explore_Empty
             let font = unwrap .font().regular
             let x    = Math.max(CellInset, (.clientRect().width - Painter.measureString(text, font).width) * 0.5)
 
@@ -3683,7 +3670,6 @@ impl IWnd for ExplorerGrid
 
         for spinner, slot in .spinners do
             spinner.show(.busy[slot])
-        .explorer.requestPreview()
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)

@@ -168,6 +168,8 @@ using Core, Gui, Pixel
     Swag.require(explorer.list.header.itemWidthForColumn(0) == 284 and not explorer.list.scrollWnd.flags.has(.DisableHorizontal))
     host.clickWnd(document.searchBox)
     Swag.require(document.searchBox.hasFocus())
+    host.keyPress(.F6)
+    Swag.require(not scene.maximized and document.searchBox.hasFocus())
     host.keyPress(.F)
     host.sendRune(.F, 'f'rune)
     Swag.require(not scene.maximized and document.searchBox.hasFocus() and document.searchBox.text() == "f")

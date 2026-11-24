@@ -25,6 +25,54 @@ struct SceneView
     cellPlusOne: u64  // Zero follows document order. A file placed in a hole keeps its chosen cell.
 }
 
+// Fractional cuts for each square grid, with zero entries denoting equal tracks.
+struct SceneTrackCuts
+{
+    cuts: [3][3] f32
+}
+
+impl SceneTrackCuts
+{
+    mtd const fraction(track, count: u64)->f32
+    {
+        if track == 0 do
+            return 0
+        if track == count do
+            return 1
+        let cut = .cuts[count - 2][track - 1]
+        return cut == 0 ? cast(f32, track) / cast(f32, count) : cut
+    }
+
+    mtd resize(track, count: u64, fraction: f32)
+    {
+        let minimum = 0.5 / cast(f32, count)
+        let lower   = .fraction(track - 1, count) + minimum
+        let upper   = .fraction(track + 1, count) - minimum
+        .cuts[count - 2][track - 1] = Math.clamp(fraction, lower, Math.max(lower, upper))
+    }
+
+    mtd clear(count: u64) { .cuts[count - 2] = [0'f32, 0, 0] }
+
+    mtd validate()
+    {
+        for count in 2 to 4
+        {
+            var previous: f32
+            for track in 1 to count
+            {
+                let next = .fraction(track, count)
+                if next < previous + 0.49 / cast(f32, count) or next > 1
+                {
+                    .clear(count)
+                    break
+                }
+
+                previous = next
+            }
+        }
+    }
+}
+
 struct ViewerScene
 {
     views:              Array'SceneView
@@ -32,6 +80,8 @@ struct ViewerScene
     active:             u64
     recent:             u64
     split:              f32         = 0.5
+    columnCuts:         SceneTrackCuts
+    rowCuts:            SceneTrackCuts
     maximized:          bool
     compared:           bool
     linked:             bool
@@ -88,8 +138,10 @@ impl ViewerScene
                 return
             }
         }
-        else do
+        else
+        {
             .packCells()
+        }
     }
 
     mtd const visibleLayout()->SceneLayout => .maximized ? .Single : .layout
@@ -154,7 +206,8 @@ struct ViewerWorkspace
 
     late primary:         *ViewerWindow
     late tabs:            *SceneTabs
-    late divider:         *SceneDivider
+    columnDividers:      [3] (*SceneDivider?)
+    rowDividers:         [3] (*SceneDivider?)
     late mediaLinks:      *CaptionButton
     late mediaTransport:  *CaptionButton
     late mediaPlayPause:  *CaptionButton
@@ -212,7 +265,12 @@ impl ViewerWorkspace
         result.primary             = ViewerWindow.create(result, #move index, result)
         result.primary.focusPolicy = .Click
         result.tabs                = SceneTabs.create(result)
-        result.divider             = SceneDivider.create(result)
+        for slot in result.columnDividers.count
+        {
+            result.columnDividers[slot] = SceneDivider.create(result, slot + 1, columns: true)
+            result.rowDividers[slot]    = SceneDivider.create(result, slot + 1, columns: false)
+        }
+
         result.createMediaControls()
         result.hookOnChildEvent    = func|workspace = result|(_, evt)
         {
@@ -428,7 +486,7 @@ impl ViewerWorkspace
         .hoveredDocument = null
         .mediaPlayKeyDown = false
         .showMaximizedHint(false)
-        .divider.stopDrag()
+        .stopDividerDrags()
         .closeSwitcher(choose: false)
         let scene = .scene()
         if not scene do
@@ -682,6 +740,7 @@ impl ViewerWorkspace
         if not scene or not scene.supportsLayout(layout) do
             return
         .dismissVacancy()
+        .stopDividerDrags()
         if layout != scene.layout and layout != .Single do
             scene.packCells()
         if layout == .Single and scene.views.count > 1
@@ -785,7 +844,12 @@ impl ViewerWorkspace
         .updateMedia()
         .tabs.layoutTabs()
         .invalidate()
-        .divider.place(.dividerRect())
+        for index in .columnDividers.count
+        {
+            .columnDividers[index]!.place(.dividerRect(columns: true, track: index + 1))
+            .rowDividers[index]!.place(.dividerRect(columns: false, track: index + 1))
+        }
+
         .switchBackdrop?.setPosition(area, computeLayout: false)
         .refreshComparison()
         if .pointerKnown do
@@ -796,45 +860,47 @@ impl ViewerWorkspace
     mtd viewRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
         => .gridCellRect(scene, index < scene.views.count ? scene.cellOf(index) : index)
 
-    mtd gridCellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
+    mtd gridBody()->Math.Rectangle
     {
         var body = .clientRect()
-        if scene.views.count <= 1 do
-            return body
-
         let strip = .stripInset()
         body.y      += strip
         body.height = Math.max(body.height - strip, 0)
+        return body
+    }
+
+    mtd gridGap()->f32 => .isMediaScene() ? 2.0 : 1.0
+
+    mtd gridCellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
+    {
+        if scene.views.count <= 1 do
+            return .clientRect()
+
+        let body = .gridBody()
         if scene.maximized or scene.layout == .Single do
             return body
 
-        let size     = scene.dimensions()
-        let cols     = cast(u64, size.x)
-        let row      = cast(f32, index / cols)
-        let col      = cast(f32, index % cols)
-        let gap: f32 = .isMediaScene() ? 2.0 : 1.0
-        if scene.views.count == 2 and size.y == 1
+        let grid = scene.dimensions()
+        let cols = cast(u64, grid.x)
+        let rows = cast(u64, grid.y)
+        let col  = index % cols
+        let row  = index / cols
+        let gap  = .gridGap()
+
+        func trackSpan(cuts: const *SceneTrackCuts, span, split, gap: f32, i, count: u64)->Math.Point
         {
-            let width = Math.round((body.width - gap) * scene.split)
-            if not index do
-                return {body.x, body.y, width, body.height}
-            return {body.x + width + gap, body.y, body.width - width - gap, body.height}
+            if count == 1 do
+                return {0, span}
+            let room   = Math.max(0, span - cast(f32, count - 1) * gap)
+            let offset = cast(f32, i) * gap
+            let first  = split ? (i == 0 ? 0 : split) : cuts.fraction(i, count)
+            let last   = split ? (i == 0 ? split : 1) : cuts.fraction(i + 1, count)
+            return {Math.round(first * room + offset), Math.round(last * room + offset)}
         }
 
-        if scene.views.count == 2 and size.x == 1
-        {
-            let height = Math.round((body.height - gap) * scene.split)
-            if not index do
-                return {body.x, body.y, body.width, height}
-            return {body.x, body.y + height + gap, body.width, body.height - height - gap}
-        }
-
-        let width  = (body.width - (size.x - 1) * gap) / size.x
-        let height = (body.height - (size.y - 1) * gap) / size.y
-        let left   = Math.round(body.x + col * (width + gap))
-        let top    = Math.round(body.y + row * (height + gap))
-        return {left, top, Math.round(body.x + col * (width + gap) + width) - left,
-                Math.round(body.y + row * (height + gap) + height) - top}
+        let x = trackSpan(&scene.columnCuts, body.width, rows == 1 ? scene.split : 0, gap, col, cols)
+        let y = trackSpan(&scene.rowCuts, body.height, cols == 1 ? scene.split : 0, gap, row, rows)
+        return {body.x + x.x, body.y + y.x, x.y - x.x, y.y - y.x}
     }
 
     mtd activateFromPointer(child: *Wnd, evt: *MouseEvent)->bool
@@ -868,69 +934,75 @@ impl ViewerWorkspace
         return false
     }
 
-    mtd moveView(key: Input.Key, swap: bool)->bool
+    mtd neighbourCell(key: Input.Key)->u64
     {
         let scene = .scene()
         if not scene or scene.views.count < 2 do
-            return false
-        let cols   = cast(s64, scene.maximized or scene.layout == .Single ? 1 : scene.dimensions().x)
+            return Swag.U64.Max
         let single = scene.maximized or scene.layout == .Single
+        let cols   = cast(s64, scene.dimensions().x)
         let index  = cast(s64, single ? scene.active : (.vacancy ? .vacantCell : scene.cellOf(scene.active)))
-        let column = index % cols
-        let inGrid = not scene.maximized and scene.layout != .Single and cols > 1
-        if .focusOnGrid and (key == .Left or key == .Right or key == .Up or key == .Down)
+        var target = index
+        switch key
+        {
+        case .Left where single or cols == 1 or index % cols > 0:         target -= 1
+        case .Right where single or cols == 1 or index % cols < cols - 1: target += 1
+        case .Up:                                                         target -= cols
+        case .Down:                                                       target += cols
+        default:                                                          return Swag.U64.Max
+        }
+
+        let count = single ? scene.views.count : scene.cellCount()
+        return target >= 0 and target < cast(s64, count) ? cast(u64, target) : Swag.U64.Max
+    }
+
+    mtd moveView(key: Input.Key, swap: bool)->bool
+    {
+        let scene = .scene()
+        if not scene or
+           scene.views.count < 2 or
+           (key != .Left and key != .Right and key != .Up and key != .Down) do
+            return false
+        if .focusOnGrid
         {
             if not swap do
                 .selectView(scene.active)
             return true
         }
-        var target = index
-        switch key
-        {
-        case .Left:
-            if inGrid and column == 0 do
+
+        let cell = .neighbourCell(key)
+        if cell == Swag.U64.Max do
                 return true
-            target -= 1
-
-        case .Right:
-            if inGrid and column == cols - 1 do
-                return true
-            target += 1
-
-        case .Up:
-            target -= cols
-
-        case .Down:
-            target += cols
-
-        default:
-            return false
-        }
-
-        if target < 0 or target >= cast(s64, single ? scene.views.count : scene.cellCount()) do
-            return true
-        let cell = cast(u64, target)
-        let view = single ? cell : scene.viewInCell(cell)
+        let view = scene.maximized or scene.layout == .Single ? cell : scene.viewInCell(cell)
         if view == Swag.U64.Max
         {
             if swap and not .vacancy
             {
                 scene.views[scene.active].cellPlusOne = cell + 1
                 .showScene()
+                catch .primary.saveState()
             }
-            else do
+            elif not swap
+            {
                 .focusVacancy(cell)
+            }
+
             return true
         }
         if swap and .vacancy
         {
             scene.views[view].cellPlusOne = .vacantCell + 1
             .focusVacancy(cell)
-            return true
         }
+        else
+        {
         if swap do
             .swapSceneViews(scene.active, view)
         .selectView(view)
+        }
+
+        if swap do
+            catch .primary.saveState()
         return true
     }
 }

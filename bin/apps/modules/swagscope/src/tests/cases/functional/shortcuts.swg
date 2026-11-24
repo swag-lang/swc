@@ -17,9 +17,9 @@ using Core, Gui
     let view     = assume cast(*PlainText.Panel, unwrap window.currentView)
     let wrapping = view.wrapping
     view.editor.setFocus()
-    host.keyPress(.W, .Control)
+    host.keyPress(.W, .CtrlShift)
     Swag.require(view.wrapping != wrapping)
-    host.keyPress(.W, .Control)
+    host.keyPress(.W, .CtrlShift)
     Swag.require(view.wrapping == wrapping)
 
     host.app.sigFrame += func|host = &host, &stage|(app)
@@ -44,7 +44,7 @@ using Core, Gui
             filter.setText(PlainText.texts().ui_Wrap)
             Swag.require(list.lineCount() == 1)
             let row = unwrap list.selectedLine()
-            Swag.require(row.items[1]!.name.text == Input.formatKeyShortcut(.Control, .W))
+            Swag.require(row.items[1]!.name.text == Input.formatKeyShortcut(.CtrlShift, .W))
             Swag.require(row.items[2]!.name.text == Gui.strings().shortcuts_Document)
             stage = 2
             host.clickWnd(unwrap root.childById("gui.shortcuts.change"))
@@ -61,7 +61,7 @@ using Core, Gui
     host.app.sigFrame.clear()
     Swag.require(stage == 4)
     view.editor.setFocus()
-    host.keyPress(.W, .Control)
+    host.keyPress(.W, .CtrlShift)
     Swag.require(view.wrapping == wrapping)
     host.keyPress(.F8, .Control)
     Swag.require(view.wrapping != wrapping)

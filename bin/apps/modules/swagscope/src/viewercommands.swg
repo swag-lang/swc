@@ -74,6 +74,7 @@ namespace ViewerCommands
     const AlbumShuffle      = "scope.explore.album.shuffle"
     const ArtworkOnline     = "scope.explore.artwork.online"
     const ArtworkLocal      = "scope.explore.artwork.local"
+    const ThumbnailCaptions = "scope.explore.thumbnailCaptions"
     const TextLongestLine    = "scope.text.longestLine"
 
     // Each family is ordered like its matching Explorer enum.
@@ -173,6 +174,7 @@ impl ViewerWindow
                                                                       ViewerCommands.ExtractAll, ViewerCommands.ExtractChosen,
                                                                       ViewerCommands.AlbumPlay, ViewerCommands.AlbumShuffle])
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Modes)
+            .addCommand(func()->string => appStrings().lens_View, ViewerCommands.ThumbnailCaptions)
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Boards)
             .addCommands(func()->string => appStrings().explore_ThumbnailFraming, ViewerCommands.ThumbnailCrops)
             .addCommands(func()->string => appStrings().lens_Artwork, ViewerCommands.Artwork)
@@ -226,21 +228,9 @@ impl ViewerWindow
             let explorer = unwrap .explorer
             if not query.count
             {
-                for name, mode in [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
-                {
-                    if not section
-                    {
                         section        = results.addSection(texts.lens_ViewAs)
                         section.inline = true
-                    }
-
-                    let chosen     = ExplorerModeValues[mode]
-                    with let entry = section.addEntry(name)
-                    {
-                        .checked = explorer.mode == chosen
-                        .id      = ViewerCommands.Modes[mode]
-                    }
-                }
+                .lens.addCommandRows(section, ViewerCommands.Modes)
             }
 
             if explorer.listing.isArchive
@@ -1047,16 +1037,24 @@ impl ViewerWindow
             hidden   = not exploring
             disabled = not exploring or not .explorer!.canChooseMusic()
 
+        case ViewerCommands.ThumbnailCaptions:
+            name    = texts.explore_ShowTileCaption
+            icon    = .scopeIcon(.Captions)
+            hidden  = not exploring or not .explorer!.isThumbnailView() or .explorer!.grid.board == .Album
+            toggle  = true
+            checked = exploring and .explorer!.showTileCaption
+
         default:
             for id, index in ViewerCommands.Modes where evt.id == id
             {
                 let names = [texts.explore_Names, texts.explore_Details, texts.explore_Small, texts.explore_Medium, texts.explore_Large]
-                let icons = [ThemeIcons.File, ThemeIcons.Outline, ThemeIcons.ZoomOut, ThemeIcons.ActualSize, ThemeIcons.ZoomIn]
                 name    = names[index]
-                icon    = .commandGlyph(icons[index])
+                icon    = .explorerModeIcon(ExplorerModeValues[index])
                 hidden  = not exploring
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.mode) == index
+                evt.renderingHint.add(.ExclusiveGroup)
+                evt.updatedFields.add(.RenderingHint)
             }
 
             for id, index in ViewerCommands.KindFilters where evt.id == id
@@ -1069,6 +1067,8 @@ impl ViewerWindow
                 hidden  = not exploring
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.kindFilter) == index
+                evt.renderingHint.add(.ExclusiveGroup)
+                evt.updatedFields.add(.RenderingHint)
             }
 
             for id, index in ViewerCommands.Boards where evt.id == id
@@ -1079,11 +1079,13 @@ impl ViewerWindow
                              ThemeIcons.FileAudio]
                 name    = names[index]
                 icon    = .commandGlyph(icons[index])
-                hidden  = not exploring or not .explorer!.isThumbnailView()
+                hidden  = not exploring or not .explorer!.isThumbnailView() or .explorer!.listing.isArchive
                 toggle  = true
                 checked = exploring and
                           (index == 0 ? not .explorer!.forced :
                            (.explorer!.forced and cast(u64, .explorer.forcedBoard) == index - 1))
+                evt.renderingHint.add(.ExclusiveGroup)
+                evt.updatedFields.add(.RenderingHint)
             }
 
             for id, index in ViewerCommands.Artwork where evt.id == id
@@ -1095,6 +1097,8 @@ impl ViewerWindow
                 hidden  = not exploring or not .explorer!.showsMedia()
                 toggle  = true
                 checked = exploring and cast(u64, .explorer!.artworkSource) == index
+                evt.renderingHint.add(.ExclusiveGroup)
+                evt.updatedFields.add(.RenderingHint)
             }
 
             for id, index in ViewerCommands.ThumbnailCrops where evt.id == id
@@ -1105,6 +1109,8 @@ impl ViewerWindow
                 hidden  = not exploring or not .explorer!.isThumbnailView()
                 toggle  = true
                 checked = exploring and .explorer!.thumbnailCrop == ThumbnailCropModes[index]
+                evt.renderingHint.add(.ExclusiveGroup)
+                evt.updatedFields.add(.RenderingHint)
             }
 
             if not name.count do
@@ -1155,6 +1161,18 @@ impl ViewerWindow
         return true
     }
 
+    mtd explorerModeIcon(mode: ExplorerMode)->Icon
+    {
+        switch #complete mode
+        {
+        case .Names:   return .scopeIcon(.Names)
+        case .Details: return .scopeIcon(.Details)
+        case .Small:   return .commandGlyph(.ZoomOut)
+        case .Medium:  return .commandGlyph(.Grid)
+        case .Large:   return .commandGlyph(.ZoomIn)
+        }
+    }
+
     // Returns `icon` at the size of a glyph leading a row of the lens or a menu.
     private mtd commandGlyph(icon: ThemeIcons)->Icon => .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
 
@@ -1196,8 +1214,10 @@ impl ViewerWindow
             .chooseFile()
 
         case ViewerCommands.Explore:
-            if .acceptsViewCommands() do
+            if .acceptsViewCommands()
+            {
                 .exploreFolder()
+            }
             else
             {
                 let folder = .selectExplorerFolder()
@@ -1388,6 +1408,9 @@ impl ViewerWindow
 
         case ViewerCommands.ExtractChosen:
             explorer.chooseExtraction(all: false)
+
+        case ViewerCommands.ThumbnailCaptions:
+            explorer.setTileCaption(not explorer.showTileCaption)
 
         case ViewerCommands.AlbumPlay:
             explorer.playAlbum(false)

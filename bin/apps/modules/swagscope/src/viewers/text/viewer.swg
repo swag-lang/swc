@@ -167,9 +167,9 @@ struct Panel
     services:           Viewer.HostServices
 }
 
-// Reports whether `evt` is the wrap shortcut, Ctrl+W with no other modifier. The editor's hook and
+// Reports whether `evt` is the wrap shortcut, Ctrl+Shift+W. The editor's hook and
 // the panel both answer it, so the shortcut behaves the same wherever the focus is.
-private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and evt.key == .W and evt.modifiers == .Control
+private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and evt.key == .W and evt.modifiers == .CtrlShift
 
 impl Panel
 {
@@ -196,8 +196,10 @@ impl Panel
     {
         let line = .currentLine()
         var start: u64
-        if line do
+        if line
+        {
             start = .lines.offsetOfLine(.fileName, line, .encoding, .contentStart)
+        }
         else
         {
             // Count only the resident text so a distant line need not force a whole-file scan.
@@ -1490,7 +1492,8 @@ impl Panel
                         func|view = me, index|() { view.promptRenameBookmark(index) },
                         bindId: Format.toString("scope.text.bookmark.rename.%", index))
         }
-        entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .Control, key: .W}, bindId: "scope.text.wrap")
+
+        entries.add(strings.ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .CtrlShift, key: .W}, bindId: "scope.text.wrap")
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.text.numbers")
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.text.blanks")
 

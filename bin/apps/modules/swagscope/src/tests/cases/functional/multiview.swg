@@ -416,7 +416,7 @@ using Core, Gui, Pixel, Audio
     Swag.require(not film.playing)
     host.keyPress(.M)
     Swag.require(film.muted == muted)
-    host.keyPress(.F)
+    host.keyPress(.F6)
     Swag.require(not workspace.scene()!.maximized and edit.hasFocus())
     host.keyPress(.MediaPlayPause)
     Swag.require(film.playing and edit.hasFocus())
@@ -624,7 +624,7 @@ using Core, Gui, Pixel, Audio
     let first  = unwrap ScenePlayer.from(scene.views[0].document).sound
     let second = unwrap ScenePlayer.from(scene.views[1].document).sound
     workspace.setScenePlaying(true)
-    host.keyPress(.F)
+    host.keyPress(.F6)
     host.keyPress(.Right, .Alt)
     Swag.require(scene.maximized and scene.active == 1)
     Swag.require(first.playing and first.sceneSilent and not (first.voice?.isPlaying() orelse false))

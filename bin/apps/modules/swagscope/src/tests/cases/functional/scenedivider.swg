@@ -11,7 +11,7 @@ using Core, Gui
     let workspace = testWorkspace(&host)
     defer host.shutdown()
 
-    let divider = workspace.divider
+    let divider = unwrap workspace.columnDividers[0]
     Swag.require(not divider.isLocallyVisible() and divider.mouseCapture() == null)
 
     let paths = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp")]

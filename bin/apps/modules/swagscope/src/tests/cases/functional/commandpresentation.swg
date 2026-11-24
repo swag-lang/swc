@@ -7,14 +7,16 @@ using Core, Gui, Viewers
 #test
 {
     defer Sound.releaseEngine()
-    let files = ["comprehensive.txt", "sample.cpp", "viewer.page.html", "comprehensive.md",
-                 "title.png", "viewer.arabic.ttf", "viewer.groove.mid", "viewer.pdf", "viewer.srt",
-                 "pacman_beginning.wav", "viewer.console.exe", "viewer.hex", "viewer.archive.zip", "viewer.csv"]
-    for file in files
+    let registry = createViewerPluginRegistry()
+    for &plugin in registry.plugins
     {
         var host: Testing.HeadlessHost
-        let window = framedViewerWindow(&host, scopeTestDataPath(file), false)
+        let file   = scopeTestDataPath(plugin.smokeFixture)
+        let window = plugin.key == "archive" ? framedViewerWindow(&host, file, false) :
+                     picturedWindowAs(&host, file, plugin.key, false)
+        defer host.shutdown()
         Swag.require(window.currentView != null or window.isExploring(), file)
+        Swag.require(window.pluginIcon(plugin).isValid(), plugin.key)
         window.lens.open(">")
         var commands: u32
         for section in window.lens.results.sections where section and not section.inline

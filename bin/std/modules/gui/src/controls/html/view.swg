@@ -266,13 +266,10 @@ struct HtmlView
         scrollDragGrab:     f32
         scrollDragLimit:    f32
 
-        // The bar of a region rests invisible like every scroll bar: it shows for the region under
-        // the pointer or being scrolled, and fades once that has been still for `motion_ScrollRest`.
+        // Only the targeted CSS region paints its overlay while its bar fades in or out.
         barRegion = HtmlNoNode
-        barPresence:   f32
         barExpansion:  f32
         isBarExpanded: bool
-        barTimer:      *Timer?
     }
 }
 
@@ -1416,7 +1413,6 @@ img, video, table { max-width: 100% !important; }
         result.scrollBarExpansion = .barExpansion
         result.scrollThumbMin     = .themeMetrics().scrollBar_BoxMinSize
         result.barRegion          = .barRegion
-        result.barPresence        = .barPresence
         return result
     }
 
@@ -1831,14 +1827,6 @@ internal impl IWnd for HtmlView
 
     mtd impl onTimerEvent(evt: *TimerEvent)
     {
-        if evt.timer == .barTimer
-        {
-            .removeTimer(evt.timer)
-            .barTimer = null
-            .restRegionBar()
-            return
-        }
-
         if evt.timer != .loadTimer
         {
             evt.accepted = false
@@ -1890,12 +1878,7 @@ internal impl IWnd for HtmlCanvas
             }
 
             var painter = owner.painter()
-            owner.setRegionBarExpanded(painter.scrollBarAt(point).box != HtmlNoNode)
-
-            // The region under the pointer shows its bar.
-            let region = painter.scrollableAt(point)
-            if region != HtmlNoNode do
-                owner.wakeRegionBar(region)
+            owner.hoverRegionBar(painter.scrollBarAt(point).box)
 
             if owner.selecting
             {
@@ -1929,7 +1912,8 @@ internal impl IWnd for HtmlCanvas
                 .app().setFrameCursor(Cursor.from(.IBeam))
 
         case .Leave:
-            owner.setRegionBarExpanded(false)
+            if owner.scrollDragBox == HtmlNoNode do
+                owner.hoverRegionBar(HtmlNoNode)
             if owner.hovered != HtmlNoNode
             {
                 let hadLink = owner.linkElementAt(owner.hovered) != HtmlNoNode
@@ -1942,6 +1926,7 @@ internal impl IWnd for HtmlCanvas
             owner.setFocus()
             var painter = owner.painter()
             let bar     = painter.scrollBarAt(point)
+            owner.hoverRegionBar(bar.box)
             if bar.box != HtmlNoNode
             {
                 // The visible thumb is intentionally narrow, while the expanded track target is
@@ -2018,6 +2003,7 @@ internal impl IWnd for HtmlCanvas
             }
 
             owner.endRegionScrollDrag()
+            owner.hoverRegionBar(owner.painter().scrollBarAt(point).box)
             if .mouseCapture() == me do
                 .releaseMouse()
 
@@ -2082,39 +2068,18 @@ internal impl HtmlView
 
         target.scrollTop = wanted
         .canvas.invalidate()
-        .wakeRegionBar(box)
         return true
     }
 
-    // Shows the bar of `box`, and restarts the stillness after which it fades out.
-    private mtd wakeRegionBar(box: u32)
+    private mtd hoverRegionBar(box: u32)
     {
-        if not .surface do
-            return
-
-        // Another region's bar is not carried over: the new one comes in from nothing.
-        if .barRegion != box
+        let expanded = box != HtmlNoNode
+        if expanded and box != .barRegion
         {
-            .barRegion   = box
-            .barPresence = 0
+            .barRegion     = box
+            .barExpansion  = 0
+            .isBarExpanded = false
         }
-
-        if .barPresence < 1
-        {
-            var options: AnimationOptions
-            options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
-            options.easing   = .EaseOut
-            discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Html.RegionBar"), .barPresence, 1, func(view, value) { view.barPresence = value; view.canvas.invalidate() }, options)
-        }
-
-        if .barTimer do
-            .removeTimer(.barTimer)
-        .barTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
-    }
-
-    // Grows a region bar while the pointer is inside its expanded track target.
-    private mtd setRegionBarExpanded(expanded: bool)
-    {
         if .isBarExpanded == expanded do
             return
         .isBarExpanded = expanded
@@ -2132,20 +2097,5 @@ internal impl HtmlView
                                                view.canvas.invalidate()
                                            },
                                            options)
-    }
-
-    // Fades the shown region bar out, unless its thumb is in the hand.
-    private mtd restRegionBar()
-    {
-        if .scrollDragBox != HtmlNoNode
-        {
-            .barTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
-            return
-        }
-
-        var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
-        options.easing   = .Linear
-        discard .app().animator.animateF32(me, AnimationChannel.from("Gui.Html.RegionBar"), .barPresence, 0, func(view, value) { view.barPresence = value; view.canvas.invalidate() }, options)
     }
 }

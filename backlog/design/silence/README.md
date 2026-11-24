@@ -256,8 +256,8 @@ be noticed: if a viewer remembers an animation, it was too much.
 - **Input never waits.** Focus, hit testing and the keyboard reach the final state at once; an
   animation running when the next change arrives retargets from what is on screen. Typing, the
   caret, the selection in a list, the focus ring and an error appear instantly.
-- **Scroll bars rest.** Their thin thumb gains contrast while the view scrolls or the pointer is
-  over them, and fades to 30% opacity 600 ms after the last movement. The track remains translucent.
+- **Scroll bars rest.** Only the bar under the pointer gains contrast. It stays clear during a
+  thumb drag and fades back to 30% when the pointer leaves. The track remains translucent.
 - **Reduced motion is honoured.** When the system asks for reduced motion, decorative motion
   completes immediately; progress keeps moving.
 
@@ -273,7 +273,7 @@ be noticed: if a viewer remembers an animation, it was too much.
 | Page change | 180 ms | ease out | 16 px |
 | Panel or notice changing the layout | 220 ms | ease in-out | its own size |
 | Notice dismissed | 120 ms fade, then 220 ms close | linear, then ease in-out | its own size |
-| Scroll bar resting | 180 ms fade after 600 ms still | linear | none |
+| Scroll bar hover entering or leaving | 120 ms | ease out | none |
 
 ## Shared components
 
@@ -540,7 +540,7 @@ its failure tone; the status words remain in body ink. Both follow the current p
 - **Tooltip**: surface (Papier: ink with paper text), corner 6, 12 px.
 - **Scrollbars**: a 4 px thumb in an 8 px cell and a 16 px pointer target. The track is a
   translucent tint (4%, 8% on hover), never an opaque strip over the content. The thumb rests at
-  30% opacity and gains contrast while the view scrolls or the pointer is over it, without growing wider.
+  30% opacity and gains contrast within its pointer target or during a drag, without growing wider.
 
 ## Property grid
 

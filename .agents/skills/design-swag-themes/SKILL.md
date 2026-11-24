@@ -196,7 +196,8 @@ and its goldens hold the measurable part. Implementation notes:
   [design-swag-identity](../design-swag-identity/SKILL.md#join-an-icon-menu-to-its-button)).
 - **Scroll bars** keep a 4 px thumb in an 8 px cell, with a 16 px pointer target. Their track is a
   translucent tint (4%, 8% on hover), so the content beneath stays visible. The thumb rests at 30%
-  opacity, gains contrast during scrolling or hover without growing wider, and fades after `motion_ScrollRest`.
+  opacity. Its own pointer target and an active thumb drag raise contrast without growing the thumb.
+  Entering or leaving the target uses `motion_QuickSeconds`. Scrolling the content keeps its resting contrast.
   A minimal thumb keeps the same end caps as a longer one. Preserve the nine-slice corners when
   reducing an atlas tile nonuniformly, and check both axes at fractional display scales.
 - **Tooltips** use the `tip` tone: the surface on Encre, ink with paper text on Papier.

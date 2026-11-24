@@ -113,10 +113,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
 
     var host: HeadlessHost
-    host.setup(880, 560)
-    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.openFile(fileName, remember: false)
-    completeQueuedViewerFile(&host, window)
+    let workspace = testWorkspace(&host, width: 880, height: 560)
+    defer host.shutdown()
+    workspace.openScene([fileName, scopeTestDataPath("sample.cpp")], .SideBySide)
+    openViews(&host, workspace)
+    let window = workspace.primary
 
     let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     let outline = unwrap zoom.outline
@@ -129,9 +130,30 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let scroll = outline.list.scrollWnd
     Swag.require(outline.rows.count == 40)
     Swag.require(scroll.scrollSize.y > scroll.paddedClientRect().height)
-    let point = scroll.localToSurface(scroll.clientRect().center())
-    host.mouseWheel(point, -120)
-    Swag.require(scroll.scrollTarget().y > 0)
+    for solo in [false, true]
+    {
+        if solo
+        {
+            workspace.closeView(1)
+            window.applyTheme(cast(u32, AppearanceTheme.Light))
+        }
+        scroll.setScrollPos(0, 0)
+        let body = scroll.view.surfaceRect()
+        let metrics = scroll.themeMetrics()
+        let thumb = Math.Point{body.right() + metrics.scrollBar_HitSize - metrics.scrollBar_Size * 0.5, body.y + 12}
+        let x = cast(s32, thumb.x)
+        let y = cast(s32, thumb.y)
+        host.moveMouse({4, 4})
+        let rest = host.renderSettled(&host.surfaceWnd).pixelColor(x, y)
+        host.moveMouse(body.center())
+        Swag.require(host.renderSettled(&host.surfaceWnd).pixelColor(x, y) == rest)
+        host.moveMouse(thumb)
+        Swag.require(host.renderSettled(&host.surfaceWnd).pixelColor(x, y) != rest)
+        host.moveMouse(body.center())
+        Swag.require(host.renderSettled(&host.surfaceWnd).pixelColor(x, y) == rest)
+        host.mouseWheel(body.center(), -120)
+        Swag.require(scroll.scrollTarget().y > 0)
+    }
 }
 
 // Its caption glyph and shortcut open the same panel while focus is inside the outline.

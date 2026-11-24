@@ -151,7 +151,6 @@ impl DocumentOutline
             {
                 if mouse.kind == .Move or mouse.kind == .Enter
                 {
-                    panel.list.scrollWnd.revealScrollBars()
                     panel.updateHeadingTooltip(mouse.surfacePos)
                 }
                 elif mouse.kind == .Leave

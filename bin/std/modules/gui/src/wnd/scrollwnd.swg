@@ -79,9 +79,9 @@ public struct ScrollWnd
 
     grabbingPos: Math.Point     // Pointer position at the last step of a middle-button pan.
 
-    // A quiet thumb remains in its gutter at rest; motion and hover bring it to full contrast.
-    barPresence:   f32         // Animated bar presence before the resting visibility floor is applied.
-    restTimer:     *Timer?     // Pending fade of the bars.
+    // Hover follows each gutter independently. An explicit reveal can also raise both bars.
+    barPresence:   f32         // Presence requested by revealScrollBars.
+    restTimer:     *Timer?     // Pending fade after an explicit reveal.
     barExpansionV: f32         // Animated extra thickness of the vertical bar.
     barExpansionH: f32         // Animated extra thickness of the horizontal bar.
 }
@@ -99,13 +99,6 @@ public impl IWnd for ScrollWnd
         if evt.timer != .restTimer do
             return
         .stopTimer(&.restTimer)
-
-        // Pointer motion starts the rest timer; only an active drag keeps it alive.
-        if .isMoving
-        {
-            .restTimer = .addTimer(Time.Duration.fromSeconds(.themeMetrics().motion_ScrollRest))
-            return
-        }
 
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
@@ -145,6 +138,8 @@ public impl IWnd for ScrollWnd
                 .setScrollPos(.view.scrollPos.x, .view.scrollPos.y - (evt.delta.y * .verticalScrollStep))
 
         case .Leave:
+            if .isMoving do
+                break
             let wasHotV = .isHotBarV
             let wasHotH = .isHotBarH
             if not wasHotV and not wasHotH do
@@ -154,18 +149,17 @@ public impl IWnd for ScrollWnd
             .invalidate()
 
         case .Move:
-            let moved = evt.delta != Math.Point{}
             if not .isGrabbing and not .isMoving
             {
-                .hitTest(evt.surfacePos, moved)
+                .hitTest(evt.surfacePos)
                 break
             }
 
-            if not moved do
+            if evt.delta == Math.Point{} do
                 break
-            .revealScrollBars()
             if .isGrabbing
             {
+                .hitTest(evt.surfacePos)
                 let move   = evt.surfacePos - .grabbingPos
                 let scroll = .scrollRequestPos - move
                 .scrollRequestPos = .clampedScrollPos(scroll.x, scroll.y)
@@ -204,6 +198,7 @@ public impl IWnd for ScrollWnd
             .invalidate()
 
         case .Pressed:
+            .hitTest(evt.surfacePos)
             if evt.button == .Middle
             {
                 .isGrabbing      = true
@@ -214,7 +209,6 @@ public impl IWnd for ScrollWnd
             }
             elif evt.button == .Left and (.isHotV or .isHotH or .isHotBarV or .isHotBarH)
             {
-                .revealScrollBars()
                 .isMoving = true
                 if .isHotV
                 {
@@ -283,9 +277,7 @@ public impl IWnd for ScrollWnd
         let rects   = .themeRects()
 
         // The reserved gutter keeps a quiet thumb visible at rest.
-        let presence = Math.max(.barPresence, metrics.scrollBar_RestPresence)
-        if presence <= 0 do
-            return
+        let rest = Math.max(.barPresence, metrics.scrollBar_RestPresence)
 
         var colorBk: Color
         switch
@@ -298,6 +290,7 @@ public impl IWnd for ScrollWnd
         // Vertical bar
         if .showBarV
         {
+            let presence = rest + (1 - rest) * .barExpansionV
             var clientRect = .barClientRect()
             let edge       = clientRect.right() - metrics.scrollBar_EdgeInset
             clientRect.width = metrics.scrollBar_Size +
@@ -334,6 +327,7 @@ public impl IWnd for ScrollWnd
         // Horizontal bar
         if .showBarH
         {
+            let presence = rest + (1 - rest) * .barExpansionH
             var clientRect = .barClientRect()
             let edge       = clientRect.bottom() - metrics.scrollBar_EdgeInset
             clientRect.height = metrics.scrollBar_Size +
@@ -375,7 +369,7 @@ public impl IWnd for ScrollWnd
             clientRect.y      = clientRect.bottom() - metrics.scrollBar_EdgeInset - .barHeightH
             clientRect.width  = .barWidthV
             clientRect.height = .barHeightH
-            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, fadeColor(colors.scrollBar_Bk, presence))
+            theme.drawSubRect(bc.painter, clientRect, &rects.scrollBar_Corner, fadeColor(colors.scrollBar_Bk, rest))
         }
     }
 }
@@ -389,7 +383,7 @@ impl ScrollWnd
         return result
     }
 
-    // Motion over the content reveals the bar, while the reserved gutter owns its hit target.
+    // The gutter can overlap a child's edge. Only the bar hit by the pointer owns the gesture.
     func onHookChildEvent(wnd: *Wnd, evt: IEvent)->bool
     {
         let scroll = assume cast(*ScrollWnd, wnd)
@@ -397,7 +391,7 @@ impl ScrollWnd
         {
             if mouse.kind == .Move or mouse.kind == .Pressed
             {
-                scroll.hitTest(mouse.surfacePos, mouse.kind == .Move and mouse.delta != Math.Point{})
+                scroll.hitTest(mouse.surfacePos)
                 if scroll.isHotV or scroll.isHotH or scroll.isHotBarV or scroll.isHotBarH
                 {
                     if mouse.kind == .Pressed do
@@ -410,7 +404,7 @@ impl ScrollWnd
         return false
     }
 
-    mtd hitTest(surfacePos: Math.Point, moved = false)
+    mtd hitTest(surfacePos: Math.Point)
     {
         let pos       = .surfaceToLocal(surfacePos)
         let wasThumbV = .isHotV
@@ -427,14 +421,10 @@ impl ScrollWnd
         case .showBarH and .needH and .horizontalThumbRect(true).contains(pos): .isHotBarH = true
         }
 
-        // The event loop polls the pointer even while it is still. Recheck the hit in case
-        // layout moved under it. Only movement or changed hover can restart the fade.
         let changed = wasThumbV != .isHotV or
                       wasThumbH != .isHotH or
                       wasBarV != .isHotBarV or
                       wasBarH != .isHotBarH
-        if moved or (changed and (.isHotBarV or .isHotBarH)) do
-            .revealScrollBars()
         if changed
         {
             .animateBarExpansion(wasBarV, wasBarH)
@@ -719,9 +709,8 @@ public impl ScrollWnd
 
     // Briefly reveals the available scrollbars and restarts their normal fade delay.
     //
-    // A composite can call this when its content is hovered or receives keyboard focus, so
-    // scrolling is discoverable at full contrast. This changes neither layout nor scroll
-    // position and has no effect before the window belongs to a surface.
+    // This explicit hint leaves the layout and scroll position intact. Ordinary pointer
+    // input highlights only the bar whose interaction area contains the pointer.
     mtd revealScrollBars()
     {
         // A view not yet on a surface has no bars to show and no clock to count stillness on.
@@ -751,7 +740,6 @@ public impl ScrollWnd
         .view.scrollPos = newSP
         .sigScrollPositionChanged.call(me, oldPos, newSP)
         .positionThumbs()
-        .revealScrollBars()
         return newSP
     }
 

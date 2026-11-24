@@ -15,7 +15,7 @@ struct ThemeMetrics
         motion_PanelSeconds: f32 = 0.22     // Duration of a layout-affecting panel change.
         motion_PageOffset:   f32 = 16       // Travel distance of a page change, in logical pixels.
         motion_LeaveSeconds: f32 = 0.12     // Duration of a floating surface fading out: two thirds of its arrival.
-        motion_ScrollRest:   f32 = 0.6      // Stillness after which the scroll bars of a view fade out.
+        motion_ScrollRest:   f32 = 0.6      // Seconds an explicit scrollbar reveal holds before fading.
         motion_EdgeTravel:   f32 = 8        // Travel of a floating surface arriving from the edge it stands against.
         motion_AnchorTravel: f32 = 4        // Travel of a floating surface leaving the anchor it belongs to.
 
@@ -260,7 +260,7 @@ struct ThemeMetrics
         scrollBar_HoverSize:    f32 = 8       // Thickness while the pointer is over a scroll bar; the thumb keeps its resting width.
         scrollBar_BoxPadding:   f32 = 2       // Air between a scroll bar thumb and its track.
         scrollBar_BoxMinSize:   f32 = 20      // Shortest a scroll bar thumb gets.
-        scrollBar_RestPresence: f32 = 0.3     // Visibility of a quiet thumb after pointer motion stops.
+        scrollBar_RestPresence: f32 = 0.3     // Opacity multiplier for a scrollbar at rest.
 
         comboBox_Width:          f32 = 150     // Default width of a combo box.
         comboBox_Height:         f32 = 32      // Height of a combo box.

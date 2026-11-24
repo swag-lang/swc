@@ -15939,7 +15939,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_ThemeMetrics_motion_QuickSeconds" class="code-type">motion_QuickSeconds</td><td class="code-type">f32</td><td><p>Duration of hover, selection, and other immediate state feedback.</p>
 </td></tr>
-<tr><td id="Gui_ThemeMetrics_motion_ScrollRest" class="code-type">motion_ScrollRest</td><td class="code-type">f32</td><td><p>Stillness after which the scroll bars of a view fade out.</p>
+<tr><td id="Gui_ThemeMetrics_motion_ScrollRest" class="code-type">motion_ScrollRest</td><td class="code-type">f32</td><td><p>Seconds an explicit scrollbar reveal holds before fading.</p>
 </td></tr>
 <tr><td id="Gui_ThemeMetrics_optionSheet_DetailRowHeight" class="code-type">optionSheet_DetailRowHeight</td><td class="code-type">f32</td><td><p>Pitch of a row whose wording carries a detail line.</p>
 </td></tr>
@@ -15999,7 +15999,7 @@ busy.<span class="SFct">hide</span>()</span></div>
 </td></tr>
 <tr><td id="Gui_ThemeMetrics_scrollBar_HoverSize" class="code-type">scrollBar_HoverSize</td><td class="code-type">f32</td><td><p>Thickness while the pointer is over a scroll bar; the thumb keeps its resting width.</p>
 </td></tr>
-<tr><td id="Gui_ThemeMetrics_scrollBar_RestPresence" class="code-type">scrollBar_RestPresence</td><td class="code-type">f32</td><td><p>Visibility of a quiet thumb after pointer motion stops.</p>
+<tr><td id="Gui_ThemeMetrics_scrollBar_RestPresence" class="code-type">scrollBar_RestPresence</td><td class="code-type">f32</td><td><p>Opacity multiplier for a scrollbar at rest.</p>
 </td></tr>
 <tr><td id="Gui_ThemeMetrics_scrollBar_Size" class="code-type">scrollBar_Size</td><td class="code-type">f32</td><td><p>Thickness of every scroll bar: a four-pixel thumb and its air.</p>
 </td></tr>
@@ -23689,88 +23689,88 @@ sheet.<span class="SFct">doModal</span>(button, autoDestroy: <span class="SKwd">
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">theme</span>()-&gt;<span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_authoredCanvasBackground" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.authoredCanvasBackground</span> <a class="api-item-permalink" href="#Gui_HtmlView_authoredCanvasBackground" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L464">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_authoredCanvasBackground" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.authoredCanvasBackground</span> <a class="api-item-permalink" href="#Gui_HtmlView_authoredCanvasBackground" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L461">src</a></div>
 <p>Returns the document's authored canvas color, or transparent when the host provides the ground.</p>
 <p>Uses the current layout's HTML or body background, following the same rule as painting.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">authoredCanvasBackground</span>()-&gt;<span class="SCst"><a href="std.pixel.html#Pixel_Color">Color</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSearch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSearch</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSearch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1480">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSearch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSearch</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSearch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1476">src</a></div>
 <p>Removes the programmatic search highlight without changing the document selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSearch</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1242">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_clearSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.clearSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_clearSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1239">src</a></div>
 <p>Empties the selection.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clearSelection</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.copySelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1287">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_copySelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.copySelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_copySelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1284">src</a></div>
 <p>Puts the selected text on the clipboard, and reports whether there was one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">copySelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1766">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createFile" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createFile</span> <a class="api-item-permalink" href="#Gui_HtmlView_createFile" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1762">src</a></div>
 <p>Creates a view and progressively loads an HTML file.</p>
 <p>The encoding is decided from the file itself — its byte-order mark, its <span class="code-inline">&lt;meta charset&gt;</span>, or its bytes — so a legacy code page 1252 page reads as the accented text it means. File-open and decoding failures remain visible in the document and are also exposed through <a href="#Gui_HtmlView_failureReason">Gui.HtmlView.failureReason</a> and <a href="#Gui_HtmlView_sigLoadFailed">Gui.HtmlView.sigLoadFailed</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFile</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, fileName: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1708">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_createText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.createText</span> <a class="api-item-permalink" href="#Gui_HtmlView_createText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1704">src</a></div>
 <p>Creates a view and renders the complete in-memory HTML source.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createText</span>(contentParent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, source: <span class="STpe">string</span>, documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span> = {})-&gt;*<span class="SCst"><a href="#Gui_HtmlView">HtmlView</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_documentFacts" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.documentFacts</span> <a class="api-item-permalink" href="#Gui_HtmlView_documentFacts" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L470">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_documentFacts" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.documentFacts</span> <a class="api-item-permalink" href="#Gui_HtmlView_documentFacts" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L467">src</a></div>
 <p>Returns the title, language, and description declared by the page.</p>
 <p>The values come from the first <span class="code-inline">title</span>, the <span class="code-inline">lang</span> of the <span class="code-inline">html</span> element, and the first <span class="code-inline">meta</span> named <span class="code-inline">description</span>; each is empty when the page does not provide it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">documentFacts</span>()-&gt;<span class="SCst"><a href="#Gui_HtmlDocumentFacts">HtmlDocumentFacts</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L953">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_elementById" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.elementById</span> <a class="api-item-permalink" href="#Gui_HtmlView_elementById" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L950">src</a></div>
 <p>Returns the element carrying an identifier, or <span class="code-inline">HtmlNoNode</span> when the document has none.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">elementById</span>(id: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_extractText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.extractText</span> <a class="api-item-permalink" href="#Gui_HtmlView_extractText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1726">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_extractText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.extractText</span> <a class="api-item-permalink" href="#Gui_HtmlView_extractText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1722">src</a></div>
 <p>Extracts parsed text content from HTML source without creating a view.</p>
 <p>The result follows parser text order and resolves character references. Elements the parser excludes, including script and style subtrees, are omitted. The source is parsed in memory; no linked resources are opened, and memory use grows with the supplied source, so callers choose its bound.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">extractText</span>(source: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1113">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_findText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.findText</span> <a class="api-item-permalink" href="#Gui_HtmlView_findText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1110">src</a></div>
 <p>Scrolls to the next node whose text contains <span class="code-inline">text</span>, wrapping once at the end.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">findText</span>(text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_fragmentOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.fragmentOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_fragmentOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L966">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_fragmentOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.fragmentOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_fragmentOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L963">src</a></div>
 <p>Returns the source byte offset of the element carrying <span class="code-inline">id</span>, or <span class="code-inline">U64.Max</span> when absent.</p>
 <p>It follows the source-offset convention of <a href="#Gui_HtmlView_readingOffset">Gui.HtmlView.readingOffset</a>, so a reader can tell whether a fragment lies before the text being read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">fragmentOffset</span>(id: <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.hasSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1239">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_hasSelection" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.hasSelection</span> <a class="api-item-permalink" href="#Gui_HtmlView_hasSelection" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1236">src</a></div>
 <p>Reports whether the reader selected something.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasSelection</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_headings" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.headings</span> <a class="api-item-permalink" href="#Gui_HtmlView_headings" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L503">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_headings" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.headings</span> <a class="api-item-permalink" href="#Gui_HtmlView_headings" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L500">src</a></div>
 <p>Returns owned, visible h1 through h6 headings in document order.</p>
 <p>Offsets address the current source and survive changes of zoom or width. Refresh the snapshot on <a href="#Gui_HtmlView_sigDocumentChanged">Gui.HtmlView.sigDocumentChanged</a>, including local document navigation.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">headings</span>()-&gt;<span class="SFct"><a href="std.core.html#Core_Array">Array</a></span>'<span class="SCst"><a href="#Gui_DocumentHeading">DocumentHeading</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isLoading</span> <a class="api-item-permalink" href="#Gui_HtmlView_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L334">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_isLoading" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isLoading</span> <a class="api-item-permalink" href="#Gui_HtmlView_isLoading" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L331">src</a></div>
 <p>Reports whether source remains to be read.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isLoading</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_isReaderMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isReaderMode</span> <a class="api-item-permalink" href="#Gui_HtmlView_isReaderMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1510">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_isReaderMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.isReaderMode</span> <a class="api-item-permalink" href="#Gui_HtmlView_isReaderMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1506">src</a></div>
 <p>Reports whether this view is using the DOM-based reading sheet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isReaderMode</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L976">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_navigateToFragment" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.navigateToFragment</span> <a class="api-item-permalink" href="#Gui_HtmlView_navigateToFragment" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L973">src</a></div>
 <p>Scrolls to the element a document-internal reference names.</p>
 <p>Returns false when the reference points outside the document, which is what tells the caller to treat the link as a destination of its own.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">navigateToFragment</span>(url: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
@@ -23803,34 +23803,34 @@ view.<span class="SFct">setDocumentStyle</span>(style)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">restoreReadingPosition</span>(position: <span class="SCst"><a href="#Gui_HtmlReadingPosition">HtmlReadingPosition</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1428">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_revealFileOffset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.revealFileOffset</span> <a class="api-item-permalink" href="#Gui_HtmlView_revealFileOffset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1424">src</a></div>
 <p>Repositions a streamed document on the node a byte offset belongs to.</p>
 <p>The document is read up to that offset first when it is not there yet, so a match reported by a search over the raw file marks that exact rendered range when source and text offsets agree. An empty <span class="code-inline">text</span> only scrolls.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealFileOffset</span>(offset: <span class="STpe">u64</span>, text: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_searchMatchRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.searchMatchRect</span> <a class="api-item-permalink" href="#Gui_HtmlView_searchMatchRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1469">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_searchMatchRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.searchMatchRect</span> <a class="api-item-permalink" href="#Gui_HtmlView_searchMatchRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1465">src</a></div>
 <p>Reports the current search highlight in surface coordinates.</p>
 <p>Returns false until a streamed match is laid out. The caller owns the visual treatment and may poll this method while <a href="#Gui_HtmlView_isLoading">Gui.HtmlView.isLoading</a> remains true.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">searchMatchRect</span>(result: *<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectAll</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1254">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_selectAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectAll</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1251">src</a></div>
 <p>Selects the whole document text.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectAll</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectedText</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1278">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_selectedText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.selectedText</span> <a class="api-item-permalink" href="#Gui_HtmlView_selectedText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1275">src</a></div>
 <p>Returns the selected text, one space per soft line break and one line per block.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">selectedText</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1486">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_setDocumentStyle" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setDocumentStyle</span> <a class="api-item-permalink" href="#Gui_HtmlView_setDocumentStyle" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1482">src</a></div>
 <p>Replaces the document defaults and restyles what is already loaded.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setDocumentStyle</span>(documentStyle: <span class="SCst"><a href="#Gui_HtmlStyle">HtmlStyle</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_HtmlView_setReaderMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setReaderMode</span> <a class="api-item-permalink" href="#Gui_HtmlView_setReaderMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1498">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_HtmlView_setReaderMode" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">HtmlView.setReaderMode</span> <a class="api-item-permalink" href="#Gui_HtmlView_setReaderMode" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/html/view.swg#L1494">src</a></div>
 <p>Selects authored layout or semantic reading mode.</p>
 <p>Reading mode presents a sheet derived from the same DOM. Links and the current document remain owned by this view, so local fragments and links keep their normal navigation behavior. The first readable passage is restored after reflow.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setReaderMode</span>(enabled: <span class="STpe">bool</span>)</span></div>
@@ -27433,45 +27433,45 @@ view.<span class="SFct">showPage</span>(bookmarkPage)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isFocusable</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_revealScrollBars" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.revealScrollBars</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_revealScrollBars" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L725">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_revealScrollBars" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.revealScrollBars</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_revealScrollBars" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L714">src</a></div>
 <p>Briefly reveals the available scrollbars and restarts their normal fade delay.</p>
-<p>A composite can call this when its content is hovered or receives keyboard focus, so scrolling is discoverable at full contrast. This changes neither layout nor scroll position and has no effect before the window belongs to a surface.</p>
+<p>This explicit hint leaves the layout and scroll position intact. Ordinary pointer input highlights only the bar whose interaction area contains the pointer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revealScrollBars</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_scrollableClientRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.scrollableClientRect</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_scrollableClientRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L806">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_scrollableClientRect" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.scrollableClientRect</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_scrollableClientRect" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L794">src</a></div>
 <p>Returns the complete virtual content rectangle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">scrollableClientRect</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Rectangle">Rectangle</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_scrollPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.scrollPosition</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_scrollPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L644">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_scrollPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.scrollPosition</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_scrollPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L634">src</a></div>
 <p>Returns the current viewport origin in content coordinates.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">scrollPosition</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_scrollTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.scrollTarget</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_scrollTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L647">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_scrollTarget" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.scrollTarget</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_scrollTarget" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L637">src</a></div>
 <p>Returns where a running smooth scroll is heading, which is the current position when none is running.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">scrollTarget</span>()-&gt;<span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_setScrollPos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.setScrollPos</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_setScrollPos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L759">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_setScrollPos" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.setScrollPos</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_setScrollPos" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L747">src</a></div>
 <p>Sets and clamps the viewport origin in content coordinates.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setScrollPos</span>(pt: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setScrollPos</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_setScrollSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.setScrollSize</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_setScrollSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L772">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_setScrollSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.setScrollSize</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_setScrollSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L760">src</a></div>
 <p>Sets the non-negative virtual content size and clamps the current position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setScrollSize</span>(x, y: <span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_smoothScrollTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.smoothScrollTo</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_smoothScrollTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L656">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_smoothScrollTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.smoothScrollTo</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_smoothScrollTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L646">src</a></div>
 <p>Glides to <span class="code-inline">pt</span> over the surface's panel motion instead of jumping there.</p>
 <p>The target is clamped exactly as <a href="#Gui_ScrollWnd_setScrollPos">Gui.ScrollWnd.setScrollPos</a> clamps one. A call made while a previous glide is still running retains its position and forward velocity, so repeated steps — wheel notches, held arrows — accumulate into one continuous movement rather than restarting at each of them. Read <a href="#Gui_ScrollWnd_scrollTarget">Gui.ScrollWnd.scrollTarget</a> to compose the next step on top of the one in flight.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">smoothScrollTo</span>(pt: <span class="SCst"><a href="std.core.html#namespace_Core_Math">Math</a></span>.<span class="SCst"><a href="std.core.html#Core_Math_Point">Point</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Gui_ScrollWnd_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.updateFlags</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L794">src</a></div>
+<div class="api-item api-item-func"><span id="Gui_ScrollWnd_updateFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ScrollWnd.updateFlags</span> <a class="api-item-permalink" href="#Gui_ScrollWnd_updateFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/wnd/scrollwnd.swg#L782">src</a></div>
 <p>Adds and removes scrollbar options and immediately recomputes the viewport.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">updateFlags</span>(add: <span class="SCst"><a href="#Gui_ScrollWndFlags">ScrollWndFlags</a></span> = .<span class="SCst"><a href="#Gui_ScrollWndFlags_None">None</a></span>, remove = <span class="SCst"><a href="#Gui_ScrollWndFlags">ScrollWndFlags</a></span>.<span class="SCst"><a href="#Gui_ScrollWndFlags_None">None</a></span>)</span></div>
 </section>
@@ -32036,7 +32036,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.ThemeMetrics.motion_PageSeconds|Gui_ThemeMetrics_motion_PageSeconds|Duration of a page change.",
 "v|Gui.ThemeMetrics.motion_PanelSeconds|Gui_ThemeMetrics_motion_PanelSeconds|Duration of a layout-affecting panel change.",
 "v|Gui.ThemeMetrics.motion_QuickSeconds|Gui_ThemeMetrics_motion_QuickSeconds|Duration of hover, selection, and other immediate state feedback.",
-"v|Gui.ThemeMetrics.motion_ScrollRest|Gui_ThemeMetrics_motion_ScrollRest|Stillness after which the scroll bars of a view fade out.",
+"v|Gui.ThemeMetrics.motion_ScrollRest|Gui_ThemeMetrics_motion_ScrollRest|Seconds an explicit scrollbar reveal holds before fading.",
 "v|Gui.ThemeMetrics.optionSheet_DetailRowHeight|Gui_ThemeMetrics_optionSheet_DetailRowHeight|Pitch of a row whose wording carries a detail line.",
 "v|Gui.ThemeMetrics.optionSheet_HeaderHeight|Gui_ThemeMetrics_optionSheet_HeaderHeight|Height of the band that titles a page and leads back from it.",
 "v|Gui.ThemeMetrics.optionSheet_HeadingHeight|Gui_ThemeMetrics_optionSheet_HeadingHeight|Height of the title of a group of rows.",
@@ -32066,7 +32066,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 "v|Gui.ThemeMetrics.scrollBar_EdgeInset|Gui_ThemeMetrics_scrollBar_EdgeInset|Clear space at the window edge for native resizing.",
 "v|Gui.ThemeMetrics.scrollBar_HitSize|Gui_ThemeMetrics_scrollBar_HitSize|Width of the pointer target, expanded toward the view.",
 "v|Gui.ThemeMetrics.scrollBar_HoverSize|Gui_ThemeMetrics_scrollBar_HoverSize|Thickness while the pointer is over a scroll bar; the thumb keeps its resting width.",
-"v|Gui.ThemeMetrics.scrollBar_RestPresence|Gui_ThemeMetrics_scrollBar_RestPresence|Visibility of a quiet thumb after pointer motion stops.",
+"v|Gui.ThemeMetrics.scrollBar_RestPresence|Gui_ThemeMetrics_scrollBar_RestPresence|Opacity multiplier for a scrollbar at rest.",
 "v|Gui.ThemeMetrics.scrollBar_Size|Gui_ThemeMetrics_scrollBar_Size|Thickness of every scroll bar: a four-pixel thumb and its air.",
 "v|Gui.ThemeMetrics.sectionLabel_FontSize|Gui_ThemeMetrics_sectionLabel_FontSize|Size of the face a section label is set in.",
 "v|Gui.ThemeMetrics.sectionLabel_LetterSpacing|Gui_ThemeMetrics_sectionLabel_LetterSpacing|Air added between the capitals of a section label.",

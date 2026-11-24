@@ -770,15 +770,16 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var image = host.render(view)
     Swag.require(image.pixelColor(20, 60).argb == 0xFF0000FF)
-    Swag.require(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
+    Swag.require(image.pixelColor(97, 90).argb == 0xFF0000FF)
     Swag.require(image.pixelColor(20, 30).argb != 0xFFFF0000 and image.pixelColor(20, 30).argb != 0xFF0000FF)
     Swag.require(image.pixelColor(20, 130).argb != 0xFFFF0000 and image.pixelColor(20, 130).argb != 0xFF0000FF)
 
-    // Once the region has been still long enough, its bar rests invisible like every scroll bar.
-    host.fireTimers()
-    host.app.animator.finishAll()
-    image = host.render(view)
-    Swag.require(image.pixelColor(97, 90).argb != host.theme.colors.scrollBar_Box.argb)
+    host.moveMouse({97, 90})
+    image = host.renderSettled(view)
+    Swag.require(image.pixelColor(97, 90).argb == host.theme.colors.scrollBar_Box.argb)
+    host.moveMouse({20, 60})
+    image = host.renderSettled(view)
+    Swag.require(image.pixelColor(97, 90).argb == 0xFF0000FF)
 }
 
 // A tall inline image remains paintable after its typographic origin has left the viewport.
@@ -821,15 +822,22 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let bar = view.painter().scrollBarAt({96, 75})
     Swag.require(bar.box == rail and bar.track.contains(Math.Point{96, 75}))
 
+    host.moveMouse({40, 75})
+    host.finishAnimations()
+    Swag.require(view.painter().scrollBarExpansion == 0)
     host.click({96, 75})
     Swag.require(view.layout.constBox(rail).scrollTop == 100)
+    host.finishAnimations()
+    Swag.require(view.painter().scrollBarExpansion == 1)
 
     let moved = view.painter().scrollBarAt({96, 50})
     Swag.require(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
     host.mouseDown({96, 50})
     host.moveMouse({96, 95})
-    host.mouseUp({96, 95})
+    host.mouseUp({40, 95})
     Swag.require(view.layout.constBox(rail).scrollTop > 190)
+    host.finishAnimations()
+    Swag.require(view.painter().scrollBarExpansion == 0)
 }
 
 // A viewport-relative rail has a definite height even though its document parent grows with its

@@ -180,14 +180,14 @@ impl IWnd for ResponsiveScrollView
     host.advanceAnimations(host.theme.metrics.motion_QuickSeconds * 0.5)
     Swag.require(scroll.barExpansionV > 0 and scroll.barExpansionV < 1)
     host.finishAnimations()
-    Swag.require(scroll.isHotBarV and scroll.barPresence > 0 and scroll.barExpansionV == 1)
+    Swag.require(scroll.isHotBarV and scroll.barExpansionV == 1)
     host.mouseDown(edge)
     Swag.require(host.app.mouseCaptureWnd == scroll and scroll.scrollPosition().y > 0)
     host.mouseUp(edge)
     Swag.require(host.app.mouseCaptureWnd == null)
     host.fireTimers()
     host.finishAnimations()
-    Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
+    Swag.require(scroll.barExpansionV == 1)
 
     let resizeEdge = Math.Point{197, 100}
     host.moveMouse(resizeEdge)
@@ -211,7 +211,7 @@ impl IWnd for ResponsiveScrollView
     Swag.require(not scroll.isHotBarV and not scroll.isHotBarH)
 }
 
-// A hover hint exposes existing scrollbars without moving content or changing its viewport.
+// An explicit hint exposes existing scrollbars without moving content or changing its viewport.
 #test
 {
     var host: Testing.HeadlessHost
@@ -229,7 +229,7 @@ impl IWnd for ResponsiveScrollView
     Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
 }
 
-// Native pointer polling must leave the scrollbar at rest over the content and over its thumb.
+// Only the gutter under the pointer gains contrast. A stationary pointer keeps its state.
 #test
 {
     var host: Testing.HeadlessHost
@@ -237,25 +237,21 @@ impl IWnd for ResponsiveScrollView
     host.setReducedMotion(false)
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
     let view   = scroll.createView'Wnd()
-    scroll.setScrollSize(0, 1000)
+    scroll.setScrollSize(1000, 1000)
 
     let content = view.localToSurface(view.clientRect().center())
     let thumb   = scroll.localToSurface(scroll.verticalThumbRect().center())
-    for point in [content, thumb]
+    let horizontal = scroll.localToSurface(scroll.horizontalThumbRect().center())
+    for point, index in [content, thumb, horizontal, content]
     {
         host.moveMouse(point)
-        Swag.require(scroll.restTimer != null)
         host.finishAnimations()
-        Swag.require(scroll.barPresence == 1)
-        let rest = scroll.restTimer
-        host.fireTimer(rest)
-        Swag.require(not host.app.ownsTimer(rest))
-        host.finishAnimations()
-
         for 3 do
             host.moveMouse(point)
         Swag.require(scroll.restTimer == null and host.app.animator.activeCount() == 0)
-        Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
+        Swag.require(scroll.barPresence == 0)
+        Swag.require(scroll.barExpansionV == (index == 1 ? 1 : 0))
+        Swag.require(scroll.barExpansionH == (index == 2 ? 1 : 0))
     }
 }
 
@@ -459,7 +455,7 @@ struct ScrollHeadlessViewport
     Swag.require(outer.view.surfaceRect().contains(last.surfaceRect()))
 }
 
-// The bars become strong during a scroll, then return to their quiet resting presence.
+// Scrolling the content moves the thumbs without highlighting either gutter.
 #test
 {
     var host: Testing.HeadlessHost
@@ -471,11 +467,10 @@ struct ScrollHeadlessViewport
     host.finishAnimations()
     Swag.require(scroll.barPresence == 0)
 
-    scroll.setScrollPos({0, 100})
+    host.mouseWheel({80, 80}, -1)
+    Swag.require(scroll.scrollPosition().y > 0)
+    scroll.setScrollPos({100, 100})
     host.finishAnimations()
-    Swag.require(scroll.barPresence == 1)
-
-    host.fireTimers()
-    host.finishAnimations()
-    Swag.require(scroll.barPresence == host.theme.metrics.scrollBar_RestPresence)
+    Swag.require(scroll.scrollPosition() == Math.Point{100, 100})
+    Swag.require(scroll.barPresence == 0 and scroll.barExpansionV == 0 and scroll.barExpansionH == 0)
 }

@@ -62,6 +62,12 @@ struct JobOptions
     copies: u32 = 1
 }
 
+struct Submission
+{
+    submitted: bool
+    sheet:     Sheet
+}
+
 enum ContentKind
 {
     Image
@@ -130,6 +136,7 @@ func checkCancelled() fail
 
 func prepare(document: *Document, sheet: Sheet, setup: PageSetup)->Layout fail
 {
+    try checkCancelled()
     let content = Rectangle.intersect({setup.margin, setup.margin, sheet.size.x - 2 * setup.margin, sheet.size.y - 2 * setup.margin}, sheet.imageable)
     if not Math.isFinite(content.width) or
        not Math.isFinite(content.height) or
@@ -166,6 +173,17 @@ func prepare(document: *Document, sheet: Sheet, setup: PageSetup)->Layout fail
 
 impl Layout
 {
+    // Print drivers round paper dimensions to device pixels. Reuse a preview for that
+    // paper when the hardware can draw the preview's entire content rectangle.
+    mtd const fitsPrinter(sheet: Sheet)->bool
+    {
+        const PaperTolerance = 1.0'f32     // Points.
+        return .sheet == sheet or
+               (Math.abs(.sheet.size.x - sheet.size.x) <= PaperTolerance and
+                Math.abs(.sheet.size.y - sheet.size.y) <= PaperTolerance and
+                sheet.imageable.contains(.content))
+    }
+
     mtd const sourceSize(index: u64)->Point fail
     {
         if index >= .pageCount do
@@ -263,7 +281,7 @@ impl Layout
         .pageCount = (.rows.count - 1) / .rowsPerPage + 1
     }
 
-    mtd const drawText(painter: *Painter, index: u64)
+    mtd const drawText(painter: *Painter, index: u64) fail
     {
         let font  = painter.renderer().fontCache().createFont(unwrap .face, TextSize, .Msdf)
         let first = index * .rowsPerPage
@@ -272,6 +290,7 @@ impl Layout
         let ink   = Brush.createSolid(Color.fromArgb(Argb.Black))
         for row in first until end
         {
+            try checkCancelled()
             let span = .rows[row]
             let line = .document.text.toString()[span.start until span.end]
             Painter.shapeRunInto(&run, line, font, .document.tabWidth)
@@ -304,31 +323,37 @@ impl Layout
                 let region    = Rectangle{(visible.x - place.x) / pageScale, (visible.y - place.y) / pageScale,
                                           visible.width / pageScale, visible.height / pageScale}
                 let page = try .document.pdf.loadPage(index)
+                try checkCancelled()
                 picture = try page.render({scale: scale * pageScale, sourceRect: region})
                 place   = visible
             }
         }
 
+        try checkCancelled()
         var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
         var context = #move try renderer.createContext(null, width, height)
         defer renderer.deleteContext(&context)
 
         renderer.begin(context)
+        defer renderer.end()
         renderer.init()
         var target = renderer.createRenderTarget(width, height)
-        if not target.colorBuffer.isValid()
-        {
-            renderer.end()
+        if not target.colorBuffer.isValid() do
             fail PrintError{.InvalidPage}
-        }
+        defer renderer.deleteRenderTarget(&target)
 
         var texture: Texture
         if .document.kind == .Image do
             texture = renderer.addImage(.document.image)
         elif .document.kind == .Pdf do
             texture = renderer.addImage(picture)
-        renderer.end()
+        defer if texture.isValid() do
+            renderer.removeTexture(&texture)
+
+        if .document.kind != .Text and not texture.isValid() do
+            fail PrintError{.InvalidPage}
+        try checkCancelled()
 
         var painter = Painter.create(renderer)
         painter.setContentScale(scale)
@@ -339,25 +364,15 @@ impl Layout
         painter.setColorMaskColor()
         painter.pushClippingRect(.content)
         if .document.kind == .Text do
-            .drawText(&painter, index)
+            try .drawText(&painter, index)
         elif texture.isValid() do
             painter.drawTexture(place, texture)
         painter.popClippingRect()
         painter.unbindRenderTarget()
         painter.end()
 
-        renderer.begin(context)
-        defer
-        {
-            if texture.isValid() do
-                renderer.removeTexture(&texture)
-            renderer.deleteRenderTarget(&target)
-            renderer.end()
-        }
-
-        if .document.kind != .Text and not texture.isValid() do
-            fail PrintError{.InvalidPage}
         try painter.render()
+        try checkCancelled()
         var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
         if not result.isValid() do
             fail PrintError{.InvalidPage}

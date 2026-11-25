@@ -56,7 +56,7 @@ private func mediaName(paper: Paper)->string
     }
 }
 
-func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
+private func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
 {
     var library = #move catch NativeLibrary.load("libcups.so.2") orelse NativeLibrary{}
     if not library.isOpen() do
@@ -75,11 +75,13 @@ func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
         fail PrintError{.PrinterUnavailable}
     defer freeDest!(1, dest)
 
+    try checkCancelled()
     let info = getInfo(null, &dest[0])
     if not info do
         fail PrintError{.PrinterUnavailable}
     defer freeInfo!(unwrap info)
 
+    try checkCancelled()
     var media: cups_size_t
     if not getMedia(null, &dest[0], info, mediaName(setup.paper).buffer, CUPS_MEDIA_FLAGS_DEFAULT, &media) do
         fail PrintError{.UnsupportedPaper}
@@ -98,8 +100,15 @@ func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
     return {size, rect}
 }
 
-func printNative(printer: const *Printer, layout: const *Layout, options: JobOptions) fail
+// An unsubmitted result carries the geometry the caller needs to preview.
+func printNative(printer: const *Printer, layout: const *Layout, options: JobOptions)->Submission fail
 {
+    try checkCancelled()
+    let sheet = try printerSheet(printer, options.setup)
+    try checkCancelled()
+    if not layout.fitsPrinter(sheet) do
+        return {sheet: sheet}
+
     var library = #move catch NativeLibrary.load("libcups.so.2") orelse NativeLibrary{}
     if not library.isOpen() do
         fail PrintError{.PrinterUnavailable}
@@ -130,4 +139,6 @@ func printNative(printer: const *Printer, layout: const *Layout, options: JobOpt
             fail PrintError{.PrinterFailed}
         fail PrintError{.Cancelled}
     }
+
+    return {submitted: true}
 }

@@ -16,6 +16,7 @@ print_Title                Imprimer
 print_Print                Imprimer
 print_SavePdf              Enregistrer en PDF
 print_Preview              Aperçu avant impression
+print_AdjustedPreview      Vérifiez l’aperçu adapté à la zone imprimable de l’imprimante.
 print_Settings             Réglages…
 print_Destination          Destination
 print_Paper                Papier

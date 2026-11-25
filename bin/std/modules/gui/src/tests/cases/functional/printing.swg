@@ -18,6 +18,9 @@ using Core, Core.Math, Pixel, Gui.Print
     let printable = Sheet{size: {220, 300}, imageable: {24, 6, 190, 288}}
     var layout    = expect prepare(&document, printable, setup)
     Swag.require(layout.content == Rectangle{24, 18, 178, 264})
+    Swag.require(layout.fitsPrinter({{220.1, 300}, printable.imageable}))
+    Swag.require(not layout.fitsPrinter({printable.size, {30, 6, 184, 288}}))
+    Swag.require(not layout.fitsPrinter({{230, 300}, printable.imageable}))
 
     let sizeInPoints = expect layout.sourceSize(0)
     let fitted       = layout.pagePlacement(sizeInPoints)
@@ -34,6 +37,85 @@ using Core, Core.Math, Pixel, Gui.Print
     Swag.require(layout.pagePlacement(sizeInPoints).height == 400)
     image = expect layout.render(0, 72)
     Swag.require(image.pixelColor(110, 0).g == 255 and image.pixelColor(110, 150).g == 0)
+}
+
+// A default printer may be asleep or offline. Showing the preview needs only the paper settings.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 760)
+    defer host.shutdown()
+
+    var previewed = false
+    host.app.sigFrame += func|host = &host, &previewed|(app)
+    {
+        if app.modalSurfaces.isEmpty() do
+            return
+        if app.modalSurfaces.back().view() is Dialog as dlg
+        {
+            let tr    = strings()
+            let title = dlg.title.text.toString()
+            switch
+            {
+            case title == tr.print_Title:
+                Swag.require(host.clickModalButton(Dialog.BtnOk))
+
+            case title == tr.print_Preparing:
+                break
+
+            case title == tr.print_Preview:
+                previewed = true
+                Swag.require(host.clickModalButton(Dialog.BtnCancel))
+
+            default:
+                Swag.require(false, title)
+            }
+        }
+    }
+
+    var document: Document
+    document.name  = "Capture"
+    document.image = Image.create(36, 20, .RGB8)
+    let devices: [1] Printer = [{name: "Offline Printer", id: "swag-testing-nonexistent-printer", isDefault: true}]
+    PrintDlg.showDocument(&host.surface, &document, "", devices)
+    Swag.require(previewed)
+}
+
+// A task that returns a value after the Cancel button was pressed cannot expose that value.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 760)
+    defer host.shutdown()
+
+    var clicked = false
+    host.app.sigFrame += func|host = &host, &clicked|(app)
+    {
+        if not clicked and not app.modalSurfaces.isEmpty()
+        {
+            clicked = true
+            let cancel = unwrap app.modalSurfaces.back().view().childById(Dialog.BtnCancel)
+            host.clickWnd(cancel)
+        }
+    }
+
+    var failure: Swag.Error
+    discard catch PrintDlg.runWork(&host.surface, strings().print_Preparing, func()->bool fail
+    {
+        for 2000
+        {
+            if Swag.isCancelled() do
+                return true
+            Threading.Thread.sleep(1'ms)
+        }
+
+        return false
+    }) as failure
+    Swag.require(clicked)
+    if failure.value() is PrintError as reason do
+        Swag.require(reason.kind == .Cancelled)
+    else do
+        Swag.require(false)
 }
 
 #test

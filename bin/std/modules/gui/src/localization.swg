@@ -28,6 +28,7 @@ struct Strings
         print_Print:               string = "Print"    // Action that submits the job.
         print_SavePdf:             string = "Save as PDF"    // PDF destination and save action.
         print_Preview:             string = "Print Preview"    // Title of the preview and action that opens it.
+        print_AdjustedPreview:     string = "Review the preview adjusted to the printer’s printable area."    // Notice shown before confirming updated printer geometry.
         print_Settings:            string = "Settings…"    // Action returning from preview to the settings.
         print_Destination:         string = "Destination"    // Printer or PDF choice.
         print_Paper:               string = "Paper"    // Paper-size field.

@@ -57,3 +57,48 @@ using Core, Gui, Pixel
     host.app.sigFrame.clear()
     Swag.require(sawPrint and workspace.activeDocument() == document)
 }
+
+#test
+{
+    let fileName = writeStreamedFile(64 * 1024)
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, fileName, false)
+    defer host.shutdown()
+    for choice, index in window.choices where choice.key == "hex" and index != window.activeChoiceIndex do
+        window.selectViewer(cast(u32, index))
+    completeQueuedViewerFile(&host, window)
+    Swag.require(window.currentView is Viewers.Hex.Panel)
+
+    var previewed = false
+    host.app.sigFrame += func|host = &host, &previewed|(app)
+    {
+        if not app.isInModalLoop() do
+            return
+        if app.surfaces.back().view() is Dialog as dlg
+        {
+            let tr    = Gui.strings()
+            let title = dlg.title.text.toString()
+            switch
+            {
+            case title == tr.print_FindingPrinters or title == tr.print_Preparing:
+                break
+
+            case title == tr.print_Title:
+                Swag.require(host.clickModalButton(Dialog.BtnOk))
+
+            case title == tr.print_Preview:
+                previewed = true
+                Swag.require(host.clickModalButton(Dialog.BtnCancel))
+
+            default:
+                Swag.require(false, title)
+            }
+        }
+    }
+
+    host.shortcut(.P, .Control)
+    host.app.sigFrame.clear()
+    Swag.require(previewed)
+}

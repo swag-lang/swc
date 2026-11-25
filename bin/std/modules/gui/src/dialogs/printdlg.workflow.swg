@@ -10,6 +10,12 @@ private const PreviewHeight       = 336.0'f32
 private const Papers              = [Paper.A4, Paper.Letter, Paper.Legal]
 private const Placements          = [Placement.Fit, Placement.Center, Placement.Actual]
 
+private struct PreparedPreview
+{
+    layout: Layout
+    image:  Image
+}
+
 private struct PreviewPages
 {
     page: s64
@@ -86,6 +92,9 @@ internal func(T) runWork(from: *Surface, title: string, work: func||()->T fail)-
         }
     }
 
+    // A worker may finish an uninterruptible operation after the user asks to stop.
+    if task.isCancelled() and not task.hasFailed() do
+        fail PrintError{.Cancelled}
     return try task.take()
 }
 
@@ -139,57 +148,70 @@ internal func showDocument(from: *Surface, document: *Document, sourcePath: stri
         if destination do
             printer = &devices[destination - 1]
 
-        var layout = #move catch runWork(from, strings().print_Preparing, func|document, printer, setup = options.setup|()->Layout fail
+        if not runJob(from, document, sourcePath, printer, &options) do
+            return
+    }
+}
+
+// Returns true when the workflow should go back to the settings.
+private func runJob(from: *Surface, document: *Document, sourcePath: string, printer: const *Printer?, options: *JobOptions)->bool
+{
+    let localSheet = pdfSheet(options.setup)
+    var sheet      = localSheet
+    var pageRange: String
+    while true
+    {
+        var prepared = #move catch runWork(from, strings().print_Preparing, func|document, sheet, setup = options.setup|()->PreparedPreview fail
         {
-            let sheet = printer ? try printerSheet(printer, setup) : pdfSheet(setup)
-            return try prepare(document, sheet, setup)
+            var result: PreparedPreview
+            result.layout = #move try prepare(document, sheet, setup)
+            result.image  = #move try result.layout.render(0, PreviewDpi)
+            return #move result
         })
         {
-            if Swag.err is PrintError as failure
-            {
-                if failure.kind == .Cancelled do
-                    return
-            }
-
+            if Swag.err is PrintError as failure where failure.kind == .Cancelled do
+                return false
             reportError(from, Swag.err)
-            continue
+            return true
         }
 
-        let answer = preview(from, &layout, &options, printer != null)
-        if answer == BackButton do
-            continue
+        let answer = preview(from, &prepared, options, &pageRange, printer != null, sheet != localSheet)
         if answer != Dialog.BtnOk do
-            return
+            return answer == BackButton
 
-        let plan = &layout
+        let plan = &prepared.layout
+        let job  = options[]
         if let device = printer
         {
-            discard catch runWork(from, strings().print_Sending, func|device, plan, options|()->bool fail
+            let submission = catch runWork(from, strings().print_Sending, func|device, plan, job|()->Submission fail
             {
-                try printNative(unwrap device, plan, options)
-                return true
+                return try printNative(unwrap device, plan, job)
             })
             {
                 reportError(from, Swag.err)
+                return false
             }
-        }
-        else
-        {
-            let target = choosePdf(from, document.name, sourcePath)
-            if target.isEmpty() do
-                continue
-            let fileName = target.toString()
-            discard catch runWork(from, strings().print_SavingPdf, func|plan, options, fileName|()->bool fail
-            {
-                try savePdf(plan, options, fileName)
-                return true
-            })
-            {
-                reportError(from, Swag.err)
-            }
+
+            if submission.submitted do
+                return false
+            sheet = submission.sheet
+            continue
         }
 
-        return
+        let target = choosePdf(from, document.name, sourcePath)
+        if target.isEmpty() do
+            return true
+        let fileName = target.toString()
+        discard catch runWork(from, strings().print_SavingPdf, func|plan, job, fileName|()->bool fail
+        {
+            try savePdf(plan, job, fileName)
+            return true
+        })
+        {
+            reportError(from, Swag.err)
+        }
+
+        return false
     }
 }
 
@@ -285,43 +307,43 @@ internal func parseRange(value: string, pageCount: u64)->{first: u64, end: u64} 
     return {first - 1, last}
 }
 
-private func preview(from: *Surface, layout: *Layout, options: *JobOptions, isPrinter: bool)->WndId
+private func preview(from: *Surface, prepared: *PreparedPreview, options: *JobOptions, pageRange: *String, isPrinter, adjusted: bool)->WndId
 {
-    let tr    = strings()
-    let image = #move catch runWork(from, tr.print_Preparing, func|layout|()->Image fail
-    {
-        return try layout.render(0, PreviewDpi)
-    })
-    {
-        reportError(from, Swag.err)
-        return ""
-    }
-
+    let tr       = strings()
+    let layout   = &prepared.layout
     let dlg      = FormDlg.create(from, {title: tr.print_Preview, confirmButtonText: isPrinter ? tr.print_Print : tr.print_SavePdf})
     let settings = IconButton.createQuiet(dlg, BackButton, menu: false)
     settings.setQuietText(tr.print_Settings)
     settings.sigPressed += func|dlg|(_) { dlg.closeWithResult(BackButton) }
     dlg.setLeadingControl(settings)
 
+    if adjusted
+    {
+        let notice = Label.create(dlg.form, tr.print_AdjustedPreview, flags: .SecondaryText | .WordWrap | .AutoHeight)
+        notice.setTextAlignment(.Left, .Top)
+        dlg.form.addField("", notice)
+    }
+
     let view  = ImageView.create(dlg.form, {0, 0, 0, PreviewHeight})
     let inset = dlg.themeMetrics().dialog_BtnPadding * 2
     view.padding = {inset, inset, inset, inset}
-    view.setImage(image)
+    view.setImage(prepared.image)
     dlg.form.addField("", view)
     var range: *EditBox?
     var pages: PreviewPages
     if layout.pageCount > 1
     {
         addPageNavigation(dlg, view, layout, &pages)
-        range = dlg.form.addTextField(tr.print_Range, placeholder: tr.print_AllPages, help: tr.print_RangeHelp)
+        range = dlg.form.addTextField(tr.print_Range, pageRange[], placeholder: tr.print_AllPages, help: tr.print_RangeHelp)
     }
 
-    dlg.validateResult = func|dlg, layout, options, range|(_, id)
+    dlg.validateResult = func|dlg, layout, options, range, pageRange|(_, id)
     {
         if id != Dialog.BtnOk do
             return true
         let owner = unwrap dlg.surface
-        let pages = catch parseRange(range ? range.text() : "", layout.pageCount)
+        let value = range ? range.text() : ""
+        let pages = catch parseRange(value, layout.pageCount)
         {
             reportError(owner, Swag.err)
             range?.setFocus()
@@ -338,6 +360,7 @@ private func preview(from: *Surface, layout: *Layout, options: *JobOptions, isPr
             return false
         options.first = pages.first
         options.end   = pages.end
+        pageRange[]   = value
         return true
     }
 

@@ -136,13 +136,6 @@ private func sheetForDevice(dc: HDC)->Sheet fail
     return {size, imageable}
 }
 
-func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
-{
-    let dc = try device(printer, setup)
-    defer discard catch Gdi32.DeleteDC(dc)
-    return try sheetForDevice(dc)
-}
-
 private func sendPage(dc: HDC, image: *Image) fail
 {
     image.convertTo(.BGRA8)
@@ -163,13 +156,16 @@ private func sendPage(dc: HDC, image: *Image) fail
         fail PrintError{.PrinterFailed}
 }
 
-func printNative(printer: const *Printer, layout: const *Layout, options: JobOptions) fail
+// An unsubmitted result carries the geometry the caller needs to preview.
+func printNative(printer: const *Printer, layout: const *Layout, options: JobOptions)->Submission fail
 {
+    try checkCancelled()
     let dc = try device(printer, options.setup)
     defer discard catch Gdi32.DeleteDC(dc)
+    try checkCancelled()
     let sheet = try sheetForDevice(dc)
-    if sheet.size != layout.sheet.size or sheet.imageable != layout.sheet.imageable do
-        fail PrintError{.UnsupportedPaper}
+    if not layout.fitsPrinter(sheet) do
+        return {sheet: sheet}
 
     let title = Utf16.toZeroTerminated(layout.document.name)
     let info  = Gdi32.DOCINFOW{cbSize: cast(s32, #sizeof(Gdi32.DOCINFOW)), lpszDocName: title.buffer}
@@ -201,4 +197,5 @@ func printNative(printer: const *Printer, layout: const *Layout, options: JobOpt
     if Gdi32.EndDoc(dc) <= 0 do
         fail PrintError{.PrinterFailed}
     complete = true
+    return {submitted: true}
 }

@@ -47,26 +47,26 @@ struct Shape
         pathList: LinePathList     // Contours, in drawing user units.
         scanFill: ScanFill         // Raster cache for a dense solid shape.
 
-        fillBrush:   Brush       // Resolved fill paint.
-        fillColor:   Color       // Inherited solid fill before paint-server resolution.
-        fillPaintId: String      // Referenced gradient identifier, if any.
-        fillOpacity: f32 = 1     // Fill-only opacity multiplier.
-        hasFill:     bool        // Whether the shape is filled.
-        evenOdd:     bool        // Whether the fill uses the even-odd rule.
+        fillGradient: u64         // Index plus one of the resolved gradient, or zero for solid paint.
+        fillColor:    Color       // Solid fill color, including opacity once resolved.
+        fillPaintId:  String      // Referenced gradient identifier, if any.
+        fillOpacity:  f32 = 1     // Fill-only opacity multiplier.
+        hasFill:      bool        // Whether the shape is filled.
+        evenOdd:      bool        // Whether the fill uses the even-odd rule.
 
         hidden: bool     // Whether the shape is a reusable definition, not painted directly.
 
-        strokeBrush:   Brush                    // Resolved stroke paint.
-        strokeColor:   Color                    // Inherited solid stroke before paint-server resolution.
-        strokePaintId: String                   // Referenced gradient identifier, if any.
-        strokeOpacity: f32          = 1         // Stroke-only opacity multiplier.
-        strokeWidth:   f32          = 1         // Stroke width, in user units.
-        strokePattern: Array'f32                // Alternating dash and gap lengths, in user units.
-        strokeOffset:  f32                      // Offset into the dash sequence, in user units.
-        strokeMiter:   f32          = 3         // Maximum miter length relative to stroke width.
-        hasStroke:     bool                     // Whether the shape is stroked.
-        capStyle:      LineCapStyle = None      // Cap applied to open subpath ends.
-        joinStyle:     JoinStyle    = Miter     // Join between stroke segments.
+        strokeGradient: u64                      // Index plus one of the resolved gradient, or zero for solid paint.
+        strokeColor:    Color                    // Solid stroke color, including opacity once resolved.
+        strokePaintId:  String                   // Referenced gradient identifier, if any.
+        strokeOpacity:  f32          = 1         // Stroke-only opacity multiplier.
+        strokeWidth:    f32          = 1         // Stroke width, in user units.
+        strokePattern:  Array'f32                // Alternating dash and gap lengths, in user units.
+        strokeOffset:   f32                      // Offset into the dash sequence, in user units.
+        strokeMiter:    f32          = 3         // Maximum miter length relative to stroke width.
+        hasStroke:      bool                     // Whether the shape is stroked.
+        capStyle:       LineCapStyle = None      // Cap applied to open subpath ends.
+        joinStyle:      JoinStyle    = Miter     // Join between stroke segments.
 
         paintTransform: Math.Transform2 = Math.Transform2.Identity     // Element transform retained for user-space paint servers.
 
@@ -96,15 +96,16 @@ struct Drawing
         height: f32     // View-box height, in user units.
     }
 
-    shapes:       Array'Shape                       // Parsed vector shapes, including hidden definitions.
-    imageSize:    Vector2                           // Absolute root dimensions in CSS pixels, independent of view-box units.
-    texts:        Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
-    images:       Array'SvgImage                    // Raster placements referenced by the paint-order list.
-    rasterImages: Array'Image                       // Decoded bitmaps shared by their placements.
-    items:        Array'DrawingItem                 // Visible elements in paint order.
-    paintBlocks:  Array'PaintBlock                  // Bounds of consecutive runs of paint items.
-    patterns:     HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
-    filters:      HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
+    shapes:          Array'Shape                       // Parsed vector shapes, including hidden definitions.
+    imageSize:       Vector2                           // Absolute root dimensions in CSS pixels, independent of view-box units.
+    texts:           Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
+    images:          Array'SvgImage                    // Raster placements referenced by the paint-order list.
+    rasterImages:    Array'Image                       // Decoded bitmaps shared by their placements.
+    items:           Array'DrawingItem                 // Visible elements in paint order.
+    paintBlocks:     Array'PaintBlock                  // Bounds of consecutive runs of paint items.
+    gradientBrushes: Array'Brush                       // Resolved fill and stroke gradient brushes.
+    patterns:        HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
+    filters:         HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
 }
 
 private enum DrawingItemKind
@@ -3779,60 +3780,44 @@ private impl Parser
         }
     }
 
+    mtd storeGradient(gradient: const *Gradient, shape: *Shape, opacity: f32)->u64
+    {
+        shape.pathList.flatten(.Normal)
+        var brush = .gradientBrush(gradient, shape)
+        brush.multiplyOpacity(opacity)
+        .drawing.gradientBrushes.add(#move brush)
+        return .drawing.gradientBrushes.count
+    }
+
     mtd resolvePaints()
     {
+        func applyOpacity(color: Color, opacity: f32)->Color
+        {
+            return color.withAlphaF32((cast(f32, color.a) / 255.0) * Math.saturate(opacity))
+        }
+
         for &shape in .drawing.shapes
         {
             if shape.hasFill
             {
-                if shape.fillPaintId.isEmpty()
-                {
-                    shape.fillBrush = Brush.createSolid(shape.fillColor)
-                }
-                else
-                {
-                    let gradient = .gradients.tryFind(shape.fillPaintId)
-                    if gradient
-                    {
-                        shape.pathList.flatten(.Normal)
-                        shape.fillBrush = .gradientBrush(&gradient.value, shape)
-                    }
-                    elif .patterns.tryFind(shape.fillPaintId)
-                    {
-                        shape.fillBrush = Brush.createSolid(Color.fromArgb(Argb.White))
-                    }
-                    else
-                    {
-                        shape.hasFill = false
-                    }
-                }
-
-                if shape.hasFill do
-                    shape.fillBrush.multiplyOpacity(shape.fillOpacity)
+                if shape.fillPaintId.isEmpty() do
+                    shape.fillColor = applyOpacity(shape.fillColor, shape.fillOpacity)
+                elif let gradient = .gradients.tryFind(shape.fillPaintId) do
+                    shape.fillGradient = .storeGradient(&gradient.value, shape, shape.fillOpacity)
+                elif .patterns.tryFind(shape.fillPaintId) do
+                    shape.fillColor = applyOpacity(Color.fromArgb(Argb.White), shape.fillOpacity)
+                else do
+                    shape.hasFill = false
             }
 
             if shape.hasStroke
             {
-                if shape.strokePaintId.isEmpty()
-                {
-                    shape.strokeBrush = Brush.createSolid(shape.strokeColor)
-                }
-                else
-                {
-                    let gradient = .gradients.tryFind(shape.strokePaintId)
-                    if gradient
-                    {
-                        shape.pathList.flatten(.Normal)
-                        shape.strokeBrush = .gradientBrush(&gradient.value, shape)
-                    }
-                    else
-                    {
-                        shape.hasStroke = false
-                    }
-                }
-
-                if shape.hasStroke do
-                    shape.strokeBrush.multiplyOpacity(shape.strokeOpacity)
+                if shape.strokePaintId.isEmpty() do
+                    shape.strokeColor = applyOpacity(shape.strokeColor, shape.strokeOpacity)
+                elif let gradient = .gradients.tryFind(shape.strokePaintId) do
+                    shape.strokeGradient = .storeGradient(&gradient.value, shape, shape.strokeOpacity)
+                else do
+                    shape.hasStroke = false
             }
         }
     }
@@ -4192,20 +4177,22 @@ impl Drawing
     {
         if paintFill and shape.hasFill
         {
-            var brush = shape.fillBrush
-
             if shape.scanFill.enabled do
-                shape.scanFill.paint(painter, &shape.pathList, brush.color, shape.evenOdd)
+                shape.scanFill.paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
+            elif shape.fillGradient do
+                painter.fillPath(&shape.pathList, .gradientBrushes[shape.fillGradient - 1])
             else do
-                painter.fillPath(&shape.pathList, brush)
+                painter.fillPath(&shape.pathList, shape.fillColor)
         }
 
         if shape.hasStroke
         {
-            var brush = shape.strokeBrush
-
             var pen: Pen
-            pen.brush          = #move brush
+            if shape.strokeGradient do
+                pen.brush = .gradientBrushes[shape.strokeGradient - 1]
+            else do
+                pen.brush.color = shape.strokeColor
+
             pen.size           = shape.strokeWidth
             pen.begCapStyle    = shape.capStyle
             pen.endCapStyle    = shape.capStyle
@@ -4764,9 +4751,9 @@ impl Drawing
                not shape.fillPaintId.isEmpty() or
                not shape.strokePaintId.isEmpty() do
                 return false
-            if shape.hasFill and (shape.fillBrush.type != .SolidColor or (shape.fillBrush.color.argb & 0xFFFFFF) != 0xFFFFFF) do
+            if shape.hasFill and (shape.fillColor.argb & 0xFFFFFF) != 0xFFFFFF do
                 return false
-            if shape.hasStroke and (shape.strokeBrush.type != .SolidColor or (shape.strokeBrush.color.argb & 0xFFFFFF) != 0xFFFFFF) do
+            if shape.hasStroke and (shape.strokeColor.argb & 0xFFFFFF) != 0xFFFFFF do
                 return false
         }
 

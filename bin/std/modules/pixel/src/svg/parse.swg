@@ -4188,6 +4188,27 @@ impl Drawing
         }
     }
 
+    private mtd const measurePaintBlock(first: u64)->PaintBlock
+    {
+        let end = first + Math.min(PaintBlockSize, .items.count - first)
+        var result: #returntype = {minimum: Vector2.Max, maximum: Vector2.Min, bounded: true}
+        for i in first until end
+        {
+            let item = &.items[i]
+            if not item.hasBounds do
+                return {}
+
+            let corner   = Vector2{item.bounds.x, item.bounds.y}
+            let opposite = Vector2{item.bounds.right(), item.bounds.bottom()}
+            if not finitePoint(corner) or not finitePoint(opposite) do
+                return {}
+            result.minimum = Vector2.min(result.minimum, Vector2.min(corner, opposite))
+            result.maximum = Vector2.max(result.maximum, Vector2.max(corner, opposite))
+        }
+
+        return result
+    }
+
     private mtd measurePaintBlocks()
     {
         if .items.count < PaintBlockSize * 8 do
@@ -4196,31 +4217,8 @@ impl Drawing
         var first = 0'u64
         while first < .items.count
         {
-            let end   = first + Math.min(PaintBlockSize, .items.count - first)
-            var block = PaintBlock{minimum: Vector2.Max, maximum: Vector2.Min, bounded: true}
-            for i in first until end
-            {
-                let item = &.items[i]
-                if not item.hasBounds
-                {
-                    block.bounded = false
-                    break
-                }
-
-                let corner   = Vector2{item.bounds.x, item.bounds.y}
-                let opposite = Vector2{item.bounds.right(), item.bounds.bottom()}
-                if not finitePoint(corner) or not finitePoint(opposite)
-                {
-                    block.bounded = false
-                    break
-                }
-
-                block.minimum = Vector2.min(block.minimum, Vector2.min(corner, opposite))
-                block.maximum = Vector2.max(block.maximum, Vector2.max(corner, opposite))
-            }
-
-            .paintBlocks.add(block)
-            first = end
+            .paintBlocks.add(.measurePaintBlock(first))
+            first += Math.min(PaintBlockSize, .items.count - first)
         }
     }
 
@@ -4652,10 +4650,11 @@ impl Drawing
         // all of its geometry.
         let visible = painter.clippingRect()
 
-        let useBlocks = .paintBlocks.count and painter.hasClippingRect() and tr.m12 == 0 and tr.m21 == 0
+        let useBlocks    = .paintBlocks.count and painter.hasClippingRect() and tr.m12 == 0 and tr.m21 == 0
         var candidates: Array'u64
-        let useBins   = useBlocks and .collectPaintCandidates(tr, visible, &candidates)
-        let useRuns   = useBlocks and not useBins
+        let useBins      = useBlocks and .collectPaintCandidates(tr, visible, &candidates)
+        let useRuns      = useBlocks and not useBins
+        var measuredText = false
         for blockIndex in (useRuns ? .paintBlocks.count : 1'u64)
         {
             var first = 0'u64
@@ -4720,6 +4719,7 @@ impl Drawing
                         if item.clipCount do
                             item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
                         item.hasBounds = true
+                        measuredText   = true
                     }
 
                 case .Image:
@@ -4729,6 +4729,13 @@ impl Drawing
         }
 
         .exchangeClip(painter, activeFirst, activeCount, 0, 0)
+
+        // Use the new text bounds to cull blocks on subsequent paints.
+        if measuredText
+        {
+            for &block, index in .paintBlocks where not block.bounded do
+                block[] = .measurePaintBlock(index * PaintBlockSize)
+        }
     }
 
     // Replaces the clip in force by another, leaving the region empty for an empty incoming one.

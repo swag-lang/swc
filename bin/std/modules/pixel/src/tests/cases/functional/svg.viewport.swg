@@ -218,3 +218,28 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     let again = renderViewport(&drawing, Width, Height, 0, -300, 1, clip, true)
     Swag.require(differingPixels(&first, &again, clip) == 0)
 }
+
+// A text block measured outside the first viewport appears when a later viewport reaches it.
+#test
+{
+    let fontPath = getTestDataPath("segoeui.ttf")
+    let options  = Svg.ParseOptions{fontFileName: fontPath.toString()}
+    var source   = String.from("<svg viewBox='0 0 120 12000' fill='white' font-size='16'>")
+    for i in 520 do
+        source.appendFormat("<text x='20' y='%'>Row %</text>", 20 + i * 22, i)
+    source += "</svg>"
+
+    let drawing = expect Svg.Drawing.parse(source.toString(), options)
+    let clip    = Math.Rectangle{8, 4, 104, 48}
+    discard renderViewport(&drawing, 120, 56, 0, 0, 1, clip, true)
+
+    let clipped = renderViewport(&drawing, 120, 56, 0, -10560, 1, clip, true)
+    let whole   = renderViewport(&drawing, 120, 56, 0, -10560, 1, clip, false)
+    Swag.require(differingPixels(&clipped, &whole, clip) == 0)
+
+    var covered = 0'u64
+    for y in 4 until 52 do
+        for x in 8 until 112 where clipped.pixelColor(x, y).r > 32 do
+            covered += 1
+    Swag.require(covered > 100)
+}

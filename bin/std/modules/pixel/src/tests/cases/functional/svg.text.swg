@@ -43,6 +43,24 @@ private func countTextPixels(image: const *Image, left, right: s32)->u32
     Swag.require(hasRed)
 }
 
+// A hidden text run is skipped while a tspan can restore visibility.
+#test
+{
+    let fontPath = getTestDataPath("segoeui.ttf")
+    let options  = Svg.ParseOptions{fontFileName: fontPath.toString()}
+    const Source = """\
+        <svg width='64' height='24'>\
+        <text x='3' y='19' font-size='17' visibility='hidden'>Hidden\
+        <tspan x='38' y='19' visibility='visible'>A</tspan></text>\
+        <text x='3' y='19' fill='none'>No fill</text><text/>\
+        </svg>"""
+
+    let drawing = expect Svg.Drawing.parse(Source, options)
+    let image   = drawing.rasterize(64, 24, 1)
+    Swag.require(countTextPixels(&image, 0, 36) == 0)
+    Swag.require(countTextPixels(&image, 36, 64) > 20)
+}
+
 // Returns the horizontal extent of the ink a text source produces.
 private func textInkWidth(source: string, options: Svg.ParseOptions)->s32
 {

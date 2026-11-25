@@ -2851,8 +2851,11 @@ private impl Parser
 
     mtd addTextRun(text: string, state: *GroupState, geo: *AttributeMap, block: *SvgText, first: bool) fail
     {
+        if not state.isDisplayed or not state.isVisible or not state.hasFill do
+            return
+
         let normalized = normalizedText(text)
-        if normalized.isEmpty() or not state.isDisplayed or not state.isVisible or not state.hasFill do
+        if normalized.isEmpty() do
             return
 
         let typeFace = try .typeFaceFor(state.fontFamily)
@@ -2886,13 +2889,12 @@ private impl Parser
 
     mtd parseText(state: GroupState, geo: *AttributeMap, selfClosed: bool) fail
     {
-        let index = .drawing.texts.count
-        let block = .drawing.texts.emplaceInitAddress()
         if selfClosed do
             return
 
         let len   = (.text).count
         var first = true
+        var block:    SvgText
         var childGeo: AttributeMap
         while .pos < len
         {
@@ -2901,7 +2903,7 @@ private impl Parser
             if .pos > textStart
             {
                 let content = .text[textStart until .pos]
-                try .addTextRun(content, &state, geo, block, first)
+                try .addTextRun(content, &state, geo, &block, first)
                 first = false
             }
 
@@ -2939,7 +2941,7 @@ private impl Parser
             let childStart = .pos
             .skipUntil('<')
             let childText = .text[childStart until .pos]
-            try .addTextRun(childText, &childState, &childGeo, block, first)
+            try .addTextRun(childText, &childState, &childGeo, &block, first)
             first = false
             if not childClosed
             {
@@ -2948,8 +2950,12 @@ private impl Parser
             }
         }
 
-        if block.runs.count and not state.inDefs do
+        if block.runs.count and not state.inDefs
+        {
+            let index = .drawing.texts.count
+            .drawing.texts.add(#move block)
             .drawing.items.add(DrawingItem{.Text, index})
+        }
     }
 
     mtd parsePattern(state: GroupState, geo: *AttributeMap, selfClosed: bool) fail

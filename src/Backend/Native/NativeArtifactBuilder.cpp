@@ -475,7 +475,7 @@ Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 Result NativeArtifactBuilder::prepareOutputFolders() const
 {
     NativeArtifactPaths paths;
-    queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
+    queryPaths(paths);
     SWC_RESULT(createDirectories(paths.buildDir));
     SWC_RESULT(createDirectories(paths.outDir));
     if (!paths.staticLibraryPath.empty())
@@ -583,7 +583,6 @@ void NativeArtifactBuilder::queryPaths(NativeArtifactPaths& outPaths, const uint
     if (!numObjects)
         return;
 
-    outPaths.objectPaths.clear();
     outPaths.objectPaths.reserve(numObjects);
     const Utf8 objectExt = objectExtension();
     for (uint32_t i = 0; i < numObjects; ++i)
@@ -880,7 +879,7 @@ Result NativeArtifactBuilder::partitionObjects() const
         builder_->objectDescriptions[i].includeData           = i == 0;
         builder_->objectDescriptions[i].includeMergedRData   = i == 0 && !splitRData;
         builder_->objectDescriptions[i].splitRDataReferences = splitRData;
-        builder_->objectDescriptions[i].objPath               = paths.objectPaths[i];
+        builder_->objectDescriptions[i].objPath               = std::move(paths.objectPaths[i]);
         builder_->objectDescriptions[i].functions.reserve(functionsPerObject + (i < extraFunctions ? 1 : 0));
     }
 
@@ -888,7 +887,7 @@ Result NativeArtifactBuilder::partitionObjects() const
     {
         NativeObjDescription& description = builder_->objectDescriptions[i];
         description.index                 = i;
-        description.objPath               = paths.objectPaths[i];
+        description.objPath               = std::move(paths.objectPaths[i]);
         description.rdataAllocationIndex  = i - numJobs;
         description.rdataAllocationCount  = 1;
     }
@@ -961,7 +960,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
         builder_->objectDescriptions[i].index                = i;
         builder_->objectDescriptions[i].includeData          = i == 0;
         builder_->objectDescriptions[i].splitRDataReferences = true;
-        builder_->objectDescriptions[i].objPath              = paths.objectPaths[i];
+        builder_->objectDescriptions[i].objPath              = std::move(paths.objectPaths[i]);
     }
 
     for (size_t i = 0; i < functionCount; ++i)
@@ -1012,7 +1011,7 @@ Result NativeArtifactBuilder::partitionIncrementalObject() const
 
     NativeObjDescription& description = builder_->objectDescriptions.front();
     description.index                 = 0;
-    description.objPath               = paths.objectPaths.front();
+    description.objPath               = std::move(paths.objectPaths.front());
     description.includeData           = true;
     description.includeMergedRData    = true;
     description.startup               = builder_->startup.get();
@@ -1049,7 +1048,7 @@ Result NativeArtifactBuilder::partitionIncrementalFunctionObjects() const
     for (uint32_t i = 0; i < builder_->objectDescriptions.size(); ++i)
     {
         builder_->objectDescriptions[i].index                       = i;
-        builder_->objectDescriptions[i].objPath                     = paths.objectPaths[i];
+        builder_->objectDescriptions[i].objPath                     = std::move(paths.objectPaths[i]);
         builder_->objectDescriptions[i].functions.front()->jobIndex = i;
     }
 

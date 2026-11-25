@@ -43,58 +43,64 @@ impl Decoder
         return i
     }
 
-    #[Discardable]
+    #[Discardable, Swag.Inline]
     mtd getBits2(numBits: s32)->u32
     {
-        let i = (.bitBuf >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)
-        .lastBitsSynthetic = ((.bitSyntheticMask >> cast(u32, (16 - numBits))) & ((1'u32 << cast(u32, numBits)) - 1)) != 0
+        let count = cast(u32, numBits)
+        let bits  = (.bitBuf >> (16 - count)) & ((1'u32 << count) - 1)
         .bitsLeft -= numBits
         if .bitsLeft <= 0
         {
-            let shift = cast(u32, (numBits + .bitsLeft))
-            .bitBuf = rol(.bitBuf, shift)
-            .bitSyntheticMask = rol(.bitSyntheticMask, shift)
-
-            var c1, c2: u32
-            var c1Synthetic, c2Synthetic: bool
-            let inBufOfs = unwrap .inBufOfs
-
-            // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
-            // is almost entirely made of, and taking them here keeps the marker rules, the buffer
-            // refill and their two calls out of the inner decoding loop.
-            if .inBufLeft >= 2 and inBufOfs[0] != 0xFF and inBufOfs[1] != 0xFF
-            {
-                c1          = inBufOfs[0]
-                c2          = inBufOfs[1]
-                c1Synthetic = false
-                c2Synthetic = false
-                .inBufOfs   += 2
-                .inBufLeft  -= 2
-            }
-            else
-            {
-                c1          = .getOctet()
-                c1Synthetic = .lastOctetSynthetic
-                c2          = .getOctet()
-                c2Synthetic = .lastOctetSynthetic
-            }
-
-            .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-            .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
-                                (c1Synthetic ? 0xFF000000'u32 : 0) |
-                                (c2Synthetic ? 0x00FF0000'u32 : 0)
-            let refillShift = cast(u32, -.bitsLeft)
-            .bitBuf           = rol(.bitBuf, refillShift)
-            .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
-            .bitsLeft         += 16
+            .refillEntropyBits(numBits)
         }
         else
         {
-            .bitBuf = rol(.bitBuf, cast(u32, numBits))
-            .bitSyntheticMask = rol(.bitSyntheticMask, cast(u32, numBits))
+            .bitBuf = rol(.bitBuf, count)
+            .bitSyntheticMask = rol(.bitSyntheticMask, count)
         }
 
-        return i
+        return bits
+    }
+
+    #[Swag.NoInline]
+    private mtd refillEntropyBits(numBits: s32)
+    {
+        let shift = cast(u32, (numBits + .bitsLeft))
+        .bitBuf = rol(.bitBuf, shift)
+        .bitSyntheticMask = rol(.bitSyntheticMask, shift)
+
+        var c1, c2: u32
+        var c1Synthetic, c2Synthetic: bool
+        let inBufOfs = unwrap .inBufOfs
+
+        // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
+        // is almost entirely made of, and taking them here keeps the marker rules, the buffer
+        // refill and their two calls out of the inner decoding loop.
+        if .inBufLeft >= 2 and inBufOfs[0] != 0xFF and inBufOfs[1] != 0xFF
+        {
+            c1          = inBufOfs[0]
+            c2          = inBufOfs[1]
+            c1Synthetic = false
+            c2Synthetic = false
+            .inBufOfs   += 2
+            .inBufLeft  -= 2
+        }
+        else
+        {
+            c1          = .getOctet()
+            c1Synthetic = .lastOctetSynthetic
+            c2          = .getOctet()
+            c2Synthetic = .lastOctetSynthetic
+        }
+
+        .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
+        .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
+                            (c1Synthetic ? 0xFF000000'u32 : 0) |
+                            (c2Synthetic ? 0x00FF0000'u32 : 0)
+        let refillShift = cast(u32, -.bitsLeft)
+        .bitBuf           = rol(.bitBuf, refillShift)
+        .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
+        .bitsLeft         += 16
     }
 
     mtd getOctet()->u8

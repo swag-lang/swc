@@ -197,6 +197,20 @@ private const ManyStopSvg = """\
     Swag.require(blue.b > 170 and blue.r == 0 and blue.g == 0 and blue.a > 120 and blue.a < 136)
 }
 
+// Decreasing offsets clamp to the preceding stop while preserving the authored transition.
+#test
+{
+    const Source = """\
+        <svg width='32' height='8'><defs><linearGradient id='edge'>\
+        <stop offset='0' stop-color='red'/><stop offset='0.5' stop-color='red'/>\
+        <stop offset='0.25' stop-color='blue'/><stop offset='2' stop-color='blue'/>\
+        </linearGradient></defs><rect width='32' height='8' fill='url(#edge)'/></svg>"""
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(32, 8, 1)
+    Swag.require(image.pixelColor(12, 4) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(20, 4) == Color.fromRgb(0, 0, 255))
+}
+
 // Class rules follow stylesheet order, even with a reordered or repeated class on the element.
 #test
 {

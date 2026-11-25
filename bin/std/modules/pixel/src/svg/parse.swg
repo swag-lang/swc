@@ -3700,8 +3700,8 @@ private impl Parser
             }
         }
 
-        for stop in gradient.stops do
-            result.addGradientStop(stop.offset, stop.color)
+        // Parsing already clamps the offsets and keeps them in nondecreasing order.
+        result.gradientStops = gradient.stops
         return result
     }
 

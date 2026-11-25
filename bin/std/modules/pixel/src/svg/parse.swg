@@ -325,11 +325,11 @@ private struct Parser
 
     // Shapes defined inside `defs`, by id, instantiated by `use` elements. The
     // ranges index the drawing's shape array: defs shapes are parsed in place and
-    // withheld from painting.
-    defs:           HashTable'(String, { first: u64, count: u64 })
-    clipPaths:      HashTable'(String, { first: u64, count: u64 })
-    symbols:        HashTable'(String, SymbolViewport)
-    markers:        HashTable'(String, MarkerDefinition)
+    // withheld from painting. These lookup tables borrow identifiers from the source.
+    defs:           HashTable'(string, { first: u64, count: u64 })
+    clipPaths:      HashTable'(string, { first: u64, count: u64 })
+    symbols:        HashTable'(string, SymbolViewport)
+    markers:        HashTable'(string, MarkerDefinition)
     gradients:      HashTable'(string, Gradient)
     patterns:       HashTable'(String, Pattern)
     filters:        HashTable'(String, SvgFilter)
@@ -2999,7 +2999,7 @@ private impl Parser
 
                 let clipId = geo.tryFind("id")
                 if clipId and .drawing.shapes.count > clipFirst do
-                    .clipPaths.add(clipId.value, {first: clipFirst, count: .drawing.shapes.count - clipFirst})
+                    .clipPaths.add(.sourceView(clipId.value), {first: clipFirst, count: .drawing.shapes.count - clipFirst})
 
             case "symbol":
 
@@ -3015,7 +3015,8 @@ private impl Parser
                 let symbolId = geo.tryFind("id")
                 if symbolId and .drawing.shapes.count > symbolFirst
                 {
-                    .defs.add(symbolId.value, {first: symbolFirst, count: .drawing.shapes.count - symbolFirst})
+                    let id = .sourceView(symbolId.value)
+                    .defs.add(id, {first: symbolFirst, count: .drawing.shapes.count - symbolFirst})
 
                     var viewport: SymbolViewport
                     let box = geo.tryFind("viewBox")
@@ -3029,7 +3030,7 @@ private impl Parser
                         viewport.hasViewBox = true
                     }
 
-                    .symbols.add(symbolId.value, viewport)
+                    .symbols.add(id, viewport)
                 }
 
             case "marker":
@@ -3045,7 +3046,7 @@ private impl Parser
 
                 let markerId = geo.tryFind("id")
                 if markerId and .drawing.shapes.count > markerFirst do
-                    .markers.add(markerId.value, .readMarkerDefinition(&geo, markerFirst, .drawing.shapes.count - markerFirst))
+                    .markers.add(.sourceView(markerId.value), .readMarkerDefinition(&geo, markerFirst, .drawing.shapes.count - markerFirst))
 
             case "linearGradient":
                 try .parseGradient(.Linear, &geo, selfClosed)
@@ -3155,7 +3156,7 @@ private impl Parser
             {
                 let idAttr = geo.tryFind("id")
                 if idAttr do
-                    .defs.add(idAttr.value, {first: firstShape, count: .drawing.shapes.count - firstShape})
+                    .defs.add(.sourceView(idAttr.value), {first: firstShape, count: .drawing.shapes.count - firstShape})
             }
 
             .applyClipPath(&state, firstItem)

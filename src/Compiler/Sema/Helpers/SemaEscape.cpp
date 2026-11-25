@@ -6109,15 +6109,15 @@ namespace SemaEscape
 
             for (size_t i = 0; i < pendingCount; ++i)
             {
-                const SemaEscapeFreesForwarding edge = forwardings[i];
+                const SemaEscapeFreesForwarding& edge = forwardings[i];
 
                 // Another worker can complete a function during propagation. Recheck
                 // readiness inside the fixpoint rather than filtering edges once.
-                bool applied = false;
-                if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
+                if (edge.callee->isSemaCompleted())
                 {
-                    const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
-                    if ((edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask()) & calleeBit)
+                    const uint64_t calleeBit  = 1ULL << edge.calleeParamIndex;
+                    const uint64_t calleeMask = edge.calleeIndirect ? edge.callee->freesIndirectParamsMask() : edge.callee->freesParamsMask();
+                    if ((calleeMask & calleeBit) && edge.caller->isSemaCompleted())
                     {
                         const uint64_t callerBit  = 1ULL << edge.callerParamIndex;
                         const uint64_t callerMask = edge.callerIndirect ? edge.caller->freesIndirectParamsMask() : edge.caller->freesParamsMask();
@@ -6126,12 +6126,13 @@ namespace SemaEscape
                             edge.caller->addFreesParam(edge.callerParamIndex, edge.callerIndirect);
                             changed = true;
                         }
-                        applied = true;
+                        continue;
                     }
                 }
 
-                if (!applied)
-                    forwardings[nextPendingCount++] = edge;
+                if (nextPendingCount != i)
+                    forwardings[nextPendingCount] = edge;
+                ++nextPendingCount;
             }
 
             pendingCount = nextPendingCount;

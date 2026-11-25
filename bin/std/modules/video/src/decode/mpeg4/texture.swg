@@ -53,26 +53,76 @@ func runMax(inter: bool, last: u32, level: u32)->u32
     return result
 }
 
+// Each short prefix carries its bit length and table index. The normative codes are
+// prefix-free, so expanding a short code over its suffixes cannot hide a longer one.
+private const IntraPrefixes: [256] u16 = #run buildCoefficientPrefixes(TcoefIntraLen, TcoefIntraCod)
+private const InterPrefixes: [256] u16 = #run buildCoefficientPrefixes(TcoefInterLen, TcoefInterCod)
+
+private func buildCoefficientPrefixes(lengths: const [..] u8, codes: const [..] u16)->[256] u16
+{
+    var result: #returntype
+    for index in lengths.count
+    {
+        let length = cast(u32, lengths[index])
+        if length > 8 do
+            continue
+
+        let rest  = 8 - length
+        let first = cast(u32, codes[index]) << rest
+        let entry = cast(u16, (length << 8) | cast(u32, index + 1))
+        for suffix in 1'u32 << rest do
+            result[first + suffix] = entry
+    }
+
+    return result
+}
+
+// Reads a byte of lookahead from two bytes that the caller knows are available.
+#[Swag.Inline]
+private func peekCoefficientPrefix(reader: const *BitReader)->u32
+{
+    let at   = reader.bitPos
+    let data = unwrap reader.data
+    let byte = at >> 3
+    let word = (cast(u32, data[byte]) << 8) | cast(u32, data[byte + 1])
+    return (word >> (8 - cast(u32, at & 7))) & 255
+}
+
 // Reads one coefficient event of a block, clause 7.4.1.
 //
 // A table entry states a run, a level, and whether the block ends there; the escape code says the
 // event is outside what the table holds, in one of three widening forms.
 func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->bool fail
 {
-    let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
-
-    // The escape code shares the code space of the table, so it is recognised before it.
-    if (reader.bitPos + cast(u64, TcoefEscapeLen)) <= reader.bitEnd
+    var entry = -1
+    if reader.bitPos + 15 <= reader.bitEnd
     {
-        let mark = reader.bitPos
-        if reader.read(TcoefEscapeLen) == TcoefEscapeCod do
-            return try readEscape(reader, inter, result)
-        reader.bitPos = mark
+        let lookahead = peekCoefficientPrefix(reader)
+        let code      = inter ? InterPrefixes[lookahead] : IntraPrefixes[lookahead]
+        if code
+        {
+            reader.bitPos += code >> 8
+            entry         = cast(s32, (code & 255)) - 1
+        }
     }
 
-    let entry = reader.decode(tree)
-    if entry < 0 do
-        return false
+    if entry < 0
+    {
+        // The escape code shares the code space of the table, so recognize it before
+        // walking the tree. This path also handles the short input at the end.
+        if reader.bitPos + TcoefEscapeLen <= reader.bitEnd
+        {
+            let mark = reader.bitPos
+            if reader.read(TcoefEscapeLen) == TcoefEscapeCod do
+                return try readEscape(reader, inter, result)
+            reader.bitPos = mark
+        }
+
+        let tree: const [..] s16 = inter ? TcoefInterTree : TcoefIntraTree
+        entry = reader.decode(tree)
+        if entry < 0 do
+            return false
+    }
 
     let at = cast(u64, entry)
     let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast

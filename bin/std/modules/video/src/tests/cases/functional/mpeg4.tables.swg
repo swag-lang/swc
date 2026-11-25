@@ -102,6 +102,47 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
     }
 }
 
+// Short lookahead and the tree fallback must consume the same normative code and sign.
+#test
+{
+    for table in 2'u32
+    {
+        let lengths: const [..] u8  = table ? Mpeg4.TcoefInterLen : Mpeg4.TcoefIntraLen
+        let codes:   const [..] u16 = table ? Mpeg4.TcoefInterCod : Mpeg4.TcoefIntraCod
+        let runs:    const [..] u8  = table ? Mpeg4.TcoefInterRun : Mpeg4.TcoefIntraRun
+        let levels:  const [..] u16 = table ? Mpeg4.TcoefInterLevel : Mpeg4.TcoefIntraLevel
+        let lasts:   const [..] u8  = table ? Mpeg4.TcoefInterLast : Mpeg4.TcoefIntraLast
+        for index in lengths.count
+        {
+            let length = cast(u32, lengths[index])
+            for offset in [0'u32, 7]
+            {
+                for sign in 2'u32
+                {
+                    var bytes: [4] u8
+                    let end  = offset + length + 1
+                    let word = ((cast(u32, codes[index]) << 1) | sign) << (32 - end)
+                    for byte in 4'u32 do
+                        bytes[byte] = cast(u8, word >> (24 - byte * 8))
+
+                    // The second pass only has the bytes that contain the code and sign.
+                    for size in [4'u32, (end + 7) / 8]
+                    {
+                        var reader = Mpeg4.BitReader.create(bytes[until size])
+                        reader.bitPos = offset
+                        var coefficient: Mpeg4.Coefficient
+                        Swag.require(expect Mpeg4.readCoefficient(&reader, table != 0, &coefficient))
+                        Swag.require(reader.bitPos == end)
+                        Swag.require(coefficient.run == runs[index] and coefficient.last == (lasts[index] != 0))
+                        let magnitude = cast(s32, levels[index])
+                        Swag.require(coefficient.level == (sign ? -magnitude : magnitude))
+                    }
+                }
+            }
+        }
+    }
+}
+
 // Each coefficient table names 102 distinct events, and no two share a run, a level, and a last.
 #test
 {

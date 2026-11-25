@@ -7,7 +7,7 @@ using Core, Pixel, Pdf
 func heaviestPage(name: string)->{ reader: Reader, index: u64 }
 {
     var result: #returntype
-    result.reader = #move expect Reader.open(corpusPdfPath(name))
+    result.reader = #move expect Reader.open(guiTestDataPath(name))
     var best = 0'u64
     for pageIndex in result.reader.pageCount()
     {

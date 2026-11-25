@@ -15,7 +15,7 @@ private struct ProgramReport
 private func reportPage(name: string, pageIndex: u64)->ProgramReport
 {
     var result: #returntype
-    var reader = expect Reader.open(corpusPdfPath(name))
+    var reader = expect Reader.open(guiTestDataPath(name))
     var page   = expect reader.loadPage(pageIndex)
 
     var faces: Array'(*TypeFace?)

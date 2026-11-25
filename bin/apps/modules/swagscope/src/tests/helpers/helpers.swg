@@ -17,40 +17,16 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     host.fireTimer(window.fileWatchTimer)
 }
 
-// Locates shared fixtures for categorized viewer tests.
+// Locates the fixtures for categorized viewer tests.
 func scopeTestDataDirectory(loc: Swag.SourceCodeLocation = #callerlocation)->String => Path.combine(testSourceRoot(loc), "datas")
 
-// Resolves a fixture from the module or the shared checkout corpus.
-func scopeTestDataPath(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String
-{
-    var category: string
-    switch name
-    {
-    case "ffmpeg-h264-baseline.mp4", "ffmpeg-h264-two-aac.mkv", "rv40-legacy-clock.mkv",
-         "viewer.avi", "viewer.hevc.mp4", "viewer.raw.avi", "viewer.y4m":
-        category = "video"
-    case "viewer.aac", "viewer.ac3", "viewer.dts", "viewer.eac3", "viewer.flac",
-         "viewer.hybrid.opus", "viewer.mp3", "viewer.ogg", "viewer.opus",
-         "viewer.surround.eac3", "viewer.surround.flac":
-        category = "audio"
-    case "document-outline.pdf", "viewer.ccitt.pdf", "viewer.jpeg.pdf",
-         "viewer.object-stream.pdf", "viewer.openmp-reference.pdf", "viewer.rotation.pdf":
-        category = "pdf"
-    default:
-        return Path.combine(scopeTestDataDirectory(loc), name)
-    }
-
-    let root      = testSourceRoot(loc)
-    var directory = root.toString()
-    for 5 do
-        directory = unwrap Path.directoryName(directory)
-    return Path.combine(directory, "testdata", category, name)
-}
+// Resolves a fixture from the application's test data.
+func scopeTestDataPath(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String => Path.combine(scopeTestDataDirectory(loc), name)
 
 // Copies a fixture into a folder of its own, using `asName` when supplied.
 //
 // A viewer that walks the folder of the file it opens shows how many siblings it found. Opened
-// from the shared corpus, that count moves with every fixture the corpus gains, so a picture
+// from the test data directory, that count moves with every fixture it gains, so a picture
 // recorded there goes stale without any change in what it shows. The caller deletes the folder
 // with [[discardIsolatedScopeFixture]].
 func isolatedScopeFixture(name: string, loc: Swag.SourceCodeLocation = #callerlocation, asName: string = "")->String
@@ -70,7 +46,7 @@ func discardIsolatedScopeFixture(file: string)
     discard catch Directory.delete(Path.directoryName(file) orelse "", recurse: true)
 }
 
-// Keeps viewer snapshots in the shared corpus for the calling test.
+// Compares an image against the application's viewer goldens.
 func assertScopeImageGolden(image: const *Pixel.Image, name: string)
 {
     Pixel.Testing.assertImageGolden(image, name)

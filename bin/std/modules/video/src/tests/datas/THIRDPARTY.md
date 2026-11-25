@@ -71,8 +71,8 @@ fragmented MP4 writer without making a test depend on `ffprobe`.
 `ffmpeg-h264-mp3.mp4` combines the H.264 video of `ffmpeg-h264-baseline.mp4` with the synthetic
 mono 48 kHz Layer III stream in std/audio's `mp3-mono-48000.mp3`, using FFmpeg 7.1.5 with
 `-map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart`. Both streams are copied without
-re-encoding. `bin/testdata/audio/mp3-mono-48000.pcm` is the FFmpeg decode of the multiplexed
-track as signed 16-bit little-endian PCM, shared with the audio tests.
+re-encoding. `mp3-mono-48000.pcm` is the FFmpeg decode of the multiplexed
+track as signed 16-bit little-endian PCM, also copied into the Audio test data.
 
 - `ffmpeg-h264-mp3.mp4`: 5,797 bytes, SHA-256:
   `2813c5c7486ab14df9006f70684ab76b72545877922b52e9fed6f5229543158e`.
@@ -416,7 +416,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `opus-stereo-48000.opus` and the Vorbis track of `vorbis-stereo-44100.ogg` into Matroska through
 PyAV 17.1. The muxer states the Opus pre-skip as the track's codec delay and trims the final
 block with a discard padding; the Vorbis headers travel Xiph-laced in the codec private data.
-The container and audio tests read the same reference decodes from `bin/testdata/audio`,
+The Video and Audio test suites each carry copies of the reference decodes
 `opus-stereo-48000.pcm` and `vorbis-stereo-44100.pcm`.
 
 - `ffmpeg-h264-opus.mkv` SHA-256: `25ebe972d6bdf54aedb315c408775b78bade1f20f181c9aab552f4549202960e`

@@ -13,7 +13,7 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 {
     for fixture in fixtures
     {
-        var reader = expect Reader.open(corpusPdfPath(fixture.name))
+        var reader = expect Reader.open(guiTestDataPath(fixture.name))
         Swag.require(reader.pageCount() == fixture.pageCount)
         for pageIndex in fixture.pageCount
         {

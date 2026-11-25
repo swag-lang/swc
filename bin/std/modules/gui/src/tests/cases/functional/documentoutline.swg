@@ -97,7 +97,7 @@ using Core, Pixel
 // produce the same top-left page coordinates as the displayed content.
 #test
 {
-    let path    = guiSharedFixturePath("pdf", "document-outline.pdf")
+    let path    = guiTestDataPath("document-outline.pdf")
     var reader  = expect Pdf.Reader.open(path)
     let outline = reader.loadOutline()
     Swag.require(outline.count == 4)

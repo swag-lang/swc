@@ -3,6 +3,13 @@
 
 using Core, Gui, Viewers
 
+// The external identifier in an OpenOffice manifest does not prevent reading the document.
+#test
+{
+    let document = expect Odt.Document.load(scopeTestDataPath("viewer.legacy-manifest.odt"))
+    Swag.require(Utf8.contains(document.html, "Legacy manifest"))
+}
+
 // A Writer-produced OpenDocument opens its actual text, headings and table before the archive.
 #test
 {

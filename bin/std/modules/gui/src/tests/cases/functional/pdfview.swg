@@ -99,7 +99,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let view = PdfView.create(&host.root)
     view.resize(800, 560)
     view.applyLayout()
-    expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
+    expect view.open(guiTestDataPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
     Swag.require(view.pageCount() == 28)
     Swag.require(view.cache.pages.isEmpty())
 
@@ -125,7 +125,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let view = PdfView.create(&host.root)
     view.resize(800, 560)
     view.applyLayout()
-    expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
+    expect view.open(guiTestDataPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
     Swag.require(view.pageCount() == 28)
 
     for pageIndex in view.pageCount()
@@ -729,7 +729,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
     view.applyLayout()
-    expect view.open(corpusPdfPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
+    expect view.open(guiTestDataPath("llvm-polly-kernelgen-ncar-2012-slides.pdf"))
     Swag.require(not view.documentText.started)
 
     var matches: Array'PdfTextMatch
@@ -803,7 +803,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     let view = PdfView.create(&host.root)
     view.resize(800, 560)
     view.applyLayout()
-    expect view.open(corpusPdfPath("llvm-polly-impact-2011-slides.pdf"))
+    expect view.open(guiTestDataPath("llvm-polly-impact-2011-slides.pdf"))
     settlePdfView(&host, view)
 
     // A page is flattened for the scale it will be shown at by the worker that decoded it, so

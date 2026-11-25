@@ -12,7 +12,7 @@ using Core, Pixel, Pdf
     var indexed = 0'u64
     for name in fixtures
     {
-        let path   = corpusPdfPath(name)
+        let path   = guiTestDataPath(name)
         var reader = expect Reader.open(path.toString())
         Swag.require(reader.fileName() == path.toString())
         for pageIndex in reader.pageCount()
@@ -27,7 +27,7 @@ using Core, Pixel, Pdf
     }
 
     Swag.require(indexed > 40)
-    var reader = expect Reader.open(corpusPdfPath("pdfbox-jpeg-rgb.pdf"))
+    var reader = expect Reader.open(guiTestDataPath("pdfbox-jpeg-rgb.pdf"))
     var rangeErrorOutcome: Swag.Error
     var overflow: #decltype(expect reader.loadPageText(reader.pageCount()))
     catch { overflow = try reader.loadPageText(reader.pageCount()) } as rangeErrorOutcome
@@ -39,7 +39,7 @@ using Core, Pixel, Pdf
 // Object 103 is such a DejaVu Sans subset; its Identity-H CIDs must address its glyphs directly.
 #test
 {
-    var reader = expect Reader.open(corpusPdfPath("llvm-polly-impact-2011-slides.pdf"))
+    var reader = expect Reader.open(guiTestDataPath("llvm-polly-impact-2011-slides.pdf"))
     var page   = expect reader.loadPage(5)
     var found  = false
     for font in page.fonts where font.bytes.count == 11_148

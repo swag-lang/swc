@@ -515,7 +515,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 // cost the whole page it appeared on.
 #test
 {
-    var reader = expect Reader.open(corpusPdfPath("synthetic-ccitt-cmyk.pdf"))
+    var reader = expect Reader.open(guiTestDataPath("synthetic-ccitt-cmyk.pdf"))
     Swag.require(reader.pageCount() == 1)
     var page = expect reader.loadPage(0)
 

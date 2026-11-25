@@ -533,9 +533,9 @@ A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching `Vi
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
 Keep every viewer's tests under `src/tests/cases/`, separated by type; preserve viewer-specific
-grouping in an area folder such as `functional/viewers/<viewer>`. Shared fixtures live in
+grouping in an area folder such as `functional/viewers/<viewer>`. Keep its checked-in fixtures in
 `src/tests/datas`, and image goldens in `src/tests/goldens`. Viewer plans use
-`assertScopeImageGolden` to compare that shared image corpus. External fixtures record their source URLs, license, and hashes in
+`assertScopeImageGolden` to compare the application goldens. External fixtures record their source URLs, license, and hashes in
 `datas/THIRDPARTY.md`.
 The [feature audit](FEATURE_AUDIT.md) maps every registered viewer to its category references and
 remaining backlog work.

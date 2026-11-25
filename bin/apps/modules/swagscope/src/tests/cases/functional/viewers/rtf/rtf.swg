@@ -14,6 +14,9 @@ using Core, Gui, Gui.Testing, Viewers
     var overflow: Swag.Error
     discard catch Rtf.Control.parse(cast(const [..] u8, "\\listid2147483648 "), 0) as overflow
     Swag.require(overflow.value() != null)
+
+    let document = expect Rtf.Document.load(scopeTestDataPath("viewer.large-control.rtf"))
+    Swag.require(Utf8.contains(document.html, "Read the document."))
 }
 
 // A long public-domain story retains its narrative scale, opening prose and Unicode typography.

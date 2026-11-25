@@ -7,7 +7,7 @@ using Core, Pixel, Pdf
 // is refused rather than half-applied.
 #test
 {
-    var reader = expect Reader.open(corpusPdfPath("llvm-polly-raghesh-masters-thesis.pdf"))
+    var reader = expect Reader.open(guiTestDataPath("llvm-polly-raghesh-masters-thesis.pdf"))
     var page   = expect reader.loadPage(69)
     page.prepare(2)
     page.prepare(0)

@@ -29,26 +29,7 @@ func videoReferenceChroma(plane: const [*] u8, stride: u64, planeWidth, planeHei
 }
 
 // Returns the path of a fixture of this test suite.
-func videoFixturePath(name: string)->String
-{
-    var sharedName = name
-    switch name
-    {
-    case "ffmpeg-mjpeg-422.avi": sharedName = "viewer.avi"
-    case "ffmpeg-hevc-main.mp4": sharedName = "viewer.hevc.mp4"
-    case "ffmpeg-rawvideo-bgr24.avi": sharedName = "viewer.raw.avi"
-    case "ffmpeg-mono.y4m": sharedName = "viewer.y4m"
-    case "ffmpeg-h264-baseline.mp4", "ffmpeg-h264-two-aac.mkv", "rv40-legacy-clock.mkv":
-        break
-    default:
-        return Path.combine(testSourceRoot(#curlocation), "datas", name)
-    }
-
-    return Path.combine(testSourceRoot(#curlocation), "../../../../../testdata/video", sharedName)
-}
-
-// Resolves a PCM reference shared with the audio tests.
-func videoReferenceAudioPath(name: string)->String => Path.combine(testSourceRoot(#curlocation), "../../../../../testdata/audio", name)
+func videoFixturePath(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
 
 // Returns a unique path in the temporary directory, for a stream a test writes itself.
 //

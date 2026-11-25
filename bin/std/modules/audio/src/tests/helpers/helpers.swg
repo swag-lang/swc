@@ -26,28 +26,7 @@ func audioAssertSamples(actual: const [..] u8, expected: const [..] s16)
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func audioGetTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    var directory  = "../../../../../testdata/audio"
-    var sharedName = fileName
-    switch fileName
-    {
-    case "aac-lc-stereo-44100.aac": sharedName = "viewer.aac"
-    case "ac3-5.1-48000.ac3": sharedName = "viewer.ac3"
-    case "eac3-5.1-48000.eac3": sharedName = "viewer.surround.eac3"
-    case "dts-5.1-48000.dts": sharedName = "viewer.dts"
-    case "eac3-stereo-48000.eac3": sharedName = "viewer.eac3"
-    case "flac-stereo-44100.flac": sharedName = "viewer.flac"
-    case "opus-stereo-hybrid.opus": sharedName = "viewer.hybrid.opus"
-    case "mp3-mono-16000.mp3": sharedName = "viewer.mp3"
-    case "vorbis-stereo-44100.ogg": sharedName = "viewer.ogg"
-    case "opus-mono-silk.opus": sharedName = "viewer.opus"
-    case "flac-5.1-48000.flac": sharedName = "viewer.surround.flac"
-    case "mp3-mono-48000.pcm", "opus-stereo-48000.pcm", "vorbis-stereo-44100.pcm":
-        break
-    default:
-        directory = "datas"
-    }
-
-    let path = Path.combine(testSourceRoot(loc), directory, sharedName)
+    let path = Path.combine(testSourceRoot(loc), "datas", fileName)
     Swag.require(File.exists(path))
     return path
 }

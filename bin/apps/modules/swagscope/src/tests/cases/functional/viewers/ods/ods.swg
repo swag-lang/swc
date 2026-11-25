@@ -6,25 +6,7 @@ using Core, Gui, Viewers
 // A legacy package can declare its type in the manifest alone without loading the external DTD.
 #test
 {
-    let path = Testing.tempFilePath("scope-ods-manifest-", ".ods")
-    defer discard catch File.delete(path)
-
-    const Manifest = """
-        <!DOCTYPE manifest:manifest SYSTEM "Manifest.dtd">
-        <manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0">
-          <manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.spreadsheet"/>
-        </manifest:manifest>
-        """
-    const Content = """
-        <office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
-                                 xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0">
-          <office:body><office:spreadsheet><table:table table:name="Budget"/></office:spreadsheet></office:body>
-        </office:document-content>
-        """
-    let bytes = storedZipBytes([{name: "META-INF/manifest.xml", bytes: cast(const [..] u8, Manifest)},
-                                {name: "content.xml", bytes: cast(const [..] u8, Content)}])
-    expect File.writeAllBytes(path, bytes.toSlice())
-    let workbook = expect Ods.load(path)
+    let workbook = expect Ods.load(scopeTestDataPath("viewer.manifest-only.ods"))
     Swag.require(workbook.sheets.count == 1 and workbook.sheets[0].name == "Budget")
 }
 

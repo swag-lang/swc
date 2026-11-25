@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Pixel, Gui, TrueType, Viewers
+using Core, Pixel, Gui, TrueType, Audio, Viewers
 
 private struct Fixture
 {
@@ -25,7 +25,7 @@ private struct Fixture
 // Every canonical format fixture and named variant selects its intended reading surface.
 #test
 {
-    const Cases: [202] Fixture = [
+    const Cases: [212] Fixture = [
         Fixture{"viewer.txt", "text"},
         Fixture{"viewer.field-notes.txt", "text"},
         Fixture{"viewer.cpp", "code"},
@@ -62,6 +62,7 @@ private struct Fixture
         Fixture{"viewer.poi-pictures.docx", "docx"},
         Fixture{"viewer.christmas-carol.docx", "docx"},
         Fixture{"viewer.rtf", "rtf"},
+        Fixture{"viewer.large-control.rtf", "rtf"},
         Fixture{"viewer.styles.rtf", "rtf"},
         Fixture{"viewer.unicode.rtf", "rtf"},
         Fixture{"viewer.table.rtf", "rtf"},
@@ -92,6 +93,7 @@ private struct Fixture
         Fixture{"viewer.field-station.elf", "binary"},
         Fixture{"viewer.hex.telemetry.bin", "binary"},
         Fixture{"viewer.csv", "table"},
+        Fixture{"viewer.trailing-quote.csv", "table"},
         Fixture{"viewer.field-observations.csv", "table"},
         Fixture{"viewer.tsv", "table"},
         Fixture{"viewer.tab", "table"},
@@ -109,6 +111,7 @@ private struct Fixture
         Fixture{"font-fixture-cjk.otf", "font"},
         Fixture{"font-fixture-damaged.otf", "font"},
         Fixture{"viewer.svg", "image"},
+        Fixture{"viewer.dense-solid.svg", "image"},
         Fixture{"viewer.watershed-map.svg", "image"},
         Fixture{"viewer.bmp", "image"},
         Fixture{"viewer.dds", "image"},
@@ -117,6 +120,8 @@ private struct Fixture
         Fixture{"viewer.ico", "image"},
         Fixture{"viewer.jpg", "image"},
         Fixture{"viewer.jpeg", "image"},
+        Fixture{"viewer.alias.jpe", "image"},
+        Fixture{"viewer.alias.jfif", "image"},
         Fixture{"viewer.ktx2", "image"},
         Fixture{"viewer.png", "image"},
         Fixture{"viewer.psd", "image"},
@@ -140,8 +145,10 @@ private struct Fixture
         Fixture{"viewer.eac3", "sound"},
         Fixture{"viewer.ec3", "sound", "viewer.eac3"},
         Fixture{"viewer.dts", "sound"},
+        Fixture{"viewer.huffman.dts", "sound"},
         Fixture{"viewer.ogg", "sound"},
         Fixture{"viewer.oga", "sound", "viewer.ogg"},
+        Fixture{"viewer.flac.oga", "sound"},
         Fixture{"viewer.opus", "sound"},
         Fixture{"viewer.mp4", "video"},
         Fixture{"viewer.synthetic-field.mp4", "video"},
@@ -149,6 +156,7 @@ private struct Fixture
         Fixture{"viewer.mov", "video", "glint-aac-mjpeg.mp4"},
         Fixture{"viewer.mkv", "video", "ffmpeg-h264-two-aac.mkv"},
         Fixture{"viewer.avi", "video"},
+        Fixture{"viewer.mpeg4-mp3.avi", "video"},
         Fixture{"viewer.y4m", "video"},
         Fixture{"viewer.cmyk.jpg", "image"},
         Fixture{"viewer.progressive.jpg", "image"},
@@ -173,9 +181,11 @@ private struct Fixture
         Fixture{"viewer.ppsx", "pptx"},
         Fixture{"viewer.macros.pptm", "pptx"},
         Fixture{"viewer.odt", "odt"},
+        Fixture{"viewer.legacy-manifest.odt", "odt"},
         Fixture{"viewer.christmas-carol.odt", "odt"},
         Fixture{"viewer.image.odt", "odt"},
         Fixture{"viewer.ods", "ods"},
+        Fixture{"viewer.manifest-only.ods", "ods"},
         Fixture{"viewer.number-formats.ods", "ods"},
         Fixture{"viewer.navigation.ods", "ods"},
         Fixture{"viewer.monthly-budget.ods", "ods"},
@@ -241,12 +251,64 @@ private struct Fixture
     }
 }
 
+// Dense painted contours retain the hole and appear throughout the image.
+#test
+{
+    let image = expect Picture.loadViewerImage(scopeTestDataPath("viewer.dense-solid.svg"))
+    Swag.require(image.width == 76 and image.height == 84)
+    var ink: u64
+    for y in image.height do
+        for x in image.width where image.pixelColor(x, y).a == 255 do
+            ink += 1
+    Swag.require(ink == 528 * 4 + 12 * 12 - 6 * 6)
+}
+
+private func requireStereoSignal(sound: const *SoundFile, encoding: SoundFileEncoding, sampleRate: u32)
+{
+    Swag.require(sound.sampleEncoding() == encoding and sound.sampleRateHz() == sampleRate and sound.numChannels() == 2)
+    var channels: [2] bool
+    var count: u64
+    let frames = Math.min(sound.sampleFrameCount(), cast(u64, sampleRate) / 4)
+    expect sound.decodePcm16(0, frames, func|&channels, &count|(samples)
+    {
+        for sample, index in samples where sample do
+            channels[index % 2] = true
+        count += samples.count
+        return true
+    })
+    Swag.require(count == frames * 2 and channels[0] and channels[1])
+}
+
+// The two packet formats preserve a decodable stereo signal.
+#test
+{
+    let dts  = expect SoundFile.load(scopeTestDataPath("viewer.huffman.dts"))
+    let flac = expect SoundFile.load(scopeTestDataPath("viewer.flac.oga"))
+    requireStereoSignal(&dts, .Dts, 44_100)
+    requireStereoSignal(&flac, .Flac, 44_100)
+}
+
+// The picture and the Layer III track both reach the viewer through the AVI reader.
+#test
+{
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var host: Testing.HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.mpeg4-mp3.avi"), false)
+    Swag.require(window.choices[window.activeChoiceIndex].key == "video")
+    let view = assume cast(*Film.Panel, window.currentView)
+    waitForVideoFrame(view)
+    waitForVideoAudio(view, 1)
+    Swag.require(view.hasFrame and view.video.width() == 64 and view.video.height() == 48)
+    requireStereoSignal(unwrap view.audio, .Mp3, 48_000)
+}
+
 // Pixel variants are actual decodable images, including hand-authored QOI and renamed aliases.
 #test
 {
-    const Cases: [25] string = [
+    const Cases: [27] string = [
         "viewer.bmp", "viewer.dds", "viewer.exr", "viewer.gif",
-        "viewer.ico", "viewer.jpg", "viewer.jpeg", "viewer.ktx2", "viewer.png",
+        "viewer.ico", "viewer.jpg", "viewer.jpeg", "viewer.alias.jpe", "viewer.alias.jfif", "viewer.ktx2", "viewer.png",
         "viewer.psd", "viewer.qoi", "viewer.tga", "viewer.tif", "viewer.tiff",
         "viewer.webp", "viewer.cmyk.jpg", "viewer.progressive.jpg", "viewer.animation.apng",
         "viewer.apng", "viewer.cur", "viewer.icc-profile.webp", "viewer.icc-profile.jpg",

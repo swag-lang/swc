@@ -139,8 +139,8 @@ using Core, Pdf
 // smudge on a scanned document.
 #test
 {
-    let encoded  = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.bin"))
-    let expected = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.samples.bin"))
+    let encoded  = expect File.readAllBytes(guiTestDataPath("pdf.ccitt-g4.bin"))
+    let expected = expect File.readAllBytes(guiTestDataPath("pdf.ccitt-g4.samples.bin"))
 
     var params = CcittParameters{k: -1, columns: 64, rows: 48}
 
@@ -159,7 +159,7 @@ using Core, Pdf
 // declared width of zero is a damaged dictionary rather than an empty image.
 #test
 {
-    let encoded = expect File.readAllBytes(corpusPdfPath("pdf.ccitt-g4.bin"))
+    let encoded = expect File.readAllBytes(guiTestDataPath("pdf.ccitt-g4.bin"))
 
     var params = CcittParameters{k: -1, columns: 64, rows: 60}
 

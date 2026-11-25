@@ -6,13 +6,15 @@ colour model, page encoding, package path, or damage. The extension is always th
 application selects; a variant name is never a substitute for a real suffix. Tests outside this
 directory may retain older names when those files serve a particular screenshot or journey.
 
-The executable fixture matrix in [`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg)
-checks both local and shared inputs. Cases that exercise a suffix or a distinct basename can copy
-the source bytes to a temporary file with the required name. Each listed input selects the expected
-reader. The image cases also decode their payloads;
-format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF, XLSX, ODS, PPTX/PPSX/PPTM and ODP content and negative cases. The
-registry smoke opens one file for each viewer. A selector check alone does not prove that every
-legal variation of a format can be read.
+The fixture matrix in [`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg) checks
+the committed files in this directory. A case that exercises an alias can copy the source bytes
+to a temporary file with the required name. The matrix checks reader selection and image
+decoding. The format-specific tests also cover valid content and damaged files. The registry
+smoke opens one file for each viewer.
+
+The compatibility regressions use small, self-contained files recorded in
+[THIRDPARTY.md](THIRDPARTY.md). The audio cases check decoded stereo samples, the image cases
+check decoding and painted pixels, and the document cases check readable content.
 
 `viewer.hex` is a readable-text payload opened directly by the Hex viewer's smoke; automatic
 selection correctly offers Text first for those bytes.
@@ -31,16 +33,12 @@ selection correctly offers Text first for those bytes.
 
 `viewer.mid` and `.midi` are byte-identical aliases for an original seven-note single-track melody.
 `viewer.groove.mid` is an original five-track arrangement with conductor, piano, bass, strings and
-drums. Their track layouts, timings and note events are retained as deterministic source data by
-`generator/generate-literary-fixtures.py`. The separate `viewer.ensemble.mid` score is documented
-above and is not rewritten by that generator.
+drums. The separate `viewer.ensemble.mid` score is documented above.
 
 The small text, code, XHTML/XML and caption fixtures in this family are repository-authored; the
-survey and timed-caption examples use fictional North Basin field records. The generator also
-preserves the long-form Markdown, HTML and MIDI payloads used by existing visual baselines. It
-writes the `.md`/`.markdown`, `.html`/`.htm`, and
-`.mid`/`.midi` aliases from a single source and keeps XML distinct from XHTML. No external prose,
-captions, code or composition is used; hashes and generation details are in `THIRDPARTY.md`.
+survey and timed-caption examples use fictional North Basin field records. The Markdown, HTML,
+and MIDI aliases keep the same bytes. The XML and XHTML fixtures are distinct. Hashes and origin
+details are in `THIRDPARTY.md`.
 
 `viewer.field-guide.html` and `viewer.field-observations.csv` are repository-generated, fictional
 fieldwork records. The handbook includes nested sections, internal links, a checklist table,
@@ -73,11 +71,10 @@ test corpora. Their exact local/source mappings, hashes and licences are recorde
 `THIRDPARTY.md`. The current Swag Scope image fixtures are generated locally or have a documented
 open licence; the obsolete Pixel-provenance note no longer applies to this matrix.
 `viewer.arabic.ttf` and `viewer.arabic.ttc` are deterministic subsets of Noto Sans Arabic Regular
-and Bold, with the TTC carrying both faces and basic Arabic block coverage. The generator script
-and invocation are recorded in [`THIRDPARTY.md`](THIRDPARTY.md). See that guide for other
+and Bold, with the TTC carrying both faces and basic Arabic block coverage. The source faces and licences are recorded in [`THIRDPARTY.md`](THIRDPARTY.md). See that guide for other
 externally sourced inputs.
 `viewer.arabic.partial.ttc` reuses those licensed faces and invalidates only the middle face's
-scaler signature, so valid neighbors remain available around a malformed member. Its generator and hash are
+scaler signature, so valid neighbors remain available around a malformed member. Its source and hash are
 also recorded in [`THIRDPARTY.md`](THIRDPARTY.md).
 `viewer.image.docx` packages the generated `viewer.jpg` with one local and one external image
 relationship; the external URL is intentionally never fetched.
@@ -101,21 +98,17 @@ fixture's recorded provenance and licence. No external resources are included.
 
 `viewer.chart.pptx` is a repository-authored one-slide presentation with a cached two-series
 bar chart, direct RGB series colors and three shared categories. It exercises a relationship-resolved
-chart part without an embedded workbook or external resources. Regenerate it with
-`generator/generate-office-lite-fixtures.py`.
+chart part without an embedded workbook or external resources.
 
 `viewer.column-chart.pptx` is the matching repository-authored presentation with a cached vertical
 column chart, direct RGB series colors and a negative cached value to cover signed scaling.
-Regenerate it with `generator/generate-office-lite-fixtures.py`.
 
 `viewer.combo-chart.pptx` combines a cached bar chart with a cached line series to verify that an
 unsupported mixed chart is reported as simplified rather than partially drawn.
-Regenerate it with `generator/generate-office-lite-fixtures.py`.
 
 `viewer.table.pptx` is a repository-authored one-slide presentation with a title and a three-column,
 six-row static table graphic frame. Its filled header, horizontally merged summary cell, vertically
 merged annual total cell, and cell text cover table package decoding without external assets.
-Regenerate it with `generator/generate-office-lite-fixtures.py`.
 
 `viewer.line-chart.pptx`, `viewer.smooth-line-chart.pptx`, `viewer.area-chart.pptx`, and
 `viewer.stacked-area-chart.pptx` are
@@ -123,13 +116,10 @@ repository-authored one-slide presentations with two cached series and four shar
 The line chart uses standard straight segments and direct RGB series colors; the smoothed line
 chart and stacked area chart exercise simplified output for smoothed and stacked forms; the area
 chart covers standard filled areas. None includes an embedded workbook or external resources.
-Regenerate them with
-`generator/generate-line-chart-fixtures.py`.
 
 `viewer.pie-chart.pptx` is a repository-authored cached single-series pie chart with four positive
 categories. The companion multiple-series, negative-value, and mixed-family packages exercise the
-simplified fallback. None includes an embedded workbook or external resources. Regenerate all four
-with `generator/generate-pie-chart-fixtures.py`.
+simplified fallback. None includes an embedded workbook or external resources.
 
 `viewer.project.zip` is a reproducible, repository-authored field-survey project bundle. It has
 seven Deflate-compressed files across the root, `config/`, `data/`, `docs/` and `src/`, with
@@ -137,17 +127,14 @@ fictional site metadata, CSV observations, a source file and a bundled MIT licen
 Its data is generated for these tests and has no external dependencies; the SHA-256 is recorded
 in `THIRDPARTY.md`.
 
-`viewer.field-kit.tar` is a deterministic POSIX ustar archive generated by
-`generator/generate-field-kit-tar.py`. Its three fictional files cover nested paths, source,
+`viewer.field-kit.tar` is a deterministic POSIX ustar archive. Its three fictional files cover nested paths, source,
 CSV and plain-text preview. It has no external assets. SHA-256: `c894b190c621cb1fee49319b034aec8d15991ac3aa448032e3de1e99df8e1765`.
 
-`viewer.pax-field-kit.tar` is a generated POSIX PAX archive made by
-`generator/generate-pax-tar.py`. A long nested UTF-8 path and payload size are stored in an
+`viewer.pax-field-kit.tar` is a generated POSIX PAX archive. A long nested UTF-8 path and payload size are stored in an
 extended header; the fictional file has no external assets. SHA-256:
 `51c304948a936659bf63ae4d13ae992f4ff3ddb4341b61f057f7ea60cfb3fcdb`.
 
-`viewer.field-notes.txt.gz` and `viewer.field-kit.tar.gz` are deterministic GZIP examples generated
-by `generator/generate-gzip-fixtures.py`. The first stores fictional notes and an original filename;
+`viewer.field-notes.txt.gz` and `viewer.field-kit.tar.gz` are deterministic GZIP examples. The first stores fictional notes and an original filename;
 the second wraps the field-kit USTAR archive to exercise TAR.GZ browsing and member extraction.
 Both include extra data, comments and a header CRC. Neither contains third-party material.
 SHA-256: `8a31a72d6f196f114d2042722881d37b79eac4355a44385f13e86c99df702b95` and
@@ -161,13 +148,12 @@ and zero sections, grouping, optional decimals, dates, elapsed time and cached f
 `viewer.alternate-picture.rtf` wraps generated `viewer.png` bytes as a modern shape picture and
 its compatibility fallback. Both documents are repository-authored and contain no external resources.
 
-Texture arrays, layered Photoshop images and multipart EXR images are generated by `generator/generate-texture-fixtures.py`. DDS and KTX2 use two layers with two mip levels; PSD contains three synthetic image layers; EXR contains two named scanline parts. PSD generation uses ImageMagick 7.1.1-43 Q16; EXR generation uses OpenEXR 3.5.4 and NumPy. These files contain only generated color samples and are covered by this repository's licence. See `THIRDPARTY.md` for hashes.
+Texture arrays, layered Photoshop images and multipart EXR images are synthetic. DDS and KTX2 use two layers with two mip levels; PSD contains three synthetic image layers; EXR contains two named scanline parts. PSD generation uses ImageMagick 7.1.1-43 Q16; EXR generation uses OpenEXR 3.5.4 and NumPy. These files contain only generated color samples and are covered by this repository's licence. See `THIRDPARTY.md` for hashes.
 
-The simple raster fixtures are generated by `generator/generate-image-fixtures.py` using Pillow 12.3.0 and
-fixed geometric drawing only; no source images, fonts, or profiles are read. It generates
+The simple raster fixtures were drawn with Pillow 12.3.0 from original geometry. They include
 `viewer.png` (512×512 RGB), `viewer.jpg`/`viewer.jpeg` (identical 1024×768 baseline JPEG), a
 4×4 24-bit BMP, a 660×441 RLE TGA, a 48×32 four-component CMYK JPEG, and a 660×441 progressive
-JPEG. The generator also refreshes the JPEG/PNG payloads embedded in `viewer.image.docx`,
+JPEG. Related JPEG and PNG payloads appear in `viewer.image.docx`,
 `viewer.image.odt`, `viewer.odp`, `viewer.pictures.rtf`, and `viewer.alternate-picture.rtf`. The
 files are fictional watershed illustrations, generated for these tests; fixture hashes and the
 source/generation records are listed in `THIRDPARTY.md`.
@@ -175,7 +161,7 @@ source/generation records are listed in `THIRDPARTY.md`.
 `viewer.icc-profile.webp` and `viewer.icc-profile.jpg` are small generated color patches carrying
 the same synthetic ICC header and ASCII `desc` identity. WebP preserves it as one ICC chunk; JPEG
 stores it in APP2 `ICC_PROFILE` segments. The profile tests identity inspection only and does not
-claim a usable color transform. Their deterministic generators and hashes are listed in
+claim a usable color transform. Their provenance and hashes are listed in
 `THIRDPARTY.md`.
 
 `viewer.icc-profile-mluc.webp` carries a generated ICC `mluc` description with French first and
@@ -185,7 +171,7 @@ is synthetic and tests identity inspection only.
 `viewer.xmp.webp` and `viewer.xmp.jpg` are 48×32 generated color patches carrying the same
 synthetic XMP description, creator, subject, rights, and date in WebP and JPEG metadata. The
 namespace aliases and RDF arrays exercise the bounded descriptive reader; all values and artwork
-are generated. Regenerate both with `generator/generate-xmp-fixtures.py`.
+are generated.
 
 `viewer.styles.docx` is a repository-authored document with relationship-resolved style and theme
 parts. It exercises custom heading IDs, parent styles, character styles, theme fonts/colors,
@@ -267,15 +253,15 @@ unmodified openpyxl package, not that materialized re-save. Its licence is this 
 SHA-256: `0a251d0cab7928d459a051dc43da26a39e49ab7fea1ef85912860e3e7323a8f3`.
 
 `imageset-animation.{apng,gif,webp}`, `imageset-icons.ico` and `imageset-pages-raw.tiff` are
-generated by `generator/generate-image-sequences.py` with Pillow 12.3.0. They contain three
+generated with Pillow 12.3.0. They contain three
 distinct finite-loop frames, three ICO sizes, and three differently sized TIFF pages respectively.
 The `viewer.*` and `viewer.animation.*` variants are byte-identical aliases; the drawings are
 procedural and have no external assets. Hashes and exact format properties are in `THIRDPARTY.md`.
 
 
 `viewer.cur`, `viewer.qoi`, `viewer.archive.icons.png`, and `viewer.nested.cbz` are original
-fixed-geometry fixtures generated by `generator/generate-image-archive-fixtures.py`. CUR contains
+fixed-geometry fixtures. CUR contains
 two hotspot images, QOI contains four explicit RGBA pixels, the archive sprite atlas contains three
 small file icons, and the nested comic contains two fictional field-survey pages. `viewer.zip` and
 `viewer.archive.zip` are byte-identical aliases of a ZIP with two fictional text/data entries.
-Their generation steps, licences, and hashes are recorded in `THIRDPARTY.md`.
+Their provenance, licences, and hashes are recorded in `THIRDPARTY.md`.

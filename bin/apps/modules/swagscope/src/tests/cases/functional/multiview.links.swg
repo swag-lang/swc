@@ -337,11 +337,28 @@ func scopedAlignmentWave(path: string, delay: u32)
     Swag.require(content.currentFile == first and workspace.activeDocument() == workspace.primary)
     Swag.require(workspace.scenes.count == 1 and workspace.primary.isExploring())
 
-    Swag.require(workspace.primary.runCommand(MediaCommands.ExplorerSingleClick))
+    let singleClick = workspace.primary.runCommand(MediaCommands.ExplorerSingleClick)
+    Swag.require(singleClick)
     point = explorer.list.listView.localToSurface(Math.Point{30, explorer.list.lineHeight() * 1.5})
     host.surface.surfaceToScreen(&point)
-    host.click(point)
+    clickLinkedExplorerFile(&host, point)
     completeQueuedViewerFile(&host, content)
-    Swag.require(content.currentFile == second and scene.views[1].document == content)
+    Swag.require(content.currentFile == second)
+
+    explorer.setMode(.Medium)
+    point = explorer.grid.localToSurface(explorer.grid.tileRect(0).center())
+    host.surface.surfaceToScreen(&point)
+    clickLinkedExplorerFile(&host, point)
+    completeQueuedViewerFile(&host, content)
+    Swag.require(content.currentFile == first and scene.views[1].document == content)
     Swag.require(scene.views.count == 2 and workspace.scenes.count == 1 and workspace.activeDocument() == workspace.primary)
+}
+
+// Polled pointer input sends a move with the new button state before it sends the release.
+func clickLinkedExplorerFile(host: *Testing.HeadlessHost, point: Math.Point)
+{
+    host.mouseDown(point)
+    host.app.mouse.setCurrentButtonState(.Left, false)
+    host.moveMouse(point)
+    host.mouseUp(point)
 }

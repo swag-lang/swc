@@ -2053,13 +2053,15 @@ impl Explorer
 
         if evt.kind != .Move do
             return false
-        if source.mouseCapture() != source or not .app().mouse.isButtonPressed(.Left)
+        if source.mouseCapture() != source
         {
             .clearFileDrag()
             return false
         }
 
-        if not source.exceedsDragThreshold(.dragOrigin, evt.surfacePos) do
+        // Polled input reports the new button state on a move before delivering the release.
+        // Only the release can finish a click while this control still has capture.
+        if not .app().mouse.isButtonPressed(.Left) or not source.exceedsDragThreshold(.dragOrigin, evt.surfacePos) do
             return false
 
         var data: DragData

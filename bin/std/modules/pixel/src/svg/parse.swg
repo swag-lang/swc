@@ -95,13 +95,14 @@ struct Drawing
         height: f32     // View-box height, in user units.
     }
 
-    shapes:    Array'Shape                       // Parsed vector shapes, including hidden definitions.
-    imageSize: Vector2                           // Absolute root dimensions in CSS pixels, independent of view-box units.
-    texts:     Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
-    images:    Array'SvgImage                    // Decoded raster images referenced by the paint-order list.
-    items:     Array'DrawingItem                 // Visible elements in paint order.
-    patterns:  HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
-    filters:   HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
+    shapes:       Array'Shape                       // Parsed vector shapes, including hidden definitions.
+    imageSize:    Vector2                           // Absolute root dimensions in CSS pixels, independent of view-box units.
+    texts:        Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
+    images:       Array'SvgImage                    // Raster placements referenced by the paint-order list.
+    rasterImages: Array'Image                       // Decoded bitmaps shared by their placements.
+    items:        Array'DrawingItem                 // Visible elements in paint order.
+    patterns:     HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
+    filters:      HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
 }
 
 private enum DrawingItemKind
@@ -182,10 +183,10 @@ internal struct SvgText
 #[Swag.Opaque]
 internal struct SvgImage
 {
-    image:     Image
-    rect:      Rectangle           // Destination in the user units of the element.
-    transform: Math.Transform2     // User units to drawing space.
-    opacity:   f32 = 1
+    rasterIndex: u64
+    rect:        Rectangle           // Destination in the user units of the element.
+    transform:   Math.Transform2     // User units to drawing space.
+    opacity:     f32 = 1
 }
 
 #[Swag.Opaque]
@@ -294,6 +295,7 @@ private struct Parser
     patterns:       HashTable'(String, Pattern)
     filters:        HashTable'(String, SvgFilter)
     styles:         StyleSheet
+    embeddedImages: HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
     options:        ParseOptions
     typeFaces:      [FontFamilyKind.count] (*TypeFace?)
     svgDepth:       u32
@@ -2414,15 +2416,25 @@ private impl Parser
             .gradients.add(id.value, #move gradient)
     }
 
-    mtd loadImage(href: string)->Image fail
+    mtd loadRaster(href: string)->u64 fail
     {
+        let index = .drawing.rasterImages.count
         if Utf8.startsWith(href, "data:")
         {
-            // The decoded size is bounded by the encoded length, so the byte budget is enforced
-            // before anything is allocated.
+            // Check the Base64 byte limit before hashing or decoding the URI.
             if (href.count / 4) * 3 > .options.maxImageBytes do
                 fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
-            return try Image.fromDataUri(href)
+
+            // Attribute values slice the document. Keep that source as the cache key's owner.
+            let start = cast(u64, href.buffer - .text.buffer)
+            let entry = .embeddedImages.findOrAdd(.text[start until start + href.count])
+            if entry.value do
+                return entry.value - 1
+
+            var raster = #move try Image.fromDataUri(href)
+            .drawing.rasterImages.add(#move raster)
+            entry.value = index + 1
+            return index
         }
 
         if (.options.externalResourceRoot).count == 0 do
@@ -2437,7 +2449,9 @@ private impl Parser
         let info = try File.info(fullPath.toString())
         if info.size > .options.maxImageBytes do
             fail Swag.SystemError{"external SVG image exceeds the configured byte limit"}
-        return try Image.load(fullPath.toString())
+        var raster = #move try Image.load(fullPath.toString())
+        .drawing.rasterImages.add(#move raster)
+        return index
     }
 
     mtd emitImage(state: *GroupState, geo: *AttributeMap) fail
@@ -2458,7 +2472,7 @@ private impl Parser
 
         let index = .drawing.images.count
         let item  = .drawing.images.emplaceInitAddress()
-        item.image = try .loadImage(href.value)
+        item.rasterIndex = try .loadRaster(href.value)
 
         // The rectangle stays in user units and carries its transform, so a mirrored or turned
         // picture is painted through the same matrix as its siblings instead of being
@@ -4047,7 +4061,7 @@ impl Drawing
         painter.setTransform(placed)
         defer painter.setTransform(drawingToSurface)
 
-        let texture = painter.renderer().addImage(image.image)
+        let texture = painter.renderer().addImage(.rasterImages[image.rasterIndex])
         painter.drawTexture(image.rect, texture, Color.fromArgb(Argb.White).withAlphaF32(alpha))
         painter.releaseTexture(texture)
     }

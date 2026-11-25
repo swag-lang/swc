@@ -41,6 +41,30 @@ using Swag, Core
     Swag.require(image.pixelColor(36, 8).a == 0)
 }
 
+// The same embedded image can be placed and transformed independently from one decoded bitmap.
+#test
+{
+    var source = Image.create(2, 1, .RGBA8)
+    let samples: [8] u8 = [255, 0, 0, 255, 0, 0, 255, 255]
+    Memory.copy(source.pixels.storage(), &samples, 8)
+    let bytes = expect source.encodeToBytes("embedded.png")
+    let data  = Base64.encode(bytes.toSlice())
+    let svg   = Format.toString("""\
+        <svg width='64' height='16' xmlns:xlink='http://www.w3.org/1999/xlink'>\
+        <image width='32' height='16' href='data:image/png;base64,%'/>\
+        <image width='32' height='16' xlink:href='data:image/png;base64,%' \
+        transform='translate(64,0) scale(-1,1)' opacity='0.5'/></svg>""", data, data)
+
+    let drawing = expect Svg.Drawing.parse(svg.toString())
+    Swag.require(drawing.rasterImages.count == 1)
+    let image    = drawing.rasterize(64, 16, 1)
+    let left     = image.pixelColor(2, 8)
+    let mirrored = image.pixelColor(34, 8)
+    Swag.require(left.r > 200 and left.b < 56 and left.a == 255)
+    Swag.require(mirrored.b > 200 and mirrored.r < 56)
+    Swag.require(Math.abs(cast(s32, mirrored.a) - 128) <= 2)
+}
+
 // Relative raster references are decoded through Pixel only inside the configured resource root.
 #test
 {

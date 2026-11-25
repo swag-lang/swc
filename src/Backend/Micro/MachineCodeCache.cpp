@@ -18,6 +18,8 @@
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/WorkspaceLayout.h"
+#include "Support/Core/PointerSet.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
@@ -39,6 +41,57 @@ namespace
     {
         out.appendLe32(static_cast<uint32_t>(text.size()));
         out.append(text);
+    }
+
+    template<typename T>
+    void writeIdentityField(std::byte*& cursor, T value)
+    {
+        if constexpr (sizeof(T) > 1 && std::endian::native != std::endian::little)
+            value = std::byteswap(value);
+        std::memcpy(cursor, &value, sizeof(T));
+        cursor += sizeof(T);
+    }
+
+    bool appendInstructionIdentity(ByteArray& out, const MicroInstr& instruction, const MicroOperandStorage& storage, const bool hasRelocation)
+    {
+        constexpr size_t headerSize  = 5 * sizeof(uint8_t) + sizeof(uint16_t);
+        constexpr size_t operandSize = sizeof(uint64_t) + sizeof(uint32_t);
+        constexpr size_t maxOperands = std::numeric_limits<decltype(instruction.numOperands)>::max();
+
+        // Keep fixed fields together until a wide immediate needs its separate text.
+        std::array<std::byte, headerSize + maxOperands * operandSize> encoded;
+        auto*                                                         cursor = encoded.data();
+        const auto&                                                   source = instruction.debugSourceInfo;
+        writeIdentityField(cursor, static_cast<uint8_t>(instruction.op));
+        writeIdentityField(cursor, instruction.numOperands);
+        writeIdentityField(cursor, static_cast<uint8_t>(instruction.compilerSafetyCall));
+        writeIdentityField(cursor, static_cast<uint8_t>(instruction.frameWriteGuard));
+        writeIdentityField(cursor, static_cast<uint16_t>(source.hasSanityMaskOverride ? source.sanityMaskOverride : 0));
+        writeIdentityField(cursor, static_cast<uint8_t>(source.hasSanityMaskOverride));
+
+        const auto* operands = instruction.ops(storage);
+        for (uint32_t index = 0; index < instruction.numOperands; ++index)
+        {
+            // Relocatable pointer loads carry their process address in operand 2.
+            if (instruction.op == MicroInstrOpcode::LoadRegPtrReloc && index == 2)
+            {
+                if (!hasRelocation)
+                    return false;
+                continue;
+            }
+            const MicroInstrOperand& operand = operands[index];
+            const uint32_t           width   = operand.valueInt.bitWidth();
+            writeIdentityField(cursor, operand.valueU64);
+            writeIdentityField(cursor, width);
+            if (width > 64)
+            {
+                out.append(std::span(encoded.data(), cursor));
+                appendString(out, operand.valueInt.toString().view());
+                cursor = encoded.data();
+            }
+        }
+        out.append(std::span(encoded.data(), cursor));
+        return true;
     }
 
     uint64_t sourceKey(const SourceCodeRef& source)
@@ -180,7 +233,7 @@ namespace
         std::unordered_map<ConstantLeaf, uint32_t, ConstantLeafHash> leaves;
         uint32_t                                                     numAllocations = 0;
         std::unordered_map<const SymbolFunction*, uint32_t>          functions;
-        std::unordered_map<uint64_t, uint32_t>                       sources;
+        FlatKeyMap<uint32_t, uint64_t>                               sources;
         std::unordered_map<uint64_t, uint32_t>                       globals;
         // Valid source refs cannot pack to the all-ones sentinel.
         uint64_t lastSourceBinding = std::numeric_limits<uint64_t>::max();
@@ -200,9 +253,13 @@ namespace
             const uint64_t binding = sourceKey(source.sourceCodeRef);
             if (binding != lastSourceBinding)
             {
-                const auto entry  = sources.emplace(binding, static_cast<uint32_t>(sources.size())).first;
+                // One-based ordinals leave zero available for a new slot.
+                const auto nextOrdinal = static_cast<uint32_t>(sources.size()) + 1;
+                auto&      ordinal     = sources.getOrInsert(binding);
+                if (!ordinal)
+                    ordinal = nextOrdinal;
                 lastSourceBinding = binding;
-                lastSourceIndex   = entry->second;
+                lastSourceIndex   = ordinal - 1;
             }
             out.appendLe32(lastSourceIndex);
         }
@@ -246,18 +303,24 @@ namespace
                 return false;
             if (allocation.size > K_MAX_IMAGE_SIZE - std::min<size_t>(out.size(), K_MAX_IMAGE_SIZE))
                 return false;
-            const uint64_t key                   = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
-            const auto [allocationEntry, unseen] = allocations.emplace(key, numAllocations);
-            bool inserted                        = unseen;
-            if (unseen && !segment.hasRelocations(allocation.offset, allocation.size))
+            const uint64_t key                             = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
+            const auto [allocationEntry, unseen]           = allocations.emplace(key, numAllocations);
+            bool                                  inserted = unseen;
+            SmallVector<DataSegmentRelocation, 4> relocations;
+            const std::byte*                      payload = nullptr;
+            if (unseen)
             {
-                // Constant payloads stay immutable throughout this input walk. Keep
-                // a view and its hash so table growth never copies or rehashes bytes.
-                const std::string_view payload{segment.ptr<char>(allocation.offset), allocation.size};
-                const ConstantLeaf     leaf{payload, allocation.align, Math::hash(payload, allocation.align)};
-                const auto [leafEntry, added] = leaves.emplace(leaf, numAllocations);
-                allocationEntry->second       = leafEntry->second;
-                inserted                      = added;
+                segment.copyRelocations(relocations, allocation.offset, allocation.size);
+                payload = segment.ptr<std::byte>(allocation.offset);
+                if (relocations.empty())
+                {
+                    // Keep a view and its hash so table growth never copies or rehashes bytes.
+                    const std::string_view text{reinterpret_cast<const char*>(payload), allocation.size};
+                    const ConstantLeaf     leaf{text, allocation.align, Math::hash(text, allocation.align)};
+                    const auto [leafEntry, added] = leaves.emplace(leaf, numAllocations);
+                    allocationEntry->second       = leafEntry->second;
+                    inserted                      = added;
+                }
             }
             const uint32_t index = allocationEntry->second;
             numAllocations += inserted;
@@ -267,20 +330,18 @@ namespace
             if (!inserted)
                 return true;
 
-            std::vector<DataSegmentRelocation> relocations;
-            segment.copyRelocations(relocations, allocation.offset, allocation.size);
             std::ranges::sort(relocations, {}, &DataSegmentRelocation::offset);
-            ByteArray bytes(allocation.size);
-            std::memcpy(bytes.data(), segment.ptr<std::byte>(allocation.offset), allocation.size);
-            for (const auto& relocation : relocations)
-            {
-                if (relocation.offset - allocation.offset > allocation.size || allocation.size - (relocation.offset - allocation.offset) < sizeof(uint64_t))
-                    return false;
-                bytes.writeLe64(relocation.offset - allocation.offset, 0);
-            }
             out.appendLe32(allocation.align);
             out.appendLe32(allocation.size);
-            out.append(bytes);
+            const size_t payloadOffset = out.size();
+            out.append(std::span{payload, allocation.size});
+            for (const auto& relocation : relocations)
+            {
+                const uint32_t offset = relocation.offset - allocation.offset;
+                if (offset > allocation.size || allocation.size - offset < sizeof(uint64_t))
+                    return false;
+                out.writeLe64(payloadOffset + offset, 0);
+            }
             out.appendLe32(static_cast<uint32_t>(relocations.size()));
             for (const auto& relocation : relocations)
             {
@@ -511,46 +572,33 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     }
     appendRegisterSets(identity, builder);
 
-    InputIdentity                          constants{.ctx = &ctx};
-    const auto&                            relocations = builder.codeRelocations();
-    std::unordered_map<uint32_t, uint32_t> targetByInstruction;
+    InputIdentity        constants{.ctx = &ctx};
+    const auto&          relocations = builder.codeRelocations();
+    FlatKeyMap<uint32_t> targetByInstruction;
+    if (!relocations.empty())
+        targetByInstruction.reserve(relocations.size());
     for (uint32_t index = 0; index < relocations.size(); ++index)
     {
-        if (!targetByInstruction.emplace(relocations[index].instructionRef.get(), index).second)
+        auto& ordinal = targetByInstruction.getOrInsert(relocations[index].instructionRef.get());
+        if (ordinal)
             return {};
+        ordinal = index + 1;
     }
     identity.appendLe32(static_cast<uint32_t>(relocations.size()));
-    identity.appendLe32(builder.instructions().count());
+    const auto instructionCount = builder.instructions().count();
+    identity.appendLe32(instructionCount);
+    outSources.reserve(static_cast<size_t>(instructionCount) + (function.decl() != nullptr));
     for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
     {
         const MicroInstr& instruction = *it;
         if (instruction.op == MicroInstrOpcode::LoadRegPtrImm)
             return {};
-        const auto target = targetByInstruction.find(it.current.get());
-        identity.appendLe32(target != targetByInstruction.end() ? target->second : INVALID_REF);
-        if (target != targetByInstruction.end() && !appendTarget(identity, constants, relocations[target->second], function))
+        const uint32_t* target = targetByInstruction.find(it.current.get());
+        identity.appendLe32(target ? *target - 1 : INVALID_REF);
+        if (target && !appendTarget(identity, constants, relocations[*target - 1], function))
             return {};
-        identity.pushBack(static_cast<std::byte>(instruction.op));
-        identity.pushBack(static_cast<std::byte>(instruction.numOperands));
-        identity.pushBack(static_cast<std::byte>(instruction.compilerSafetyCall));
-        identity.pushBack(static_cast<std::byte>(instruction.frameWriteGuard));
-        identity.appendLe16(instruction.debugSourceInfo.hasSanityMaskOverride ? instruction.debugSourceInfo.sanityMaskOverride : 0);
-        identity.pushBack(static_cast<std::byte>(instruction.debugSourceInfo.hasSanityMaskOverride));
-        const auto* operands = instruction.ops(builder.operands());
-        for (uint32_t index = 0; index < instruction.numOperands; ++index)
-        {
-            // Relocatable pointer loads carry their process address in operand 2.
-            if (instruction.op == MicroInstrOpcode::LoadRegPtrReloc && index == 2)
-            {
-                if (target == targetByInstruction.end())
-                    return {};
-                continue;
-            }
-            identity.appendLe64(operands[index].valueU64);
-            identity.appendLe32(operands[index].valueInt.bitWidth());
-            if (operands[index].valueInt.bitWidth() > 64)
-                appendString(identity, operands[index].valueInt.toString().view());
-        }
+        if (!appendInstructionIdentity(identity, instruction, builder.operands(), target != nullptr))
+            return {};
         const auto& source = instruction.debugSourceInfo;
         outSources.push_back(source);
         constants.appendSource(identity, source);
@@ -740,21 +788,25 @@ void MachineCodeCache::write(const MachineCode& code) const
         else
             image.writeLe64(relocation.codeOffset, 0);
     }
-    std::unordered_map<uint64_t, uint32_t> sourceIndices;
+    FlatKeyMap<uint32_t, uint64_t> sourceIndices;
     if (!code.debugSourceRanges.empty())
     {
         sourceIndices.reserve(std::min(sources_.size(), code.debugSourceRanges.size()));
         for (uint32_t index = 0; index < sources_.size(); ++index)
-            sourceIndices.emplace(sourceKey(sources_[index].sourceCodeRef), index);
+        {
+            auto& ordinal = sourceIndices.getOrInsert(sourceKey(sources_[index].sourceCodeRef));
+            if (!ordinal)
+                ordinal = index + 1;
+        }
     }
     for (const auto& range : code.debugSourceRanges)
     {
-        const auto source = sourceIndices.find(sourceKey(range.debugSourceInfo.sourceCodeRef));
-        if (source == sourceIndices.end())
+        const uint32_t* source = sourceIndices.find(sourceKey(range.debugSourceInfo.sourceCodeRef));
+        if (!source)
             return;
         records.appendLe32(range.codeStartOffset);
         records.appendLe32(range.codeEndOffset);
-        records.appendLe32(source->second | (static_cast<uint32_t>(range.debugSourceInfo.debugNoStep) << 31));
+        records.appendLe32((*source - 1) | (static_cast<uint32_t>(range.debugSourceInfo.debugNoStep) << 31));
     }
     ByteArray bytes;
     bytes.appendLe64(K_MAGIC);

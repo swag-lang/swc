@@ -334,6 +334,26 @@ SWC_TEST_BEGIN(DataSegment_FindAllocationUsesPublishedAllocations)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_FindAllocationRespectsSegmentLifetime)
+{
+    std::optional<DataSegment> segment(std::in_place);
+    const uint32_t             firstOffset = segment->reserveBlock(24, 8, true);
+    DataSegmentAllocation      allocation;
+    if (!segment->findAllocation(allocation, firstOffset + 8) || allocation.size != 24)
+        return Result::Error;
+
+    segment.emplace();
+    const uint32_t reusedOffset = segment->reserveBlock(8, 8, true);
+    if (reusedOffset != firstOffset || segment->findAllocation(allocation, reusedOffset + 8) || allocation.size)
+        return Result::Error;
+
+    const uint32_t appendedOffset = segment->reserveBlock(16, 8, true);
+    if (appendedOffset != reusedOffset + 8 || !segment->findAllocation(allocation, appendedOffset) ||
+        allocation.offset != appendedOffset || allocation.size != 16)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_PagedAndLargeStoragePreserveRequiredAlignment)
 {
     for (const bool proximity : {false, true})

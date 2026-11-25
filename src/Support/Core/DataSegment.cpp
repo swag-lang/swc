@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/DataSegment.h"
+#include "Support/Core/FlatTable.h"
 #include "Support/Math/Hash.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
@@ -156,21 +157,35 @@ Ref DataSegment::findRef(const void* ptr) const noexcept
 
 bool DataSegment::findAllocation(DataSegmentAllocation& outAllocation, const uint32_t offset) const noexcept
 {
+    struct CachedAllocation
+    {
+        uint64_t              segmentId = 0;
+        DataSegmentAllocation allocation;
+    };
+
+    // Allocation ranges never change after publication. Keep only successful
+    // lookups, since a later append can give an unused offset an allocation.
+    thread_local std::array<CachedAllocation, 256> cache;
+    const uint64_t                                 key    = (id_ << 32) | offset;
+    CachedAllocation&                              cached = cache[FlatTable::slotIndex(key, cache.size() - 1)];
+    if (cached.segmentId == id_ && offset >= cached.allocation.offset && offset - cached.allocation.offset < cached.allocation.size)
+    {
+        outAllocation = cached.allocation;
+        return true;
+    }
+
     outAllocation = {};
-
     const std::shared_lock lock(allocationsMutex_);
-    if (allocations_.empty())
-        return false;
-
-    const auto it = std::ranges::upper_bound(allocations_, offset, {}, &DataSegmentAllocation::offset);
+    const auto             it = std::ranges::upper_bound(allocations_, offset, {}, &DataSegmentAllocation::offset);
     if (it == allocations_.begin())
         return false;
 
-    const auto allocIt = std::prev(it);
-    if (offset < allocIt->offset || offset - allocIt->offset >= allocIt->size)
+    const auto& allocation = *std::prev(it);
+    if (offset - allocation.offset >= allocation.size)
         return false;
 
-    outAllocation = *allocIt;
+    cached        = {.segmentId = id_, .allocation = allocation};
+    outAllocation = allocation;
     return true;
 }
 

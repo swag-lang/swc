@@ -255,28 +255,32 @@ private func convertRowHalfChroma(destination: [*] u8,
             x += 16
         }
     }
-    else
-    {
-        var chromaB: [16] u8
-        var chromaR: [16] u8
-        while width - x >= 16
-        {
-            for lane in 16
-            {
-                let pixelX = x + cast(s32, lane)
-                chromaB[lane] = sampleLinearChroma(cb, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
-                chromaR[lane] = sampleLinearChroma(cr, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
-            }
 
-            convertYuvRgb16Colors(destination + cast(u64, x * 3), luma + cast(u64, x), Simd.load(&chromaB[0]), Simd.load(&chromaR[0]), factors)
-            x += 16
+    if x == width do
+        return
+
+    // The two chroma planes share the same coordinates and every pixel shares this row.
+    let weights = chromaRowWeights(width, height, chromaHeight, chromaStride, y)
+    var chromaB: [16] u8
+    var chromaR: [16] u8
+    while width - x >= 16
+    {
+        for lane in 16
+        {
+            let sample = sampleLinearChromaPair(cb, cr, chromaWidth, width, x + cast(s32, lane), &weights)
+            chromaB[lane] = sample.cb
+            chromaR[lane] = sample.cr
         }
+
+        convertYuvRgb16Colors(destination + cast(u64, x * 3), luma + cast(u64, x), Simd.load(&chromaB[0]), Simd.load(&chromaR[0]), factors)
+        x += 16
     }
 
     while x < width
     {
-        let d = cast(s32, sampleLinearChroma(cb, chromaStride, chromaWidth, chromaHeight, width, height, x, y)) - 128
-        let e = cast(s32, sampleLinearChroma(cr, chromaStride, chromaWidth, chromaHeight, width, height, x, y)) - 128
+        let sample = sampleLinearChromaPair(cb, cr, chromaWidth, width, x, &weights)
+        let d      = cast(s32, sample.cb) - 128
+        let e      = cast(s32, sample.cr) - 128
         storeYuvRgbPixel(destination + cast(u64, x * 3),
                          yuvLumaTerm(luma[cast(u64, x)], factors),
                          factors.redCr * e + 128,
@@ -286,36 +290,45 @@ private func convertRowHalfChroma(destination: [*] u8,
     }
 }
 
-// Reconstructs one chroma value at the normalized texture coordinate of a luma pixel center.
-private func sampleLinearChroma(plane: const [*] u8,
-                                stride: u64,
-                                planeWidth,
-                                planeHeight,
-                                imageWidth,
-                                imageHeight,
-                                x,
-                                y: s32)->u8
+private struct ChromaRowWeights
 {
-    // Keep the center mapping rational until the final division. Rounding normalized f32
-    // coordinates first can turn an exact half-channel into 101.49998 on odd-sized planes.
-    let dx = cast(f64, imageWidth) * 2
-    let dy = cast(f64, imageHeight) * 2
-    let px = Math.clamp((cast(f64, x) * 2 + 1) * planeWidth - imageWidth, 0.0, (planeWidth - 1) * dx)
-    let py = Math.clamp((cast(f64, y) * 2 + 1) * planeHeight - imageHeight, 0.0, (planeHeight - 1) * dy)
-    let x0 = cast(s32, Math.floor(px / dx))
-    let y0 = cast(s32, Math.floor(py / dy))
-    let x1 = Math.min(x0 + 1, planeWidth - 1)
-    let y1 = Math.min(y0 + 1, planeHeight - 1)
-    let tx = px - x0 * dx
-    let ty = py - y0 * dy
+    scaleX:      f64
+    area:        f64
+    top, bottom: u64
+    topWeight, bottomWeight: f64
+}
 
-    let c00 = cast(f64, plane[cast(u64, y0) * stride + cast(u64, x0)])
-    let c10 = cast(f64, plane[cast(u64, y0) * stride + cast(u64, x1)])
-    let c01 = cast(f64, plane[cast(u64, y1) * stride + cast(u64, x0)])
-    let c11 = cast(f64, plane[cast(u64, y1) * stride + cast(u64, x1)])
-    let top = c00 * (dx - tx) + c10 * tx
-    let bot = c01 * (dx - tx) + c11 * tx
-    return cast(u8, Math.round((top * (dy - ty) + bot * ty) / (dx * dy)))
+private func chromaRowWeights(width, height, chromaHeight: s32, stride: u64, y: s32)->ChromaRowWeights
+{
+    let scaleY = cast(f64, height) * 2
+    let py     = Math.clamp((cast(f64, y) * 2 + 1) * chromaHeight - height, 0.0, (chromaHeight - 1) * scaleY)
+    let y0     = cast(s32, Math.floor(py / scaleY))
+    let y1     = Math.min(y0 + 1, chromaHeight - 1)
+    let ty     = py - y0 * scaleY
+    let scaleX = cast(f64, width) * 2
+    return ChromaRowWeights{scaleX, scaleX * scaleY, cast(u64, y0) * stride, cast(u64, y1) * stride, scaleY - ty, ty}
+}
+
+#[Swag.Inline]
+private func applyChromaWeights(plane: const [*] u8, row: const *ChromaRowWeights, x0, x1: u64, left, right: f64)->u8
+{
+    let top    = cast(f64, plane[row.top + x0]) * left + cast(f64, plane[row.top + x1]) * right
+    let bottom = cast(f64, plane[row.bottom + x0]) * left + cast(f64, plane[row.bottom + x1]) * right
+    return cast(u8, Math.round((top * row.topWeight + bottom * row.bottomWeight) / row.area))
+}
+
+// Reconstructs chroma at the normalized texture coordinate of a luma pixel center.
+#[Swag.Inline]
+private func sampleLinearChromaPair(cb, cr: const [*] u8, chromaWidth, width, x: s32, row: const *ChromaRowWeights)->{cb, cr: u8}
+{
+    // Keep the center mapping rational until the final division, including exact half-channel values.
+    let px   = Math.clamp((cast(f64, x) * 2 + 1) * chromaWidth - width, 0.0, (chromaWidth - 1) * row.scaleX)
+    let x0   = cast(s32, Math.floor(px / row.scaleX))
+    let x1   = Math.min(x0 + 1, chromaWidth - 1)
+    let tx   = px - x0 * row.scaleX
+    let left = row.scaleX - tx
+    return {applyChromaWeights(cb, row, cast(u64, x0), cast(u64, x1), left, tx),
+            applyChromaWeights(cr, row, cast(u64, x0), cast(u64, x1), left, tx)}
 }
 
 // Public only because it is embedded in backend-owned storage; callers never construct it.

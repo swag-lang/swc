@@ -142,11 +142,11 @@ private struct Chunk
     next: u64
 }
 
-// One frame of the video stream, as the container places it.
+// One video slot and the payload used to decode it.
 private struct FrameEntry
 {
     offset: u64      // Offset of the payload in the stream, in bytes.
-    size:   u64      // Length of the payload, in bytes; zero for a frame that repeats the previous one.
+    size:   u64      // Payload size; zero when a coded slot repeats or the file begins with no picture.
     isSync: bool     // Whether the frame starts a decode that depends on nothing before it.
 }
 
@@ -479,7 +479,9 @@ impl IDecoder for Decoder
         }
 
         .nextIndex = NoFrameIndex
-        let entry = .frames[try .resolveFrame(current)]
+        let entry = .frames[current]
+        if not entry.size do
+            fail InvalidFormatError{"AVI stream starts with a frame that carries no picture"}
         if entry.offset > source.size() or entry.size > source.size() - entry.offset do
             fail InvalidFormatError{"AVI frame payload is truncated"}
 
@@ -697,6 +699,21 @@ private impl Decoder
         try .walkFrames(source, layout, dataId, compressedId)
     }
 
+    // Intra-only formats can reuse the previous payload directly when a slot is empty.
+    // Inter-coded streams keep empty slots so the picture stream can apply presentation order.
+    #[Swag.Inline]
+    mtd appendFrame(offset, size: u64, isSync: bool)
+    {
+        if size or .isCoded or .frames.isEmpty()
+        {
+            .frames.add(FrameEntry{offset, size, isSync})
+            return
+        }
+
+        let previous = .frames.back()
+        .frames.add(FrameEntry{previous.offset, previous.size, isSync})
+    }
+
     // Builds the frame table from the `idx1` chunk, and reports whether it produced one.
     //
     // An index that does not describe the frames it claims to is not a reason to refuse the file:
@@ -750,7 +767,7 @@ private impl Decoder
                 let start = base + offset + ChunkHeaderSize
                 if start > sourceSize or size > sourceSize - start do
                     fail InvalidFormatError{"AVI index points past the end of the stream"}
-                .frames.add(FrameEntry{start, size, (flags & IndexKeyFrameFlag) != 0})
+                .appendFrame(start, size, (flags & IndexKeyFrameFlag) != 0)
 
                 // The probe moves the cursor and can replace the borrowed window.
                 if needsProbe do
@@ -798,7 +815,7 @@ private impl Decoder
                 var isSync = .frames.isEmpty()
                 if .isCoded do
                     isSync = try isMpeg4SyncFrame(source, chunk.data, chunk.size)
-                .frames.add(FrameEntry{chunk.data, chunk.size, isSync})
+                .appendFrame(chunk.data, chunk.size, isSync)
                 position = chunk.next
                 continue
             }
@@ -822,7 +839,7 @@ private impl Decoder
                         var isSync = .frames.isEmpty()
                         if .isCoded do
                             isSync = try isMpeg4SyncFrame(source, nested.data, nested.size)
-                        .frames.add(FrameEntry{nested.data, nested.size, isSync})
+                        .appendFrame(nested.data, nested.size, isSync)
                     }
 
                     nestedPosition = nested.next
@@ -877,25 +894,6 @@ private impl Decoder
         try .pictures.open(PictureMpeg4, Video.inlineSetupHeaders(.payload.toSlice()), samples.toSlice(), Video.storedNothing())
         .info.width  = .pictures.width()
         .info.height = .pictures.height()
-    }
-
-    // Returns the frame that really holds the picture of frame `index`.
-    //
-    // A frame repeating the picture before it is recorded as an empty chunk, which is how the
-    // container carries a stream that pauses at a constant frame rate. Walking back to the last
-    // frame that has a payload answers such a frame without holding a decoded picture between
-    // two calls, and without depending on the order frames are asked for.
-    mtd const resolveFrame(index: u64)->u64 fail
-    {
-        var found = index
-        while not .frames[found].size
-        {
-            if not found do
-                fail InvalidFormatError{"AVI stream starts with a frame that carries no picture"}
-            found -= 1
-        }
-
-        return found
     }
 
     // Decodes one Motion JPEG frame, which is a complete JPEG image.

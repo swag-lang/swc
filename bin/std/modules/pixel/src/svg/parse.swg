@@ -4,6 +4,7 @@
 using Core, Core.Math
 
 private const RasterSampleTileSide = 1024's32
+private const PaintBlockSize       = 64'u64
 
 // Controls resources that SVG parsing may resolve outside the document text.
 //
@@ -101,6 +102,7 @@ struct Drawing
     images:       Array'SvgImage                    // Raster placements referenced by the paint-order list.
     rasterImages: Array'Image                       // Decoded bitmaps shared by their placements.
     items:        Array'DrawingItem                 // Visible elements in paint order.
+    paintBlocks:  Array'PaintBlock                  // Bounds of consecutive runs of paint items.
     patterns:     HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
     filters:      HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
 }
@@ -139,6 +141,42 @@ internal struct DrawingItem
     // first time it is painted, because where a run lands depends on the shaping of the runs
     // before it, and shaping needs the painter's font cache.
     hasBounds: bool
+}
+
+private struct PaintBlock
+{
+    minimum, maximum: Vector2
+    bounded: bool
+}
+
+private func finitePoint(point: Vector2)->bool => Math.isFinite(point.x) and Math.isFinite(point.y)
+
+private impl PaintBlock
+{
+    mtd const misses(transform: Math.Transform2, visible: Rectangle)->bool
+    {
+        if not .bounded do
+            return false
+
+        // The caller uses an axis-aligned transform, so these two corners enclose the block.
+        let first = transform.transformPoint(.minimum)
+        let last  = transform.transformPoint(.maximum)
+        if not finitePoint(first) or not finitePoint(last) do
+            return false
+
+        let lower = Vector2.min(first, last)
+        let upper = Vector2.max(first, last)
+        if not finitePoint(upper - lower) do
+            return false
+
+        // Cover the rounding in individual transformed rectangles and their fringe inflation.
+        let xMargin = InkFringeMargin + Math.max(Math.abs(lower.x), Math.abs(upper.x)) * 0.000001
+        let yMargin = InkFringeMargin + Math.max(Math.abs(lower.y), Math.abs(upper.y)) * 0.000001
+        return upper.x + xMargin < visible.x or
+               lower.x - xMargin > visible.right() or
+               upper.y + yMargin < visible.y or
+               lower.y - yMargin > visible.bottom()
+    }
 }
 
 private enum TextAnchor
@@ -3822,6 +3860,7 @@ impl Drawing
             fail Swag.SystemError{"SVG document has no finite image size"}
 
         result.measureItems()
+        result.measurePaintBlocks()
         return result
     }
 
@@ -3858,6 +3897,42 @@ impl Drawing
 
             if item.hasBounds and item.clipCount do
                 item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
+        }
+    }
+
+    private mtd measurePaintBlocks()
+    {
+        if .items.count < PaintBlockSize * 8 do
+            return
+
+        var first = 0'u64
+        while first < .items.count
+        {
+            let end   = first + Math.min(PaintBlockSize, .items.count - first)
+            var block = PaintBlock{minimum: Vector2.Max, maximum: Vector2.Min, bounded: true}
+            for i in first until end
+            {
+                let item = &.items[i]
+                if not item.hasBounds
+                {
+                    block.bounded = false
+                    break
+                }
+
+                let corner   = Vector2{item.bounds.x, item.bounds.y}
+                let opposite = Vector2{item.bounds.right(), item.bounds.bottom()}
+                if not finitePoint(corner) or not finitePoint(opposite)
+                {
+                    block.bounded = false
+                    break
+                }
+
+                block.minimum = Vector2.min(block.minimum, Vector2.min(corner, opposite))
+                block.maximum = Vector2.max(block.maximum, Vector2.max(corner, opposite))
+            }
+
+            .paintBlocks.add(block)
+            first = end
         }
     }
 
@@ -4191,60 +4266,75 @@ impl Drawing
         // all of its geometry.
         let visible = painter.clippingRect()
 
-        for &item in .items
+        let useBlocks = .paintBlocks.count and painter.hasClippingRect() and tr.m12 == 0 and tr.m21 == 0
+        for blockIndex in (useBlocks ? .paintBlocks.count : 1'u64)
         {
-            if item.hasBounds
+            var first = 0'u64
+            var end   = .items.count
+            if useBlocks
             {
-                var painted = tr.transformBounds(item.bounds)
-                painted.inflate(InkFringeMargin)
-                if not visible.intersects(painted) do
+                if .paintBlocks[blockIndex].misses(tr, visible) do
                     continue
+                first = blockIndex * PaintBlockSize
+                end   = first + Math.min(PaintBlockSize, .items.count - first)
             }
 
-            if item.clipFirst != activeFirst or item.clipCount != activeCount
+            for i in first until end
             {
-                .exchangeClip(painter, activeFirst, activeCount, item.clipFirst, item.clipCount)
-                activeFirst = item.clipFirst
-                activeCount = item.clipCount
-            }
-
-            switch item.kind
-            {
-            case .Shape:
-                let shape  = &.shapes[item.index]
-                let filter = .filters.tryFind(shape.filterId)
-                if filter and filter.value.primitives.count
+                let item = &.items[i]
+                if item.hasBounds
                 {
-                    .paintFilteredShape(painter, shape, &filter.value, x, y, scale, outerTransform, tr)
-                    continue
+                    var painted = tr.transformBounds(item.bounds)
+                    painted.inflate(InkFringeMargin)
+                    if not visible.intersects(painted) do
+                        continue
                 }
 
-                let pattern = .patterns.tryFind(shape.fillPaintId)
-                if pattern
+                if item.clipFirst != activeFirst or item.clipCount != activeCount
                 {
-                    .paintPattern(painter, shape, &pattern.value)
-                    .paintShapeCore(painter, shape, false)
-                }
-                else
-                {
-                    .paintShapeCore(painter, shape)
+                    .exchangeClip(painter, activeFirst, activeCount, item.clipFirst, item.clipCount)
+                    activeFirst = item.clipFirst
+                    activeCount = item.clipCount
                 }
 
-            case .Text:
-                let inked = .paintText(painter, &.texts[item.index])
-
-                // Where the runs landed is what the block covers, and it is the same at every
-                // scale because a run is shaped in its own upright space.
-                if not item.hasBounds
+                switch item.kind
                 {
-                    item.bounds = inked
-                    if item.clipCount do
-                        item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
-                    item.hasBounds = true
-                }
+                case .Shape:
+                    let shape  = &.shapes[item.index]
+                    let filter = .filters.tryFind(shape.filterId)
+                    if filter and filter.value.primitives.count
+                    {
+                        .paintFilteredShape(painter, shape, &filter.value, x, y, scale, outerTransform, tr)
+                        continue
+                    }
 
-            case .Image:
-                .paintImage(painter, &.images[item.index])
+                    let pattern = .patterns.tryFind(shape.fillPaintId)
+                    if pattern
+                    {
+                        .paintPattern(painter, shape, &pattern.value)
+                        .paintShapeCore(painter, shape, false)
+                    }
+                    else
+                    {
+                        .paintShapeCore(painter, shape)
+                    }
+
+                case .Text:
+                    let inked = .paintText(painter, &.texts[item.index])
+
+                    // Where the runs landed is what the block covers, and it is the same at every
+                    // scale because a run is shaped in its own upright space.
+                    if not item.hasBounds
+                    {
+                        item.bounds = inked
+                        if item.clipCount do
+                            item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
+                        item.hasBounds = true
+                    }
+
+                case .Image:
+                    .paintImage(painter, &.images[item.index])
+                }
             }
         }
 
@@ -4369,7 +4459,9 @@ impl Drawing
                     painter.setColorMaskFull()
                     painter.clear(Color.fromArgb(matte == 0 ? Argb.Black : Argb.White))
                     painter.setColorMaskColor()
+                    painter.pushClippingSurfaceRect({0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)})
                     .paintImpl(&painter, cast(f32, (-tileX * ss)), cast(f32, (-tileY * ss)), cast(f32, (width * ss)) / .width)
+                    painter.popClippingRect()
 
                     // Restore opaque coverage after stroke scratch, so the resolve averages
                     // matte colors without unpremultiplying them by a discarded alpha plane.

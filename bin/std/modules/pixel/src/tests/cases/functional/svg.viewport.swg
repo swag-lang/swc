@@ -109,6 +109,27 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     }
 }
 
+// Rejecting offscreen runs of items preserves the paint order and clip changes in a partial run.
+#test
+{
+    var source = String.from("""\
+        <svg viewBox='0 0 96 4000'><defs><clipPath id='window'>\
+        <rect x='16' y='1990' width='16' height='24'/></clipPath></defs>""")
+    for i in 640 do
+        source += Format.toString("<rect x='1' y='%' width='4' height='1' fill='red'/>", i * 2).toString()
+
+    source += """\
+        <rect x='8' y='1984' width='56' height='40' fill='red' clip-path='url(#window)'/>\
+        <rect x='22' y='1988' width='6' height='18' fill='blue'/>\
+        <rect x='40' y='1990' width='16' height='10' fill='lime'/></svg>"""
+    let drawing = expect Svg.Drawing.parse(source.toString())
+    let image   = renderViewport(&drawing, 96, 64, 0, -1980, 1, {0, 0, 96, 64}, true)
+    Swag.require(image.pixelColor(14, 14).a == 0)
+    Swag.require(image.pixelColor(18, 14) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(24, 14) == Color.fromRgb(0, 0, 255))
+    Swag.require(image.pixelColor(46, 14) == Color.fromRgb(0, 255, 0))
+}
+
 // Shown smaller than its own units, a document still draws the picture it draws at full
 // detail.
 //

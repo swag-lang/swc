@@ -385,14 +385,7 @@ private impl Application
                 .toolTip.resetTimer(evt.surfacePos)
         }
 
-        if .cursorHidden do
-            Cursor.activate(Cursor.from(CursorShape.Hidden))
-        elif .frameCursor.isValid() do
-            Cursor.activate(.frameCursor)
-        elif targetWnd and targetWnd.cursor.isValid() do
-            Cursor.activate(targetWnd.cursor)
-        else do
-            Cursor.activate(Cursor.from(CursorShape.Arrow))
+        Cursor.activate(.pointerCursor(targetWnd))
         .frameCursor.clear()
         if not targetWnd do
             return
@@ -2027,20 +2020,29 @@ impl Application
         .frameCursor = cursor
     }
 
+    internal mtd pointerCursor(target: *Wnd?)->Cursor
+    {
+        if .cursorHidden do
+            return Cursor.from(.Hidden)
+        if .frameCursor.isValid() do
+            return .frameCursor
+        if target and target.cursor.isValid() do
+            return target.cursor
+        return Cursor.from(.Arrow)
+    }
+
     // Hides the native pointer until the next physical pointer movement.
     //
     // A movement restores automatic cursor selection from the window under the pointer.
     mtd setCursorHidden(hidden: bool)
     {
+        if .cursorHidden == hidden do
+            return
         .cursorHidden = hidden
 
-        // Headless renderers have no native pointer or display connection.
-        if .renderer == null or not .renderer.needsNativeWindow() do
-            return
-        if hidden do
-            Cursor.activate(Cursor.from(CursorShape.Hidden))
-        else do
-            Cursor.activate(Cursor.from(CursorShape.Arrow))
+        // Revealing the pointer must preserve the cursor of the captured or hovered control.
+        if .renderer != null and .renderer.needsNativeWindow() do
+            Cursor.activate(.pointerCursor(.mouseCaptureWnd orelse .mouseEnterWnd))
     }
 
     // Whether the native pointer is hidden until it moves.

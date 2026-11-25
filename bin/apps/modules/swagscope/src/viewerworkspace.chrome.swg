@@ -8,16 +8,16 @@ struct SceneTabs
     late workspace: *ViewerWorkspace
     items:          Array'Math.Rectangle
     hovered:        u64 = Swag.U64.Max
-    underline:      Math.Rectangle
-    previous:       Math.Rectangle
-    slideStarted:   u64
-    slideTimer:     *Timer?
 }
 
 impl SceneTabs
 {
-    const Gap       = 28.0
-    const CloseSize = 14.0
+    const Gap             = 6.0
+    const HorizontalInset = 8.0
+    const VerticalInset   = 5.0
+    const CloseSize       = 14.0
+    const CloseGap        = 3.0
+    const ItemChromeWidth = 2 * HorizontalInset + CloseSize + CloseGap
 
     func create(workspace: *ViewerWorkspace)->*SceneTabs
     {
@@ -37,36 +37,35 @@ impl SceneTabs
         .show(room.height > 0 and room.width > 0)
         if not .isLocallyVisible()
         {
-            .stopTimer(&.slideTimer)
-            .underline = {}
+            .hovered = Swag.U64.Max
             return
         }
 
         .setPosition(room, computeLayout: false)
 
-        let font  = .theme().createDefaultFont(12)
-        let scale = .deviceScale()
+        let font       = .theme().createDefaultFont(12)
+        let scale      = .deviceScale()
+        let labelLimit = Math.clamp(room.width - ItemChromeWidth, 0, 220)
         .items.clear()
         var width: f32
         for scene in .workspace.scenes
         {
             let name = .workspace.sceneName(unwrap scene)
-            let span = Math.min(Painter.measureStringSnapped(name, font, deviceScale: scale), 220)
-            .items.add({width: span, height: room.height})
+            let textWidth = Math.ceil(Painter.measureStringSnapped(name, font, deviceScale: scale))
+            let span = Math.min(textWidth, labelLimit) + ItemChromeWidth
+            .items.add({y: VerticalInset, width: span, height: room.height - 2 * VerticalInset})
             width += span + Gap
         }
 
         width -= Gap
-        let selected = .workspace.active
-        var left     = (room.width - width) * 0.5
-        let endSpace = Gap * 0.5 + 1
-        if left < endSpace
+        var left = (room.width - width) * 0.5
+        if left < 0
         {
+            let selected = .workspace.active
             var before: f32
             for i in selected do
                 before += .items[i].width + Gap
-            let first = Math.min(0, room.width - width - endSpace)
-            left = Math.clamp(room.width * 0.5 - before - .items[selected].width * 0.5, first, 0)
+            left = Math.clamp(room.width * 0.5 - before - .items[selected].width * 0.5, room.width - width, 0)
         }
 
         for &item in .items
@@ -75,39 +74,11 @@ impl SceneTabs
             left   += item.width + Gap
         }
 
-        let active = .items[selected]
-        let next   = Math.Rectangle{active.x, room.height - 3, active.width, 2}
-        if .underline != next
-        {
-            .previous     = .underline.width > 0 ? .displayedUnderline() : next
-            .underline    = next
-            .slideStarted = Time.monotonicMicroseconds()
-            if .app().isReducedMotion() do
-                .stopTimer(&.slideTimer)
-            elif not .slideTimer and .previous != next do
-                .slideTimer = .addTimer(16'ms)
-        }
-
         .invalidate()
     }
 
-    private mtd displayedUnderline()->Math.Rectangle
-    {
-        var mark = .underline
-        if .slideTimer
-        {
-            let seconds   = cast(f32, Time.monotonicMicroseconds() - .slideStarted) / 1_000_000
-            let remaining = 1 - Math.clamp(seconds / .themeMetrics().motion_PageSeconds, 0, 1)
-            let blend     = remaining * remaining
-            mark.x     += (.previous.x - mark.x) * blend
-            mark.width += (.previous.width - mark.width) * blend
-        }
-
-        return mark
-    }
-
-    private mtd closeRect(item: Math.Rectangle)->Math.Rectangle =>
-    {item.right() + 1, item.vertCenter() - CloseSize * 0.5, CloseSize, CloseSize}
+    mtd closeRect(item: Math.Rectangle)->Math.Rectangle =>
+    {item.right() - HorizontalInset - CloseSize, item.vertCenter() - CloseSize * 0.5, CloseSize, CloseSize}
 
     private mtd showTabMenu(index: u64, position: Math.Point)
     {
@@ -130,12 +101,8 @@ impl SceneTabs
 
     mtd hit(position: Math.Point)->u64
     {
-        for rect, index in .items
-        {
-            let target = Math.Rectangle{rect.x - Gap * 0.5, 0, rect.width + Gap + 1, rect.height}
-            if target.contains(position) do
-                return index
-        }
+        for item, index in .items where item.contains(position) do
+            return index
 
         return Swag.U64.Max
     }
@@ -148,31 +115,26 @@ impl IWnd for SceneTabs
         let painter = evt.paintContext.painter
         let font    = .theme().createDefaultFont(12)
         let colors  = .themeColors()
+        let radius  = .themeMetrics().corner_Control
         let room    = .clientRect()
         for item, index in .items
         {
-            let name   = .workspace.sceneName(unwrap .workspace.scenes[index])
-            let text   = Painter.elideString(name, font, item.width, .deviceScale())
-            let active = index == .workspace.active
-            let edge   = Math.min(item.right(), room.width - item.x)
-            let color  = active ? colors.text : colors.faintText.withAlphaF32(Math.clamp(edge / 28, 0, 1))
-            painter.drawString(item.x, font.opticalLineTop(item.vertCenter()), text, font, color)
+            let active  = index == .workspace.active
+            let hovered = index == .hovered
+            if active or hovered do
+                painter.fillRoundRect(item, radius, radius, active ? colors.tabItem_ButtonSelected : colors.tabItem_ButtonHot)
+
+            let name  = .workspace.sceneName(unwrap .workspace.scenes[index])
+            let text  = Painter.elideString(name, font, item.width - ItemChromeWidth, .deviceScale())
+            let edge  = Math.min(item.right(), room.width - item.x)
+            let color = active ? colors.tabItem_SelectedText : hovered ? colors.tabItem_HotText : colors.tabItem_Text
+            painter.drawString(item.x + HorizontalInset, font.opticalLineTop(item.vertCenter()), text, font, color.withAlphaF32(Math.clamp(edge / ItemChromeWidth, 0, 1)))
             if .showsClose(index)
             {
                 let close = .closeRect(item)
                 .theme().icon(.WndClose, CloseSize).paint(painter, close.x, close.y, colors.softText)
             }
         }
-
-        painter.fillRect(.displayedUnderline(), colors.arc)
-    }
-
-    mtd impl onTimerEvent(_: *TimerEvent)
-    {
-        let elapsed = cast(f32, Time.monotonicMicroseconds() - .slideStarted) / 1_000_000
-        if elapsed >= .themeMetrics().motion_PageSeconds do
-            .stopTimer(&.slideTimer)
-        .invalidate()
     }
 
     mtd impl onDragDropEvent(evt: *DragDropEvent)
@@ -301,9 +263,10 @@ impl ViewerWorkspace
         let body  = .clientRect()
         if .comparisonVisible()
         {
-            let half   = body.width * 0.5
-            let height = Math.max(0, .comparison!.position.bottom() - SceneComparison.FooterHeight - top)
-            return {body.x + cast(f32, index) * half, top, half, height}
+            let half       = body.width * 0.5
+            let comparison = .comparison!.position
+            let height     = Math.max(0, comparison.height - SceneComparison.FooterHeight)
+            return {body.x + cast(f32, index) * half, comparison.y, half, height}
         }
 
         var rect  = .viewRect(scene, index)
@@ -358,12 +321,14 @@ impl ViewerWorkspace
         painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
     }
 
-    private mtd paintCellFocus(painter: *Painter, rect: Math.Rectangle)
+    mtd paneFocusRect(content: Math.Rectangle)->Math.Rectangle
     {
-        let metrics = .themeMetrics()
-        let band    = Math.min(ViewTitleHeight, rect.height)
-        let height  = Math.min(metrics.control_DialogHeight * 0.5, band)
-        painter.fillRect(rect.x + metrics.floating_Inset, rect.y + (band - height) * 0.5, 2, height, .themeColors().arc)
+        if content.isEmpty() do
+            return {}
+        let inset  = Math.min(.themeMetrics().floating_Inset * 0.5, content.width * 0.25)
+        let height = .themeMetrics().splitView_HotRule
+        let y      = Math.round(content.y - (.paneFocusGutter() + height) * 0.5)
+        return {content.x + inset, y, content.width - 2 * inset, height}
     }
 
     // The seams belong to the ground between cells, including vacant ones. The shared
@@ -401,8 +366,8 @@ impl ViewerWorkspace
             let inset    = metrics.floating_Inset
             if .isTiled() and not .focusOnGrid
             {
-                let rect = .vacancy ? .gridCellRect(scene, .vacantCell) : .viewRect(scene, scene.active)
-                .paintCellFocus(painter, rect)
+                let rect = .vacancy ? .vacancy.position : .viewRect(scene, scene.active)
+                painter.fillRect(.paneFocusRect(rect), colors.arc)
             }
             if scene.maximized
             {
@@ -425,14 +390,12 @@ impl ViewerWorkspace
         if .comparisonVisible() and not .focusOnGrid
         {
             let compare = unwrap .comparison
-            if compare.hasSeparateSides() do
-                .paintCellFocus(painter, .cellRect(scene, scene.active))
-            elif not compare.isPicture() or compare.mode != .Flip
+            if not compare.isPicture() or compare.mode != .Flip
             {
                 var caption = compare.captionArea(scene.active)
                 caption.x += compare.position.x
                 caption.y += compare.position.y
-                .paintCellFocus(painter, caption)
+                painter.fillRect(.paneFocusRect(caption), colors.arc)
             }
         }
 

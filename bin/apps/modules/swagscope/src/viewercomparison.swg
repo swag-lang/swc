@@ -143,7 +143,7 @@ impl SceneComparison
             return
         }
 
-        var area = .workspace.sceneArea()
+        var area = .workspace.paneContentRect(.workspace.gridBody())
         if .kind == .Media
         {
             // Leave the players' own mini-bars below the comparison and its readings.
@@ -190,7 +190,6 @@ impl SceneComparison
         .invalidate()
     }
 
-    mtd hasSeparateSides()->bool => .isPicture() ? .mode == .SideBySide : not .options.unified
     mtd hasLineNumbers()->bool => .kind == .Text or .kind == .Structured
 
     mtd collectMatches(query: string, options: Viewer.SearchOptions, matches: *Array'Viewer.SearchMatch)

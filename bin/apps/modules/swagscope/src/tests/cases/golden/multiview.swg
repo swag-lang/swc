@@ -392,3 +392,29 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.tabs.empty.grid.paper")
 }
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: 980, height: 500)
+    defer host.shutdown()
+    let root = Testing.tempFilePath("scope-pane-focus-", "")
+    let folder = Path.combine(root, "Design")
+    expect Directory.create(folder, recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+    discard expect File.writeAllText(Path.combine(folder, "Notes.txt"), "Design notes")
+    workspace.openScene([folder, scopeTestDataPath("viewer.console.exe")], .SideBySide, manual: true)
+    openViews(&host, workspace)
+    let explorer = unwrap workspace.activeDocument().explorer
+    completeExplorer(&host, explorer)
+    explorer.listing.path = "Z:/Projects/Design"
+    explorer.updateBreadcrumb()
+    explorer.setMode(.Names)
+
+    workspace.selectView(1)
+    let view = assume cast(*Viewers.Binary.Panel, workspace.activeDocument().currentView)
+    view.showPage(false)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.tabs.pane.focus.encre")
+}

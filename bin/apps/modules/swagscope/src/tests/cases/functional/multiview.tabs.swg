@@ -151,10 +151,12 @@ using Core, Gui, Pixel
     let tabs = workspace.tabs
     let name = workspace.sceneName(scene)
     let font = tabs.theme().createDefaultFont(12)
-    let width = tabs.items[0].width
+    let item = tabs.items[0]
+    let width = item.width - SceneTabs.ItemChromeWidth
     Swag.require(name == "design")
-    Swag.require(width == Painter.measureStringSnapped(name, font, deviceScale: tabs.deviceScale()))
+    Swag.require(width == Math.ceil(Painter.measureStringSnapped(name, font, deviceScale: tabs.deviceScale())))
     Swag.require(Painter.elideString(name, font, width, tabs.deviceScale()) == name)
+    Swag.require(Math.abs(item.horzCenter() - tabs.clientRect().horzCenter()) <= 0.5)
 
     let button = workspace.mediaTransport
     Swag.require(button.isVisible() and scene.layout == .Single)

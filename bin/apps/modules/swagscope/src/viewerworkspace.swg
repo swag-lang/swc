@@ -966,7 +966,7 @@ impl ViewerWorkspace
         .primary.show(primaryShown)
         if .vacancy
         {
-            .vacancy.setPosition(.gridCellRect(unwrap scene, .vacantCell))
+            .vacancy.setPosition(.gridPaneRect(unwrap scene, .vacantCell))
             .vacancy.applyLayout()
         }
         .focusDelegate = .focusOnGrid ? null : .activeDocument()
@@ -994,7 +994,23 @@ impl ViewerWorkspace
     }
 
     mtd viewRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
-        => .gridCellRect(scene, index < scene.views.count ? scene.cellOf(index) : index)
+        => .gridPaneRect(scene, index < scene.views.count ? scene.cellOf(index) : index)
+
+    private mtd gridPaneRect(scene: const *ViewerScene, cell: u64)->Math.Rectangle
+    {
+        let slot = .gridCellRect(scene, cell)
+        return scene.cellCount() > 1 ? .paneContentRect(slot) : slot
+    }
+
+    mtd paneFocusGutter()->f32 => 2 * .themeMetrics().splitView_BarSize
+
+    // Keep the gutter fixed as focus moves so none of the panes change size or cover their readings.
+    mtd paneContentRect(slot: Math.Rectangle)->Math.Rectangle
+    {
+        var content = slot
+        content.moveTop(Math.min(.paneFocusGutter(), content.height))
+        return content
+    }
 
     mtd tabStripHeight()->f32
     {
@@ -1007,7 +1023,9 @@ impl ViewerWorkspace
     mtd gridBody()->Math.Rectangle
     {
         var body = .clientRect()
-        let strip = .stripInset() + .tabStripHeight()
+        let tabs = .tabStripHeight()
+        let gap = tabs > 0 ? .themeMetrics().floating_Inset * 0.5 : 0
+        let strip = .stripInset() + tabs + gap
         body.y      += strip
         body.height = Math.max(body.height - strip, 0)
         return body

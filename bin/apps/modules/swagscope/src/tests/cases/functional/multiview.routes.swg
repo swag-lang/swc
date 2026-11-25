@@ -113,11 +113,11 @@ using Core, Gui, Audio
     Swag.require(workspace.scenes.count == 3 and workspace.activeDocument().currentFile == replacement)
     Swag.require(not workspace.activeDocument().cellCaption.isVisible())
     let tabs = workspace.tabs
-    let item = tabs.items[workspace.active]
-    var close = tabs.localToSurface(Math.Point{item.right() + SceneTabs.CloseSize * 0.5, item.vertCenter()})
+    let button = tabs.closeRect(tabs.items[workspace.active])
+    var close = tabs.localToSurface(button.center())
     host.surface.surfaceToScreen(&close)
     Swag.require(tabs.showsClose(workspace.active))
-    var above = tabs.localToSurface(Math.Point{item.right() + SceneTabs.CloseSize * 0.5, item.y + 1})
+    var above = tabs.localToSurface(Math.Point{button.horzCenter(), 1})
     host.surface.surfaceToScreen(&above)
     host.click(above)
     Swag.require(workspace.scenes.count == 3)
@@ -145,19 +145,20 @@ using Core, Gui, Audio
     Swag.require(workspace.vacantCell == 8 and scene.views.count == 2)
     let image = host.renderSettled(&host.surfaceWnd)
     let cell  = workspace.vacancy.surfaceRect()
-    let metrics = workspace.themeMetrics()
-    let mark = Math.Point{metrics.floating_Inset + 1, ViewerWorkspace.ViewTitleHeight * 0.5}
+    let mark = workspace.paneFocusRect(cell)
     let arc = workspace.themeColors().arc
-    Swag.require(image.pixelColor(cast(s32, cell.x + mark.x), cast(s32, cell.y + mark.y)) == arc)
-    Swag.require(image.pixelColor(cast(s32, cell.x + 1), cast(s32, cell.vertCenter())) != arc)
-    Swag.require(image.pixelColor(cast(s32, cell.horzCenter()), cast(s32, cell.bottom() - 1)) != arc)
+    Swag.require(mark.bottom() <= cell.y and mark.width > cell.width * 0.75)
+    Swag.require(image.pixelColor(cast(s32, mark.horzCenter()), cast(s32, mark.y + 1)) == arc)
+    Swag.require(image.pixelColor(cast(s32, cell.horzCenter()), cast(s32, cell.y)) != arc)
     let previous = original.surfaceRect()
-    Swag.require(image.pixelColor(cast(s32, previous.x + mark.x), cast(s32, previous.y + mark.y)) != arc)
+    let inactive = workspace.paneFocusRect(previous).center()
+    Swag.require(image.pixelColor(cast(s32, inactive.x), cast(s32, inactive.y)) != arc)
     let seam = Math.Point{previous.right(), previous.bottom()}
     let line = workspace.themeColors().line
     Swag.require(image.pixelColor(cast(s32, seam.x), cast(s32, previous.y + 10)) == line)
     Swag.require(image.pixelColor(cast(s32, previous.x + 10), cast(s32, seam.y)) == line)
-    Swag.require(image.pixelColor(cast(s32, seam.x), cast(s32, previous.y - 2)) != line)
+    let aboveGrid = workspace.localToSurface(Math.Point{0, workspace.gridBody().y - 2}).y
+    Swag.require(image.pixelColor(cast(s32, seam.x), cast(s32, aboveGrid)) != line)
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
     host.shortcut(.O, .Control)
     Swag.require(host.autoHandled and workspace.vacancy and scene.views.count == 2)

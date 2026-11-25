@@ -66,7 +66,8 @@ using Core, Gui, Pixel, Audio
     openViews(&host, workspace)
     host.fireTimer(workspace.activeDocument().fileWatchTimer)
     Swag.require(workspace.tabs.surfaceRect() == tabStrip)
-    Swag.require(workspace.activeDocument().surfaceRect().y >= tabStrip.bottom())
+    let gap = workspace.themeMetrics().floating_Inset * 0.5
+    Swag.require(workspace.activeDocument().surfaceRect().y >= tabStrip.bottom() + gap)
     let resumed = assume cast(*Viewers.PlainText.Panel, workspace.activeDocument().currentView)
     Swag.require(resumed.zoomPercent == 145)
 

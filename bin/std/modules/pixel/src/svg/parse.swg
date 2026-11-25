@@ -323,12 +323,13 @@ private impl GroupState
         not .inDefs and (.markerStartId.count or .markerMidId.count or .markerEndId.count)
 }
 
-private struct GroupScope
+private struct ElementScope
 {
     state:        GroupState
     firstShape, firstItem: u64
     pathLength:   f32
     definitionId: string?
+    isSvg:        bool
 }
 
 private struct Parser
@@ -3039,9 +3040,10 @@ private impl Parser
     // Parses the elements between the current position and the parent's close tag.
     mtd parseContent(parent: GroupState) fail
     {
-        let len = (.text).count
+        let len       = (.text).count
         var geo:    AttributeMap
-        var groups: Array'GroupScope
+        var scopes: Array'ElementScope
+        var inherited = &parent
         while .pos < len
         {
             .skipUntil('<')
@@ -3055,9 +3057,10 @@ private impl Parser
             {
                 .skipUntil('>')
                 .pos += 1
-                if groups.isEmpty() do
+                if scopes.isEmpty() do
                     return
-                .closeGroup(&groups)
+                .closeScope(&scopes)
+                inherited = scopes.isEmpty() ? &parent : &scopes.backPtr().state
                 continue
             }
 
@@ -3080,8 +3083,7 @@ private impl Parser
                 .pos += 1
             let name = .text[nameStart until .pos]
 
-            let inherited = groups.isEmpty() ? &parent : &groups.backPtr().state
-            var state     = inherited[]
+            var state = inherited[]
 
             // The property is not inherited. Ancestor clips are applied to the completed
             // subtree below, after any clip that a descendant declares for itself.
@@ -3097,12 +3099,14 @@ private impl Parser
 
             let firstShape = .drawing.shapes.count
             let firstItem  = .drawing.items.count
+            var isSvg, consumedChildren: bool
 
             switch name
             {
             case "svg":
                 let isRoot = .svgDepth == 0
                 .svgDepth += 1
+                isSvg     = true
                 if isRoot
                 {
                     if let width = geo.tryFind(.Width) do
@@ -3133,23 +3137,8 @@ private impl Parser
                     state.transform = prependTranslation(state.transform, .geoNumber(&geo, .X), .geoNumber(&geo, .Y))
                 }
 
-                if not selfClosed do
-                    try .parseContent(state)
-                .svgDepth -= 1
-
-            case "g":
-
-                // Groups use an explicit stack so a deeply nested document does not recurse.
-                if not selfClosed
-                {
-                    let group = groups.emplaceInitAddress()
-                    group.state        = #move state
-                    group.firstShape   = firstShape
-                    group.firstItem    = firstItem
-                    group.pathLength   = .geoNumber(&geo, .PathLength, -1)
-                    group.definitionId = .elementDefinitionId(&group.state, &geo)
-                    continue
-                }
+            case "g", "a":
+                break
 
             case "path":
                 let d = geo.tryFind(.D)
@@ -3163,9 +3152,6 @@ private impl Parser
                     if hasMarkers do
                         .applyMarkers(&state, vertices.toSlice())
                 }
-
-                if not selfClosed do
-                    try .parseContent(state)
 
             case "rect":
                 var rx = .geoNumber(&geo, .Rx, -1)
@@ -3181,14 +3167,10 @@ private impl Parser
                           .geoNumber(&geo, .Height),
                           Math.max(rx, 0),
                           Math.max(ry, 0))
-                if not selfClosed do
-                    try .parseContent(state)
 
             case "circle":
                 let r = .geoNumber(&geo, .R)
                 .emitEllipse(&state, .geoNumber(&geo, .Cx), .geoNumber(&geo, .Cy), r, r)
-                if not selfClosed do
-                    try .parseContent(state)
 
             case "ellipse":
                 .emitEllipse(&state,
@@ -3196,8 +3178,6 @@ private impl Parser
                              .geoNumber(&geo, .Cy),
                              .geoNumber(&geo, .Rx),
                              .geoNumber(&geo, .Ry))
-                if not selfClosed do
-                    try .parseContent(state)
 
             case "line":
                 let drawsLine  = state.drawsShape(strokeOnly: true)
@@ -3230,10 +3210,8 @@ private impl Parser
                     }
                 }
 
-                if not selfClosed do
-                    try .parseContent(state)
-
             case "defs":
+                consumedChildren = true
 
                 // Definitions are parsed in local coordinates and withheld from
                 // painting; `use` elements instantiate them.
@@ -3243,6 +3221,7 @@ private impl Parser
                     try .parseContent(defState)
 
             case "clipPath":
+                consumedChildren = true
 
                 // A clip is geometry, not paint: its children are parsed in their own
                 // coordinates and kept out of the paint order, and every element that names the
@@ -3258,6 +3237,7 @@ private impl Parser
                     .clipPaths.add(.sourceView(clipId.value), {first: clipFirst, count: .drawing.shapes.count - clipFirst})
 
             case "symbol":
+                consumedChildren = true
 
                 // A symbol is a definition with a viewport. Its children are parsed like any
                 // other definition, and the view box it declares is what a `use` fits into the
@@ -3290,6 +3270,7 @@ private impl Parser
                 }
 
             case "marker":
+                consumedChildren = true
 
                 // A marker is a definition with its own viewport and its own orientation rule.
                 // Its children are parsed in that viewport's coordinates and kept out of the
@@ -3305,28 +3286,32 @@ private impl Parser
                     .markers.add(.sourceView(markerId.value), .readMarkerDefinition(&geo, markerFirst, .drawing.shapes.count - markerFirst))
 
             case "linearGradient":
+                consumedChildren = true
                 try .parseGradient(.Linear, &geo, selfClosed)
 
             case "radialGradient":
+                consumedChildren = true
                 try .parseGradient(.Radial, &geo, selfClosed)
 
             case "pattern":
+                consumedChildren = true
                 try .parsePattern(state, &geo, selfClosed)
 
             case "filter":
+                consumedChildren = true
                 try .parseFilter(&geo, selfClosed)
 
             case "style":
+                consumedChildren = true
                 if not selfClosed do
                     .parseStyleSheet()
 
             case "text":
+                consumedChildren = true
                 try .parseText(state, &geo, selfClosed)
 
             case "image":
                 try .emitImage(&state, &geo)
-                if not selfClosed do
-                    try .parseContent(state)
 
             case "use":
                 var href = geo.tryFind(.Href)
@@ -3367,37 +3352,49 @@ private impl Parser
                     }
                 }
 
-                if not selfClosed do
-                    try .parseContent(state)
-
             case "polygon", "polyline":
                 let pts = geo.tryFind(.Points)
                 if pts do
                     .emitPoly(&state, pts.value, name == "polygon")
-
-                if not selfClosed do
-                    try .parseContent(state)
-
-            default:
-
-                // Unknown element: ignore it and its whole subtree.
-                if not selfClosed do
-                    try .parseContent(state)
             }
 
+            if not selfClosed and not consumedChildren
+            {
+                if .dimensionsOnly
+                {
+                    try .parseContent(state)
+                }
+                else
+                {
+                    let frame = scopes.emplaceInitAddress()
+                    frame.state        = #move state
+                    frame.firstShape   = firstShape
+                    frame.firstItem    = firstItem
+                    frame.pathLength   = .geoNumber(&geo, .PathLength, -1)
+                    frame.definitionId = .elementDefinitionId(&frame.state, &geo)
+                    frame.isSvg        = isSvg
+                    inherited          = &frame.state
+                    continue
+                }
+            }
+
+            if isSvg do
+                .svgDepth -= 1
             .finishElement(&state, firstShape, firstItem, .geoNumber(&geo, .PathLength, -1), .elementDefinitionId(&state, &geo))
         }
 
-        // As before, end of input completes any open groups from the innermost out.
-        while not groups.isEmpty() do
-            .closeGroup(&groups)
+        // As before, end of input completes any open scopes from the innermost out.
+        while not scopes.isEmpty() do
+            .closeScope(&scopes)
     }
 
-    mtd closeGroup(groups: *Array'GroupScope)
+    mtd closeScope(scopes: *Array'ElementScope)
     {
-        let group = groups.backPtr()
-        .finishElement(&group.state, group.firstShape, group.firstItem, group.pathLength, group.definitionId)
-        groups.removeBack()
+        let frame = scopes.backPtr()
+        if frame.isSvg do
+            .svgDepth -= 1
+        .finishElement(&frame.state, frame.firstShape, frame.firstItem, frame.pathLength, frame.definitionId)
+        scopes.removeBack()
     }
 
     mtd const elementDefinitionId(state: const *GroupState, geo: const *AttributeMap)->string?

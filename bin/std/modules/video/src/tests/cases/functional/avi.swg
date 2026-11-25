@@ -458,6 +458,40 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     }
 }
 
+// Xvid writes empty AVI slots after the first anchor and packs later B-pictures with a P-picture.
+// Keep those slots as holds so the later coded pictures retain their ranks during random access.
+#test
+{
+    let path   = videoFixturePath("ffmpeg-libxvid-packed.avi")
+    var linear = expect Reader.open(path)
+    var checksums: [24] u32
+    Swag.require(linear.frameCount() == checksums.count)
+
+    var frame: PlanarFrame
+    for rank in checksums.count
+    {
+        expect linear.decodeFramePlanesInto(&frame, rank)
+        checksums[rank] = Hash.Crc32.compute(frame.luma.toSlice())
+    }
+
+    Swag.require(checksums[0] == checksums[1] and checksums[0] == checksums[2])
+
+    let bytes  = expect File.readAllBytes(path)
+    var random = expect Reader.openMemory("xvid.avi", bytes.toSlice())
+    for offset in checksums.count
+    {
+        let rank = checksums.count - offset - 1
+        expect random.decodeFramePlanesInto(&frame, rank)
+        Swag.require(Hash.Crc32.compute(frame.luma.toSlice()) == checksums[rank])
+    }
+
+    // FFmpeg emits 22 coded pictures. The two holds in AVI offset its later ranks by two.
+    expect random.decodeFramePlanesInto(&frame, 11)
+    Swag.require(Math.abs(cast(s32, frame.luma[10 * frame.strideLuma + 10]) - 137) <= 2)
+    expect random.decodeFramePlanesInto(&frame, 23)
+    Swag.require(Math.abs(cast(s32, frame.luma[50 * frame.strideLuma + 45]) - 145) <= 2)
+}
+
 // The packets in B-pictures 1 and 2 contain runs of implicit macroblocks at their ends.
 // Seeking back from red frames must reconstruct all of the original blue luma samples.
 #test

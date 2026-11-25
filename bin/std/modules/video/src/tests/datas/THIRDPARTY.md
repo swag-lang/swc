@@ -415,6 +415,18 @@ same 96x64, 60-frame content as the H.264 and H.265 fixtures and a difference is
   `d099ba62af714cff4f93034a03a0ff8887853616091cccfe3182e3195d19b9e1`.
 - License: same as this repository.
 
+`ffmpeg-libxvid-packed.avi` uses FFmpeg's libxvid encoder to pack P- and B-pictures together.
+The file has 24 AVI slots at 25 fps, including two empty slots after the first anchor. FFmpeg
+emits 22 pictures when decoded to `yuv420p`, supplying the luma probes used for seeking.
+
+```sh
+ffmpeg -f lavfi -i 'testsrc2=s=96x64:r=25' -frames:v 24 \
+  -c:v libxvid -bf 2 -g 10 -q:v 5 ffmpeg-libxvid-packed.avi
+```
+
+- SHA-256: `e6f260a05e380a9366226731421ef7bbbc2749677f3208c103c8e7d74805aae9`
+- License: same as this repository.
+
 `ffmpeg-mpeg4-b-packets.avi` is nine 352x256 pictures at 12 fps. It uses two encoder threads to
 produce two video packets per picture. The first two B-pictures omit implicit macroblocks at the
 packet boundary. Decode it with FFmpeg in `yuv420p` to reproduce the luma CRC in the test.

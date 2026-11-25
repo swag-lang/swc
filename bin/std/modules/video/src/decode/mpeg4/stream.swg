@@ -43,6 +43,7 @@ struct Mpeg4Stream
     started:        bool
     lowDelay:       bool
     slotTimestamps: bool
+    firstRepeatEnd: u64     // End of the initial AVI slots that hold its first picture.
     width:          s32
     height:         s32
 }
@@ -91,7 +92,14 @@ impl Mpeg4Stream
     // Installs a window and starts over from its first picture.
     mtd installFrames(frames: #move Array'SampleEntry)
     {
-        .frames = #move frames
+        .frames         = #move frames
+        .firstRepeatEnd = 1
+        if .slotTimestamps and not .lowDelay
+        {
+            while .firstRepeatEnd < .frames.count and .frames[.firstRepeatEnd].repeatPrevious do
+                .firstRepeatEnd += 1
+        }
+
         .rebuildOrder()
         .nextRank   = 0
         .nextDecode = 0
@@ -172,8 +180,9 @@ impl Mpeg4Stream
         {
             let entry = .frames[.nextDecode]
 
-            // The last reference is also the last displayed picture in a low-delay stream.
-            if .lowDelay and entry.repeatPrevious
+            // Empty AVI slots after the first anchor hold it while the encoder buffers its
+            // next picture. In a low-delay stream an empty slot holds the latest anchor.
+            if entry.repeatPrevious and (.lowDelay or .nextDecode < .firstRepeatEnd)
             {
                 if not .decoder.anchors do
                     break

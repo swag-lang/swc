@@ -351,13 +351,13 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
             Swag.require(create.cancel.position.right() <= create.createAction.position.x)
             Swag.require(create.keyFiles.position.right() <= create.cancel.position.x)
 
-            window.progressPage.begin("C:\\vaults\\one", appStrings().ui_Randomizing, appStrings().ui_RandomizeHelp, appStrings().ui_StopCreating)
+            window.progressPage.begin("C:\\vaults\\one", .Randomizing)
             window.showPage(.Progress, animate: false)
             Testing.assertContentFits(window)
             assertColumnFits(window, window.progressPage, window.progressPage.column)
 
-            window.progressPage.setStage(appStrings().ui_ReadingKeyFile, appStrings().ui_ReadKeyFileHelp)
-            window.progressPage.setProgress(0.25, 4 * 1024 * 1024 * 1024'u64, 16 * 1024 * 1024 * 1024'u64, "")
+            window.progressPage.setStage(.ReadingKeyFile)
+            window.progressPage.setProgress(0.25, 4 * 1024 * 1024 * 1024'u64, 16 * 1024 * 1024 * 1024'u64)
             Testing.assertContentFits(window)
             assertColumnFits(window, window.progressPage, window.progressPage.column)
 
@@ -409,12 +409,18 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     fillPictureList(window)
     let row = window.list.rows[0]
 
-    // Entry zero follows the account, so the registered languages start at one: one is the
-    // reference language and two is French. Going through the picker is what the user does, and
-    // it is what carries the change all the way to the labels.
-    expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
-    host.notify(.LanguageChanged)
+    window.chooseVault(PictureLockedPath)
+    let card = &window.list.card
+    card.toggleKeyFiles()
 
+    host.activateOptionRowWhenShown(Gui.strings().appearance_Language)
+    host.thenActivateOptionRow("Français")
+    host.clickWnd(window.appearanceButton)
+    Swag.require(host.autoHandled)
+
+    Swag.require(card.keyFileList.isLocallyVisible())
+    Swag.require(card.keyFileList.empty.text() == "Aucun fichier clé")
+    Swag.require(card.keyFileList.add.text() == "Ajouter…")
     Swag.require(window.list.title.text() == "Coffres")
     Swag.require(row.unmount.text() == "Démonter")
     Swag.require(row.open.text() == "P:" and row.open.toolTip == "Ouvrir P:")
@@ -423,17 +429,54 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.optionsPage.head.title.text() == "Options")
     Swag.require(Utf8.startsWith(window.vaultIdentity(PictureMountedPath), "monté sur P:"))
 
+    window.unlockKeyFiles.add("/first.key")
+    window.unlockKeyFiles.add("/second.key")
+    window.refreshVaults()
+    let files = card.keyFileList.files
+    files.selectLine(1)
+
     expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage, notify: true)
-    host.notify(.LanguageChanged)
     Swag.require(row.unmount.text() == "Unmount")
+    Swag.require(card.keyFileList.isLocallyVisible())
+    Swag.require(files.selectedLine() == files.lineAt(1))
+    Swag.require(card.keyFileList.add.text() == "Add Files…")
 
     let destination = "/media/alice/a-very-long-mounted-vault-destination"
-    let drive = unwrap window.mountedDrives.find(PictureMountedPath)
+    let drive       = unwrap window.mountedDrives.find(PictureMountedPath)
     drive.mountLabel = destination
     window.refreshVaults()
     Swag.require(row.open.toolTip == Format.toString(appStrings().ui_OpenDrive, destination))
     Swag.require(Utf8.endsWith(row.open.text(), "…"))
     Swag.require(row.open.position.width <= VaultRow.DriveMaxWidth + 1)
+}
+
+// The visible progress reading follows the language switch, even while cancellation is pending.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    defer expect host.app.setLanguage(ReferenceLanguage)
+
+    let progress = window.progressPage
+    window.operation.kind = .Resize
+    progress.begin(PictureMountedPath, .Resizing)
+    progress.setProgress(0.25, 256 * 1024 * 1024, 1024 * 1024 * 1024, 12)
+    window.showPage(.Progress, animate: false)
+    expect window.appearanceButton.setAppearanceLanguage("fr")
+
+    Swag.require(progress.what.text() == "Redimensionnement du coffre")
+    Swag.require(progress.help.text() == appStrings().ui_NewCapacityHelp)
+    Swag.require(progress.stop.text() == "Arrêter le redimensionnement")
+    Swag.require(progress.reading.text() == "256 Mio sur 1 Gio · encore 12 s")
+    Swag.require(progress.figure.percent == 25)
+    Testing.assertContentFits(window)
+
+    window.stopLongOperation()
+    expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage)
+    Swag.require(progress.what.text() == appStrings().msg_StopRequested)
+    Swag.require(progress.reading.text() == "256 MiB of 1 GiB · 12 s left")
+    Swag.require(not progress.stop.isEnabled())
+    window.operation.kind = .None
 }
 
 // Picking a language remembers it, and the system entry restores "follow the account".
@@ -447,7 +490,6 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.appearanceButton.language == ReferenceLanguage)
 
     expect window.appearanceButton.setAppearanceLanguage("fr", notify: true)
-    host.notify(.LanguageChanged)
     Swag.require(window.language == "fr")
     Swag.require(activeLanguage() == "fr")
     Swag.require(window.appearanceButton.language == "fr")
@@ -737,6 +779,16 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(notice.detail.position.y >= notice.heading.position.bottom())
     Swag.require(notice.detail.position.bottom() <= notice.position.height)
     Swag.require(notice.measureHeight(240) > notice.position.height)
+
+    defer expect host.app.setLanguage(ReferenceLanguage)
+    expect window.appearanceButton.setAppearanceLanguage("fr")
+    Swag.require(notice.heading.text() == "Impossible de monter le disque virtuel.")
+    Swag.require(notice.detail.text() == "Le mot de passe ou les fichiers clés sont incorrects, ou le conteneur est endommagé.")
+    Swag.require(notice.detail.position.bottom() <= notice.position.height)
+
+    expect window.appearanceButton.setAppearanceLanguage(ReferenceLanguage)
+    Swag.require(notice.heading.text() == appStrings().msg_MountFailed)
+    Swag.require(notice.detail.text() == appStrings().msg_ErrPasswordOrDamaged)
 
     window.setStatus(.Ready)
     Swag.require(not notice.isLocallyVisible() and not notice.detail.isLocallyVisible())
@@ -1293,10 +1345,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     Swag.require(parseCapacity("256", 0).bytes == 256 * 1024 * 1024)
     Swag.require(parseCapacity("2", 1).bytes == 2 * 1024 * 1024 * 1024)
-    Swag.require(not parseCapacity("", 0).error.isEmpty())
-    Swag.require(not parseCapacity("0", 0).error.isEmpty())
-    Swag.require(not parseCapacity("12x", 0).error.isEmpty())
-    Swag.require(not parseCapacity("18446744073709551615", 1).error.isEmpty())
+    Swag.require(parseCapacity("", 0).error != null)
+    Swag.require(parseCapacity("0", 0).error != null)
+    Swag.require(parseCapacity("12x", 0).error != null)
+    Swag.require(parseCapacity("18446744073709551615", 1).error != null)
 }
 
 // The creation dialog preserves the exact filename; a vault has no required extension.
@@ -1379,9 +1431,17 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
+    // A Linux mount destination can be a long absolute path.
+    let destination = "/home/user/.local/share/swag/vault/mounts/a-very-long-mounted-vault-destination"
+    window.mountDestinations.clear()
+    window.mountDestinations.add(MountDestination{destination, destination})
+    window.drive.clear()
+    window.drive.addItem(destination)
+    window.drive.setSelectedIndex(0, notify: false)
     window.openVault("C:\\vaults\\keyed")
 
     let card = &window.list.card
+    Swag.require(card.options.position.x + card.readOnly.position.right() <= card.mount.position.x)
     Swag.require(card.keyFiles.arrowPosition == .RightDownward)
     host.clickWnd(card.keyFiles)
     Swag.require(card.keyFileList.isLocallyVisible() and card.keyFiles.arrowPosition == .RightUpward)

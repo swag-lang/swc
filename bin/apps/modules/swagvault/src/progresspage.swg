@@ -79,6 +79,11 @@ struct ProgressPage
         help:     *Label
         stop:     *PushButton
     }
+
+    stage:       StatusMessage
+    done:        u64
+    total:       u64
+    secondsLeft: u64
 }
 
 impl ProgressPage
@@ -151,21 +156,48 @@ impl ProgressPage
         return result
     }
 
-    // Shows the page for an operation on `path`: what it does, and why it takes this long.
-    mtd begin(path: string, what, help, stop: string)
+    // Shows the page for an operation on `path`, starting at zero in its first phase.
+    mtd begin(path: string, stage: StatusMessage)
     {
         .fileName.setText(Path.fileName(path) orelse path)
-        .what.setText(what)
-        .help.setText(help)
-        .stop.setText(stop)
+        .setStage(stage)
         .stop.enable(true)
-        .setProgress(0, 0, 0, "")
+        .setProgress(0, 0, 0)
         .arrange()
     }
 
     // Updates the current phase and lays out its help when the wording changes.
-    mtd setStage(what, help: string)
+    mtd setStage(stage: StatusMessage)
     {
+        .stage = stage
+        let texts = appStrings()
+        var what  = ""
+        var help  = ""
+        switch stage
+        {
+        case .ReadingKeyFile:
+            what = texts.ui_ReadingKeyFile
+            help = texts.ui_ReadKeyFileHelp
+
+        case .Randomizing:
+            what = texts.ui_Randomizing
+            help = texts.ui_RandomizeHelp
+
+        case .Resizing:
+            what = texts.ui_Resizing
+            help = texts.ui_NewCapacityHelp
+
+        case .Camouflaging:
+            what = texts.ui_Camouflaging
+            help = texts.ui_KeepCapacityHelp
+
+        case .StopRequested:
+            what = texts.msg_StopRequested
+
+        default:
+            break
+        }
+
         if .what.text() == what and .help.text() == help do
             return
         .what.setText(what)
@@ -173,19 +205,37 @@ impl ProgressPage
         .arrange()
     }
 
-    // Shows how far the phase is: the share done, the bytes processed out of the total, and
-    // how long is left when that can be said.
-    mtd setProgress(ratio: f32, done, total: u64, left: string)
+    // Shows how far the phase is, with the estimated seconds left when known.
+    mtd setProgress(ratio: f32, done, total: u64, secondsLeft = 0'u64)
     {
         .figure.setPercent(cast(s32, Math.saturate(ratio) * 100))
         .bar.setValue(ratio)
+        .done        = done
+        .total       = total
+        .secondsLeft = secondsLeft
+        .refreshReading()
+    }
 
+    // Rewrites the last displayed phase and readings without advancing the operation.
+    mtd retranslate()
+    {
+        .setStage(.stage)
+        .refreshReading()
+    }
+
+    private mtd refreshReading()
+    {
+        let texts = appStrings()
         var reading: String
-        if total
+        if .total
         {
-            reading = Format.toString(appStrings().ui_ProgressOf, capacityText(done), capacityText(total))
-            if left.count do
+            reading = Format.toString(texts.ui_ProgressOf, capacityText(.done), capacityText(.total))
+            if .secondsLeft
+            {
+                let left = .secondsLeft < 120 ? Format.toString(texts.ui_SecondsLeft, .secondsLeft) :
+                           Format.toString(texts.ui_MinutesLeft, (.secondsLeft + 59) / 60)
                 reading = Format.toString("% · %", reading, left)
+            }
         }
 
         .reading.setText(reading)

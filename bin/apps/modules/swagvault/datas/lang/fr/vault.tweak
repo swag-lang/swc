@@ -229,6 +229,7 @@ search_Open ouvrir coffre;ouvrir conteneur
 
 ui_AboutProtection   Protection des coffres
 ui_AboutAlgorithms   ChaCha20-Poly1305 chiffre et authentifie les données du coffre. Argon2id dérive une clé à partir du mot de passe.
+ui_AboutThirdParty  Windows File System Proxy, droit d’auteur © Bill Zissimopoulos — github.com/winfsp/winfsp
 ui_AboutLinuxRuntime Système de fichiers en espace utilisateur — github.com/libfuse/libfuse. Les événements de session utilisent systemd et l’inactivité du bureau utilise X.Org. Licences dans THIRDPARTY.md.
 cmd_InstallWinFsp        Installer WinFsp…
 dlg_BtnKeepPortable      Rester en mode portable

@@ -280,7 +280,9 @@ impl VaultList
 
         .card.header.setPath(chosen)
         .card.header.refresh()
-        .card.setKeyFiles(.window.unlockKeyFiles.toSlice())
+        let keyFiles = .window.unlockKeyFiles.toSlice()
+        if not .card.keyFileList.samePaths(keyFiles) do
+            .card.setKeyFiles(keyFiles)
         .unfold(chosen)
         .arrange()
 

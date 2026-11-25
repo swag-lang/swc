@@ -112,7 +112,7 @@ private impl KeyFileField
             .title = appStrings().dlg_TitleKeyFiles
             .confirmButtonText = appStrings().dlg_BtnAdd
             .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
-            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: Gui.strings().browser_Documents})
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
@@ -130,7 +130,7 @@ private impl KeyFileField
             .confirmButtonText = appStrings().dlg_BtnCreate
             .initialName       = "vault.key"
             .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
-            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: Gui.strings().browser_Documents})
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
@@ -141,7 +141,7 @@ private impl KeyFileField
         discard catch writeRandomKeyFile(path)
         {
             let failure = describeFailure(Swag.err)
-            MessageDlg.error(.surface, failure.reason, options: {title: appStrings().msg_KeyFileCreateFailed, detail: failure.code})
+            MessageDlg.error(.surface, failure.reason(), options: {title: appStrings().msg_KeyFileCreateFailed, detail: failure.codeText()})
             return
         }
 
@@ -225,6 +225,7 @@ impl KeyFileField
             field.remove.enable(list.selectedLine() != null)
         }
 
+        result.rebuild()
         result.retranslate()
         return result
     }
@@ -237,7 +238,7 @@ impl KeyFileField
         .add.setQuietText(texts.ui_AddKeyFiles)
         .generate.setQuietText(texts.ui_GenerateKeyFile)
         .remove.setQuietText(texts.ui_RemoveKeyFile)
-        .rebuild()
+        .actions.computeLayout()
     }
 
     // Replaces the selection with a copy of `paths`, in order.

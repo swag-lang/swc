@@ -57,7 +57,7 @@ impl MainWindow
         else
         {
             .setStatus(.DriverInstallStopped)
-            .showError(appStrings().msg_WinFspInstallStopped, operationError)
+            .showError(&appStrings().msg_WinFspInstallStopped, operationError)
         }
     }
 }

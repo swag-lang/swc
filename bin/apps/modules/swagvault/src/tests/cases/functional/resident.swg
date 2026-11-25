@@ -89,7 +89,7 @@ using Core, Gui
     window.resident.icon    = expect Pixel.Image.decode(".png", AppIcon)
     window.resident.refreshTray()
     Swag.require(not host.surface.hasTrayIcon() and not host.surface.isHidden)
-    Swag.require(window.statusDetail == appStrings().msg_TrayUnavailable)
+    Swag.require(window.statusDetail.text() == appStrings().msg_TrayUnavailable)
 }
 
 // A security event can remove a drive while its menu is open; its stale choice never retargets.

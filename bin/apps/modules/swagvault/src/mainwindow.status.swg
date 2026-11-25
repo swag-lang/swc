@@ -15,9 +15,10 @@ impl MainWindow
         .statusMessage = message
         if not .statusHeadline.isEmpty() and .statusTone() != .Stopped
         {
-            .statusHeadline.clear()
-            .statusDetail.clear()
+            .statusHeadline = {}
+            .statusDetail   = {}
         }
+
         .refreshStatus()
     }
 
@@ -29,13 +30,14 @@ impl MainWindow
     {
         let notice = .list.notice
         let failed = not .statusHeadline.isEmpty()
+        let detail = .statusDetail.text()
         if failed do
-            notice.set(.statusHeadline, .statusDetail, .Stopped)
-        elif .statusMessage == .Ready and not .statusDetail.isEmpty() do
-            notice.set(.statusDetail, "", .Idle)
+            notice.set(.statusHeadline.text(), detail, .Stopped)
+        elif .statusMessage == .Ready and not detail.isEmpty() do
+            notice.set(detail, "", .Idle)
         else do
-            notice.set(.statusText(), .statusDetail, .statusTone())
-        notice.show(failed or .statusMessage != .Ready or not .statusDetail.isEmpty() or notice.busy.isLocallyVisible())
+            notice.set(.statusText(), detail, .statusTone())
+        notice.show(failed or .statusMessage != .Ready or not detail.isEmpty() or notice.busy.isLocallyVisible())
         .list.arrange()
     }
 
@@ -134,7 +136,7 @@ impl MainWindow
             return texts.msg_ResizeStopped
 
         case .Resized:
-            return Format.toString(texts.msg_Resized, .statusDrive)
+            return Format.toString(texts.msg_Resized, capacityText(.statusCapacity))
 
         case .Camouflaged:
             return texts.msg_Camouflaged
@@ -181,12 +183,16 @@ impl MainWindow
         }
     }
 
-    // Opens an error box saying `message`, followed by the sentence for `err` when there is one.
-    mtd showError(message: string, err: any? = null, shortTitle = false)
+    // Opens an error box and keeps its summary and cause on the notice line.
+    mtd showError(key: const *string, err: any? = null, shortTitle = false, number = 0'u64)
     {
-        let failure = err == null ? VaultFailure{} : describeFailure(err)
-        .statusHeadline = message
-        .statusDetail   = failure.reason
+        .statusHeadline = {key, number}
+        let failure = describeFailure(err)
+        .statusDetail = {failure: {present: failure.present, kind: failure.kind}}
+
+        let message = .statusHeadline.text()
+        let reason  = failure.reason()
+        let code    = failure.codeText()
         .refreshStatus()
         if .resident.isHidden()
         {
@@ -196,11 +202,11 @@ impl MainWindow
 
         if shortTitle
         {
-            MessageDlg.error(unwrap .surface, failure.reason, options: {title: message, detail: failure.code})
+            MessageDlg.error(unwrap .surface, reason, options: {title: message, detail: code})
             return
         }
 
-        let body = failure.reason.isEmpty() ? String.from(message) : Format.toString("%\n\n%", message, failure.reason)
-        MessageDlg.error(unwrap .surface, body, options: {detail: failure.code})
+        let body = reason.isEmpty() ? String.from(message) : Format.toString("%\n\n%", message, reason)
+        MessageDlg.error(unwrap .surface, body, options: {detail: code})
     }
 }

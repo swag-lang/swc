@@ -101,14 +101,11 @@ struct AutoUnmountSettings
     idleMinutes:   u32  = 15
 }
 
-// What a capacity field holds, or why it cannot be used.
-//
-// The form judges itself, so the reason is already the sentence a reader sees rather than a
-// kind the shell would have to translate.
+// What a capacity field holds, or the string table entry that explains why it cannot be used.
 struct ContainerSize
 {
-    bytes: u64        // Requested capacity in bytes, meaningful when `error` is empty.
-    error: String     // Why the field cannot be used, in the active language; empty when it can.
+    bytes: u64
+    error: const *string?
 }
 
 // A container the window mounts again the next time Swag Vault starts.
@@ -310,14 +307,14 @@ struct MainWindow
     preferPortableWinFsp: bool     // Skip offering installation on machines without WinFsp.
     initialized:          bool
     autoRetryAfter:       u64
-    statusHeadline:       String     // Explicit failure summary when an error dialog was shown.
-    statusDetail:         String
+    statusHeadline:       VaultNotice     // Explicit failure summary when an error dialog was shown.
+    statusDetail:         VaultNotice
 
-    // What the notice line says, plus the two values its wording interpolates: the drive
-    // letter of the mounted message and the percentage of the randomizing one.
+    // What the notice line says, and the data its wording interpolates.
     statusMessage:  StatusMessage
     statusDrive:    String
     statusProgress: s32
+    statusCapacity: u64
 
     // How long the running creation or resize has taken, for the time its page says is left.
     progressClock: Time.Stopwatch
@@ -330,36 +327,74 @@ struct MainWindow
     themeIndex: u32
 }
 
+// The user-facing identity of a failure, independent of the caught error's lifetime.
 struct VaultFailure
 {
-    reason: String
-    code:   String
+    present: bool
+    kind:    ErrorKind
+    code:    u64
 }
 
-// Localizes the cause and keeps the native code available as a separate technical detail.
+impl VaultFailure
+{
+    mtd reason()->String   => .present ? kindMessage(.kind) : String{}
+    mtd codeText()->String => formatErrorCode(.code)
+
+    mtd text()->String
+    {
+        let reason = .reason()
+        if .code do
+            return Format.toString("%\n%", reason, .codeText())
+        return reason
+    }
+}
+
+// A notice retains a string table entry or a typed failure so it can be read in any language.
+struct VaultNotice
+{
+    key:     const *string?     // Address of a field in the active table.
+    number:  u64     // Optional positive value to interpolate into that field.
+    failure: VaultFailure
+}
+
+impl VaultNotice
+{
+    mtd isEmpty()->bool => not .key and not .failure.present
+
+    mtd text()->String
+    {
+        if let key = .key
+        {
+            if .number do
+                return Format.toString(key[], .number)
+            return key[]
+        }
+
+        return .failure.text()
+    }
+}
+
+// Keeps the user-facing identity of a caught error and logs its diagnostic once.
 func describeFailure(err: any?)->VaultFailure
 {
+    if err == null do
+        return {}
+
     switch err
     {
     case Error as volumeError:
         logDiagnostic(volumeError)
-        return {kindMessage(volumeError.kind), formatErrorCode(volumeError.code)}
+        return {present: true, kind: volumeError.kind, code: volumeError.code}
 
     case Swag.SystemError as systemError:
-        return {appStrings().msg_SystemError, formatErrorCode(systemError.errorID)}
+        return {present: true, kind: .General, code: systemError.errorID}
     }
 
-    return {reason: appStrings().msg_OperationStopped}
+    return {present: true, kind: .Canceled}
 }
 
 // Formats the failure for places that display it as a single string.
-func caughtMessage(err: any?)->String
-{
-    let failure = describeFailure(err)
-    if failure.code.isEmpty() do
-        return failure.reason
-    return Format.toString("%\n%", failure.reason, failure.code)
-}
+func caughtMessage(err: any?)->String => describeFailure(err).text()
 
 // The sentence that tells a reader what a failure of `kind` means for them. A kind that means
 // nothing to a reader, such as a metadata record declaring an implausible entry count, reads as
@@ -374,7 +409,7 @@ func kindMessage(kind: ErrorKind)->String
     switch #complete kind
     {
     case .PasswordRequired:      return texts.msg_PasswordRequired
-    case .SizeTooSmall:          return minimumSizeMessage()
+    case .SizeTooSmall:          return Format.toString(texts.msg_SizeMinimum, MinimumSizeMiB)
     case .PasswordOrDamaged:     return texts.msg_ErrPasswordOrDamaged
     case .Corrupted:             return texts.msg_ErrDamaged
     case .NotFound:              return texts.msg_ErrNotFound
@@ -399,12 +434,9 @@ func kindMessage(kind: ErrorKind)->String
 // Formats a native error code when one is available.
 func formatErrorCode(code: u64)->String => code ? Format.toString(appStrings().msg_ErrorCode, code) : String{}
 
-// Says the smallest capacity a container can have, in whole mebibytes.
-func minimumSizeMessage()->String
-{
-    const Mebibyte = 1024'u64 * 1024
-    return Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + Mebibyte - 1) / Mebibyte)
-}
+// Smallest capacity a container can have, rounded up to a whole mebibyte.
+private const Mebibyte = 1024'u64 * 1024
+const MinimumSizeMiB   = (MinimumSize + Mebibyte - 1) / Mebibyte
 
 // Sends where a failure was raised to the debugger output.
 //
@@ -473,14 +505,14 @@ func parseCapacity(text: string, unitIndex: u32)->ContainerSize
     let parseError = parseErrorOutcome.value()
     if parseError != null or parsed.ovf or parsed.eat != text.count or not parsed.value
     {
-        result.error = appStrings().msg_SizeInvalid
+        result.error = &appStrings().msg_SizeInvalid
         return result
     }
 
     let multiplier = unitIndex == 0 ? 1024'u64 * 1024 : 1024'u64 * 1024 * 1024
     if parsed.value > Swag.U64.Max / multiplier
     {
-        result.error = appStrings().msg_SizeTooLarge
+        result.error = &appStrings().msg_SizeTooLarge
         return result
     }
 
@@ -947,8 +979,10 @@ impl MainWindow
         .list.retranslate()
         .dropHighlight.setPrompt(appStrings().ui_DropTitle)
         .showOperation()
+        .progressPage.retranslate()
         .refreshStatus()
         .refreshHint()
+        .applyLayout()
         .invalidate()
     }
 

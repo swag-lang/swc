@@ -67,7 +67,7 @@ impl UnlockCard
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        // The picker is as wide as the letter it shows, not as a field of a form.
+        // The picker takes the width of its destinations, within the room left by the actions.
         with result.drive = ComboBox.create(result.options, Math.Rectangle{0, 0, 0, metrics.comboBox_Height}, flags: .Flat)
         {
             .layoutSpec.alignY = .Center
@@ -80,10 +80,10 @@ impl UnlockCard
         with result.keyFiles = createQuietLink(result.options, appStrings().ui_KeyFilesLink)
         {
             .layoutSpec.alignY = .Center
-            .margin.x          = 0
-            .margin.z          = metrics.dialog_BtnPadding
+            .margin.x = 0
+            .margin.z = metrics.dialog_BtnPadding
             .setArrowPosition(.RightDownward)
-            .sigPressed        += func|window|(_) { window.list.card.toggleKeyFiles() }
+            .sigPressed += func|window|(_) { window.list.card.toggleKeyFiles() }
         }
 
         result.keyFileList = KeyFileField.create(result.panel, canGenerate: false)
@@ -140,9 +140,25 @@ impl UnlockCard
         let mount = .mount.measure({}).preferred
         .mount.arrange(Math.Rectangle{width - RowOutset - mount.x, lineTop, mount.x, lineH})
 
-        let optionsWidth = Math.max(0, .mount.position.x - VaultRow.TextX - .panel.themeMetrics().dialog_BtnPadding)
+        let metrics      = .panel.themeMetrics()
+        let optionsWidth = Math.max(0, .mount.position.x - VaultRow.TextX - metrics.dialog_BtnPadding)
+
+        // Mount destinations may be full paths. Reserve the other controls' widths before
+        // sizing the picker, whose popup can still display each complete path.
+        let driveMargin = .drive.layoutMargin()
+        var driveWidth  = optionsWidth - driveMargin.x - driveMargin.z
+        for child in .options.children where child != .drive
+        {
+            let margin = child.layoutMargin()
+            driveWidth -= child.measure({}).preferred.x + margin.x + margin.z + .options.spacing
+        }
+
+        .drive.maxSize.x = Math.max(metrics.comboBox_RightMargin, Math.floor(driveWidth))
         .options.arrange(Math.Rectangle{VaultRow.TextX, lineTop, optionsWidth, lineH})
         .options.computeLayout()
+
+        // Keep the destination's distinguishing suffix visible when its path is clipped.
+        .drive.setTextAlignment(.drive.layoutDebug.contentSize.x > .drive.position.width ? .Right : .Left)
 
         if .keyFileList.isLocallyVisible()
         {

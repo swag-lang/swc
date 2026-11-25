@@ -107,6 +107,10 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)
     window.finishMount(volumeError(.PasswordOrDamaged))
+
+    // Finishing the mount refreshes the host's destinations. Use the same one on every platform.
+    useTestDestination(window)
+    window.list.arrange()
     assertSurfaceGolden(&host, window, true, "mount.failure")
 }
 
@@ -241,9 +245,8 @@ func assertSurfaceGolden(host: *Testing.HeadlessHost, window: *MainWindow, dark:
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host, width: PictureWidth, height: PictureHeight)
-    let texts  = appStrings()
-    window.progressPage.begin("/home/vault/papiers.bin", texts.ui_Randomizing, texts.ui_RandomizeHelp, texts.ui_StopCreating)
-    window.progressPage.setProgress(0.62, 159 * 1024 * 1024, 256 * 1024 * 1024, Format.toString(texts.ui_SecondsLeft, 12))
+    window.progressPage.begin("/home/vault/papiers.bin", .Randomizing)
+    window.progressPage.setProgress(0.62, 159 * 1024 * 1024, 256 * 1024 * 1024, 12)
     window.showPage(.Progress, animate: false)
     assertSurfaceGolden(&host, window, false, "progress")
 }

@@ -140,7 +140,7 @@ impl MainWindow
                 {
                     synchronizationStopped = true
                     if not isBusyError(Swag.err) do
-                        .statusDetail = caughtMessage(Swag.err)
+                        .statusDetail = {failure: describeFailure(Swag.err)}
                 }
 
                 if mounted.handle

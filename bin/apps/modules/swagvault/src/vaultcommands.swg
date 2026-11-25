@@ -439,7 +439,7 @@ impl MainWindow
             .title = appStrings().dlg_TitleOpen
             .confirmButtonText = appStrings().dlg_BtnOpen
             .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
-            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: Gui.strings().browser_Documents})
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)

@@ -10,8 +10,8 @@ impl MainWindow
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
         .operation.error.reset()
-        .statusHeadline.clear()
-        .statusDetail.clear()
+        .statusHeadline  = {}
+        .statusDetail    = {}
         .operation.timer = .addTimer(50'ms)
 
         let hasKeyFiles = .operation.access.keyFiles.count != 0 or
@@ -21,10 +21,9 @@ impl MainWindow
 
         if kind == .Create or kind == .Resize
         {
-            let texts = appStrings()
             let stage = .progressStage(phase)
-            .setStatus(stage.status)
-            .progressPage.begin(.operation.path, stage.what, stage.help, kind == .Create ? texts.ui_StopCreating : texts.ui_StopResizing)
+            .setStatus(stage)
+            .progressPage.begin(.operation.path, stage)
             .progressClock.restart()
             .showOperation()
             .showPage(.Progress)
@@ -44,32 +43,32 @@ impl MainWindow
         let path = .createPath.text()
         if path.count == 0
         {
-            .showError(appStrings().msg_ChooseCreateFile)
+            .showError(&appStrings().msg_ChooseCreateFile)
             return
         }
 
         if File.exists(path)
         {
-            .showError(appStrings().msg_FileExists)
+            .showError(&appStrings().msg_FileExists)
             return
         }
 
         if not Core.Crypto.constantTimeEqual(.createPassword.bytes(), .confirmPassword.bytes())
         {
-            .showError(appStrings().msg_PasswordMismatch)
+            .showError(&appStrings().msg_PasswordMismatch)
             return
         }
 
         let size = parseCapacity(.createSize.text(), .createUnit.selectedIndex)
-        if not size.error.isEmpty()
+        if let error = size.error
         {
-            .showError(size.error)
+            .showError(error)
             return
         }
 
         if size.bytes < MinimumSize
         {
-            .showError(minimumSizeMessage())
+            .showError(&appStrings().msg_SizeMinimum, number: MinimumSizeMiB)
             return
         }
 
@@ -122,21 +121,21 @@ impl MainWindow
             return
         if not Core.Crypto.constantTimeEqual(fields.password.bytes(), fields.confirm.bytes())
         {
-            .showError(appStrings().msg_PasswordMismatch)
+            .showError(&appStrings().msg_PasswordMismatch)
             return
         }
 
         let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
-        if not size.error.isEmpty()
+        if let error = size.error
         {
-            .showError(size.error)
+            .showError(error)
             return
         }
 
         let reserve = parseCapacity(fields.reserve.text(), fields.reserveUnit.selectedIndex)
-        if not reserve.error.isEmpty()
+        if let error = reserve.error
         {
-            .showError(reserve.error)
+            .showError(error)
             return
         }
 
@@ -144,7 +143,7 @@ impl MainWindow
         .operation.hiddenAccess.setInputs(fields.password.bytes(), fields.keyFiles.paths.toSlice())
         if not .operation.hiddenAccess.isProtected()
         {
-            .showError(appStrings().msg_PasswordRequired)
+            .showError(&appStrings().msg_PasswordRequired)
             return
         }
 
@@ -175,7 +174,7 @@ impl MainWindow
         .operation.hiddenAccess.setInputs(fields.password.bytes(), fields.keyFiles.paths.toSlice())
         if not .operation.hiddenAccess.isProtected()
         {
-            .showError(appStrings().msg_PasswordRequired)
+            .showError(&appStrings().msg_PasswordRequired)
             return false
         }
 
@@ -205,20 +204,20 @@ impl MainWindow
         let path = String.from(.chosenLockedPath())
         if path.isEmpty()
         {
-            .showError(appStrings().msg_ChooseExisting)
+            .showError(&appStrings().msg_ChooseExisting)
             return
         }
 
         if .isMounted(path)
         {
-            .showError(appStrings().msg_AlreadyMounted)
+            .showError(&appStrings().msg_AlreadyMounted)
             return
         }
 
         let mountPoint = .selectedMountPoint()
         if mountPoint.isEmpty()
         {
-            .showError(appStrings().msg_NoDriveLetter)
+            .showError(&appStrings().msg_NoDriveLetter)
             return
         }
 
@@ -296,7 +295,7 @@ impl MainWindow
             return false
         if .isMounted(.chosenPath)
         {
-            .showError(appStrings().msg_UnmountFirst)
+            .showError(&appStrings().msg_UnmountFirst)
             return false
         }
 
@@ -323,7 +322,7 @@ impl MainWindow
 
         if not Core.Crypto.constantTimeEqual(fields.replacement.bytes(), fields.confirm.bytes())
         {
-            .showError(appStrings().msg_PasswordMismatch)
+            .showError(&appStrings().msg_PasswordMismatch)
             return
         }
 
@@ -376,7 +375,7 @@ impl MainWindow
         let path = String.from(.chosenPath)
         if not File.exists(path)
         {
-            .showError(appStrings().msg_ChooseExisting)
+            .showError(&appStrings().msg_ChooseExisting)
             return
         }
 
@@ -396,9 +395,9 @@ impl MainWindow
         if not camouflageOnly
         {
             let size = parseCapacity(fields.capacity.text(), fields.unit.selectedIndex)
-            if not size.error.isEmpty()
+            if let error = size.error
             {
-                .showError(size.error)
+                .showError(error)
                 return
             }
 
@@ -539,16 +538,13 @@ impl MainWindow
     }
 
     // Describes the work that is currently producing the byte count.
-    mtd progressStage(phase: VolumeProgressPhase)->{ what: string, help: string, status: StatusMessage }
+    mtd progressStage(phase: VolumeProgressPhase)->StatusMessage
     {
-        let texts = appStrings()
         if phase == .KeyFile do
-            return {texts.ui_ReadingKeyFile, texts.ui_ReadKeyFileHelp, .ReadingKeyFile}
+            return .ReadingKeyFile
         if .operation.kind == .Create do
-            return {texts.ui_Randomizing, texts.ui_RandomizeHelp, .Randomizing}
-        if .operation.camouflageOnly do
-            return {texts.ui_Camouflaging, texts.ui_KeepCapacityHelp, .Camouflaging}
-        return {texts.ui_Resizing, texts.ui_NewCapacityHelp, .Resizing}
+            return .Randomizing
+        return .operation.camouflageOnly ? .Camouflaging : .Resizing
     }
 
     // Says how far the running creation or resize is, on its page and in the status it keeps.
@@ -558,41 +554,32 @@ impl MainWindow
             return
         if .operation.progress.isCanceled()
         {
-            .progressPage.setStage(appStrings().msg_StopRequested, "")
+            .progressPage.setStage(.StopRequested)
             return
         }
 
         let bytes = .operation.progress.counts()
         let stage = .progressStage(bytes.phase)
-        if stage.status != .statusMessage do
+        if stage != .statusMessage do
             .progressClock.restart()
-        .progressPage.setStage(stage.what, stage.help)
+        .progressPage.setStage(stage)
 
-        let ratio = bytes.ratio()
-        var left: String
-        if bytes.phase == .Volume do
-            left = .timeLeft(ratio)
+        let ratio   = bytes.ratio()
+        let seconds = bytes.phase == .Volume ? .secondsLeft(ratio) : 0
         .statusProgress = cast(s32, ratio * 100)
-        .progressPage.setProgress(ratio, bytes.done, bytes.total, left)
-        .setStatus(stage.status)
+        .progressPage.setProgress(ratio, bytes.done, bytes.total, seconds)
+        .setStatus(stage)
     }
 
-    // Says how long the running operation still needs, from how long the part done took; empty
-    // until enough is done to say it honestly.
-    mtd timeLeft(ratio: f32)->String
+    // Estimates the seconds left from the time spent on the completed share, or zero while unknown.
+    mtd secondsLeft(ratio: f32)->u64
     {
-        var result: #returntype
         const MinimumRatio = 0.02'f32
         if ratio < MinimumRatio or ratio >= 1 do
-            return result
+            return 0
 
         let elapsed = cast(f64, .progressClock.elapsedMilliseconds()) / 1000
-        let seconds = cast(u64, Math.ceil(elapsed * (1 - ratio) / ratio))
-        if seconds < 120 do
-            result = Format.toString(appStrings().ui_SecondsLeft, seconds)
-        else do
-            result = Format.toString(appStrings().ui_MinutesLeft, (seconds + 59) / 60)
-        return result
+        return Math.max(1, cast(u64, Math.ceil(elapsed * (1 - ratio) / ratio)))
     }
 
     // Waits for the worker, then hands the outcome to the finish step of the operation kind.
@@ -683,7 +670,7 @@ impl MainWindow
         }
         elif operationError != null
         {
-            .showError(appStrings().msg_CreateFailed, operationError)
+            .showError(&appStrings().msg_CreateFailed, operationError)
             .setStatus(.CreateStopped)
             .showPage(hidden ? .List : .Create)
         }
@@ -709,7 +696,7 @@ impl MainWindow
             // A startup mount reports on the notice line alone: a box per vault would meet
             // the reader with a stack of them before the window is even readable.
             if not .operation.fromStartup and not .operation.securityStopped do
-                .showError(appStrings().msg_MountFailed, operationError, shortTitle: true)
+                .showError(&appStrings().msg_MountFailed, operationError, shortTitle: true)
             .setStatus(.operation.securityStopped ? .AutoUnmounted : .MountStopped)
         }
         elif .operation.usedProtection and .operation.securityEpoch != .securityEpoch
@@ -780,7 +767,7 @@ impl MainWindow
             {
                 .statusDrive = Format.toString("%", .mountedDrives.drives.count)
                 .setStatus(retained ? .UnmountStopped : .UnmountSyncStopped)
-                .showError(retained ? appStrings().msg_UnmountFailed : appStrings().msg_UnmountSyncStopped, operationError)
+                .showError(retained ? &appStrings().msg_UnmountFailed : &appStrings().msg_UnmountSyncStopped, operationError)
             }
         }
         else
@@ -801,7 +788,7 @@ impl MainWindow
         }
         elif operationError != null
         {
-            .showError(appStrings().msg_ResizeFailed, operationError)
+            .showError(&appStrings().msg_ResizeFailed, operationError)
             .setStatus(.ResizeStopped)
         }
         elif .operation.camouflageOnly
@@ -810,7 +797,7 @@ impl MainWindow
         }
         else
         {
-            .statusDrive = capacityText(.operation.size)
+            .statusCapacity = .operation.size
             .setStatus(.Resized)
         }
 
@@ -823,7 +810,7 @@ impl MainWindow
         if operationError != null
         {
             let keyFiles = .operation.accessChange == .KeyFiles
-            .showError(keyFiles ? appStrings().msg_KeyFilesFailed : appStrings().msg_PasswordFailed, operationError)
+            .showError(keyFiles ? &appStrings().msg_KeyFilesFailed : &appStrings().msg_PasswordFailed, operationError)
             .setStatus(keyFiles ? .KeyFilesStopped : .PasswordStopped)
         }
         else
@@ -946,7 +933,7 @@ impl MainWindow
             .confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
             .initialName       = create ? "volume" : ""
             .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
-            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: Gui.strings().browser_Documents})
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)

@@ -22,8 +22,8 @@ struct VaultResident
     batch:               bool
     quitting:            bool
     forceUnmount:        bool
-    retainedFailure:     String
-    syncFailure:         String
+    retainedFailure:     VaultFailure
+    syncFailure:         VaultFailure
     pending:             Array'String
 }
 
@@ -87,7 +87,7 @@ impl VaultResident
         if not surface.hasTrayIcon() and surface.isHidden
         {
             .showWindow()
-            .window.statusDetail = appStrings().msg_TrayUnavailable
+            .window.statusDetail = {key: &appStrings().msg_TrayUnavailable}
             .window.refreshStatus()
         }
     }
@@ -98,7 +98,7 @@ impl VaultResident
         if not .window.surface!.hasTrayIcon()
         {
             .showWindow()
-            .window.showError(appStrings().msg_TrayUnavailable)
+            .window.showError(&appStrings().msg_TrayUnavailable)
             return
         }
 
@@ -162,7 +162,7 @@ impl VaultResident
             if not Env.setSessionStartup(ApplicationId, ProductName, false)
             {
                 .applySettings()
-                .window.showError(appStrings().msg_StartupFailed)
+                .window.showError(&appStrings().msg_StartupFailed)
                 return
             }
 
@@ -183,7 +183,7 @@ impl VaultResident
         if not Env.setSessionStartup(ApplicationId, ProductName, enabled, ["--hide"])
         {
             .applySettings()
-            .window.showError(appStrings().msg_StartupFailed)
+            .window.showError(&appStrings().msg_StartupFailed)
             return
         }
 
@@ -200,7 +200,7 @@ impl VaultResident
         if .window.operation.kind != .None
         {
             .showWindow()
-            .window.showError(appStrings().msg_FinishOperation)
+            .window.showError(&appStrings().msg_FinishOperation)
             return
         }
 
@@ -213,11 +213,11 @@ impl VaultResident
         .pending.clear()
         for &drive in .window.mountedDrives.drives do
             .pending.add(drive.path)
-        .batch        = true
-        .quitting     = quit
-        .forceUnmount = force
-        .retainedFailure.clear()
-        .syncFailure.clear()
+        .batch           = true
+        .quitting        = quit
+        .forceUnmount    = force
+        .retainedFailure = {}
+        .syncFailure     = {}
         .continueUnmount()
     }
 
@@ -225,8 +225,8 @@ impl VaultResident
     mtd recordUnmountFailure(operationError: any, retained: bool)
     {
         let detail = retained ? &.retainedFailure : &.syncFailure
-        if detail.isEmpty() do
-            detail[] = caughtMessage(operationError)
+        if not detail.present do
+            detail[] = describeFailure(operationError)
     }
 
     mtd continueUnmount()
@@ -244,15 +244,15 @@ impl VaultResident
         }
 
         let count = .window.mountedDrives.drives.count
-        if count or not .syncFailure.isEmpty()
+        if count or .syncFailure.present
         {
-            let detail = .syncFailure.isEmpty() ? .retainedFailure.toString() : .syncFailure.toString()
-            .window.statusDetail = .quitting ? "" : detail
+            let detail = .syncFailure.present ? .syncFailure : .retainedFailure
+            .window.statusDetail = .quitting ? VaultNotice{} : VaultNotice{failure: detail}
             .window.statusDrive  = Format.toString("%", count)
             .window.setStatus(count ? .UnmountStopped : .UnmountSyncStopped)
             var force: bool
             if .quitting do
-                force = .confirmForceQuit(detail)
+                force = .confirmForceQuit(detail.text())
             elif .isHidden() do
                 .notify(.window.statusText())
 
@@ -278,9 +278,9 @@ impl VaultResident
         let surface = unwrap .window.surface
         let texts   = appStrings()
         let title   = .window.statusText()
-        if .forceUnmount or not .syncFailure.isEmpty()
+        if .forceUnmount or .syncFailure.present
         {
-            let message = .syncFailure.isEmpty() ? title.toString() : texts.msg_UnmountSyncStopped
+            let message = .syncFailure.present ? texts.msg_UnmountSyncStopped : title.toString()
             MessageDlg.error(surface, message, options: {detail: detail})
             return false
         }

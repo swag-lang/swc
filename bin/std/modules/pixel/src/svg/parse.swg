@@ -533,6 +533,13 @@ private struct StyleRuleList
     matchedIn: u64
 }
 
+private struct StyleApplication
+{
+    tag, classes, id: string = ""
+    input, output:    GroupState
+    valid:            bool
+}
+
 // Each selector links rules in source order through the shared array.
 private struct StyleSheet
 {
@@ -544,6 +551,9 @@ private struct StyleSheet
 
     classMatches:    Array'u64
     matchGeneration: u64
+    lastApplication: StyleApplication
+    replayMisses:    u8
+    replayDelay:     u8
 }
 
 // A marker definition: the shapes it draws, the viewport they are drawn in, and how each
@@ -2241,6 +2251,9 @@ private impl StyleSheet
 {
     mtd add(selector, declarations: string)
     {
+        .lastApplication.valid = false
+        .replayMisses = 0
+        .replayDelay  = 0
         switch selector[0]
         {
         case '.':
@@ -2342,26 +2355,71 @@ private impl StyleSheet
 
     mtd apply(elementName: string, geo: *AttributeMap, state: *GroupState)
     {
-        // Apply the indexed rules in increasing selector specificity.
-        if .byTag.count
+        let tag       = .byTag.count ? elementName : ""
+        let classAttr = .byClass.count ? geo.tryFind(.Class) : null
+        let idAttr    = .byId.count ? geo.tryFind(.Id) : null
+        let classes   = classAttr ? classAttr.value : ""
+        let id        = idAttr ? idAttr.value : ""
+        if not tag.count and not classes.count and not id.count do
+            return
+
+        if .replayDelay
         {
-            if let rules = .byTag.tryFind(String.toLower(elementName)) do
+            .replayDelay -= 1
+            .applyIndexed(tag, classes, id, state)
+            return
+        }
+
+        // Adjacent shapes often inherit the same presentation and match the same rules.
+        let last = &.lastApplication
+        if last.valid
+        {
+            if last.tag == tag and
+               last.classes == classes and
+               last.id == id and
+               Memory.compare(&last.input, state, #sizeof(GroupState)) == 0
+            {
+                state[]       = last.output
+                .replayMisses = 0
+                return
+            }
+
+            // Pause comparisons when consecutive elements use distinct styles.
+            .replayMisses += 1
+            if .replayMisses >= 4
+            {
+                last.valid    = false
+                .replayMisses = 0
+                .replayDelay  = 64
+                .applyIndexed(tag, classes, id, state)
+                return
+            }
+        }
+
+        last.tag     = tag
+        last.classes = classes
+        last.id      = id
+        last.input   = state[]
+        .applyIndexed(tag, classes, id, state)
+        last.output = state[]
+        last.valid  = true
+    }
+
+    mtd applyIndexed(tag, classes, id: string, state: *GroupState)
+    {
+        // Apply the indexed rules in increasing selector specificity.
+        if tag.count
+        {
+            if let rules = .byTag.tryFind(String.toLower(tag)) do
                 .applyRules(&rules.value, state)
         }
 
-        if .byClass.count
+        if classes.count do
+            .applyClassRules(classes, state)
+        if id.count
         {
-            if let classAttr = geo.tryFind(.Class) do
-                .applyClassRules(classAttr.value, state)
-        }
-
-        if .byId.count
-        {
-            if let idAttr = geo.tryFind(.Id)
-            {
-                if let rules = .byId.tryFind(idAttr.value) do
-                    .applyRules(&rules.value, state)
-            }
+            if let rules = .byId.tryFind(id) do
+                .applyRules(&rules.value, state)
         }
     }
 }

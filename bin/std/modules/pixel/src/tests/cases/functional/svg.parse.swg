@@ -256,6 +256,26 @@ private const ManyStopSvg = """\
     Swag.require(image.pixelColor(45, 5) == Color.fromRgb(255, 255, 0))
 }
 
+// Repeated class rules keep their presentation inputs and are reevaluated when the sheet grows.
+#test
+{
+    const Source = """\
+        <svg width='40' height='10'>\
+        <style>.ink { fill: currentColor; }</style>\
+        <rect width='10' height='10' class='ink' color='lime'/>\
+        <rect x='10' width='10' height='10' class='ink' color='lime'/>\
+        <rect x='20' width='10' height='10' class='ink' color='blue'/>\
+        <style>.ink { fill: red; }</style>\
+        <rect x='30' width='10' height='10' class='ink' color='blue'/></svg>"""
+
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(40, 10, 1)
+    Swag.require(image.pixelColor(5, 5) == Color.fromRgb(0, 255, 0))
+    Swag.require(image.pixelColor(15, 5) == Color.fromRgb(0, 255, 0))
+    Swag.require(image.pixelColor(25, 5) == Color.fromRgb(0, 0, 255))
+    Swag.require(image.pixelColor(35, 5) == Color.fromRgb(255, 0, 0))
+}
+
 // A radial paint server carries its inner radius, stop opacity and repeat policy.
 #test
 {

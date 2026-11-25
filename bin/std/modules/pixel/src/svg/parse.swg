@@ -313,9 +313,14 @@ private struct GroupState
 
 private impl GroupState
 {
-    // Reports whether this element draws markers, so a path that draws none never pays for
-    // collecting the vertices they would sit on.
-    mtd const hasMarkers()->bool => .markerStartId.count or .markerMidId.count or .markerEndId.count
+    #[Swag.Inline]
+    mtd const drawsShape(strokeOnly = false)->bool =>
+        .isDisplayed and .isVisible and (.hasStroke or (not strokeOnly and .hasFill))
+
+    // Definitions keep their own geometry without placing markers on it.
+    #[Swag.Inline]
+    mtd const hasMarkers()->bool =>
+        not .inDefs and (.markerStartId.count or .markerMidId.count or .markerEndId.count)
 }
 
 private struct GroupScope
@@ -1603,12 +1608,10 @@ private struct MarkerVertex
     inDir, outDir: Vector2
 }
 
-// Returns the marker vertices of a `points` list, or nothing when the element carries none.
-private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
+// Returns the marker vertices of a `points` list.
+private func polyVertices(points: string)->Array'MarkerVertex
 {
     var result: #returntype
-    if not wanted do
-        return result
 
     var pos = 0'u64
     while pos < points.count
@@ -1994,7 +1997,7 @@ private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *Grou
 {
     if list.paths.isEmpty() do
         return
-    if not state.isDisplayed or not state.isVisible or (not state.hasFill and not state.hasStroke) do
+    if not state.drawsShape() do
         return
 
     // A triangulated fill needs one outer contour followed by its holes. Split separate islands
@@ -3093,13 +3096,15 @@ private impl Parser
 
             case "path":
                 let d = geo.tryFind(.D)
-                if d
+                let hasMarkers = state.hasMarkers()
+                if d and (state.drawsShape() or hasMarkers)
                 {
                     var list:     LinePathList
                     var vertices: Array'MarkerVertex
-                    parsePathData(&list, d.value, &state, state.hasMarkers() ? &vertices : null)
+                    parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null)
                     emitShape(.drawing, #move list, &state)
-                    .applyMarkers(&state, vertices.toSlice())
+                    if hasMarkers do
+                        .applyMarkers(&state, vertices.toSlice())
                 }
 
                 if not selfClosed do
@@ -3140,27 +3145,34 @@ private impl Parser
                     try .parseContent(state)
 
             case "line":
-                var list: LinePathList
-                let path   = list.newPath()
-                let x1     = .geoNumber(&geo, .X1)
-                let y1     = .geoNumber(&geo, .Y1)
-                let x2     = .geoNumber(&geo, .X2)
-                let y2     = .geoNumber(&geo, .Y2)
-                let from   = mapPoint(&state, x1, y1)
-                let target = mapPoint(&state, x2, y2)
-                path.start(from.x, from.y)
-                path.lineTo(target.x, target.y)
-                var strokeOnly = state
-                strokeOnly.hasFill = false
-                emitShape(.drawing, #move list, &strokeOnly)
-
-                if state.hasMarkers()
+                let drawsLine  = state.drawsShape(strokeOnly: true)
+                let hasMarkers = state.hasMarkers()
+                if drawsLine or hasMarkers
                 {
-                    let direction = Vector2{x2 - x1, y2 - y1}
-                    var vertices: Array'MarkerVertex
-                    vertices.add(MarkerVertex{Vector2{x1, y1}, Vector2{}, direction})
-                    vertices.add(MarkerVertex{Vector2{x2, y2}, direction, Vector2{}})
-                    .applyMarkers(&state, vertices.toSlice())
+                    let x1 = .geoNumber(&geo, .X1)
+                    let y1 = .geoNumber(&geo, .Y1)
+                    let x2 = .geoNumber(&geo, .X2)
+                    let y2 = .geoNumber(&geo, .Y2)
+                    if drawsLine
+                    {
+                        var list: LinePathList
+                        let path   = list.newPath()
+                        let from   = mapPoint(&state, x1, y1)
+                        let target = mapPoint(&state, x2, y2)
+                        path.start(from.x, from.y)
+                        path.lineTo(target.x, target.y)
+                        var strokeOnly = state
+                        strokeOnly.hasFill = false
+                        emitShape(.drawing, #move list, &strokeOnly)
+                    }
+
+                    if hasMarkers
+                    {
+                        let direction = Vector2{x2 - x1, y2 - y1}
+                        let vertices  = [MarkerVertex{Vector2{x1, y1}, Vector2{}, direction},
+                                         MarkerVertex{Vector2{x2, y2}, direction, Vector2{}}]
+                        .applyMarkers(&state, vertices)
+                    }
                 }
 
                 if not selfClosed do
@@ -3303,27 +3315,27 @@ private impl Parser
                 if not selfClosed do
                     try .parseContent(state)
 
-            case "polygon":
+            case "polygon", "polyline":
                 let pts = geo.tryFind(.Points)
                 if pts
                 {
-                    emitPoly(.drawing, &state, pts.value, true)
-                    var vertices = polyVertices(pts.value, state.hasMarkers())
-                    .applyMarkers(&state, vertices.toSlice())
-                }
+                    if name == "polygon"
+                    {
+                        if state.drawsShape() do
+                            emitPoly(.drawing, &state, pts.value, true)
+                    }
+                    elif state.drawsShape(strokeOnly: true)
+                    {
+                        var strokeOnly = state
+                        strokeOnly.hasFill = false
+                        emitPoly(.drawing, &strokeOnly, pts.value, false)
+                    }
 
-                if not selfClosed do
-                    try .parseContent(state)
-
-            case "polyline":
-                let pts = geo.tryFind(.Points)
-                if pts
-                {
-                    var strokeOnly = state
-                    strokeOnly.hasFill = false
-                    emitPoly(.drawing, &strokeOnly, pts.value, false)
-                    var vertices = polyVertices(pts.value, state.hasMarkers())
-                    .applyMarkers(&state, vertices.toSlice())
+                    if state.hasMarkers()
+                    {
+                        let vertices = polyVertices(pts.value)
+                        .applyMarkers(&state, vertices.toSlice())
+                    }
                 }
 
                 if not selfClosed do
@@ -3431,9 +3443,7 @@ private impl Parser
     // `moveto` still show its marker.
     mtd applyMarkers(state: *GroupState, vertices: const [..] MarkerVertex)
     {
-        if state.inDefs or vertices.count == 0 do
-            return
-        if not state.hasMarkers() do
+        if not vertices.count or not state.hasMarkers() do
             return
 
         for vertex, index in vertices

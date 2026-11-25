@@ -306,9 +306,17 @@ options_MovieDurationHelp Les vidéos plus courtes utilisent une image locale sa
 ui_InvalidMoviePattern Saisissez une expression régulière valide pour les noms des films.
 ui_PrivateVault Contenu privé de Swag Vault
 
-scene_Scenes        Scènes · %
-scene_SceneList     Scènes
-scene_Current       la scène actuelle
+scene_Scenes        Onglets · %
+tab_New Nouvel onglet
+tab_NewGrid Nouvel onglet en grille
+tab_OpenFile Ouvrir un fichier dans un nouvel onglet…
+tab_OpenFolder Ouvrir un dossier dans un nouvel onglet…
+tab_OpenItem Ouvrir dans un nouvel onglet
+tab_Close Fermer l’onglet
+tab_CloseOthers Fermer les autres onglets
+tab_CloseAll Fermer tous les onglets
+scene_SceneList     Onglets
+scene_Current       onglet actif
 scene_SwitchHint    Ctrl Tab suivante · Ctrl Maj Tab précédente · relâcher pour ouvrir
 scene_Files         % fichiers
 scene_Videos        % vidéos

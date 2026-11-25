@@ -108,6 +108,23 @@ impl SceneTabs
     private mtd closeRect(item: Math.Rectangle)->Math.Rectangle =>
     {item.right() + 1, item.vertCenter() - CloseSize * 0.5, CloseSize, CloseSize}
 
+    private mtd showTabMenu(index: u64, position: Math.Point)
+    {
+        let owner = .workspace.activeDocument()
+        let menu = MenuCtrl.createPopup(me, owner: owner)
+        menu.addItems([TabCommands.New, TabCommands.NewGrid, TabCommands.OpenFile, TabCommands.OpenFolder])
+        menu.addSeparator()
+        menu.addItems([TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll])
+        let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
+        switch chosen orelse ""
+        {
+        case TabCommands.Close:       .workspace.closeScene(index)
+        case TabCommands.CloseOthers: .workspace.closeTabs(keep: index)
+        case "":                     return
+        default:                      discard owner.runCommand(unwrap chosen)
+        }
+    }
+
     mtd showsClose(index: u64)->bool => index == .workspace.active or index == .hovered
 
     mtd hit(position: Math.Point)->u64
@@ -183,6 +200,8 @@ impl IWnd for SceneTabs
                 .workspace.closeScene(index)
             elif evt.button == .Left do
                 .workspace.selectScene(index)
+            elif evt.button == .Right do
+                .showTabMenu(index, evt.surfacePos)
 
         default:
             evt.accepted = false
@@ -650,7 +669,7 @@ impl ViewerWorkspace
 
     mtd vacantCellAt(scene: const *ViewerScene, point: Math.Point)->u64
     {
-        if .isTiled() and not .comparisonVisible()
+        if (.isTiled() or scene.views.isEmpty()) and not .comparisonVisible()
         {
             for cell in scene.cellCount() where scene.viewInCell(cell) == Swag.U64.Max and .gridCellRect(scene, cell).contains(point) do
                 return cell
@@ -705,7 +724,10 @@ impl ViewerWorkspace
             .clearDropHighlight()
             if not one
             {
-                .openScene(evt.data.files.toSlice(), .Auto)
+                let paths = evt.data.files.toSlice()
+                let start = scene ? .vacantCellAt(scene, .surfaceToLocal(evt.surfacePos)) : Swag.U64.Max
+                if onTabs or not .fillGrid(paths, start) do
+                    .openScene(paths, .Auto)
             }
             elif index != Swag.U64.Max
             {
@@ -739,6 +761,36 @@ impl ViewerWorkspace
         }
 
         evt.effect = effect
+        return true
+    }
+
+    private mtd fillGrid(paths: const [..] String, start: u64)->bool
+    {
+        let scene = .scene()
+        if not scene or not scene.manual or not .isTiled() or scene.compared or
+           paths.count > scene.cellCount() - scene.views.count do
+            return false
+
+        .dismissVacancy()
+        let first = start == Swag.U64.Max ? 0 : start
+        var next: u64
+        for offset in scene.cellCount()
+        {
+            let cell = (first + offset) % scene.cellCount()
+            if scene.viewInCell(cell) != Swag.U64.Max do
+                continue
+            scene.views.add({path: paths[next], cellPlusOne: cell + 1})
+            if next == 0 do
+                scene.active = scene.views.count - 1
+            let view = scene.views.backPtr()
+            ViewerWorkspace.attachDocument(me, view, remember: true)
+            next += 1
+            if next == paths.count do
+                break
+        }
+
+        .showScene()
+        catch .primary.saveState()
         return true
     }
 
@@ -786,7 +838,9 @@ impl ViewerWorkspace
         }
 
         let shortcut = document.keyShortcut(evt.modifiers, evt.key) orelse ""
-        let swap     = Slice.findLinear(SceneCommands.SwapDirections, shortcut) != Swag.U64.Max
+        if shortcut == TabCommands.New do
+            return document.runCommand(shortcut)
+        let swap = Slice.findLinear(SceneCommands.SwapDirections, shortcut) != Swag.U64.Max
         if source is EditBox or .focusedWindow() is EditBox
         {
             if document.searchComparison and document.searchBox.hasFocus() and .routeComparisonKey(evt, source) do

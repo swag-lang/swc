@@ -1203,7 +1203,7 @@ impl ViewerWindow
     {
         if not .acceptsViewCommands() and .needsSelectedCell(id) do
             return true
-        if .runSceneCommand(id) or .runComparisonCommand(id) or .runMediaCommand(id) do
+        if .runSceneCommand(id, contextPath) or .runComparisonCommand(id) or .runMediaCommand(id) do
             return true
 
         let hasFile = not .currentFile.isEmpty()
@@ -1251,7 +1251,7 @@ impl ViewerWindow
             .closeFile()
 
         case ViewerCommands.Close:
-            if .workspace and .workspace.documentCount() > 0 do
+            if .workspace and .workspace.scene() do
                 .workspace.closeView()
             else do
                 .closeFile()

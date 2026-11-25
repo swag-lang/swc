@@ -19,6 +19,8 @@ struct SceneView
     document:  *ViewerWindow?
     reading:   ViewerReadingState
     readState: bool
+    explorerState: ExplorerFolderState
+    explorerHistory: NavigationHistory
     playMode:  Viewer.PlayMode
     offset:    f64
     behind:    bool
@@ -82,6 +84,7 @@ struct ViewerScene
     split:              f32         = 0.5
     columnCuts:         SceneTrackCuts
     rowCuts:            SceneTrackCuts
+    manual:             bool
     maximized:          bool
     compared:           bool
     linked:             bool
@@ -148,7 +151,7 @@ impl ViewerScene
 
     mtd const dimensions(useMaximized = true)->Math.Point
     {
-        if .views.isEmpty() or useMaximized and (.layout == .Single or .maximized) do
+        if useMaximized and (.layout == .Single or .maximized) do
             return {1, 1}
         switch .layout
         {
@@ -160,7 +163,7 @@ impl ViewerScene
         default:                                  break
         }
 
-        if .views.count == 1 do
+        if .views.count <= 1 do
             return {1, 1}
         if .views.count == 2 do
             return {2, 1}
@@ -208,6 +211,7 @@ struct ViewerWorkspace
 
     late primary:         *ViewerWindow
     late tabs:            *SceneTabs
+    late newTabButton:    *CaptionButton
     columnDividers:      [3] (*SceneDivider?)
     rowDividers:         [3] (*SceneDivider?)
     late mediaLinks:      *CaptionButton
@@ -275,6 +279,10 @@ impl ViewerWorkspace
         }
 
         result.createMediaControls()
+        with result.newTabButton = CaptionButton.create(result.surface, .Plus, TabCommands.New)
+        {
+            .sigPressed += func|workspace = result|(_) { workspace.newTab() }
+        }
         result.bindSceneCaptionInput()
         result.hookOnChildEvent    = func|workspace = result|(_, evt)
         {
@@ -324,7 +332,7 @@ impl ViewerWorkspace
     mtd sceneName(scene: const *ViewerScene)->String
     {
         if scene.views.isEmpty() do
-            return ProductName
+            return scene.layout == .Single ? appStrings().tab_New : sceneLayoutTitle(scene.layout)
         let first: string = Path.fileName(scene.views[0].path) orelse scene.views[0].path
         if scene.views.count == 1 do
             return first
@@ -366,6 +374,12 @@ impl ViewerWorkspace
             document.readingState.useSavedViewer = true
         }
 
+        if not view.explorerState.path.isEmpty()
+        {
+            document.openExplorer(view.path, restore: &view.explorerState, history: &view.explorerHistory)
+            return
+        }
+
         document.queueFile(view.path, remember, preserveReading: view.readState)
     }
 
@@ -381,17 +395,50 @@ impl ViewerWorkspace
         .active      = 0
     }
 
-    mtd openDocument(path: string, remember = true)
+    mtd newTab(layout = SceneLayout.Single)
     {
-        var paths: Array'String
-        paths.add(path)
-        .openScene(paths.toSlice(), .Single, remember: remember)
+        .adoptExplorerTab()
+        if .scenes.count >= MaxScenes
+        {
+            Toast.create(me).show(appStrings().scene_TabLimit, tone: .Failure)
+            return
+        }
+        .suspendScene()
+        let scene = .scenes.addNew()
+        scene.manual = true
+        scene.layout = layout
+        .active = .scenes.count - 1
+        .resumeScene(false)
+        catch .primary.saveState()
     }
 
-    mtd openScene(paths: const [..] String, layout: SceneLayout, compare = false, remember = true)
+    private mtd adoptExplorerTab()
+    {
+        if .scenes.isEmpty() and .primary.isExploring()
+        {
+            let explorer = unwrap .primary.explorer
+            .adoptPrimary(explorer.sourceArchivePath(explorer.requested))
+        }
+    }
+
+    mtd openDocument(path: string, remember = true, newTab = false)
+    {
+        if not newTab and .vacancy and (.scene()?.views.isEmpty() orelse false)
+        {
+            .vacancy.queueFile(path, remember)
+            return
+        }
+
+        var paths: Array'String
+        paths.add(path)
+        .openScene(paths.toSlice(), .Single, remember: remember, manual: newTab)
+    }
+
+    mtd openScene(paths: const [..] String, layout: SceneLayout, compare = false, remember = true, manual = false)
     {
         if not paths.count do
             return
+        .adoptExplorerTab()
         if paths.count > MaxViews or .scenes.count >= MaxScenes
         {
             Toast.create(me).show(paths.count > MaxViews ? appStrings().scene_ViewLimit : appStrings().scene_TabLimit, tone: .Failure)
@@ -400,6 +447,7 @@ impl ViewerWorkspace
 
         .suspendScene()
         var next: ViewerScene
+        next.manual    = manual
         next.maximized = layout == .Single and paths.count > 1
         next.layout   = next.maximized ? .Auto : layout
         next.compared = compare and paths.count == 2
@@ -435,6 +483,8 @@ impl ViewerWorkspace
         view.path      = path
         view.reading   = {}
         view.readState = false
+        view.explorerState = {}
+        view.explorerHistory.clear()
         view.offset    = 0
         view.behind    = false
         if scene.links.leader == index do
@@ -524,6 +574,21 @@ impl ViewerWorkspace
         if not document do
             return
         view.playMode = document.playMode
+        if document.isExploring()
+        {
+            let explorer = unwrap document.explorer
+            if explorer.restoringView do
+                view.explorerState = explorer.restoredView
+            elif Path.equals(explorer.listing.path, explorer.requested) and explorer.folder == explorer.requestedFolder do
+                view.explorerState = ExplorerFolderState.capture(explorer)
+            else do
+                view.explorerState = {path: explorer.requested, folder: explorer.requestedFolder}
+            view.explorerHistory = explorer.history
+            return
+        }
+
+        view.explorerState = {}
+        view.explorerHistory.clear()
         if document.currentFile != view.path or
            document.activeChoiceIndex >= document.instances.count do
             return
@@ -561,7 +626,7 @@ impl ViewerWorkspace
 
     mtd releaseCellFocus()
     {
-        if not .isTiled() or .focusOnGrid do
+        if not .isTiled() or .focusOnGrid or .documentCount() == 0 do
             return
         let previous = .activeDocument()
         previous.hideSearch()
@@ -595,7 +660,8 @@ impl ViewerWorkspace
     mtd focusVacancy(cell: u64)
     {
         let scene = .scene()
-        if not scene or not .isTiled() or cell >= scene.cellCount() or scene.viewInCell(cell) != Swag.U64.Max do
+        if not scene or (not .isTiled() and not scene.views.isEmpty()) or
+           cell >= scene.cellCount() or scene.viewInCell(cell) != Swag.U64.Max do
             return
         .focusOnGrid = false
         if not .vacancy
@@ -610,7 +676,7 @@ impl ViewerWorkspace
             .vacancy.onlineMovies = .primary.onlineMovies
             .vacancy.onlineMusic = .primary.onlineMusic
             .vacancy.applyFullScreenPresentation(.primary.fullScreen)
-            .vacancy.home.hide()
+            .vacancy.home.show(not .isTiled())
             .vacancy.hintLine.clearHints()
             .vacancy.hintLine.addHint(.vacancy.keyShortcutName(ViewerCommands.Open), appStrings().hint_Open)
             .vacancy.hintLine.addHint(.vacancy.keyShortcutName(ViewerCommands.Explore), appStrings().cmd_Explore)
@@ -668,6 +734,12 @@ impl ViewerWorkspace
             return
         }
 
+        if scene.views.isEmpty()
+        {
+            .closeScene(.active)
+            return
+        }
+
         if .vacancy
         {
             .dismissVacancy()
@@ -680,7 +752,7 @@ impl ViewerWorkspace
         let closing = index == Swag.U64.Max ? scene.active : index
         if closing >= scene.views.count do
             return
-        if scene.views.count == 1
+        if scene.views.count == 1 and (not scene.manual or not .isTiled())
         {
             .closeScene(.active)
             return
@@ -691,12 +763,20 @@ impl ViewerWorkspace
         scene.removeView(closing)
         scene.links.leader = remapClosedView(scene.links.leader, closing)
         scene.links.solo   = remapClosedView(scene.links.solo, closing)
-        scene.active       = scene.active == closing ? Math.min(closing, scene.views.count - 1) : remapClosedView(scene.active, closing)
+        if scene.views.isEmpty() do
+            scene.active = 0
+        elif scene.active == closing do
+            scene.active = Math.min(closing, scene.views.count - 1)
+        else do
+            scene.active = remapClosedView(scene.active, closing)
         scene.compared     = false
         scene.maximized    = false
-        if scene.views.count == 1 and not (scene.links.explorer and (scene.views[0].document?.isExploring() orelse false))
+        if scene.views.isEmpty() do
+            scene.linked = false
+        elif scene.views.count == 1 and not (scene.links.explorer and (scene.views[0].document?.isExploring() orelse false))
         {
-            scene.layout = .Single
+            if not scene.manual do
+                scene.layout = .Single
             scene.linked = false
         }
         .showScene()
@@ -725,6 +805,30 @@ impl ViewerWorkspace
         }
 
         .layoutScene()
+        catch .primary.saveState()
+    }
+
+    mtd closeTabs(keep = Swag.U64.Max)
+    {
+        if .scenes.isEmpty() or (keep < .scenes.count and .scenes.count == 1) do
+            return
+
+        .closeSwitcher(choose: false)
+        let keepTab = keep < .scenes.count
+        let keepActive = keepTab and keep == .active
+        if not keepActive do
+            .suspendScene(capturePreview: false)
+        for index in reversed(.scenes.count) where not keepTab or index != keep
+        {
+            .app().renderer.removeTexture(&.scenes[index]!.preview)
+            .scenes.deleteAt(index)
+        }
+
+        .active = 0
+        if keepActive do
+            .showScene()
+        else do
+            .resumeScene(false)
         catch .primary.saveState()
     }
 
@@ -792,6 +896,12 @@ impl ViewerWorkspace
 
     mtd showScene()
     {
+        if not .vacancy and (.scene()?.views.isEmpty() orelse false)
+        {
+            .focusVacancy(0)
+            return
+        }
+
         .layoutScene()
         let document = .activeDocument()
         if .sceneCaptionPending do
@@ -861,6 +971,13 @@ impl ViewerWorkspace
         }
         .focusDelegate = .focusOnGrid ? null : .activeDocument()
         .updateMedia()
+        if .newTabButton != null
+        {
+            .newTabButton.enable(.scenes.count < MaxScenes)
+            let shortcut = .activeDocument().keyShortcutName(TabCommands.New)
+            .newTabButton.toolTip = shortcut.isEmpty() ? String.from(appStrings().tab_New) :
+                                    Format.toString("% (%)", appStrings().tab_New, shortcut)
+        }
         .tabs.layoutTabs()
         .invalidate()
         for index in .columnDividers.count
@@ -879,7 +996,11 @@ impl ViewerWorkspace
     mtd viewRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
         => .gridCellRect(scene, index < scene.views.count ? scene.cellOf(index) : index)
 
-    mtd tabStripHeight()->f32 => .scenes.count >= 2 and .stripInset() > 0 ? .themeMetrics().control_DialogHeight : 0
+    mtd tabStripHeight()->f32
+    {
+        let shown = .scenes.count >= 2 or (.scene()?.manual orelse false)
+        return shown and .stripInset() > 0 ? .themeMetrics().control_DialogHeight : 0
+    }
 
     mtd sceneArea()->Math.Rectangle => .tabStripHeight() > 0 ? .gridBody() : .clientRect()
 

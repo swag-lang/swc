@@ -1857,7 +1857,8 @@ impl ViewerWindow
         return dialog.selectedPath()
     }
 
-    mtd openExplorer(path: string)
+    mtd openExplorer(path: string, restore: const *ExplorerFolderState? = null,
+                     history: const *NavigationHistory? = null)
     {
         // Own the path before retiring the viewer whose currentFile may have supplied it.
         let source = String.from(path)
@@ -1866,7 +1867,10 @@ impl ViewerWindow
             .surface?.clearFocus()
         if not .explorer do
             .explorer = Explorer.create(.documentPanel, me)
-        .explorer.history.push(Format.toString("%\n", source))
+        if history do
+            .explorer.history = history[]
+        else do
+            .explorer.history.push(Format.toString("%\n", source))
         .explorerActive = true
         .privacy.track(source)
         .rememberExplored(source)
@@ -1874,7 +1878,8 @@ impl ViewerWindow
         .home.hide()
         .searchBox.setText(.explorer.filter.text(), notify: false)
         .explorer.setShown(true)
-        .explorer.navigate(source)
+        let folder = restore and Path.equals(restore.path, source) ? restore.folder.toString() : ""
+        .explorer.navigate(source, folder, remember: not history, restore: restore)
         .workspace?.updateMedia()
         if .isWorkspaceActive() do
             .surface?.clearFocus()

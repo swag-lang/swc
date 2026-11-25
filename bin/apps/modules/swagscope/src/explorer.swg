@@ -1183,7 +1183,7 @@ impl Explorer
         .refreshQuietMenus()
     }
 
-    mtd navigate(path: string, folder: string = "", remember = true)
+    mtd navigate(path: string, folder: string = "", remember = true, restore: const *ExplorerFolderState? = null)
     {
         .clearFileDrag()
         .rememberView()
@@ -1199,7 +1199,8 @@ impl Explorer
             }
 
             .restoringView = false
-            if let state = .window.privacy.folderView(path, folder)
+            let state = restore and restore.matches(path, folder) ? restore : .window.privacy.folderView(path, folder)
+            if state
             {
                 .restoredView  = state[]
                 .restoringView = true
@@ -1325,7 +1326,7 @@ impl Explorer
 
     mtd nativeArchivePath()->string => .listing.isArchive ? .sourceArchivePath(.listing.path) : ""
 
-    private mtd sourceArchivePath(path: string)->string
+    mtd sourceArchivePath(path: string)->string
     {
         for file in .temporaryFiles where file.file == path do
             return file.archive
@@ -1520,8 +1521,13 @@ impl Explorer
             return false
         }
 
-        if directory do
+        if directory
+        {
+            if let workspace = .window.workspace do
+                menu.addItem(texts.tab_OpenItem, TabCommands.OpenFolder, .theme().icon(.Plus, size),
+                             disabled: workspace.scenes.count >= ViewerWorkspace.MaxScenes)
             menu.addItem(texts.explore_OpenSystemFolder, ViewerCommands.OpenSystemFolder, .theme().icon(.OpenExternal, size))
+        }
         elif not stableArchive.isEmpty() do
             menu.addItem(texts.explore_RevealArchive, ViewerCommands.RevealArchive, .theme().icon(.Folder, size))
         menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyLocation, .theme().icon(.Copy, size))

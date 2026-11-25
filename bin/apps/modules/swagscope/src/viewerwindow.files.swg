@@ -6,7 +6,7 @@ impl ViewerWindow
     {
         if .workspace
         {
-            if .workspace.scenes.count > 1 or .hasSoloCaption() do
+            if .workspace.tabStripHeight() > 0 or .hasSoloCaption() do
                 return false
             let count = .workspace.documentCount()
             if count > 1 do
@@ -256,6 +256,11 @@ impl ViewerWindow
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)
+        if .workspace
+        {
+            menu.addItem(texts.tab_OpenItem, TabCommands.OpenFile, .theme().icon(.Plus, themeRowIconSize(.themeMetrics())))
+            menu.addSeparator()
+        }
         menu.addItem(texts.ui_MenuLocate, ViewerCommands.Locate, .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
         menu.addItem(texts.ui_MenuOpenDefault, ViewerCommands.OpenDefault, .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
         menu.addItem(texts.ui_MenuOpenWith, ViewerCommands.OpenWith, .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))

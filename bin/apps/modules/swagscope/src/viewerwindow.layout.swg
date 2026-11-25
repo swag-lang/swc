@@ -140,7 +140,7 @@ impl ViewerWindow
             discard .app().animator.leave(panel, duration, .EaseInOut)
     }
 
-    mtd hasSoloCaption()->bool => .workspace and .workspace.scenes.count == 1 and
+    mtd hasSoloCaption()->bool => .workspace and .workspace.scenes.count == 1 and .workspace.tabStripHeight() == 0 and
                                  .workspace.documentCount() == 1 and not .workspace.isTiled() and
                                  .isWorkspaceActive() and not .fullScreen
 

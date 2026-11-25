@@ -2,6 +2,17 @@
 
 using Core, Gui, Pixel
 
+namespace TabCommands
+{
+    const New         = "scope.scene.tab.new"
+    const NewGrid     = "scope.scene.tab.newGrid"
+    const OpenFile    = "scope.scene.tab.openFile"
+    const OpenFolder  = "scope.scene.tab.openFolder"
+    const Close       = "scope.scene.tab.close"
+    const CloseOthers = "scope.scene.tab.closeOthers"
+    const CloseAll    = "scope.scene.tab.closeAll"
+}
+
 namespace SceneCommands
 {
     const CompareSelection = "scope.scene.compareSelection"
@@ -44,6 +55,9 @@ impl ViewerWindow
 {
     mtd addSceneCommands()
     {
+        .lens.addCommands(func()->string => appStrings().scene_SceneList,
+                          [TabCommands.New, TabCommands.NewGrid, TabCommands.OpenFile, TabCommands.OpenFolder,
+                           TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll])
         let layoutLabel = func()->string => appStrings().scene_Layout
         .lens.addCommands(layoutLabel, SceneCommands.Layouts[0 until 6], inLens: false)
         .lens.addCommands(func()->string => appStrings().scene_SceneList, [SceneCommands.Layouts[6], SceneCommands.OpenGrid])
@@ -53,6 +67,7 @@ impl ViewerWindow
         for id, index in SceneCommands.SwapDirections do
             .registerKeyShortcut(.CtrlAlt, SceneCommands.ArrowKeys[index], id)
         .lens.addSource(.Action, func|document = me|(results) { document.describeScenes(results, atRest: false) })
+        .registerKeyShortcut(.Control, .T, TabCommands.New)
         .registerKeyShortcut(.Control, .W, ViewerCommands.Close)
         .registerKeyShortcut(.None, .F6, SceneCommands.Maximize)
         .registerKeyShortcut(.Control, .Oem5, SceneCommands.Layouts[1])
@@ -135,6 +150,36 @@ impl ViewerWindow
         let size         = .themeMetrics().menuPopup_IconSize
         switch evt.id
         {
+        case TabCommands.New, TabCommands.NewGrid, TabCommands.OpenFile, TabCommands.OpenFolder:
+            disabled = workspace.scenes.count >= ViewerWorkspace.MaxScenes
+            switch evt.id
+            {
+            case TabCommands.New:
+                name = text.tab_New
+                icon = .theme().icon(.Plus, size)
+            case TabCommands.NewGrid:
+                name = text.tab_NewGrid
+                icon = .theme().icon(.Grid, size)
+            case TabCommands.OpenFile:
+                name = text.tab_OpenFile
+                icon = .theme().icon(.OpenFile, size)
+            case TabCommands.OpenFolder:
+                name = text.tab_OpenFolder
+                icon = .theme().icon(.Folder, size)
+            }
+
+        case TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll:
+            hidden = not scene
+            icon   = .theme().icon(.WndClose, size)
+            switch evt.id
+            {
+            case TabCommands.Close:       name = text.tab_Close
+            case TabCommands.CloseOthers:
+                name     = text.tab_CloseOthers
+                disabled = workspace.scenes.count < 2
+            case TabCommands.CloseAll:    name = text.tab_CloseAll
+            }
+
         case SceneCommands.Beside:
             icon   = .scopeIcon(.OpenBeside)
             name   = text.scene_OpenBeside
@@ -218,13 +263,33 @@ impl ViewerWindow
         return true
     }
 
-    mtd runSceneCommand(id: WndId)->bool
+    mtd runSceneCommand(id: WndId, contextPath: string? = null)->bool
     {
         let workspace = .workspace
         if not workspace do
             return false
         switch id
         {
+        case TabCommands.New:         workspace.newTab()
+        case TabCommands.NewGrid:     workspace.newTab(.Grid2)
+        case TabCommands.Close:       workspace.closeScene(workspace.active)
+        case TabCommands.CloseOthers: workspace.closeTabs(keep: workspace.active)
+        case TabCommands.CloseAll:    workspace.closeTabs()
+
+        case TabCommands.OpenFile, TabCommands.OpenFolder:
+            if workspace.scenes.count >= ViewerWorkspace.MaxScenes do
+                return true
+            if let path = contextPath do
+                workspace.openDocument(path, newTab: true)
+            elif id == TabCommands.OpenFile do
+                .chooseFile(newTab: true)
+            else
+            {
+                let folder = .selectExplorerFolder()
+                if not folder.isEmpty() do
+                    workspace.openDocument(folder, newTab: true)
+            }
+
         case SceneCommands.Beside, SceneCommands.CompareWith, SceneCommands.OpenGrid:
             let grid    = id == SceneCommands.OpenGrid
             let compare = id == SceneCommands.CompareWith

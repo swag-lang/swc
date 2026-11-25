@@ -379,3 +379,16 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let image = host.renderSettled(&host.surfaceWnd)
     assertScopeImageGolden(&image, "scene.folder.narrow.paper")
 }
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 760, height: 520)
+    defer host.shutdown()
+    workspace.openDocument(scopeTestDataPath("sample.cpp"))
+    openViews(&host, workspace)
+    workspace.newTab(.Grid2)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.tabs.empty.grid.paper")
+}

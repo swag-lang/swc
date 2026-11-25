@@ -21,6 +21,7 @@ struct SavedScene
     split:        f32 = 0.5
     columnCuts:   SceneTrackCuts
     rowCuts:      SceneTrackCuts
+    manual:     bool
     maximized:  bool
     compared:   bool
     linked:     bool
@@ -59,6 +60,7 @@ impl ViewerWorkspace
             record.split        = scene.split
             record.columnCuts   = scene.columnCuts
             record.rowCuts      = scene.rowCuts
+            record.manual       = scene.manual
             record.maximized    = scene.maximized
             record.compared     = scene.compared
             record.linked       = scene.linked
@@ -82,7 +84,7 @@ impl ViewerWorkspace
                 record.views.add({path: view.path, reading: view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode, cellPlusOne: scene.cellOf(viewIndex) + 1})
             }
 
-            if record.views.isEmpty() do
+            if record.views.isEmpty() and (not scene.manual or not scene.views.isEmpty()) do
                 continue
             if record.views.count != scene.views.count
             {
@@ -123,14 +125,16 @@ impl ViewerWorkspace
                     scene.views.add({path: #move view.path, reading: #move view.reading, readState: view.readState, offset: view.offset, playMode: view.playMode, cellPlusOne: view.cellPlusOne})
             }
 
-            if scene.views.isEmpty() do
+            if scene.views.isEmpty() and (not record.manual or not record.views.isEmpty()) do
                 continue
+            scene.manual = record.manual
             for _, index in scene.views where scene.cellOf(index) >= scene.cellCount() or scene.viewInCell(scene.cellOf(index)) != index
             {
                 scene.packCells()
                 break
             }
-            scene.active          = Math.min(record.active, scene.views.count - 1)
+            if not scene.views.isEmpty() do
+                scene.active = Math.min(record.active, scene.views.count - 1)
             scene.maximized       = record.maximized and scene.views.count > 1
             if scene.layout == .Single and scene.views.count > 1
             {

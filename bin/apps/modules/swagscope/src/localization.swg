@@ -8,9 +8,17 @@ using Core, Gui
 // spelling, so neither is translated wherever it appears inside one of these sentences.
 struct AppStrings
 {
-    scene_Scenes:        string = "Scenes · %"
-    scene_SceneList:     string = "Scenes"
-    scene_Current:       string = "current scene"
+    tab_New:             string = "New Tab"
+    tab_NewGrid:         string = "New Grid Tab"
+    tab_OpenFile:        string = "Open File in New Tab…"
+    tab_OpenFolder:      string = "Open Folder in New Tab…"
+    tab_OpenItem:        string = "Open in New Tab"
+    tab_Close:           string = "Close Tab"
+    tab_CloseOthers:     string = "Close Other Tabs"
+    tab_CloseAll:        string = "Close All Tabs"
+    scene_Scenes:        string = "Tabs · %"
+    scene_SceneList:     string = "Tabs"
+    scene_Current:       string = "current tab"
     scene_SwitchHint:    string = "Ctrl Tab next · Ctrl Shift Tab previous · release to open"
     scene_Files:         string = "% Files"
     scene_Videos:        string = "% Videos"

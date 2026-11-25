@@ -261,19 +261,23 @@ impl ViewerWindow
         .choiceLoad.start(&.index, .pendingFile, me, includeNeighbors: not .thumbnailMode)
     }
 
-    mtd chooseFile()
+    mtd chooseFile(newTab = false)
     {
         with var options: FileDlgOptions
         {
             .state = &me.fileDlgState
             .mode  = .SelectFile
-            .title = appStrings().dlg_TitleOpen
+            .title = newTab ? appStrings().tab_OpenFile : appStrings().dlg_TitleOpen
             .confirmButtonText = appStrings().dlg_ButtonOpen
             .filters.add({name: appStrings().dlg_AllFiles, extensions: ""})
         }
 
         let dialog = FileDlg.create(unwrap .surface, options)
-        if dialog.doModal() == Dialog.BtnOk do
+        if dialog.doModal() != Dialog.BtnOk do
+            return
+        if newTab and .workspace do
+            .workspace.openDocument(dialog.selectedPath(), newTab: true)
+        else do
             .openFile(dialog.selectedPath())
     }
 

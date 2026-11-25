@@ -49,7 +49,7 @@ struct Shape
 
         fillGradient: u64         // Index plus one of the resolved gradient, or zero for solid paint.
         fillColor:    Color       // Solid fill color, including opacity once resolved.
-        fillPaintId:  String      // Referenced gradient identifier, if any.
+        fillPaintId:  u64         // Interned fill paint identifier, or zero for a solid fill.
         fillOpacity:  f32 = 1     // Fill-only opacity multiplier.
         hasFill:      bool        // Whether the shape is filled.
         evenOdd:      bool        // Whether the fill uses the even-odd rule.
@@ -58,7 +58,7 @@ struct Shape
 
         strokeGradient: u64                      // Index plus one of the resolved gradient, or zero for solid paint.
         strokeColor:    Color                    // Solid stroke color, including opacity once resolved.
-        strokePaintId:  String                   // Referenced gradient identifier, if any.
+        strokePaintId:  u64                      // Interned stroke paint identifier, or zero for a solid stroke.
         strokeOpacity:  f32          = 1         // Stroke-only opacity multiplier.
         strokeWidth:    f32          = 1         // Stroke width, in user units.
         strokePattern:  Array'f32                // Alternating dash and gap lengths, in user units.
@@ -70,7 +70,7 @@ struct Shape
 
         paintTransform: Math.Transform2 = Math.Transform2.Identity     // Element transform retained for user-space paint servers.
 
-        filterId: String     // Referenced filter definition, if any.
+        filterId: u64     // Interned filter identifier, or zero without a reference.
     }
 }
 
@@ -96,16 +96,16 @@ struct Drawing
         height: f32     // View-box height, in user units.
     }
 
-    shapes:          Array'Shape                       // Parsed vector shapes, including hidden definitions.
-    imageSize:       Vector2                           // Absolute root dimensions in CSS pixels, independent of view-box units.
-    texts:           Array'SvgText                     // Parsed text blocks referenced by the paint-order list.
-    images:          Array'SvgImage                    // Raster placements referenced by the paint-order list.
-    rasterImages:    Array'Image                       // Decoded bitmaps shared by their placements.
-    items:           Array'DrawingItem                 // Visible elements in paint order.
-    paintBlocks:     Array'PaintBlock                  // Bounds of consecutive runs of paint items.
-    gradientBrushes: Array'Brush                       // Resolved fill and stroke gradient brushes.
-    patterns:        HashTable'(String, Pattern)       // Resolved repeating paint servers by SVG identifier.
-    filters:         HashTable'(String, SvgFilter)     // Resolved filter primitive chains by SVG identifier.
+    shapes:          Array'Shape                    // Parsed vector shapes, including hidden definitions.
+    imageSize:       Vector2                        // Absolute root dimensions in CSS pixels, independent of view-box units.
+    texts:           Array'SvgText                  // Parsed text blocks referenced by the paint-order list.
+    images:          Array'SvgImage                 // Raster placements referenced by the paint-order list.
+    rasterImages:    Array'Image                    // Decoded bitmaps shared by their placements.
+    items:           Array'DrawingItem              // Visible elements in paint order.
+    paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
+    gradientBrushes: Array'Brush                    // Resolved fill and stroke gradient brushes.
+    patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
+    filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
 }
 
 private enum DrawingItemKind
@@ -345,8 +345,10 @@ private struct Parser
     symbols:        HashTable'(string, SymbolViewport)
     markers:        HashTable'(string, MarkerDefinition)
     gradients:      HashTable'(string, Gradient)
-    patterns:       HashTable'(String, Pattern)
-    filters:        HashTable'(String, SvgFilter)
+    referenceIds:   HashTable'(string, u64)
+    referenceNames: Array'string
+    patterns:       HashTable'(u64, Pattern)
+    filters:        HashTable'(u64, SvgFilter)
     styles:         StyleSheet
     dashPatterns:   HashTable'(string, Array'SvgLength)
     dashScratch:    Array'SvgLength
@@ -2097,7 +2099,7 @@ private impl Parser
         if state.hasFill
         {
             shape.fillColor   = state.fillColor
-            shape.fillPaintId = state.fillPaintId
+            shape.fillPaintId = .internReference(state.fillPaintId)
             shape.fillOpacity = state.fillOpacity * state.opacity
             shape.evenOdd     = state.evenOdd
         }
@@ -2106,7 +2108,7 @@ private impl Parser
         if state.hasStroke
         {
             shape.strokeColor   = state.strokeColor
-            shape.strokePaintId = state.strokePaintId
+            shape.strokePaintId = .internReference(state.strokePaintId)
             shape.strokeOpacity = state.strokeOpacity * state.opacity
             let geometryScale = transformScale(state.transform)
             shape.strokeWidth = state.strokeWidth * geometryScale
@@ -2128,7 +2130,7 @@ private impl Parser
         }
 
         shape.paintTransform = state.transform
-        shape.filterId       = state.filterId
+        shape.filterId       = .internReference(state.filterId)
 
         if not shape.hidden do
             .drawing.items.add(DrawingItem{.Shape, shapeIndex})
@@ -2350,6 +2352,22 @@ private impl Parser
             return ""
         let start = cast(u64, value.buffer - .text.buffer)
         return .text[start until start + value.count]
+    }
+
+    mtd internReference(value: string)->u64
+    {
+        if not value.count do
+            return 0
+
+        let name  = .sourceView(value)
+        let entry = .referenceIds.findOrAdd(name)
+        if not entry.value
+        {
+            .referenceNames.add(name)
+            entry.value = .referenceNames.count
+        }
+
+        return entry.value
     }
 
     mtd skipUntil(c: u8)
@@ -2932,7 +2950,7 @@ private impl Parser
         pattern.height = .geoLength(geo, .Height, {})
         let units = geo.tryFind(.PatternUnits)
         pattern.userSpace = units != null and units.value == "userSpaceOnUse"
-        .patterns.add(id.value, #move pattern)
+        .patterns.add(.internReference(id.value), #move pattern)
     }
 
     mtd parseFilter(geo: *AttributeMap, selfClosed: bool) fail
@@ -3006,7 +3024,7 @@ private impl Parser
 
         let id = geo.tryFind(.Id)
         if id do
-            .filters.add(id.value, #move filter)
+            .filters.add(.internReference(id.value), #move filter)
     }
 
     // Parses the elements between the current position and the parent's close tag.
@@ -3838,9 +3856,9 @@ private impl Parser
         {
             if shape.hasFill
             {
-                if shape.fillPaintId.isEmpty() do
+                if not shape.fillPaintId do
                     shape.fillColor = applyOpacity(shape.fillColor, shape.fillOpacity)
-                elif let gradient = .gradients.tryFind(shape.fillPaintId) do
+                elif let gradient = .gradients.tryFind(.referenceNames[shape.fillPaintId - 1]) do
                     shape.fillGradient = .storeGradient(&gradient.value, shape, shape.fillOpacity)
                 elif .patterns.tryFind(shape.fillPaintId) do
                     shape.fillColor = applyOpacity(Color.fromArgb(Argb.White), shape.fillOpacity)
@@ -3850,9 +3868,9 @@ private impl Parser
 
             if shape.hasStroke
             {
-                if shape.strokePaintId.isEmpty() do
+                if not shape.strokePaintId do
                     shape.strokeColor = applyOpacity(shape.strokeColor, shape.strokeOpacity)
-                elif let gradient = .gradients.tryFind(shape.strokePaintId) do
+                elif let gradient = .gradients.tryFind(.referenceNames[shape.strokePaintId - 1]) do
                     shape.strokeGradient = .storeGradient(&gradient.value, shape, shape.strokeOpacity)
                 else do
                     shape.hasStroke = false
@@ -3877,8 +3895,7 @@ private impl Parser
             // reallocate the array and invalidate the source borrow.
             var list:                        LinePathList
             var fillColor, strokeColor:      Color
-            var fillPaintId, strokePaintId:  String
-            var filterId:                    String
+            var fillPaintId, strokePaintId, filterId: u64
             var fillOpacity, strokeOpacity:  f32
             var hasFill, hasStroke, evenOdd: bool
             var strokeWidth, strokeOffset:   f32
@@ -3961,10 +3978,10 @@ private impl Parser
             {
                 .pathList       = #move list
                 .fillColor      = fillColor
-                .fillPaintId    = #move fillPaintId
+                .fillPaintId    = fillPaintId
                 .fillOpacity    = fillOpacity
                 .strokeColor    = strokeColor
-                .strokePaintId  = #move strokePaintId
+                .strokePaintId  = strokePaintId
                 .strokeOpacity  = strokeOpacity
                 .hasFill        = hasFill
                 .hasStroke      = hasStroke
@@ -3977,7 +3994,7 @@ private impl Parser
                 .joinStyle      = joinStyle
                 .paintTransform = paintTransform
                 .hidden         = hidden or state.inDefs
-                .filterId       = #move filterId
+                .filterId       = filterId
             }
 
             if not shape.hidden do
@@ -4797,9 +4814,7 @@ impl Drawing
             if item.kind != .Shape do
                 return false
             let shape = &.shapes[item.index]
-            if not shape.filterId.isEmpty() or
-               not shape.fillPaintId.isEmpty() or
-               not shape.strokePaintId.isEmpty() do
+            if shape.filterId or shape.fillPaintId or shape.strokePaintId do
                 return false
             if shape.hasFill and (shape.fillColor.argb & 0xFFFFFF) != 0xFFFFFF do
                 return false

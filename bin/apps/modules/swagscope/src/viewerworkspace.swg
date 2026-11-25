@@ -217,6 +217,7 @@ struct ViewerWorkspace
     late mediaLinks:      *CaptionButton
     late mediaTransport:  *CaptionButton
     late mediaPlayPause:  *CaptionButton
+    captionMoves:        [CaptionActionCount] AnimationHandle
 
     scenes:           ArrayPtr'ViewerScene
     active:           u64

@@ -869,34 +869,26 @@ impl ViewerWindow
         .refreshExplorerCaption()
     }
 
-    mtd refreshOutlineCaption()
+    mtd refreshOutlineCaption(animate = false)
     {
         if not .canRefreshCaption() do
             return
         let toggle = .currentSidePanelButton
-        .showCaptionAction(.outlineCaptionButton, not .fullScreen and toggle and toggle.id == OutlineToggleId)
+        .showCaptionAction(.outlineCaptionButton, not .fullScreen and toggle and toggle.id == OutlineToggleId, animate)
         .outlineCaptionButton.toolTip = Format.toString("% (%)", .captionFileAction(outlineTitle()), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
         .updateOutlineCaptionState()
     }
 
-    private mtd showCaptionAction(action: *CaptionButton, visible: bool)
+    private mtd showCaptionAction(action: *CaptionButton, visible, animate: bool)
     {
         if action.isLocallyVisible() == visible do
             return
-        if not .workspace or .fullScreen or .app().isReducedMotion()
-        {
+        if not animate do
             action.show(visible)
-            return
-        }
-
-        // Layout and hit testing use the new controls immediately. The old glyph can still fade.
-        let animator = &.app().animator
-        let metrics  = .themeMetrics()
-        if visible do
-            discard animator.arrive(action, {}, Time.Duration.fromSeconds(metrics.motion_QuickSeconds), .EaseOut)
+        elif visible do
+            action.button.wnd.show()
         else do
-            discard animator.leave(action)
-        action.parent!.sendResizeEvent()
+            discard .app().animator.leave(action)
     }
 
     private mtd captionFileAction(action: string)->String
@@ -922,11 +914,17 @@ impl ViewerWindow
         if not .canRefreshCaption() do
             return
 
+        let animate = .workspace and .workspace.newTabButton != null and not .fullScreen and
+                      .fullScreenCaptionButton.isLocallyVisible() and not .app().isReducedMotion()
+        var before: [CaptionActionCount] CaptionActionLayout
+        if animate do
+            before = .workspace!.captureCaptionLayout()
+
         .privacy.refreshIndicator()
-        .refreshOutlineCaption()
+        .refreshOutlineCaption(animate)
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = text.cmd_ReturnToExplorer
-        .showCaptionAction(.returnExplorerCaptionButton, .canReturnToExplorer() and not .fullScreen)
+        .showCaptionAction(.returnExplorerCaptionButton, .canReturnToExplorer() and not .fullScreen, animate)
 
         .surface?.wnd.showTitle(.showsCaptionTitle())
         let selected = .acceptsViewCommands()
@@ -936,16 +934,19 @@ impl ViewerWindow
         .informationCaptionButton.enable(selected or (.workspace?.wantsComparisonSheet() orelse false))
         .refreshCaptionButton.enable(selected)
         let exploring = .isExploring() and not .fullScreen
-        .showCaptionAction(.backCaptionButton, exploring)
-        .showCaptionAction(.forwardCaptionButton, exploring)
-        .showCaptionAction(.upCaptionButton, exploring)
-        .showCaptionAction(.refreshCaptionButton, exploring)
+        .showCaptionAction(.backCaptionButton, exploring, animate)
+        .showCaptionAction(.forwardCaptionButton, exploring, animate)
+        .showCaptionAction(.upCaptionButton, exploring, animate)
+        .showCaptionAction(.refreshCaptionButton, exploring, animate)
         .findCaptionButton.hide()
         .fullScreenCaptionButton.show(not .fullScreen)
-        .showCaptionAction(.informationCaptionButton, (.isExploring() or not .currentFile.isEmpty()) and not .fullScreen)
+        .showCaptionAction(.informationCaptionButton, (.isExploring() or not .currentFile.isEmpty()) and not .fullScreen, animate)
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
         let openFile    = not .isExploring() and not .currentFile.isEmpty()
-        .showCaptionAction(.viewerCaptionButton, (openFile or archiveFile) and not .fullScreen)
+        .showCaptionAction(.viewerCaptionButton, (openFile or archiveFile) and not .fullScreen, animate)
+        if animate do
+            .workspace!.animateCaptionLayout(before)
+
         var alternateViewer = openFile and .activeChoiceIndex < .choices.count and .activeChoiceIndex != 0
         if archiveFile
         {

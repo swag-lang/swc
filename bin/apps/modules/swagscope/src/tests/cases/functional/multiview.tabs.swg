@@ -182,7 +182,7 @@ using Core, Gui, Pixel
     Swag.require(opened and host.autoHandled and workspace.scene()!.layout == .SideBySide)
 }
 
-// Clicking back across the grid reverses both fades at their current opacity.
+// The title bar rearranges from what is on screen, even when a click interrupts it.
 #test
 {
     let folder = Testing.tempFilePath("scope-caption-folders-", "")
@@ -200,7 +200,14 @@ using Core, Gui, Pixel
     completeExplorer(&host, unwrap explorer.explorer)
 
     let up      = explorer.upCaptionButton
+    let refresh = explorer.refreshCaptionButton
     let choices = reader.viewerCaptionButton
+    let layout  = workspace.mediaTransport
+    let newTab  = workspace.newTabButton
+    let start   = layout.position.x
+    let startNewTab = newTab.position.x
+    let startUp = up.presentationRect().x
+    let startRefresh = refresh.presentationRect().x
     Swag.require(up.isVisible() and not choices.isVisible())
     var oldUp = up.surfaceRect().center()
     host.surface.surfaceToScreen(&oldUp)
@@ -209,25 +216,38 @@ using Core, Gui, Pixel
     Swag.require(workspace.activeDocument() == reader)
     Swag.require(not up.isVisible() and choices.isVisible())
     Swag.require(host.mouseTargetAt(oldUp) != up)
+    Swag.require(up.presentationRect().x == startUp and refresh.presentationRect().x == startRefresh)
+    let target = layout.position.x
+    Swag.require(target < start and newTab.position.x < startNewTab)
+    Swag.require(layout.presentationRect().x == start and newTab.presentationRect().x == startNewTab)
 
     let step = up.themeMetrics().motion_QuickSeconds * 0.25
     host.advanceAnimations(step)
     let outgoing = up.presentationOpacity
     let incoming = choices.presentationOpacity
+    let moving   = layout.presentationRect().x
     Swag.require(outgoing > 0 and outgoing < 1 and incoming > 0 and incoming < 1)
+    Swag.require(target < moving and moving < start)
+    Swag.require(Math.abs(newTab.presentationRect().x - moving - (startNewTab - start)) < 0.01)
 
     host.clickWnd(explorer.documentPanel)
     Swag.require(workspace.activeDocument() == explorer)
     Swag.require(up.isVisible() and not choices.isVisible())
     Swag.require(up.presentationOpacity == outgoing and choices.presentationOpacity == incoming)
+    Swag.require(layout.position.x == start and layout.presentationRect().x == moving)
     host.advanceAnimations(step)
     Swag.require(up.presentationOpacity > outgoing and choices.presentationOpacity < incoming)
+    Swag.require(layout.presentationRect().x > moving)
+    let fadingChoice = choices.presentationRect().x
     host.clickWnd(reader.cellCaption.title)
+    Swag.require(choices.presentationRect().x == fadingChoice)
     host.finishAnimations()
     Swag.require(workspace.activeDocument() == reader and not up.isVisible() and choices.isVisible())
     Swag.require(choices.presentationOpacity == 1 and host.mouseTargetAt(oldUp) != up)
+    Swag.require(layout.presentationRect().x == target and newTab.presentationOffset == {})
 
     host.setReducedMotion(true)
     host.clickWnd(explorer.documentPanel)
     Swag.require(up.isVisible() and up.presentationOpacity == 1 and not choices.isVisible())
+    Swag.require(layout.presentationRect().x == start and newTab.presentationRect().x == startNewTab)
 }

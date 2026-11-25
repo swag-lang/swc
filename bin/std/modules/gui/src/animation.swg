@@ -1048,6 +1048,28 @@ impl Animator
         return .start(#move group)
     }
 
+    // Shows `target` immediately and fades its picture in without changing its presentation offset.
+    // If it was fading out, starts at its current opacity. Respects reduced motion.
+    mtd fadeIn(target: *Wnd, duration: Time.Duration, easing: AnimationEasing = .EaseOut)->AnimationHandle
+    {
+        Swag.assert(target != null)
+        let opacity = AnimationChannel.from("Gui.Float.Opacity")
+        discard .showForArrival(target, opacity)
+        return .animateF32(target, opacity, target.presentationOpacity, 1,
+                           func(wnd, value) { wnd.setPresentationOpacity(value) },
+                           {duration: duration, easing: easing})
+    }
+
+    private mtd showForArrival(target: *Wnd, opacity: AnimationChannel)->bool
+    {
+        let fading = .isActive(target, opacity)
+        target.setPaintWhenHidden(false)
+        target.show()
+        if not fading do
+            target.setPresentationOpacity(0)
+        return fading
+    }
+
     // Shows `target` the way a floating surface arrives: its picture fades in while it settles from `travel` into place.
     //
     // The window is shown at once, so layout, hit testing and the keyboard reach it immediately;
@@ -1064,15 +1086,8 @@ impl Animator
         Swag.assert(target != null)
         let opacity = AnimationChannel.from("Gui.Float.Opacity")
         let offset  = AnimationChannel.from("Gui.Float.Offset")
-        let leaving = .isActive(target, opacity)
-
-        target.setPaintWhenHidden(false)
-        target.show()
-        if not leaving
-        {
-            target.setPresentationOpacity(0)
+        if not .showForArrival(target, opacity) do
             target.setPresentationOffset(travel)
-        }
 
         var options: AnimationOptions
         options.duration = duration

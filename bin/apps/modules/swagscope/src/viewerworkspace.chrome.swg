@@ -172,16 +172,76 @@ impl IWnd for SceneTabs
     }
 }
 
+const CaptionActionCount = 12
+
+struct CaptionActionLayout
+{
+    late action: *CaptionButton
+    layoutX:    f32
+    drawnX:     f32
+    visible:    bool
+}
+
 impl ViewerWorkspace
 {
-    private mtd bindSceneCaptionInput()
+    private mtd captionActions()->[CaptionActionCount] (*CaptionButton)
     {
         let primary = .primary
-        let actions = [primary.returnExplorerCaptionButton, primary.backCaptionButton,
-                       primary.forwardCaptionButton, primary.upCaptionButton,
-                       primary.refreshCaptionButton, primary.outlineCaptionButton,
-                       primary.informationCaptionButton, primary.viewerCaptionButton,
-                       .mediaPlayPause, .mediaTransport, .mediaLinks]
+        return [primary.returnExplorerCaptionButton, primary.backCaptionButton,
+                primary.forwardCaptionButton, primary.upCaptionButton,
+                primary.refreshCaptionButton, primary.outlineCaptionButton,
+                primary.informationCaptionButton, primary.viewerCaptionButton,
+                .mediaPlayPause, .mediaTransport, .mediaLinks, .newTabButton]
+    }
+
+    mtd captureCaptionLayout()->[CaptionActionCount] CaptionActionLayout
+    {
+        var result: #returntype
+        for action, index in .captionActions() do
+            result[index] = {action, action.position.x, action.presentationRect().x, action.isLocallyVisible()}
+        return result
+    }
+
+    mtd animateCaptionLayout(before: const [..] CaptionActionLayout)
+    {
+        for slot in before where slot.visible != slot.action.isLocallyVisible()
+        {
+            .surface!.wnd.sendResizeEvent()
+            break
+        }
+
+        let animator = &.app().animator
+        let metrics  = .themeMetrics()
+        let center   = .surface!.wnd.clientRect().horzCenter()
+        let duration = Time.Duration.fromSeconds(metrics.motion_PanelSeconds)
+        let fade     = Time.Duration.fromSeconds(metrics.motion_QuickSeconds)
+        let channel  = AnimationChannel.from("Scope.Caption.Layout")
+        for slot, index in before
+        {
+            let action = slot.action
+            if not action.isLocallyVisible() or (slot.visible and action.position.x == slot.layoutX) do
+                continue
+
+            var travel = slot.drawnX - action.position.x
+            if not slot.visible
+            {
+                discard animator.fadeIn(action, fade)
+                if action.presentationOpacity == 0 do
+                    travel = action.position.horzCenter() < center ? -metrics.motion_AnchorTravel : metrics.motion_AnchorTravel
+            }
+
+            // A running offset is relative to its old slot. Replace it with the offset from the new slot.
+            animator.cancel(.captionMoves[index])
+            let offset = Math.Point{travel, 0}
+            action.setPresentationOffset(offset)
+            .captionMoves[index] = animator.animatePoint(action, channel, offset, {},
+                                                         func(wnd, value) { wnd.setPresentationOffset(value) },
+                                                         {duration: duration, easing: .EaseOut})
+        }
+    }
+
+    private mtd bindSceneCaptionInput()
+    {
         let holdInput: HookEvent = func|workspace = me|(control, evt)
         {
             if not workspace.sceneCaptionPending do
@@ -201,7 +261,7 @@ impl ViewerWorkspace
             return false
         }
 
-        for button in actions do
+        for button in .captionActions() where button != .newTabButton do
             button.hookOnEvent = holdInput
     }
 

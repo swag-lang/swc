@@ -42,7 +42,29 @@ using Swag, Core
     Swag.require(delay and delay.items.count == CaptureDelayIds.count)
 
     let file = menu.items[1]!.popup
-    Swag.require(file.items[0]!.id == ActionFile.SaveAsImage and file.items[1 + FileStartIds.count]!.separator)
+    Swag.require(file.items.count == 10)
+    Swag.require(file.items[0]!.id == ActionFile.NewImage and
+                 file.items[1]!.id == ActionFile.NewFromClipboard and
+                 file.items[2]!.id == ActionFile.OpenImage and
+                 file.items[3]!.separator)
+    Swag.require(file.items[4]!.id == ActionFile.SaveAsImage and
+                 file.items[5]!.id == ActionFile.SaveAsLinkedImage and
+                 file.items[6]!.id == ActionFile.Print and
+                 file.items[7]!.separator)
+
+    let captureFile = file.items[8]!.popup
+    Swag.require(file.items[8]!.name.text == appStrings().ui_MenuCaptureFile)
+    Swag.require(captureFile.items.count == 5)
+    Swag.require(captureFile.items[2]!.id == ActionFile.CaptureFileLocation and
+                 captureFile.items[3]!.id == ActionFile.FileDetails and
+                 captureFile.items[4]!.id == ActionFile.DeleteCapture)
+
+    let linkedFile = file.items[9]!.popup
+    Swag.require(file.items[9]!.name.text == appStrings().ui_MenuLinkedFile)
+    Swag.require(linkedFile.items.count == 3)
+    Swag.require(linkedFile.items[0]!.id == ActionFile.UpdateLinkedImage and
+                 linkedFile.items[1]!.id == ActionFile.LinkedFileLocation and
+                 linkedFile.items[2]!.id == ActionFile.UnlinkImage)
 
     let edit = menu.items[2]!.popup
     Swag.require(edit.items[0]!.id == ActionUndo.DoUndo and edit.items[2]!.separator)

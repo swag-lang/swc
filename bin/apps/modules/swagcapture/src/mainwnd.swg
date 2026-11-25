@@ -200,9 +200,9 @@ const CaptureModeIds   = [ActionCapture.LastArea, ActionCapture.FullScreen, Acti
 const CaptureDelayIds  = [ActionCaptureDelay.Delay0, ActionCaptureDelay.Delay3, ActionCaptureDelay.Delay5, ActionCaptureDelay.Delay10]
 const CaptureOptionIds = [ActionCapture.HideEditor, ActionCapture.CaptureCursor, ActionCapture.ToInPlace, ActionCapture.ToEditor, ActionCapture.ToClipboard]
 const FileStartIds     = [ActionFile.NewImage, ActionFile.NewFromClipboard, ActionFile.OpenImage]
-const FileLinkedIds    = [ActionFile.SaveAsLinkedImage, ActionFile.UpdateLinkedImage, ActionFile.UnlinkImage]
-const FileCaptureIds   = [ActionFile.DupCapture, ActionFile.RenameCapture, ActionFile.DeleteCapture,
-                          ActionFile.CaptureFileLocation, ActionFile.LinkedFileLocation, ActionFile.FileDetails]
+const FileCaptureIds   = [ActionFile.RenameCapture, ActionFile.DupCapture, ActionFile.CaptureFileLocation,
+                          ActionFile.FileDetails, ActionFile.DeleteCapture]
+const FileLinkedIds    = [ActionFile.UpdateLinkedImage, ActionFile.LinkedFileLocation, ActionFile.UnlinkImage]
 const EditHistoryIds   = [ActionUndo.DoUndo, ActionUndo.DoRedo]
 const EditClipboardIds = [ActionCopyPaste.Copy, ActionCopyPaste.Cut, ActionCopyPaste.Paste, ActionCopyPaste.Duplicate]
 const EditObjectIds    = [ActionSelection.DeleteSelection, ActionEdit.EditText, ActionEdit.Bold, ActionEdit.Italic,
@@ -2546,11 +2546,11 @@ impl MainWnd
             .addCommand(func()->string => appStrings().ui_MenuCapture, ActionCapture.CancelRecording, inMenu: false)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds, menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
-            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
-            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.Print)
             .addCommands(func()->string => appStrings().ui_MenuFile, FileStartIds)
-            .addCommands(func()->string => appStrings().ui_MenuFile, FileLinkedIds, menuGroup: func()->string => appStrings().ui_MenuLinkedImage)
+            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export, menuSection: 1)
+            .addCommands(func()->string => appStrings().ui_MenuFile, [ActionFile.SaveAsLinkedImage, ActionFile.Print], menuSection: 1)
             .addCommands(func()->string => appStrings().ui_MenuFile, FileCaptureIds, menuGroup: func()->string => appStrings().ui_MenuCaptureFile)
+            .addCommands(func()->string => appStrings().ui_MenuFile, FileLinkedIds, menuGroup: func()->string => appStrings().ui_MenuLinkedFile)
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditHistoryIds)
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditClipboardIds, menuSection: 1)
             .addCommands(func()->string => appStrings().ui_MenuEdit, EditObjectIds, menuGroup: func()->string => appStrings().ui_MenuObject)

@@ -160,6 +160,42 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
     host.pump()
 }
 
+// The File menu starts with creating and opening work, followed by output and file actions.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let main = testSetupEditorSurface(&host, dark: false, text: false, caption: true, dpiScale: 1.25)
+    defer
+    {
+        discard catch main.appearanceButton.setAppearanceLanguage(Gui.ReferenceLanguage)
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    expect main.appearanceButton.setAppearanceLanguage("fr")
+    main.updateState()
+
+    var captured: bool
+    host.app.sigFrame += func|host = &host, captured = &captured|(_)
+    {
+        if captured[] do
+            return
+        Swag.require(host.openPopupSubMenu(appStrings().ui_MenuFile))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appmenu.file.fr.papier")
+        Swag.require(host.dismissPopupMenu())
+        captured[] = true
+    }
+
+    main.menuLauncher.sigPressed.call(cast(*Button, main.menuLauncher))
+    host.app.sigFrame.clear()
+    Swag.require(captured)
+    host.pump()
+}
+
 // Common capture actions stay one click from the root; the long settings get separate branches.
 #[Swag.TestTag("golden")]
 #test

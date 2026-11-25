@@ -22,7 +22,7 @@ struct AppStrings
     ui_HubMoreCaptures:           string = "More Captures"           // Opens the hub's additional targets.
     ui_HubLastCopied:             string = "Last Capture Copied"
     ui_HubBackToCaptures:         string = "Back to Capture"     // Returns to the compact hub.
-    ui_MenuLinkedImage:           string = "Linked Image"
+    ui_MenuLinkedFile:            string = "Linked File"
     ui_MenuCaptureFile:           string = "Capture File"
     ui_MenuObject:                string = "Object"
     ui_MenuEdit:                  string = "Edit"

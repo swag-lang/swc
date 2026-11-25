@@ -7,7 +7,7 @@ ui_AfterPictureCapture Après la capture d’image
 ui_HubMoreCaptures     Autres captures
 ui_HubLastCopied       Dernière capture copiée
 ui_HubBackToCaptures   Retour à la capture
-ui_MenuLinkedImage     Image liée
+ui_MenuLinkedFile      Fichier lié
 ui_MenuCaptureFile     Fichier de capture
 ui_MenuObject          Objet
 ui_MenuEdit            Édition

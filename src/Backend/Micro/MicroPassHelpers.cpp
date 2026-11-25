@@ -672,8 +672,48 @@ std::span<const MicroFrameObject> MicroPassHelpers::frameObjects(const MicroPass
     return context.frameObjects.span();
 }
 
+namespace
+{
+    bool detectPreferredFrameBase(MicroInstrRef& outDefRef, uint64_t& outSpOffset, MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred)
+    {
+        MicroInstrRef definition = MicroInstrRef::invalid();
+        uint64_t      spOffset   = 0;
+        for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
+        {
+            const MicroInstr&        inst = *it;
+            const MicroInstrOperand* ops  = inst.ops(operands);
+            if (!ops)
+                continue;
+
+            const auto modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
+            for (size_t index = 0; index < modes.size(); ++index)
+            {
+                if ((modes[index] != MicroInstrRegMode::Def && modes[index] != MicroInstrRegMode::UseDef) || ops[index].reg != preferred)
+                    continue;
+
+                const bool isLea = inst.op == MicroInstrOpcode::LoadAddrRegMem;
+                if (definition.isValid() || index != 0 || (!isLea && inst.op != MicroInstrOpcode::LoadRegReg) || ops[1].reg != stackPointer)
+                    return false;
+                definition = it.current;
+                spOffset   = isLea ? ops[3].valueU64 : 0;
+            }
+        }
+
+        if (!definition.isValid())
+            return false;
+        outDefRef   = definition;
+        outSpOffset = spOffset;
+        return true;
+    }
+}
+
 MicroReg MicroPassHelpers::detectFrameBase(MicroStorage& storage, MicroOperandStorage& operands, MicroReg stackPointer, MicroReg preferred, MicroInstrRef& outDefRef, uint64_t& outSpOffset)
 {
+    // The code generator already names the base for its locals. Verify that its
+    // only definition is stack-derived before looking for alternatives.
+    if (preferred.isVirtualInt() && detectPreferredFrameBase(outDefRef, outSpOffset, storage, operands, stackPointer, preferred))
+        return preferred;
+
     struct Cand
     {
         MicroInstrRef defRef   = MicroInstrRef::invalid();

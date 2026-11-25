@@ -67,7 +67,8 @@ struct Decoder
     blend:          [64] u8
     sampleAt:       u64     // Where in the access unit the next plane is looked for.
     planesInSample: u32
-    pictureTime:    s64     // Stream time of the picture just produced.
+    leadingB:       u64      // Pictures that need an anchor before the current decode point.
+    pictureTime:    s64      // Stream time of the picture just produced.
     paddingOwed:    u32      // Padding planes a sample that carried two pictures still owes.
     showsCurrent:   bool     // The last plane decoded is in `current` rather than in an anchor.
 }
@@ -167,8 +168,16 @@ impl Decoder
                 fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprite planes"}
             if header.codingType == VopPredicted and not .anchors do
                 continue
-            if header.codingType == VopBidirectional and .anchors < 2 do
+            if header.codingType == VopBidirectional and .anchors < 2
+            {
+                if .anchors
+                {
+                    .leadingB += 1
+                    .countCodedPlane()
+                }
+
                 continue
+            }
 
             var reader = BitReader.create(bytes)
             reader.bitPos = cast(u64, bitAt)
@@ -176,11 +185,7 @@ impl Decoder
             .sampleAt    = (reader.bitPos + 7) / 8
             .pictureTime = time
 
-            // A sample that gives up more than one picture takes the place of a later one, which
-            // the stream pads out.
-            .planesInSample += 1
-            if .planesInSample > 1 do
-                .paddingOwed += 1
+            .countCodedPlane()
 
             if header.codingType == VopBidirectional
             {
@@ -194,6 +199,15 @@ impl Decoder
             .showsCurrent = false
             return true
         }
+    }
+
+    private mtd countCodedPlane()
+    {
+        // A sample that gives up more than one picture takes the place of a later one, which
+        // the stream pads out. A leading B-picture skipped after seeking still owes that padding.
+        .planesInSample += 1
+        if .planesInSample > 1 do
+            .paddingOwed += 1
     }
 
     // Advances the stream clock and answers the time of the plane about to be read, clause 6.3.5.
@@ -261,6 +275,7 @@ impl Decoder
         .sampleAt       = 0
         .planesInSample = 0
         .paddingOwed    = 0
+        .leadingB       = 0
     }
 
     // The state of one block of one macroblock, or the default when it is outside the picture.

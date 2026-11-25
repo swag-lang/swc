@@ -964,7 +964,7 @@ private impl Decoder
             setup = Video.inlineSetupHeaders(full.toSlice())
         }
 
-        try .pictures.open(PictureMpeg4, setup, samples.toSlice(), Video.storedNothing())
+        try .pictures.open(PictureMpeg4, setup, samples.toSlice(), Video.storedNothing(), slotTimestamps: true)
         .info.width  = .pictures.width()
         .info.height = .pictures.height()
     }

@@ -432,6 +432,32 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(Slice.equals(frame.pixels.toSlice(), reference.pixels.toSlice()))
 }
 
+// An AVI's keyframe slot can be followed by B-pictures that appear before the keyframe.
+// Every random-access result must match playback, including the final B- and I-pictures.
+#test
+{
+    let path   = videoFixturePath("ffmpeg-mpeg4-packed.avi")
+    var linear = expect Reader.open(path)
+    let bytes  = expect File.readAllBytes(path)
+    var random = expect Reader.openMemory("mpeg4.avi", bytes.toSlice())
+    var checksums: [60] u32
+    Swag.require(random.frameCount() == checksums.count)
+
+    var image: Image
+    for rank in checksums.count
+    {
+        expect linear.decodeFrameInto(&image, rank)
+        checksums[rank] = Hash.Crc32.compute(image.pixels.toSlice())
+    }
+
+    for index in checksums.count
+    {
+        let rank = checksums.count - index - 1
+        expect random.decodeFrameInto(&image, rank)
+        Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == checksums[rank])
+    }
+}
+
 // A frame that carries no payload repeats the picture before it, which is how the container
 // holds a stream that pauses at a constant frame rate.
 #test

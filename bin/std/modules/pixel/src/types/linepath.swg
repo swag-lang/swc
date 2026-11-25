@@ -447,6 +447,8 @@ public impl LinePath
         let b = t + h
 
         .start(l, t)
+        if not .elements.capacity and not Math.isEqualEpsilon(l, r) and not Math.isEqualEpsilon(t, b) do
+            .elements.reserve(4)
         .lineTo(r, t)
         .lineTo(r, b)
         .lineTo(l, b)
@@ -477,6 +479,10 @@ public impl LinePath
         let rY = Math.max(Math.min(radiusY, h * 0.5), 0.0)
 
         .start(l, t + rY)
+        if not .elements.capacity and
+           not Math.isEqualEpsilon(l + rX, l) and
+           not Math.isEqualEpsilon(t + rY, t) do
+            .elements.reserve(4)
         .arcTo(l + rX, t + rY, rX, rY, 270'deg, 360'deg)
         .lineTo(r - rX, t)
         .arcTo(r - rX, t + rY, rX, rY, 0'deg, 90'deg)
@@ -548,6 +554,10 @@ public impl LinePath
     mtd setEllipseRaw(cX, cY: f32, rX, rY: f32)
     {
         .start(cX, cY - rY)
+        if not .elements.capacity and
+           not Math.isEqualEpsilon(cX + rX, cX) and
+           not Math.isEqualEpsilon(cY + rY, cY) do
+            .elements.reserve(4)
         .arcTo(cX, cY, rX, rY, 0'deg, 90'deg)
         .arcTo(cX, cY, rX, rY, 90'deg, 180'deg)
         .arcTo(cX, cY, rX, rY, 180'deg, 270'deg)

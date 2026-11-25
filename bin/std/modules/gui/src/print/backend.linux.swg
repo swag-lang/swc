@@ -56,7 +56,7 @@ private func mediaName(paper: Paper)->string
     }
 }
 
-private func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
+func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
 {
     var library = #move catch NativeLibrary.load("libcups.so.2") orelse NativeLibrary{}
     if not library.isOpen() do

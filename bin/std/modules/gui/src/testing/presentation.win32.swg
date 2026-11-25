@@ -22,7 +22,7 @@ func verifyNativePresentation(surface: *Surface)->bool fail
         return false
 
     surface.app.renderer.setCurrentContext(surface.renderingContext())
-    let tinted   = (surface.isDisabled and surface.app.fadeDisabledSurface) or surface.opacity < 1
+    let tinted   = surface.hasDisabledTint() or surface.opacity < 1
     let target   = tinted ? &surface.presentationTarget : &surface.rt
     let width    = surface.rc.width
     let height   = surface.rc.height

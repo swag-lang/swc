@@ -117,8 +117,9 @@ struct Surface
     paintVertices: u64
     paintBatches:  u64
 
-    presentationTarget: Pixel.RenderTarget
-    presentedFrame:     bool
+    presentationTarget:  Pixel.RenderTarget
+    presentedFrame:      bool
+    modalTintSuppressed: bool
 
     // What the last pass did with the window tree. A repaint covers one region, so most of a
     // tree is normally rejected before it records anything; these say how much.
@@ -160,6 +161,8 @@ enum SurfaceFlags
 
 impl Surface
 {
+    internal mtd const hasDisabledTint()->bool => .isDisabled and .app.fadeDisabledSurface and not .modalTintSuppressed
+
     // Reports whether `wnd` belongs to the reachable native tree or its hosted view.
     // Headless surfaces keep the hosted view outside SurfaceWnd.children.
     internal mtd containsWindow(wnd: *Wnd)->bool
@@ -798,7 +801,7 @@ impl Surface
         if native
         {
             var target  = &.rt
-            let dimmed  = .isDisabled and .app.fadeDisabledSurface
+            let dimmed  = .hasDisabledTint()
             let opacity = .frameOpacity()
             if dimmed or opacity < 1
             {

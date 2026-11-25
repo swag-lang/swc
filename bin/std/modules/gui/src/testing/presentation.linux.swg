@@ -39,7 +39,7 @@ func verifyNativePresentation(surface: *Surface)->bool fail
     if reply.depth != 32 or context.xcb_get_setup(connection).image_byte_order != 0 do
         fail Errors.InvalidFormatError{Errors.mkString("unsupported X11 presentation pixel layout")}
 
-    let target = surface.isDisabled and surface.app.fadeDisabledSurface ? &surface.presentationTarget : &surface.rt
+    let target = surface.hasDisabledTint() ? &surface.presentationTarget : &surface.rt
     surface.app.renderer.setCurrentContext(surface.rc)
     let expected = surface.app.renderer.readRenderTarget(target, 0, 0, width, height)
     if not expected.isValid() or cast(u64, context.xcb_get_image_data_length(reply)) != expected.byteCount do

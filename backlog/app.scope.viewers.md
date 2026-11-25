@@ -195,9 +195,9 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
 
 ### app.scope.viewers.002 — Paginate additional Scope formats
 
-- Evidence: the common Print command prints full PDF and source text documents and the
-  current content of other viewers. Office, Markdown, HTML, and hexadecimal views can
-  present content beyond the visible region.
+- Evidence: the common Print command paginates PDF and source text documents. Office, Markdown,
+  HTML, and hexadecimal views still submit a raster of their visible viewport. Scrolling
+  changes what is printed, and a page range cannot reach offscreen content.
 - Next: use the application-defined page source to paginate those viewers with their own
   layout rules and offer their page ranges in the shared dialog.
 - Done when: each of those viewers can preview and print a range spanning content beyond

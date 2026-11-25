@@ -951,6 +951,12 @@ private impl Application
     // time this runs.
     public mtd doModalLoop(surface: *Surface?, cb: FrameCallback? = null, restoreTo: *Surface? = null)->WndId
     {
+        return .runModalLoop(surface, cb, restoreTo, dim: true)
+    }
+
+    // A short wait can reserve input without tinting the newly disabled surfaces.
+    internal mtd runModalLoop(surface: *Surface?, cb: FrameCallback?, restoreTo: *Surface?, dim: bool)->WndId
+    {
         .endModal     = false
         .endModalExit = null
         .inModalLoop  += 1
@@ -960,6 +966,7 @@ private impl Application
         {
             if s != surface and not s.isDisabled
             {
+                s.modalTintSuppressed = not dim
                 s.disable()
                 disabledSurfaces.add(s)
             }
@@ -1013,8 +1020,11 @@ private impl Application
                 disabledSurfaces.removeAtOrdered(index)
         }
 
-        for s in disabledSurfaces do
+        for s in disabledSurfaces
+        {
+            s.modalTintSuppressed = false
             s.enable()
+        }
 
         // The keyboard is given back only when the box took it: a loop run without a surface of
         // its own — a captured pop-up, a colour picker — never moved it, and moving it now would

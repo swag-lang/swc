@@ -167,6 +167,15 @@ private func sheetForDevice(dc: HDC)->Sheet fail
     return {size, imageable}
 }
 
+func printerSheet(printer: const *Printer, setup: PageSetup)->Sheet fail
+{
+    try checkCancelled()
+    let dc = try device(printer, setup)
+    defer discard catch Gdi32.DeleteDC(dc)
+    try checkCancelled()
+    return try sheetForDevice(dc)
+}
+
 private func sendPage(dc: HDC, image: *Image) fail
 {
     image.convertTo(.BGRA8)

@@ -382,12 +382,13 @@ missing-monitor rectangles and ignores panes the application no longer registers
 
 ### std.gui.032 — Cancellation waits for a blocking spooler call
 
-- Evidence: the print dialog cancels between pages. A Windows spooler call or CUPS upload can
-  still keep the cancelled dialog open while the operating system finishes the call.
-- Next: exercise cancellation during blocked native submission and propagate the stop request
-  into the Windows driver callback or the CUPS job while it is being written.
-- Done when: cancelling during a blocked job returns a cancelled result and releases the job
-  without leaving a partial submission.
+- Evidence: the print dialog checks for cancellation between rendering and submission steps.
+  Windows driver setup and CUPS discovery, media lookup, and upload can still keep the dialog
+  open after Cancel until the operating-system call returns.
+- Next: exercise stalled discovery and media lookup separately from upload. Use bounded native
+  requests where possible and propagate cancellation into the Windows driver or streamed CUPS job.
+- Done when: cancellation is prompt during both queue lookup and submission, and leaves no
+  partial job behind.
 - Related: platform.portability.086
 
 ### std.gui.040 — A check box does not line up with the fields of the form it stands in

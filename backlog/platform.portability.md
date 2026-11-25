@@ -521,12 +521,17 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 ### platform.portability.086 — Validate native printing with installed drivers
 
 - Owner: std/gui
-- Evidence: the Windows GDI and optional Linux CUPS adapters discover queues and obtain the
-  imageable bounds. The shared functional tests run without an installed printer.
-- Next: exercise Windows and CUPS queues with differing media, landscape margins, copies,
-  an unavailable queue and a rejected submission.
-- Done when: a driver-backed fixture checks the submitted page dimensions and order and
-  reports failure and cancellation through the shared dialog.
+- Evidence: a simulated CUPS queue captures page sizes and job options. Landscape rotation,
+  asymmetric margins, and copy counts still need verification on installed drivers. The
+  adapter uses the selected CUPS instance for media lookup but submits to the base queue
+  with only the four options from the dialog, so instance options such as paper source
+  are lost at submission.
+- Next: run a driver-backed Windows GDI and IPP/CUPS matrix for A4, Letter, and Legal.
+  Merge the CUPS instance options with explicit dialog settings and inspect page order,
+  rotation, copies, and the selected tray. Exercise an offline queue and a rejected
+  submission through the shared dialog.
+- Done when: installed drivers reproduce the previewed bounds and page order, apply the
+  selected job options, and report failure and cancellation through the shared dialog.
 - Related: std.gui.030, std.gui.032
 
 ### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation

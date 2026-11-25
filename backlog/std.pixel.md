@@ -374,7 +374,8 @@ ships; history lives in Git, not here.
 ### std.pixel.005 — No painter-native PDF output
 
 - Evidence: the PDF writer lives above Pixel in `std/gui` and cannot consume an arbitrary painter
-  recording while preserving paths and text.
+  recording while preserving paths and text. PDF output from the print dialog rasterizes each
+  sheet at 300 DPI, so printed text cannot be searched or selected and vector detail is lost.
 - Next: decide whether to move that writer below both consumers or implement a painter command
   visitor over it; do not create a second unrelated PDF serializer.
 - Done when: supported paths, text, clipping, transforms, and raster images remain native PDF

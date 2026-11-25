@@ -81,6 +81,41 @@ using Core, Core.Math, Pixel, Gui.Print
     Swag.require(previewed)
 }
 
+// Work that finishes during the first frame keeps the owner visible without opening a progress sheet.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(240, 120)
+    defer host.shutdown()
+
+    var entered: Swag.AtomicFlag
+    var quiet = false
+    host.app.sigFrame += func|host = &host, &entered, &quiet|(app)
+    {
+        if entered.isRaised() do
+            return
+        quiet = app.modalSurfaces.isEmpty() and
+                host.surface.isDisabled and
+                not host.surface.hasDisabledTint()
+        discard entered.raise()
+        Swag.drainWork()
+    }
+
+    let ready = expect PrintDlg.runWork(&host.surface, strings().print_Preparing, func|&entered|()->bool fail
+    {
+        for 2000
+        {
+            if entered.isRaised() do
+                return true
+            Threading.Thread.sleep(1'ms)
+        }
+
+        return false
+    })
+    host.app.sigFrame.clear()
+    Swag.require(ready and quiet and not host.surface.isDisabled)
+}
+
 // A task that returns a value after the Cancel button was pressed cannot expose that value.
 #test
 {
@@ -163,37 +198,37 @@ using Core, Core.Math, Pixel, Gui.Print
     Swag.require(hasInk)
 }
 
-// The primary action exports directly. A failed write keeps the destination available for retry.
+// The primary action exports directly to Documents by default and keeps the folder after a failed write.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(960, 760)
     defer host.shutdown()
 
-    let root = Testing.tempFilePath("gui-print-dialog-", "")
-    expect Directory.create(root)
-    defer discard catch Directory.delete(root, recurse: true)
-    let target = Path.combine(root, "printed.pdf")
+    let root     = Env.getSpecialDirectory(.UserDocuments)
+    let name     = Format.toString("gui-print-dialog-%", Guid64.random())
+    let fileName = Format.toString("%.pdf", name)
+    let target   = Path.combine(root, fileName)
+    defer discard catch File.delete(target)
 
     host.clickModalButtonWhenShown(Dialog.BtnOk, maxFrames: 600)
     host.withModalEdit(strings().print_Range, "2")
     host.thenClickModalButton(Dialog.BtnOk)
-    let save = host.autoStages.backPtr()
-    save.folder = root
-    save.file   = "printed.pdf"
     if #os == Swag.TargetOs.Linux
     {
         // The editor accepts this name, but the filesystem rejects the rename.
+        let save = host.autoStages.backPtr()
+        save.file = fileName
         for 252 do
             save.file += "x"
         host.thenClickModalButton(Dialog.BtnOk)     // Dismiss the write error.
         host.thenClickModalButton(Dialog.BtnOk)
-        host.autoStages.backPtr().file = "printed.pdf"
+        host.autoStages.backPtr().file = fileName
     }
 
     var document: Document
     document.kind = .Text
-    document.name = "Report"
+    document.name = name
     for i in 75 do
         document.text.appendFormat("Report entry %.\n", i + 1)
     let devices: Array'Printer

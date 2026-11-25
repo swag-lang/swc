@@ -71,14 +71,17 @@ This file owns lexer, parser, semantic analysis, type resolution, and diagnostic
 ### compiler.frontend.005 — Reject invalid closure captures without a host exception
 
 - Evidence: while compiling a Swag Capture journey with both a by-reference capture of a `let String` and an unqualified `.main` capture expression, `swc.exe` reported the source diagnostics but also raised `0xC0000005` during semantic parsing at the capture expression. Correcting the source removed the exception.
+- Evidence: Linux Release also faults in `buildClosureCaptureSymbols` while resolving
+  `func|layout = .layout, target|` passed directly to the generic print worker. The closure
+  has only value captures. Binding `.layout` to a named local before capturing it avoids the fault.
 - Reductions: a by-reference capture of a `let string` and an unqualified `.main` capture
   initializer have standalone expected-diagnostic fixtures. Both report their intended error
-  under Linux DevMode and both Windows compilers; neither reproduces the original combination.
-- Next: recover the original journey. A standalone closure with both a by-reference `let`
-  struct capture and an unqualified `.main` initializer reports the `.main` diagnostic and
-  does not reproduce the exception. Retain the matching compiler artifacts on recurrence.
-- Done when: the original mixed-capture failure is explained and a regression protects its
-  source diagnostics under both compiler executables.
+  under Linux DevMode and both Windows compilers. A standalone closure with both forms also
+  reports the `.main` diagnostic without a host exception.
+- Next: recover the original journey and reduce the print-worker call with its generic closure
+  parameter in place to exercise contextual argument resolution.
+- Done when: both failures are explained and regression coverage verifies the resulting source
+  diagnostics under both compiler executables.
 
 ### compiler.frontend.006 — Verify runtime fault evidence across Windows run modes
 

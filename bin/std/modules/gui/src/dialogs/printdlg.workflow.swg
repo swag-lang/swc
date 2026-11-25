@@ -6,6 +6,7 @@ using Core, Pixel, Gui.Print
 private const BackButton:   WndId = "gui.print.settings"
 const PreviewButton:        WndId = "gui.print.preview"
 private const WorkFinished: WndId = "gui.print.finished"
+private const ProgressDelayMs     = 160'u64
 private const PreviewDpi          = 96.0'f32
 private const PreviewHeight       = 336.0'f32
 private const Papers              = [Paper.A4, Paper.Letter, Paper.Legal]
@@ -46,15 +47,22 @@ impl PreviewPages
         let target = Math.clamp(requested, 0, .last)
         if target == .page do
             return
+        let owner  = unwrap .view.surface
+        let layout = .layout
+        let image  = #move catch runWork(owner, strings().print_Preparing, func|layout, target|()->Image fail
+        {
+            return try layout.render(cast(u64, target), PreviewDpi)
+        })
+        {
+            reportError(owner, Swag.err)
+            return
+        }
+
+        .view.setImage(image)
         .page = target
         .previous.enable(target > 0)
         .next.enable(target < .last)
         .count.setText(Format.toString(strings().print_PreviewPage, target + 1, .layout.pageCount))
-        catch .view.setImage(.layout.render(cast(u64, target), PreviewDpi))
-        {
-            .view.clear()
-            reportError(unwrap .view.surface, Swag.err)
-        }
     }
 }
 
@@ -75,7 +83,31 @@ internal func(T) runWork(from: *Surface, title: string, work: func||()->T fail)-
     task.submit(work)
     if not task.isDone()
     {
-        let dlg    = createWorkDialog(from, title)
+        let deadline = Time.monotonicMilliseconds() + ProgressDelayMs
+        let poll: FrameCallback = func|&task, from, deadline|(app)
+        {
+            if not app.surfaces.contains(from) or from.wnd.isPendingDestroy do
+                app.exitModal()
+            elif task.isDone() or Time.monotonicMilliseconds() >= deadline do
+                app.exitModal(WorkFinished)
+            elif not app.renderer.needsNativeWindow() do
+                Threading.Thread.sleep(1'ms)
+        }
+
+        let result = from.app.runModalLoop(null, poll, from, dim: false)
+        if result != WorkFinished do
+            fail PrintError{.Cancelled}
+    }
+
+    if not task.isDone()
+    {
+        let dlg = createWorkDialog(from, title)
+        if task.isDone()
+        {
+            dlg.surface!.destroy()
+            return try task.take()
+        }
+
         let cancel = unwrap dlg.cancelButton()
 
         // Only the worker may close the box while it owns document or spooler state.
@@ -169,6 +201,21 @@ private func runJob(from: *Surface, document: *Document, sourcePath: string, pri
     let options    = &selected.options
     let localSheet = pdfSheet(options.setup)
     var sheet      = localSheet
+
+    // A printer with a smaller imageable area can paginate text into more pages.
+    // Resolve an explicit range against that paper before rejecting it.
+    if not showPreview and printer and document.kind == .Text and not selected.pageRange.isEmpty()
+    {
+        sheet = catch runWork(from, strings().print_Preparing, func|printer, setup = options.setup|()->Sheet fail
+        {
+            return try printerSheet(unwrap printer, setup)
+        })
+        {
+            reportError(from, Swag.err)
+            return false
+        }
+    }
+
     while true
     {
         var prepared = #move catch runWork(from, strings().print_Preparing, func|document, sheet, setup = options.setup, showPreview|()->PreparedPreview fail
@@ -472,7 +519,9 @@ private func exportPdf(from: *Surface, layout: const *Layout, job: const *JobOpt
     var proposed = Format.toString("%.pdf", stem.count ? stem : tr.print_Title)
     if sourcePath.count and Path.equals(proposed, Path.fileName(sourcePath) orelse "") do
         proposed = Format.toString("% (2).pdf", stem)
-    var folder: String
+    var folder = Env.getSpecialDirectory(.UserDocuments)
+    if not Directory.exists(folder) do
+        folder = Path.directoryName(folder) orelse ""
     while true
     {
         var options = FileDlgOptions{title: tr.print_SavePdf, mode: .CreateFile, initialFolder: folder, initialName: proposed}

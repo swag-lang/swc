@@ -43,7 +43,10 @@ using Core, Gui, Pixel
     var sawPrint = false
     host.app.sigFrame += func|host = &host, &sawPrint|(app)
     {
-        if app.surfaces.back().view() is Dialog as dialog
+        let surface = app.surfaces.back()
+        if surface.isHidden or surface.isDisabled do
+            return
+        if surface.view() is Dialog as dialog
         {
             if dialog.title.text == Gui.strings().print_Title
             {
@@ -76,7 +79,10 @@ using Core, Gui, Pixel
     {
         if not app.isInModalLoop() do
             return
-        if app.surfaces.back().view() is Dialog as dlg
+        let surface = app.surfaces.back()
+        if surface.isHidden or surface.isDisabled do
+            return
+        if surface.view() is Dialog as dlg
         {
             let tr    = Gui.strings()
             let title = dlg.title.text.toString()

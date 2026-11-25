@@ -243,13 +243,22 @@ private:
 
     std::vector<DataSegmentRelocation> relocations_;
 
+    // Keep the search keys together so lookups can skip the full relocation records.
+    struct RelocationIndexEntry
+    {
+        uint32_t offset;
+        uint32_t index;
+
+        auto operator<=>(const RelocationIndexEntry&) const = default;
+    };
+
     // Sorted-by-offset index over the first `relocationsIndexedCount_` relocations. Relocations beyond
     // that count form the tail, which carries its own index sorted the same way. Readers binary-search
     // both under a shared lock, so they never scan a growing tail and never escalate to an exclusive
     // rebuild; the tail is merged into the index on the writer side once it grows past a threshold.
-    mutable std::vector<uint32_t> relocationsByOffset_;
-    mutable std::vector<uint32_t> relocationsTailByOffset_;
-    mutable uint32_t              relocationsIndexedCount_ = 0;
+    mutable std::vector<RelocationIndexEntry> relocationsByOffset_;
+    mutable std::vector<RelocationIndexEntry> relocationsTailByOffset_;
+    mutable uint32_t                          relocationsIndexedCount_ = 0;
 
     std::vector<DataSegmentAllocation> allocations_;
 

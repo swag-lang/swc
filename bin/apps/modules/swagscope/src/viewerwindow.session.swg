@@ -158,6 +158,7 @@ impl ViewerWindow
     // has happened: the first frame, the classification, or the retirement of the viewer before it.
     mtd continueStartup()
     {
+        defer .workspace?.finishSceneCaption()
         .stopTimer(&.startupTimer)
         if not .pendingFile.isEmpty()
         {

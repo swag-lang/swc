@@ -871,7 +871,7 @@ impl ViewerWindow
 
     mtd refreshOutlineCaption()
     {
-        if not .isWorkspaceActive() do
+        if not .canRefreshCaption() do
             return
         let toggle = .currentSidePanelButton
         .outlineCaptionButton.show(not .fullScreen and toggle and toggle.id == OutlineToggleId)
@@ -888,7 +888,7 @@ impl ViewerWindow
 
     mtd updateOutlineCaptionState()
     {
-        if not .isWorkspaceActive() do
+        if not .canRefreshCaption() do
             return
         let toggle = .currentSidePanelButton
         .outlineCaptionButton.setChecked(toggle and toggle.id == OutlineToggleId and toggle.isChecked)
@@ -898,13 +898,16 @@ impl ViewerWindow
     {
         if not .isWorkspaceActive() do
             return
+        .explorer?.address.show(.isExploring())
+        if not .canRefreshCaption() do
+            return
+
         .privacy.refreshIndicator()
         .refreshOutlineCaption()
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = text.cmd_ReturnToExplorer
         .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
 
-        .explorer?.address.show(.isExploring())
         .surface?.wnd.showTitle(.showsCaptionTitle())
         let selected = .acceptsViewCommands()
         .outlineCaptionButton.enable(selected)
@@ -1356,6 +1359,9 @@ impl ViewerWindow
 
     mtd isWorkspaceActive()->bool => not .workspace or .workspace.primary == null or .workspace.activeDocument() == me
 
+    mtd canRefreshCaption()->bool
+        => .isWorkspaceActive() and not (.workspace?.sceneCaptionPending orelse false)
+
     mtd captionDocument()->*ViewerWindow
     {
         if .workspace and .workspace.primary != null do
@@ -1767,7 +1773,7 @@ impl ViewerWindow
         let surface = .surface
         if not surface do
             return
-        if not .isWorkspaceActive() do
+        if not .canRefreshCaption() do
             return
         .refreshExplorerCaption()
 

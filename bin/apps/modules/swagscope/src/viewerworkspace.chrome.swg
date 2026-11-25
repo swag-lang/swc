@@ -192,6 +192,59 @@ impl IWnd for SceneTabs
 
 impl ViewerWorkspace
 {
+    private mtd bindSceneCaptionInput()
+    {
+        let primary = .primary
+        let actions = [primary.returnExplorerCaptionButton, primary.backCaptionButton,
+                       primary.forwardCaptionButton, primary.upCaptionButton,
+                       primary.refreshCaptionButton, primary.outlineCaptionButton,
+                       primary.informationCaptionButton, primary.viewerCaptionButton,
+                       .mediaPlayPause, .mediaTransport, .mediaLinks]
+        let holdInput: HookEvent = func|workspace = me|(control, evt)
+        {
+            if not workspace.sceneCaptionPending do
+                return false
+            if evt is MouseEvent as mouse
+            {
+                if mouse.kind == .Pressed do
+                    return true
+                if mouse.kind == .Released and control.mouseCapture() == control
+                {
+                    // Let the button release its capture without activating the old action.
+                    var leave = mouse[]
+                    leave.kind = .Leave
+                    control.sendEvent(&leave)
+                }
+            }
+            return false
+        }
+
+        for button in actions do
+            button.hookOnEvent = holdInput
+    }
+
+    mtd finishSceneCaption()
+    {
+        if not .sceneCaptionPending do
+            return
+        if let scene = .scene()
+        {
+            for view in scene.views
+            {
+                let document = view.document
+                if not document or not document.pendingFile.isEmpty() or
+                   not document.pendingEmpty.isEmpty() do
+                    return
+            }
+        }
+
+        .sceneCaptionPending = false
+        let document = .activeDocument()
+        document.refreshReadingAppearance()
+        document.refreshTitle()
+        .updateMedia()
+    }
+
     mtd dividerRect(columns = true, track = 1'u64)->Math.Rectangle
     {
         let scene = .scene()

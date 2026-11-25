@@ -396,6 +396,56 @@ using Core, Gui, Pixel, Audio
     Swag.require(not workspace.mediaLinks.isLocallyVisible() and document.cellCaption.close.isVisible())
 }
 
+// Switching tabs keeps the last complete caption until the incoming document can publish its own.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let primary = workspace.primary
+    let outline = primary.outlineCaptionButton
+    let info    = primary.informationCaptionButton
+    let viewer  = primary.viewerCaptionButton
+    workspace.openDocument(scopeTestDataPath("viewer.md"))
+    openViews(&host, workspace)
+    Swag.require(outline.isLocallyVisible())
+
+    workspace.openDocument(scopeTestDataPath("comprehensive.txt"))
+    openViews(&host, workspace)
+    Swag.require(not outline.isLocallyVisible())
+    let infoBounds   = info.surfaceRect()
+    let viewerBounds = viewer.surfaceRect()
+    let strip = Math.Rectangle{0, 0, host.surfaceWnd.clientRect().width, host.surfaceWnd.stripInset()}
+    var expected = host.render(&host.surfaceWnd)
+    expected.crop(strip)
+
+    workspace.selectScene(0)
+    let incoming = workspace.activeDocument()
+    Swag.require(not incoming.pendingFile.isEmpty())
+    var actual = host.render(&host.surfaceWnd)
+    actual.crop(strip)
+    Pixel.Testing.assertImagesNear(&expected, &actual, "scene.caption.during.switch")
+    Swag.require(info.isLocallyVisible() and info.surfaceRect() == infoBounds)
+    Swag.require(viewer.isLocallyVisible() and viewer.surfaceRect() == viewerBounds)
+    Swag.require(not outline.isLocallyVisible())
+    host.clickWnd(info)
+    Swag.require(not incoming.informationOpen() and not info.isChecked)
+
+    openViews(&host, workspace)
+    Swag.require(outline.isLocallyVisible())
+    Swag.require(info.surfaceRect() == infoBounds and viewer.surfaceRect() == viewerBounds)
+
+    var point = info.surfaceRect().center()
+    host.surface.surfaceToScreen(&point)
+    host.sendMouseEvent(info, .Pressed, point, .Left, .None)
+    workspace.selectScene(1)
+    Swag.require(outline.isLocallyVisible() and info.isLocallyVisible() and viewer.isLocallyVisible())
+    host.sendMouseEvent(info, .Released, point, .Left, .None)
+    Swag.require(not info.isChecked and not info.mouseCapture())
+    openViews(&host, workspace)
+    Swag.require(not outline.isLocallyVisible() and info.isLocallyVisible() and viewer.isLocallyVisible())
+}
+
 // The viewer registry also governs group playback for formats without a media glyph.
 #test
 {

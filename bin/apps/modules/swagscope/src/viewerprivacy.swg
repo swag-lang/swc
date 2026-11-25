@@ -73,7 +73,7 @@ impl ViewerPrivacy
 
     mtd refreshIndicator()
     {
-        if not .window.isWorkspaceActive() do
+        if not .window.canRefreshCaption() do
             return
         let owner = .window.workspace?.primary orelse .window
         let indicator = &owner.privacy

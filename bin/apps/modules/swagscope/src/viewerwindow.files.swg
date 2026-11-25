@@ -82,7 +82,7 @@ impl ViewerWindow
         .refreshReadingAppearance()
 
         // Only the active document owns the shared title strip.
-        if .isWorkspaceActive() do
+        if .canRefreshCaption() do
             .surface?.wnd.showTitle(.showsCaptionTitle())
         .updateDocumentInsets()
         let wasVisible = .readingLine.isLocallyVisible()
@@ -101,7 +101,7 @@ impl ViewerWindow
     // Resolves the appearance from the current reader's canvas, or from the desktop.
     mtd refreshReadingAppearance()
     {
-        if .updatingReadingAppearance or not .isWorkspaceActive() do
+        if .updatingReadingAppearance or not .canRefreshCaption() do
             return
         .updatingReadingAppearance = true
         defer .updatingReadingAppearance = false

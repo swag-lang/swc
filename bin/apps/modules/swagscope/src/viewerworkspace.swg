@@ -218,6 +218,7 @@ struct ViewerWorkspace
     active:           u64
     activation:       u64
     paintedScene:     u64
+    sceneCaptionPending: bool
     retiring:         Array'(*ViewerWindow)
     retireTimer:      *Timer?
     restored:         Array'SavedScene
@@ -274,6 +275,7 @@ impl ViewerWorkspace
         }
 
         result.createMediaControls()
+        result.bindSceneCaptionInput()
         result.hookOnChildEvent    = func|workspace = result|(_, evt)
         {
             switch evt
@@ -486,6 +488,8 @@ impl ViewerWorkspace
 
     mtd suspendScene(capturePreview = true)
     {
+        // Retiring viewers briefly report an empty document. Keep that state out of the caption.
+        .sceneCaptionPending = .scene() != null
         .focusOnGrid = false
         .dismissVacancy()
         .clearDropHighlight()
@@ -790,8 +794,13 @@ impl ViewerWorkspace
     {
         .layoutScene()
         let document = .activeDocument()
-        document.refreshTitle()
-        document.refreshReadingAppearance()
+        if .sceneCaptionPending do
+            .finishSceneCaption()
+        else
+        {
+            document.refreshTitle()
+            document.refreshReadingAppearance()
+        }
         .tabs.invalidate()
         let focused = document.focusedWindow()
         if .focusOnGrid do

@@ -324,6 +324,8 @@ impl ViewerWorkspace
 
     mtd updateMediaTransport()
     {
+        if .sceneCaptionPending do
+            return
         let canPlay = .canPlayScene()
         .mediaPlayPause.show(canPlay)
         if not canPlay do
@@ -340,13 +342,16 @@ impl ViewerWorkspace
 
     mtd updateMedia()
     {
-        let media = .isMediaScene()
+        if not .sceneCaptionPending
+        {
+            .mediaLinks.toolTip = appStrings().scene_Links
+            .mediaLinks.show(.isMediaScene())
+            .mediaTransport.toolTip = appStrings().scene_Controls
+            .mediaTransport.show(.isTiled() or .documentCount() > 1)
+            .updateMediaTransport()
+        }
+
         let transport = .canPlayScene()
-        .mediaLinks.toolTip = appStrings().scene_Links
-        .mediaLinks.show(media)
-        .mediaTransport.toolTip = appStrings().scene_Controls
-        .mediaTransport.show(.isTiled() or .documentCount() > 1)
-        .updateMediaTransport()
         if transport and not .mediaTimer do
             .mediaTimer = .addTimer(16'ms)
         elif not transport do

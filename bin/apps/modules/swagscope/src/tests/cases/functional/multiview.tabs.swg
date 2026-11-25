@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-using Core, Gui
+using Core, Gui, Pixel
 
 #test
 {
@@ -129,4 +129,53 @@ using Core, Gui
     Swag.require(host.autoHandled and workspace.scenes.count == 1 and workspace.scene() == first)
     openViews(&host, workspace)
     Swag.require(Path.fileName(workspace.activeDocument().currentFile) == "sample.cpp")
+}
+
+#test
+{
+    let root = Testing.tempFilePath("scope-tab-layout-", "")
+    let folder = Path.combine(root, "design")
+    expect Directory.create(folder, recurse: true)
+    defer catch Directory.delete(root, recurse: true)
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, dpiScale: 1.5)
+    defer host.shutdown()
+    workspace.openDocument(folder, newTab: true)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    let document = workspace.activeDocument()
+    let explorer = unwrap document.explorer
+    completeExplorer(&host, explorer)
+
+    let tabs = workspace.tabs
+    let name = workspace.sceneName(scene)
+    let font = tabs.theme().createDefaultFont(12)
+    let width = tabs.items[0].width
+    Swag.require(name == "design")
+    Swag.require(width == Painter.measureStringSnapped(name, font, deviceScale: tabs.deviceScale()))
+    Swag.require(Painter.elideString(name, font, width, tabs.deviceScale()) == name)
+
+    let button = workspace.mediaTransport
+    Swag.require(button.isVisible() and scene.layout == .Single)
+    Swag.require(not document.sendComputeCommandStateEvent(MediaCommands.Transport).hidden)
+    host.activateOptionRowWhenShown(appStrings().scene_Layout)
+    host.thenActivateOptionRow(appStrings().scene_Grid2)
+    host.clickWnd(button)
+    Swag.require(host.autoHandled and workspace.scene() == scene and workspace.activeDocument() == document)
+    Swag.require(scene.layout == .Grid2 and scene.cellCount() == 4 and scene.views.count == 1)
+    Swag.require(Path.equals(explorer.listing.path, folder))
+
+    workspace.closeTabs()
+    workspace.primary.openExplorer(folder)
+    completeExplorer(&host, unwrap workspace.primary.explorer)
+    Swag.require(not workspace.scene() and button.isVisible())
+    workspace.primary.closeFile()
+    Swag.require(not button.isLocallyVisible())
+    workspace.primary.openExplorer(folder)
+    completeExplorer(&host, workspace.primary.explorer)
+    host.activateOptionRowWhenShown(appStrings().scene_Layout)
+    host.thenActivateOptionRow(appStrings().scene_SideBySide)
+    let opened = workspace.primary.runCommand(MediaCommands.Transport)
+    Swag.require(opened and host.autoHandled and workspace.scene()!.layout == .SideBySide)
 }

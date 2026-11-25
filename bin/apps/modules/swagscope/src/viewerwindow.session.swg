@@ -311,6 +311,8 @@ impl ViewerWindow
 
         .searchBox.setText("", notify: false)
         .showEmpty(appStrings().ui_DropTitle)
+        if not forExplorer and .workspace and .isWorkspacePrimary() and not .workspace.scene() do
+            .workspace.updateMedia()
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a

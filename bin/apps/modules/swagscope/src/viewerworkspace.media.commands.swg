@@ -224,7 +224,7 @@ impl ViewerWindow
         case MediaCommands.Transport:
             name      = text.scene_Controls
             icon      = .Grid
-            hidden    = not workspace.isTiled() and workspace.documentCount() < 2
+            hidden    = not workspace.canSetLayout()
             checkable = false
 
         case MediaCommands.Links:
@@ -337,14 +337,21 @@ impl ViewerWindow
     mtd runMediaCommand(id: WndId)->bool
     {
         let workspace = .workspace
-        let scene     = workspace?.scene()
-        if not workspace or not scene or (scene.views.count < 2 and not workspace.isTiled()) do
+        if not workspace do
+            return false
+        if id == MediaCommands.Transport
+        {
+            if not workspace.canSetLayout() do
+                return false
+            workspace.showMediaTransport()
+            return true
+        }
+
+        let scene = workspace.scene()
+        if not scene or (scene.views.count < 2 and not workspace.isTiled()) do
             return false
         switch id
         {
-        case MediaCommands.Transport:
-            workspace.showMediaTransport()
-
         case MediaCommands.Links:
             if workspace.hasViewLinks() do
                 workspace.showMediaLinks()

@@ -44,13 +44,14 @@ impl SceneTabs
 
         .setPosition(room, computeLayout: false)
 
-        let font = .theme().createDefaultFont(12)
+        let font  = .theme().createDefaultFont(12)
+        let scale = .deviceScale()
         .items.clear()
         var width: f32
         for scene in .workspace.scenes
         {
             let name = .workspace.sceneName(unwrap scene)
-            let span = Math.min(Painter.measureString(name, font).width, 220)
+            let span = Math.min(Painter.measureStringSnapped(name, font, deviceScale: scale), 220)
             .items.add({width: span, height: room.height})
             width += span + Gap
         }

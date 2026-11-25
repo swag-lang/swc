@@ -3,9 +3,10 @@
 
 using Gui, Pixel
 
-func testWorkspace(host: *Testing.HeadlessHost, light = false, width = 1080, height = 640)->*ViewerWorkspace
+func testWorkspace(host: *Testing.HeadlessHost, light = false, width = 1080, height = 640,
+                   dpiScale = 1.0'f32)->*ViewerWorkspace
 {
-    host.setup(width, height)
+    host.setup(width, height, dpiScale)
     shipFrame(host)
     host.app.setAppIcon(expect Image.decode(".png", AppIcon))
     let workspace = ViewerWorkspace.create(&host.surfaceWnd, createViewerPluginRegistry())

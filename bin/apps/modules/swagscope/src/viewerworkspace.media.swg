@@ -347,7 +347,7 @@ impl ViewerWorkspace
             .mediaLinks.toolTip = appStrings().scene_Links
             .mediaLinks.show(.isMediaScene())
             .mediaTransport.toolTip = appStrings().scene_Controls
-            .mediaTransport.show(.isTiled() or .documentCount() > 1)
+            .mediaTransport.show(.canSetLayout())
             .updateMediaTransport()
         }
 
@@ -510,16 +510,23 @@ impl ViewerWorkspace
         let text = appStrings()
         let workspace = me
         let size = themeRowIconSize(.themeMetrics())
-        let scene = unwrap .scene()
-        page.addLink(text.scene_Layout, sceneLayoutTitle(scene.visibleLayout()),
+        let scene = .scene()
+        let layout = scene?.visibleLayout() orelse SceneLayout.Single
+        page.addLink(text.scene_Layout, sceneLayoutTitle(layout),
                      func|workspace|(layouts)
                      {
-                         let current = unwrap workspace.scene()
-                         for layout in SceneCommands.LayoutValues where current.supportsLayout(layout) do
-                             layouts.addChoice(sceneLayoutTitle(layout), current.visibleLayout() == layout, func|workspace, layout|() { workspace.setLayout(layout) }, disabled: workspace.focusOnGrid and layout == .Single, icon: workspace.activeDocument().sceneLayoutGlyph(layout))
+                         let current = workspace.scene()
+                         let selected = current?.visibleLayout() orelse SceneLayout.Single
+                         for layout in SceneCommands.LayoutValues where not current or current.supportsLayout(layout)
+                         {
+                             layouts.addChoice(sceneLayoutTitle(layout), selected == layout,
+                                               func|workspace, layout|() { workspace.setLayout(layout) },
+                                               disabled: workspace.focusOnGrid and layout == .Single,
+                                               icon: workspace.activeDocument().sceneLayoutGlyph(layout))
+                         }
                      },
-                     icon: .activeDocument().sceneLayoutGlyph(scene.visibleLayout()))
-        if scene.views.count > 1 do
+                     icon: .activeDocument().sceneLayoutGlyph(layout))
+        if scene and scene.views.count > 1 do
             page.addAction(scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize,
                            func|workspace|() { workspace.toggleMaximized() }, disabled: .focusOnGrid,
                            icon: .theme().icon(scene.maximized ? .ExitFullScreen : .FullScreen, size))

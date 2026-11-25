@@ -852,8 +852,8 @@ impl ViewerWorkspace
 
     mtd setLayout(layout: SceneLayout)
     {
-        if not .scene() and .primary.isExploring() and layout != .Single and layout != .Auto do
-            .adoptPrimary(.primary.explorer!.requested)
+        if layout != .Single do
+            .adoptExplorerTab()
         let scene = .scene()
         if not scene or not scene.supportsLayout(layout) do
             return

@@ -142,7 +142,13 @@ impl Decoder
 
     mtd decodeNextRow() fail
     {
-        var p = cast([*] s16, .quantBuf.storage())
+        let missing = .maxBlocksPerRow - .mcusPerRow * cast(s32, .blocksPerMcu)
+        if missing < 0 do
+            fail InvalidFormatError{"decode error"}
+
+        var coefficients: [64] s16
+        let p      = cast([*] s16, &coefficients[0])
+        var sample = .safeSampleBuf()
         for .mcusPerRow
         {
             if .restartInterval and (.restartsLeft == 0) do
@@ -166,7 +172,8 @@ impl Decoder
                 p[0] = cast(s16, (s * q[0]))
                 let ph = unwrap block.ac
 
-                var k = 1
+                var k  = 1
+                var ac = 0's16
                 while k < 64
                 {
                     s = .huffDecode(ph)
@@ -186,8 +193,10 @@ impl Decoder
                         if s > 15 do
                             fail InvalidFormatError{"decode error"}
 
-                        s         = extendSign(rbits, s)
-                        p[Zag[k]] = cast(s16, (s * q[k]))
+                        s = extendSign(rbits, s)
+                        let value = cast(s16, (s * q[k]))
+                        p[Zag[k]] = value
+                        ac        |= value
                     }
                     else
                     {
@@ -206,24 +215,44 @@ impl Decoder
                     k += 1
                 }
 
-                p += 64
+                // Keep the current coefficients hot and reuse their storage for the next block.
+                if ac
+                {
+                    idctFull(p, sample)
+                    Memory.clear(p, 64'u64 * #sizeof(s16))
+                }
+                else
+                {
+                    idctFlat(p[0], sample)
+                }
+
+                sample += 64
             }
 
             .restartsLeft -= 1
         }
+
+        // Blocks omitted by a partial scan had zero coefficients in the row buffer.
+        if missing do
+            Memory.set(sample, 128, cast(u64, missing) * 64)
     }
 
     mtd decodeScanLine(destination: [*] u8? = null)->[*] u8 fail
     {
         if .mcuLinesLeft == 0
         {
-            if .progressiveFlag do
+            if .progressiveFlag
+            {
                 try .loadNextRow()
-            else do
+                .transformProgressiveRow()
+            }
+            else
+            {
                 try .decodeNextRow()
+            }
+
             if .totalLinesLeft <= .maxMcuSizeY do
                 try .findEoi()
-            .transformRow()
             .mcuLinesLeft = .maxMcuSizeY
         }
 
@@ -413,8 +442,8 @@ impl Decoder
         let scanLine1 = .scanLine1.storage()
         Memory.clear(scanLine1, cast(u64, .destBytesPerScanLine))
 
-        .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
-        Memory.clear(.quantBuf.storage(), .quantBuf.count)
+        if .progressiveFlag do
+            .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
 
         // The conversions read whole vectors, so the last sample of a row is followed by enough
         // slack for a sixteen-byte read that starts on it.

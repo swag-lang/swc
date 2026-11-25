@@ -234,17 +234,25 @@ impl Decoder
         for i in 1 to 7 do
             ac |= Math.Simd.load(coefficients + i * 8)
 
-        if Math.Simd.allTrue(ac == Math.Simd.splat(0'u16))
-        {
-            // The pass over lines would have scaled the average before the pass over columns
-            // removed that scale again, and it stores the product as a sixteen-bit value.
-            let scaled = cast(s32, cast(s16, (cast(s32, data[0]) << Pass1Bits)))
-            let flat   = Math.Simd.splat(clamp(descale(scaled, Pass1Bits + 3) + 128))
-            for i in 4 do
-                Math.Simd.store(buf + i * 16, flat)
-            return
-        }
+        if Math.Simd.allTrue(ac == Math.Simd.splat(0'u16)) do
+            idctFlat(data[0], buf)
+        else do
+            idctFull(data, buf)
+    }
 
+    #[Swag.Inline]
+    func idctFlat(dc: s16, buf: [*] u8)
+    {
+        // The pass over lines would have scaled the average before the pass over columns
+        // removed that scale again, and it stores the product as a sixteen-bit value.
+        let scaled = cast(s32, cast(s16, (cast(s32, dc) << Pass1Bits)))
+        let flat   = Math.Simd.splat(clamp(descale(scaled, Pass1Bits + 3) + 128))
+        for i in 4 do
+            Math.Simd.store(buf + i * 16, flat)
+    }
+
+    func idctFull(data: [*] s16, buf: [*] u8)
+    {
         var v:    [8] Math.Simd.S16x8
         var low:  [8] Math.Simd.S32x4
         var high: [8] Math.Simd.S32x4
@@ -276,7 +284,7 @@ impl Decoder
         }
     }
 
-    mtd transformRow()
+    mtd transformProgressiveRow()
     {
         var psrcPtr = cast([*] s16, .quantBuf.storage())
         var pdstPtr = unwrap .pSampleBuf
@@ -284,10 +292,6 @@ impl Decoder
         for .maxBlocksPerRow
         {
             idct(psrcPtr, pdstPtr)
-
-            // Baseline Huffman decoding skips zero coefficients, so leave each disposable block
-            // clear for the next MCU row instead of tracking and clearing stale coefficients.
-            Memory.clear(psrcPtr, 64'u64 * #sizeof(s16))
             psrcPtr += 64
             pdstPtr += 64
         }

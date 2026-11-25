@@ -6,9 +6,10 @@ colour model, page encoding, package path, or damage. The extension is always th
 application selects; a variant name is never a substitute for a real suffix. Tests outside this
 directory may retain older names when those files serve a particular screenshot or journey.
 
-The executable fixture matrix includes every `viewer.*` file in this directory and is
-[`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg). It checks that every listed
-file exists and selects the expected reader. The image cases also decode their payloads;
+The executable fixture matrix in [`fixtures.swg`](../cases/functional/viewers/fixtures/fixtures.swg)
+checks both local and shared inputs. Cases that exercise a suffix or a distinct basename can copy
+the source bytes to a temporary file with the required name. Each listed input selects the expected
+reader. The image cases also decode their payloads;
 format-owned tests exercise EPUB, CBZ, PDF, DOCX, ODT, RTF, XLSX, ODS, PPTX/PPSX/PPTM and ODP content and negative cases. The
 registry smoke opens one file for each viewer. A selector check alone does not prove that every
 legal variation of a format can be read.

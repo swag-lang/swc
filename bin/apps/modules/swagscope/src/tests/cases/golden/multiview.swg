@@ -131,6 +131,8 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
 #[Swag.TestTag("golden")]
 #test
 {
+    let alternatePath = isolatedScopeFixture("ffmpeg-h264-baseline.mp4", asName: "viewer.h264.mp4")
+    defer discardIsolatedScopeFixture(alternatePath)
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
@@ -138,7 +140,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     defer Sound.releaseEngine()
 
     let files = [scopeTestDataPath("viewer.avi"), scopeTestDataPath("viewer.mp4"),
-                 scopeTestDataPath("viewer.h264.mp4"), scopeTestDataPath("ffmpeg-h264-baseline.mp4")]
+                 alternatePath, scopeTestDataPath("ffmpeg-h264-baseline.mp4")]
     workspace.openScene(files, .Grid2)
     let scene = unwrap workspace.scene()
     scene.linked = false
@@ -174,12 +176,14 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
 #[Swag.TestTag("golden")]
 #test
 {
+    let picturePath = isolatedScopeFixture("viewer.png")
+    defer discardIsolatedScopeFixture(picturePath)
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host, light: true)
     defer host.shutdown()
-    let files = [scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.wav"), scopeTestDataPath("sample.cpp")]
+    let files = [picturePath, scopeTestDataPath("viewer.wav"), scopeTestDataPath("sample.cpp")]
     workspace.openScene(files, .Grid2)
     openViews(&host, workspace)
     let scene = unwrap workspace.scene()
@@ -222,12 +226,14 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
 #[Swag.TestTag("golden")]
 #test
 {
+    let picturePath = isolatedScopeFixture("viewer.png")
+    defer discardIsolatedScopeFixture(picturePath)
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
 
     let files = [scopeTestDataPath("sample.cpp"), scopeTestDataPath("comprehensive.txt"),
-                 scopeTestDataPath("viewer.png"), scopeTestDataPath("viewer.srt")]
+                 picturePath, scopeTestDataPath("viewer.srt")]
     workspace.openScene(files, .Grid2)
     openViews(&host, workspace)
     let scene = unwrap workspace.scene()
@@ -267,6 +273,8 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
 #[Swag.TestTag("golden")]
 #test
 {
+    let alternatePath = isolatedScopeFixture("ffmpeg-h264-baseline.mp4", asName: "viewer.h264.mp4")
+    defer discardIsolatedScopeFixture(alternatePath)
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
     var host: Testing.HeadlessHost
@@ -274,7 +282,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     defer host.shutdown()
 
     let files = [scopeTestDataPath("viewer.avi"), scopeTestDataPath("viewer.mp4"),
-                 scopeTestDataPath("viewer.h264.mp4"), scopeTestDataPath("ffmpeg-h264-baseline.mp4")]
+                 alternatePath, scopeTestDataPath("ffmpeg-h264-baseline.mp4")]
     workspace.openScene(files, .Grid2)
     let scene = unwrap workspace.scene()
     openViews(&host, workspace)
@@ -292,11 +300,13 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
 #[Swag.TestTag("golden")]
 #test
 {
+    let picturePath = isolatedScopeFixture("viewer.png")
+    defer discardIsolatedScopeFixture(picturePath)
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host, light: true)
     defer host.shutdown()
     host.setReducedMotion(false)
-    let files = [scopeTestDataPath("viewer.mp4"), scopeTestDataPath("viewer.png")]
+    let files = [scopeTestDataPath("viewer.mp4"), picturePath]
     workspace.openScene(files, .Stacked)
     openViews(&host, workspace)
     let document = workspace.activeDocument()
@@ -355,6 +365,8 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
 #[Swag.TestTag("golden")]
 #test
 {
+    let picturePath = isolatedScopeFixture("viewer.png")
+    defer discardIsolatedScopeFixture(picturePath)
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host, light: true, width: ViewerWindow.MinWidth, height: 480)
     defer host.shutdown()
@@ -362,7 +374,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     let folder = Path.combine(root, "Notes")
     expect Directory.create(folder, recurse: true)
     defer discard catch Directory.delete(root, recurse: true)
-    workspace.openScene([scopeTestDataPath("sample.cpp"), scopeTestDataPath("viewer.png")], .SideBySide)
+    workspace.openScene([scopeTestDataPath("sample.cpp"), picturePath], .SideBySide)
     openViews(&host, workspace)
     let document = workspace.activeDocument()
     document.openExplorer(folder)

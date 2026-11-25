@@ -64,7 +64,13 @@ using Core, Gui, Viewers
     writeReloadFile(fileName, "Short document.\n")
     for 8 where window.pendingFile.isEmpty() do
         pollFileWatch(&host, window)
+    Swag.require(not window.pendingFile.isEmpty())
     completeQueuedViewerFile(&host, window)
+    // Advance the loading poll so the assertion reads the replacement view.
+    if window.loadingTimer do
+        host.fireTimer(window.loadingTimer)
     host.fireTimer(window.fileWatchTimer)
-    Swag.require(assume cast(*ScrollWnd, window.currentView.children[0]).scrollPosition().y == 0)
+    Swag.require(window.outgoingView == null and not window.readingState.restoring)
+    let scroll = assume cast(*ScrollWnd, window.currentView.children[0])
+    Swag.require(scroll.scrollPosition().y == 0)
 }

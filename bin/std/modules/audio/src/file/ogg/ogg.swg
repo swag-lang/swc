@@ -1,6 +1,6 @@
-//! Format: Ogg transport of Vorbis and Opus sound.
-//! Supported: Native `.ogg`, `.oga`, and `.opus` files whose first sound stream is Vorbis or Opus: page checksums, packets spanning pages, other streams multiplexed alongside, and an index of page runs whose sample counts come from the granule positions or, for Opus, from the packet durations.
-//! Not supported: Chained streams, of which only the first link plays; Ogg FLAC, Speex, and Theora; and writing Ogg.
+//! Format: Ogg transport of Vorbis, Opus, and FLAC sound.
+//! Supported: Page checksums, packets spanning pages, multiplexed streams, and indexed page runs.
+//! Not supported: Chained streams beyond the first link, Speex, Theora, and writing Ogg.
 //! Role: This file owns Ogg page syntax, file traversal, and the streamed packet sound it builds; the codecs assemble packets from the pages they are handed.
 //
 #global namespace Ogg
@@ -118,6 +118,7 @@ private enum StreamKind
     Unknown
     Vorbis
     Opus
+    Flac
 }
 
 // What the first packet of the sound stream says about it.
@@ -185,6 +186,22 @@ private func identify(body: const [..] u8)->StreamInfo fail
         return result
     }
 
+    if body.count >= 5 and body[0] == 0x7F and body[1 until 5] == cast(const [..] u8, "FLAC")
+    {
+        // The nine-byte mapping header is followed by the native marker and STREAMINFO block.
+        if body.count != 51 or body[9 until 13] != cast(const [..] u8, "fLaC") or
+           (body[13] & 0x7F) != 0 or body[14] != 0 or body[15] != 0 or body[16] != 34 do
+            fail InvalidFormatError{"Ogg FLAC identification packet does not hold STREAMINFO"}
+        if body[5] != 1 or body[6] != 0 do
+            fail UnsupportedFormatError{"Ogg FLAC stream mapping needs version 1.0"}
+        var probe: Flac.Codec
+        try probe.readStreamInfo(body[9 to])
+        result.kind          = .Flac
+        result.channels      = probe.info.channels
+        result.sampleRate    = probe.info.sampleRate
+        result.headerPackets = 1 + (cast(u32, body[7]) << 8) + cast(u32, body[8])
+    }
+
     return result
 }
 
@@ -248,7 +265,7 @@ private func findStream(walker: *Walker)->StreamInfo fail
         walker.offset += header.totalBytes()
     }
 
-    fail UnsupportedFormatError{"Ogg file carries no Vorbis or Opus stream"}
+    fail UnsupportedFormatError{"Ogg file carries no Vorbis, Opus, or FLAC stream"}
 }
 
 private struct HeaderEnd
@@ -319,6 +336,23 @@ private func skipHeaders(walker: *Walker, info: *StreamInfo)->HeaderEnd fail
     }
 
     fail InvalidFormatError{"Ogg stream ends inside its header packets"}
+}
+
+// Reads the FLAC setup and identifies where audio starts on a page shared with metadata.
+func flacSetup(config: const [..] u8)->{streamInfo: const [..] u8, serial: u32, firstAudioSequence: u32, headerPacketsOnAudioPage: u32} fail
+{
+    var walker: Walker
+    walker.source = ByteSource.openMemory(config)
+    walker.table  = buildChecksumTable()
+    var info      = try findStream(&walker)
+    if info.kind != .Flac do
+        fail InvalidFormatError{"Ogg FLAC configuration has no FLAC identification packet"}
+    var header: PageHeader
+    if not try walker.next(&header) do
+        fail InvalidFormatError{"Ogg FLAC configuration ends before the identification page"}
+    let start = walker.offset + header.headerBytes + 9
+    discard try skipHeaders(&walker, &info)
+    return {config[start until start + 42], info.serial, info.firstAudioSequence, info.headerPacketsOnAudioPage}
 }
 
 // One run of pages being merged into a packet of the index.
@@ -449,7 +483,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             if header.granule < previous do
                 fail InvalidFormatError{"Ogg granule position runs backwards"}
             var frames: u64
-            if info.kind == .Vorbis
+            if info.kind != .Opus
             {
                 frames = header.granule - previous
             }
@@ -524,6 +558,13 @@ func openFile(path: string)->SoundFile fail
     walker.source.readExact(config.toSlice())
     walker.source.close()
 
-    let encoding = info.kind == .Vorbis ? SoundFileEncoding.Vorbis : SoundFileEncoding.Opus
+    var encoding: SoundFileEncoding
+    switch info.kind
+    {
+    case .Vorbis: encoding = .Vorbis
+    case .Opus:   encoding = .Opus
+    case .Flac:   encoding = .Flac
+    default:      unreachable
+    }
     return SoundFile.openPacketStream(path, encoding, info.sampleRate, info.channels, total, walker.packets.toSlice(), config.toSlice(), {leadingTrimFrames: info.preSkip, speakerMask: info.speakerMask})
 }

@@ -30,7 +30,7 @@ struct PartReader
 
 impl PartReader
 {
-    mtd const text(path: string, required = true, limit = 16 * 1024 * 1024'u64)->String fail
+    mtd const text(path: string, required = true, limit = 16 * 1024 * 1024'u64, allowDocumentType = false)->String fail
     {
         let entry = .archive.tryFindEntry(path)
         if not entry
@@ -46,7 +46,8 @@ impl PartReader
         var source = cast(string, bytes.toSlice())
         if source.count >= 3 and source[0] == 0xEF'u8 and source[1] == 0xBB'u8 and source[2] == 0xBF'u8 do
             source = source[3 to]
-        var scan  = Scanner.create(source)
+        var scan = Scanner.create(source)
+        scan.allowDocumentType = allowDocumentType
         var token:    Token
         var elements: Array'String
         var roots = 0'u32
@@ -54,6 +55,7 @@ impl PartReader
         {
             if token.kind == .Start
             {
+                scan.allowDocumentType = false
                 if elements.isEmpty() do
                     roots += 1
                 if not token.empty do

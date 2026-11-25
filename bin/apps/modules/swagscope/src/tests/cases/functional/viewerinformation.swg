@@ -45,7 +45,7 @@ func assertInformationParity(name: string)
 {
     Swag.require(Sound.acquireEngine(.NoSound))
     defer Sound.releaseEngine()
-    let file = Path.combine(testSourceRoot(#curlocation), "datas", name)
+    let file = scopeTestDataPath(name)
     var explored: Array'String
     scope
     {
@@ -254,7 +254,7 @@ func assertInformationParity(name: string)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.onlineMovies = false
     window.onlineMusic  = true
-    let file     = Path.combine(testSourceRoot(#curlocation), "datas", "viewer.mp3")
+    let file     = scopeTestDataPath("viewer.mp3")
     let key      = expect ThumbnailCache.key(file, settings: ThumbnailSettings.capture(window))
     let previous = ThumbnailCache.read(key)
     defer

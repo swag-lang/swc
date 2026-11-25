@@ -71,14 +71,18 @@ fragmented MP4 writer without making a test depend on `ffprobe`.
 `ffmpeg-h264-mp3.mp4` combines the H.264 video of `ffmpeg-h264-baseline.mp4` with the synthetic
 mono 48 kHz Layer III stream in std/audio's `mp3-mono-48000.mp3`, using FFmpeg 7.1.5 with
 `-map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart`. Both streams are copied without
-re-encoding. `mp4-layer3-reference.pcm` is the FFmpeg decode of the multiplexed audio track as
-signed 16-bit little-endian PCM.
+re-encoding. `bin/testdata/audio/mp3-mono-48000.pcm` is the FFmpeg decode of the multiplexed
+track as signed 16-bit little-endian PCM, shared with the audio tests.
 
 - `ffmpeg-h264-mp3.mp4`: 5,797 bytes, SHA-256:
   `2813c5c7486ab14df9006f70684ab76b72545877922b52e9fed6f5229543158e`.
-- `mp4-layer3-reference.pcm`: 32,256 bytes, SHA-256:
+- `mp3-mono-48000.pcm`: 32,256 bytes, SHA-256:
   `deff7b2483049b80e4eba31d5ad4fe49375351c04d211e991d75f9416c73d364`.
 - License: same as this repository and the std/audio MP3 fixture.
+
+`ffmpeg-mjpeg-mp3.avi` remuxes the synthetic pictures from `ffmpeg-mjpeg-420.avi` and all
+14 Layer III packets from `ffmpeg-h264-mp3.mp4` with PyAV 17.1.0 and libavformat 62.12.101.
+Neither stream is re-encoded. The source fixtures and their licences are described above.
 
 `ffmpeg-h264-ac3.mp4` combines `ffmpeg-h264-baseline.mp4` with std/audio's synthetic 5.1 AC-3
 stream, `ac3-5.1-48000.ac3`, using FFmpeg 7.1.5 with
@@ -412,8 +416,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 `opus-stereo-48000.opus` and the Vorbis track of `vorbis-stereo-44100.ogg` into Matroska through
 PyAV 17.1. The muxer states the Opus pre-skip as the track's codec delay and trims the final
 block with a discard padding; the Vorbis headers travel Xiph-laced in the codec private data.
-`opus-stereo-48000.pcm` and `vorbis-stereo-44100.pcm` are copies of the reference decodes
-documented beside those sources, so the container tests compare against the same samples.
+The container and audio tests read the same reference decodes from `bin/testdata/audio`,
+`opus-stereo-48000.pcm` and `vorbis-stereo-44100.pcm`.
 
 - `ffmpeg-h264-opus.mkv` SHA-256: `25ebe972d6bdf54aedb315c408775b78bade1f20f181c9aab552f4549202960e`
 - `ffmpeg-h264-vorbis.mkv` SHA-256: `c2c591838668e4aab3376c2f2890887c68b90fd33606105a143893cd5d8224e5`

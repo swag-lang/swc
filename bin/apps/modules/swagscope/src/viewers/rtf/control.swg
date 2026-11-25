@@ -39,17 +39,20 @@ impl Control
             at       += 1
         }
 
+        let limit = negative ? 2_147_483_648'u32 : 2_147_483_647'u32
+        var magnitude: u32
         while at < source.count and Latin1.isDigit(source[at])
         {
             result.hasNumber = true
-            if result.number > 100_000_000 do
+            let digit = cast(u32, source[at] - '0')
+            if magnitude > (limit - digit) / 10 do
                 fail Errors.InvalidFormatError{texts().err_Invalid}
-            result.number = result.number * 10 + cast(s32, source[at] - '0')
+            magnitude = magnitude * 10 + digit
             at += 1
         }
 
-        if negative do
-            result.number = -result.number
+        let signed = cast(s64, magnitude)
+        result.number = cast(s32, negative ? -signed : signed)
         if at < source.count and source[at] == ' ' do
             at += 1
         result.end = at

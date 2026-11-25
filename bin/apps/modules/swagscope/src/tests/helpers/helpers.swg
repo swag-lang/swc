@@ -20,22 +20,46 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 // Locates shared fixtures for categorized viewer tests.
 func scopeTestDataDirectory(loc: Swag.SourceCodeLocation = #callerlocation)->String => Path.combine(testSourceRoot(loc), "datas")
 
-// Resolves one fixture from the shared Scope test corpus.
-func scopeTestDataPath(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String => Path.combine(scopeTestDataDirectory(loc), name)
+// Resolves a fixture from the module or the shared checkout corpus.
+func scopeTestDataPath(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String
+{
+    var category: string
+    switch name
+    {
+    case "ffmpeg-h264-baseline.mp4", "ffmpeg-h264-two-aac.mkv", "rv40-legacy-clock.mkv",
+         "viewer.avi", "viewer.hevc.mp4", "viewer.raw.avi", "viewer.y4m":
+        category = "video"
+    case "viewer.aac", "viewer.ac3", "viewer.dts", "viewer.eac3", "viewer.flac",
+         "viewer.hybrid.opus", "viewer.mp3", "viewer.ogg", "viewer.opus",
+         "viewer.surround.eac3", "viewer.surround.flac":
+        category = "audio"
+    case "document-outline.pdf", "viewer.ccitt.pdf", "viewer.jpeg.pdf",
+         "viewer.object-stream.pdf", "viewer.openmp-reference.pdf", "viewer.rotation.pdf":
+        category = "pdf"
+    default:
+        return Path.combine(scopeTestDataDirectory(loc), name)
+    }
 
-// Copies one fixture of the shared corpus into a folder of its own and returns the copy.
+    let root      = testSourceRoot(loc)
+    var directory = root.toString()
+    for 5 do
+        directory = unwrap Path.directoryName(directory)
+    return Path.combine(directory, "testdata", category, name)
+}
+
+// Copies a fixture into a folder of its own, using `asName` when supplied.
 //
 // A viewer that walks the folder of the file it opens shows how many siblings it found. Opened
 // from the shared corpus, that count moves with every fixture the corpus gains, so a picture
 // recorded there goes stale without any change in what it shows. The caller deletes the folder
 // with [[discardIsolatedScopeFixture]].
-func isolatedScopeFixture(name: string, loc: Swag.SourceCodeLocation = #callerlocation)->String
+func isolatedScopeFixture(name: string, loc: Swag.SourceCodeLocation = #callerlocation, asName: string = "")->String
 {
     let folder = Testing.tempFilePath("scope-fixture-", "")
     expect Directory.create(folder)
 
     let bytes  = expect File.readAllBytes(scopeTestDataPath(name, loc))
-    let result = Path.combine(folder, name)
+    let result = Path.combine(folder, asName.count == 0 ? name : asName)
     discard expect File.writeAllBytes(result, bytes.toSlice())
     return result
 }
@@ -520,4 +544,4 @@ func photographViewer(host: *Testing.HeadlessHost, window: *ViewerWindow, golden
     Pixel.Testing.assertImageGolden(&image, golden)
 }
 
-func picturedFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
+func picturedFixture(name: string)->String => scopeTestDataPath(name, #curlocation)

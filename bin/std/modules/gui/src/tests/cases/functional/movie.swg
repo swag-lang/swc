@@ -3,9 +3,6 @@
 
 using Core, Pixel
 
-// Returns the full path of the fixture `name` in the `datas` folder beside this file.
-func movieFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
-
 // An animated WebP or APNG advances on its frame durations, honors its encoded loop count, and
 // counts the loops it completes.
 #test
@@ -13,7 +10,7 @@ func movieFixture(name: string)->String => Path.combine(testSourceRoot(#curlocat
     for name in ["imageset-animation.webp", "imageset-animation.apng"]
     {
         var movie: Movie
-        expect movie.load(movieFixture(name).toString())
+        expect movie.load(guiSharedFixturePath("image", name).toString())
         Swag.require(movie.isAnimated() and movie.frameCount == 3 and movie.frameIndex == 0)
         Swag.require(not movie.isPaused and movie.currentFrameDuration() == 0.04)
         Swag.require(movie.completedLoopCount() == 0)
@@ -49,7 +46,7 @@ func movieFixture(name: string)->String => Path.combine(testSourceRoot(#curlocat
 {
     var movie: Movie
     movie.maxCacheBytes = 64
-    expect movie.load(movieFixture("imageset-animation.webp").toString())
+    expect movie.load(guiSharedFixturePath("image", "imageset-animation.webp").toString())
     expect movie.prepareCache()
     Swag.require(movie.cachedBytes == 64 and movie.cachedFrames.count == 1)
     movie.setFrameIndex(2)
@@ -68,7 +65,7 @@ func movieFixture(name: string)->String => Path.combine(testSourceRoot(#curlocat
     var host: Testing.HeadlessHost
     host.setup(300, 200)
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
-    expect view.loadMovie(movieFixture("imageset-icons.ico").toString())
+    expect view.loadMovie(guiSharedFixturePath("image", "imageset-icons.ico").toString())
     Swag.require(not view.movie.isAnimated() and view.movie.isPaused and view.movie.frameIndex == 1)
     Swag.require(view.uploadedTexture.width == 4)
     view.setFrameIndex(0)

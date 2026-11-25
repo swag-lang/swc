@@ -692,7 +692,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
             return true
         })
 
-        let wanted   = expect File.readAllBytes(videoFixturePath(Pcm[fileIndex]))
+        let wanted   = expect File.readAllBytes(videoReferenceAudioPath(Pcm[fileIndex]))
         let wantedAt = cast(const [*] s16, wanted.storage())
         let compared = Math.min(decoded.count, wanted.count / #sizeof(s16))
         Swag.require(decoded.count == sound.sampleFrameCount() * 2)

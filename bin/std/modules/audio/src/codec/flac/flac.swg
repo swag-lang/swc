@@ -1,6 +1,6 @@
 //! Format: FLAC (Free Lossless Audio Codec).
 //! Supported: Subset, verbatim, fixed, and linear predictive subframes, every Rice partition order, left/right/mid side stereo, one to eight channels, and four to thirty-two bits a sample.
-//! Not supported: Ogg-encapsulated FLAC, and the sample widths above sixteen bits keep their range but not their depth, since a packet codec produces PCM16.
+//! Not supported: Sample widths above sixteen bits keep their range but are reduced to PCM16.
 //! Role: This file owns FLAC frame syntax, subframe prediction, residual decoding, and PCM output.
 //
 #global namespace Flac
@@ -178,6 +178,11 @@ internal struct Codec
     channels: [MaxChannels] Array's64
     residual: Array's64
     capacity: u32
+    inOgg:    bool
+    oggSerial: u32
+    firstAudioSequence: u32
+    headerPacketsOnAudioPage: u32
+    oggFrame: Array'u8
 }
 
 private impl Codec
@@ -599,6 +604,63 @@ private impl Codec
             }
         }
     }
+    mtd decodePcm(destination: [*] s16, destinationSize: u64, packet: const [..] u8)->u64 fail
+    {
+        let header   = try .decodeFrame(packet)
+        let produced = cast(u64, header.blockSize) * cast(u64, header.channels) * #sizeof(s16)
+        if header.channels != .info.channels do
+            fail InvalidFormatError{"FLAC frame channel count differs from its stream"}
+        if destinationSize < produced do
+            fail BadParameterError{"FLAC destination buffer is too small"}
+        .writePcm16(destination, header)
+        return produced
+    }
+
+    // An indexed Ogg run can hold many frames, including frames split across pages.
+    mtd decodeOggRun(destination: [*] s16, destinationSize: u64, pages: const [..] u8)->u64 fail
+    {
+        var offset, produced: u64
+        .oggFrame.clear()
+        while offset < pages.count
+        {
+            let page = try Ogg.readPageHeader(pages, offset)
+            if page.totalBytes() > pages.count - offset do
+                fail InvalidFormatError{"Ogg FLAC page runs past the end of its packet group"}
+            var at = offset + page.headerBytes
+            offset += page.totalBytes()
+            if page.serial != .oggSerial do
+                continue
+
+            var skip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
+            for index in page.segments
+            {
+                let size = cast(u64, page.lacing[index])
+                if skip
+                {
+                    if size < 255 do
+                        skip -= 1
+                }
+                else
+                {
+                    // Native FLAC frames fit in STREAMINFO's 24-bit maximum frame size.
+                    if .oggFrame.count + size > 0xFF_FFFF do
+                        fail InvalidFormatError{"Ogg FLAC frame exceeds the FLAC frame-size limit"}
+                    .oggFrame.add(pages[at until at + size])
+                    if size < 255
+                    {
+                        produced += try .decodePcm(destination + produced / #sizeof(s16), destinationSize - produced, .oggFrame.toSlice())
+                        .oggFrame.clear()
+                    }
+                }
+
+                at += size
+            }
+        }
+
+        if not .oggFrame.isEmpty() do
+            fail InvalidFormatError{"Ogg FLAC packet group ends inside a frame"}
+        return produced
+    }
 }
 
 impl IPacketCodec for Codec
@@ -607,7 +669,17 @@ impl IPacketCodec for Codec
 
     mtd impl initialize(config: const [..] u8, sampleRateHz, channels: u32) fail
     {
-        try .readStreamInfo(config)
+        .inOgg = config.count >= 4 and config[until 4] == cast(const [..] u8, "OggS")
+        if .inOgg
+        {
+            let setup = try Ogg.flacSetup(config)
+            .oggSerial                = setup.serial
+            .firstAudioSequence       = setup.firstAudioSequence
+            .headerPacketsOnAudioPage = setup.headerPacketsOnAudioPage
+            try .readStreamInfo(setup.streamInfo)
+        }
+        else do
+            try .readStreamInfo(config)
         if .info.sampleRate != sampleRateHz or .info.channels != channels do
             fail InvalidFormatError{"FLAC stream information does not match its container track"}
         .reserveBlock(.info.maxBlockSize)
@@ -617,12 +689,10 @@ impl IPacketCodec for Codec
 
     mtd impl decodePacket(destination: [*] void, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
-        let header   = try .decodeFrame(packet)
-        let produced = cast(u64, header.blockSize) * cast(u64, header.channels) * #sizeof(s16)
-        if destinationSize < produced do
-            fail BadParameterError{"FLAC destination buffer is too small"}
-        .writePcm16(cast([*] s16, destination), header)
-        return produced
+        let pcm = cast([*] s16, destination)
+        if .inOgg do
+            return try .decodeOggRun(pcm, destinationSize, packet)
+        return try .decodePcm(pcm, destinationSize, packet)
     }
 }
 

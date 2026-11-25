@@ -142,7 +142,7 @@ using Swag, Core, Pixel
     view.setFrameIndex(0)
     Swag.require(frameChanges == 0)
 
-    let fileName = Path.combine(testSourceRoot(#curlocation), "datas", "imageset-animation.webp")
+    let fileName = guiSharedFixturePath("image", "imageset-animation.webp")
     expect view.loadMovie(fileName.toString())
     view.setFrameIndex(0)
     view.setFrameIndex(-1)

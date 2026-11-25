@@ -1,6 +1,6 @@
 //! Format: DTS Coherent Acoustics Core packet decoder component.
 //! Supported: 14- and 16-bit big- and little-endian core frames through 5.1 channels, including the backward-compatible core of DTS-HD access units, scalar quantization, ADPCM prediction, omission of high-frequency VQ bands, subframe transitions, both synthesis filters, and 64x or 128x LFE.
-//! Not supported: Huffman-coded side information or samples, high-frequency VQ reconstruction, joint intensity, and decoding DTS extension substreams.
+//! Not supported: High-frequency VQ reconstruction, joint intensity, and decoding DTS extension substreams.
 //! Role: This file owns DTS Core frame syntax, subband reconstruction, channel mapping, and packet dispatch.
 //
 #global namespace Dts
@@ -23,6 +23,7 @@ private const QuantLevels:      [8] u32   = [0, 3, 5, 7, 9, 13, 17, 25]
 private const BlockCodeBits:    [8] u32   = [0, 7, 10, 12, 13, 15, 17, 19]
 private const QuantSelectBits:  [10] u32  = [1, 2, 2, 2, 2, 3, 3, 3, 3, 3]
 private const QuantGroupSize:   [10] u32  = [1, 3, 3, 3, 3, 7, 7, 7, 7, 7]
+private const QuantAdjustments: [4] f64   = [1.0, 1.125, 1.25, 1.4375]
 private const StepSizeLossy:    [27] f64  = [0, 6_710_886, 4_194_304, 3_355_443, 2_474_639, 2_097_152, 1_761_608, 1_426_063, 796_918, 461_373, 251_658, 146_801, 79_692, 46_137, 27_263, 16_777, 10_486, 5_872, 3_355, 1_887, 1_258, 713, 336, 168, 84, 42, 21]
 private const StepSizeLossless: [27] f64  = [0, 4_194_304, 2_097_152, 1_384_120, 1_048_576, 696_254, 524_288, 348_127, 262_144, 131_072, 65_431, 33_026, 16_450, 8_208, 4_100, 2_049, 1_024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
 private const ScaleFactors:     [128] f64 = [
@@ -116,6 +117,36 @@ private impl BitReader
         if raw & sign do
             return cast #bit (s32, (raw | (~0'u32 << count)))
         return cast(s32, raw)
+    }
+
+    mtd readHuffman(root: u32)->s32 fail
+    {
+        var node = cast(s32, root)
+        while node >= 0
+        {
+            let bit = .read(1)
+            if .overrun do
+                fail InvalidFormatError{"DTS Huffman code is truncated"}
+            node = HuffmanNodes[node, bit]
+        }
+
+        return -1 - node
+    }
+
+    mtd readScale(selector: u32, index: *s32)->f64 fail
+    {
+        if selector < 5 do
+            index[] += (try .readHuffman(ScaleBookRoots[selector])) - 64
+        else do
+            index[] = cast(s32, .read(selector + 1))
+        let entries = selector == 6 ? 128 : 64
+        if index[] < 0 or index[] >= entries do
+            fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
+        if selector == 6 do
+            return ScaleFactors[index[]]
+        if index[] == 63 do
+            return 0
+        return ScaleFactors[index[] * 2]
     }
 
     mtd skip(count: u64)
@@ -491,12 +522,13 @@ private impl Codec
                 quantSelector[channel, book] = reader.read(QuantSelectBits[book])
         }
 
+        var quantAdjust: [MaxPrimaryChannels, 10] f64
         for book in 10
         {
             for channel in channels
             {
                 if quantSelector[channel, book] < QuantGroupSize[book] do
-                    discard reader.read(2)
+                    quantAdjust[channel, book] = QuantAdjustments[reader.read(2)]
             }
         }
 
@@ -531,12 +563,13 @@ private impl Codec
             var allocation: [MaxPrimaryChannels, MaxSubbands] u32
             for channel in channels
             {
-                if allocationSelector[channel] < 5 do
-                    fail UnsupportedFormatError{"DTS Huffman-coded bit allocation is not supported"}
-                let bitCount = allocationSelector[channel] - 1
+                let selector = allocationSelector[channel]
                 for band in Math.min(vqStart[channel], subbandCount[channel])
                 {
-                    allocation[channel, band] = reader.read(bitCount)
+                    if selector < 5 do
+                        allocation[channel, band] = 1 + cast(u32, (try reader.readHuffman(AllocationBookRoots[selector])))
+                    else do
+                        allocation[channel, band] = reader.read(selector - 1)
                     if allocation[channel, band] >= 27 do
                         fail InvalidFormatError{"DTS bit allocation exceeds the core limit"}
                 }
@@ -557,24 +590,14 @@ private impl Codec
             var scales: [MaxPrimaryChannels, MaxSubbands, 2] f64
             for channel in channels
             {
-                if scaleSelector[channel] < 5 do
-                    fail UnsupportedFormatError{"DTS Huffman-coded scale factors are not supported"}
-                let bitCount = scaleSelector[channel] + 1
+                var scaleIndex: s32
                 for band in subbandCount[channel]
                 {
                     if band < vqStart[channel] and not allocation[channel, band] do
                         continue
-                    let scaleIndex = reader.read(bitCount)
-                    if scaleIndex >= ScaleFactors.count do
-                        fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
-                    scales[channel, band, 0] = ScaleFactors[scaleIndex]
-                    if transition[channel, band]
-                    {
-                        let second = reader.read(bitCount)
-                        if second >= ScaleFactors.count do
-                            fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
-                        scales[channel, band, 1] = ScaleFactors[second]
-                    }
+                    scales[channel, band, 0] = try reader.readScale(scaleSelector[channel], &scaleIndex)
+                    if transition[channel, band] do
+                        scales[channel, band, 1] = try reader.readScale(scaleSelector[channel], &scaleIndex)
                 }
             }
 
@@ -619,10 +642,15 @@ private impl Codec
                     {
                         let bits = allocation[channel, band]
                         var audio: [SamplesPerSubband] s32
+                        var adjustment = 1.0'f64
                         if not bits {}
                         elif bits <= 10 and quantSelector[channel, bits - 1] < QuantGroupSize[bits - 1]
                         {
-                            fail UnsupportedFormatError{"DTS Huffman-coded audio samples are not supported"}
+                            let root = QuantBookRoots[bits - 1, quantSelector[channel, bits - 1]]
+                            let bias = QuantBookBias[bits - 1]
+                            for index in SamplesPerSubband do
+                                audio[index] = (try reader.readHuffman(root)) - bias
+                            adjustment = quantAdjust[channel, bits - 1]
                         }
                         elif bits <= 7
                         {
@@ -649,7 +677,8 @@ private impl Codec
 
                         let scale  = transition[channel, band] and subsubframe >= transition[channel, band] ? scales[channel, band, 1] : scales[channel, band, 0]
                         let step   = header.bitRateIndex == 31 ? StepSizeLossless[bits] : StepSizeLossy[bits]
-                        let factor = step * scale / 4_194_304.0
+                        let adjustedScale = Math.min(Math.floor(scale * adjustment), 8_388_607.0)
+                        let factor = step * adjustedScale / 4_194_304.0
                         for index in SamplesPerSubband do
                             subbands[channel, band, subbandPosition + subsubframe * SamplesPerSubband + index] = cast(f64, audio[index]) * factor
                     }

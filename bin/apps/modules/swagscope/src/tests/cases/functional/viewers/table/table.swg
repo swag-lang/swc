@@ -3,6 +3,17 @@
 
 using Core, Pixel, Gui, Viewers
 
+// A dangling quote on an otherwise empty final record leaves all complete records available.
+#test
+{
+    let document = expect Table.parseDocument("city,value\nParis,22\n\"", ','u8)
+    Swag.require(document.rows.count == 1 and document.rows[0].cells[1] == "22")
+
+    var truncated: Swag.Error
+    discard catch Table.parseDocument("city,value\nParis,\"22", ','u8) as truncated
+    Swag.require(truncated.value() != null)
+}
+
 // A generated monthly survey table keeps its field labels and twelve realistic observations.
 #test
 {

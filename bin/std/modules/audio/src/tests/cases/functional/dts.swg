@@ -84,7 +84,7 @@ private func dtsVqPacket()->Array'u8
 
 // Builds one mono Core packet whose first scalar subband uses predictor vector zero. The first
 // residual is an impulse, so the following reconstructed samples exercise the four-tap feedback.
-private func dtsPredictionPacket()->Array'u8
+private func dtsPredictionPacket(huffman = false)->Array'u8
 {
     var bits: DtsTestBits
     bits.add(0x7FFE8001, 32)
@@ -117,7 +117,7 @@ private func dtsPredictionPacket()->Array'u8
     bits.add(0, 2)     // Transition selector.
     bits.add(6, 3)     // Direct seven-bit scale factors.
     bits.add(6, 3)     // Direct five-bit allocation indices.
-    bits.add(1, 1)
+    bits.add(huffman ? 0 : 1, 1)
     for 1'u32 until 5
     {
         bits.add(3, 2)
@@ -128,18 +128,28 @@ private func dtsPredictionPacket()->Array'u8
         bits.add(7, 3)
     }
 
+    if huffman do
+        bits.add(0, 2)    // Use the Huffman codebook without a scale adjustment.
+
     bits.add(0, 2)     // One subsubframe.
     bits.add(0, 3)
     bits.add(1, 1)     // Prediction in subband 0.
     bits.add(0, 1)
     bits.add(0, 12)     // Predictor vector zero.
-    bits.add(8, 5)      // Five directly coded bits per sample in subband 0.
+    bits.add(huffman ? 1 : 8, 5)
     bits.add(0, 5)
-    bits.add(64, 7)     // Scalar scale factor.
-    bits.add(1, 5)      // One impulse followed by seven zero residuals.
-    for 1'u32 until 8
+    bits.add(huffman ? 104 : 64, 7)
+    if huffman
     {
-        bits.add(0, 5)
+        bits.add(0b10, 2)    // Symbol +1 in the three-level codebook.
+        for 7 do
+            bits.add(0, 1)    // Symbol 0.
+    }
+    else
+    {
+        bits.add(1, 5)        // A directly coded impulse and seven zero residuals.
+        for 7 do
+            bits.add(0, 5)
     }
 
     bits.add(0xFFFF, 16)
@@ -290,29 +300,30 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     Swag.require(decoded.size == cast(u64, info.frames) * #sizeof(s16))
 }
 
-// ADPCM prediction is a normal Core coding tool, not an extension. A predicted scalar band must
-// decode to audible PCM instead of making the packet unsupported.
+// Both direct and Huffman-coded residuals feed ADPCM prediction and produce audible PCM.
 #test
 {
-    let bytes = dtsPredictionPacket()
-    let info  = expect Dts.frameInfo(bytes.toSlice())
-    let path  = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("audio-dts-prediction-%.bin", Guid64.random()).toString())
-    defer discard catch File.delete(path)
-    discard expect File.writeAllBytes(path, bytes.toSlice())
-
-    let packets: [1] SoundPacket = [SoundPacket{0, cast(u32, bytes.count), info.frames}]
-    var config:  Array'u8
-    var sound = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, config.toSlice(), {speakerMask: info.speakerMask})
     discard expect createNoSoundEngine()
     defer destroyEngine()
-    let voice = expect Voice.create(&sound)
-    defer voice.destroy()
-    let decoded = expect voice.readBuffer()
-    let samples = Swag.makeSlice(cast(const [*] s16, unwrap decoded.buffer), decoded.size / #sizeof(s16))
-    var nonZero: u64
-    for sample in samples where sample do
-        nonZero += 1
-    Swag.require(decoded.size == cast(u64, info.frames) * #sizeof(s16) and nonZero > 8)
+    for huffman in [false, true]
+    {
+        let bytes = dtsPredictionPacket(huffman)
+        let info  = expect Dts.frameInfo(bytes.toSlice())
+        let path  = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("audio-dts-prediction-%.bin", Guid64.random()).toString())
+        defer discard catch File.delete(path)
+        expect File.writeAllBytes(path, bytes.toSlice())
+
+        let packets = [SoundPacket{0, cast(u32, bytes.count), info.frames}]
+        let sound   = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, [], {speakerMask: info.speakerMask})
+        let voice   = expect Voice.create(&sound)
+        defer voice.destroy()
+        let decoded = expect voice.readBuffer()
+        let samples = Swag.makeSlice(cast(const [*] s16, unwrap decoded.buffer), decoded.size / #sizeof(s16))
+        var nonZero: u64
+        for sample in samples where sample do
+            nonZero += 1
+        Swag.require(decoded.size == cast(u64, info.frames) * #sizeof(s16) and nonZero > 8)
+    }
 }
 
 // Packet framing accepts both byte orders of the 14- and 16-bit representations and rejects a

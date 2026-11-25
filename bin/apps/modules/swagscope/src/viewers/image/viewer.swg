@@ -36,7 +36,7 @@ private const ImageItemSelectorLimit = 128
 private const ImageThumbnailWidth    = 32
 private const ImageThumbnailHeight   = 24
 
-func isJpegExtension(extension: string)->bool => extension == ".jpg" or extension == ".jpeg"
+func isJpegExtension(extension: string)->bool => extension == ".jpg" or extension == ".jpeg" or extension == ".jpe" or extension == ".jfif"
 
 private func commandWidth(metrics: const *ThemeMetrics)->f32 => 2 * themeActionButtonSize(metrics) + 2 * themeDropDownButtonWidth(metrics) + 16
 private func imageSetCommandWidth(metrics: const *ThemeMetrics, animated: bool)->f32 =>

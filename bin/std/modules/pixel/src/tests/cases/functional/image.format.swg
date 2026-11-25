@@ -21,7 +21,8 @@ const PackedFormats: [18] PixelFormat = [
     let jpeg = ImageFormat{"JPEG", ".jpg;.jpeg"}
     Swag.require(jpeg.matches("photo.jpg"))
     Swag.require(jpeg.matches("photo.jpeg"))
-    Swag.require(not jpeg.matches("photo.jpe"))
+    Swag.require(Image.canLoad("photo.JPE"))
+    Swag.require(Image.canLoad("photo.jfif"))
 }
 
 // Every packed format publishes exact storage geometry and alpha/sample traits.

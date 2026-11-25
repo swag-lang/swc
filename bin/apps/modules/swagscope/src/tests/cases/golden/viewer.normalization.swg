@@ -12,7 +12,7 @@ using Core, Gui, Pixel
     // Pixel owns these shared faces until module shutdown; the host copies their pointer list.
     let cjk    = expect TypeFace.create("scope-fixture-cjk", #include("../../datas/font-fixture-cjk.otf"))
     let arabic = expect TypeFace.create("scope-fixture-arabic", #include("../../datas/viewer.arabic.ttf"))
-    let emoji  = expect TypeFace.create("scope-fixture-emoji", #include("../../datas/font-fixture-emoji.ttf"))
+    let emoji  = expect TypeFace.create("scope-fixture-emoji", #include("../../../../../../../testdata/font/font-fixture-emoji.ttf"))
     let window = framedViewerWindow(&host, scopeTestDataPath("comprehensive.txt"), true, width: ViewerWindow.MinWidth, fallbackFaces: [cjk, arabic, emoji])
     let font   = host.theme.createDefaultFont(16)
     for c in [cast(rune, 0xD55C), 0xAD6D, 0xC5B4, 0x0627, 0x0644, 0x0639, 0x1F642] do

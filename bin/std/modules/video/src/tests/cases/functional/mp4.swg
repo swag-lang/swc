@@ -486,7 +486,7 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
         decoded.add(samples)
         return true
     })
-    let wanted   = expect File.readAllBytes(videoFixturePath("mp4-layer3-reference.pcm"))
+    let wanted   = expect File.readAllBytes(videoReferenceAudioPath("mp3-mono-48000.pcm"))
     let wantedAt = cast(const [*] s16, wanted.storage())
     Swag.require(decoded.count == sound.sampleFrameCount() and wanted.count / #sizeof(s16) == decoded.count)
     var energy = 0.0'f64

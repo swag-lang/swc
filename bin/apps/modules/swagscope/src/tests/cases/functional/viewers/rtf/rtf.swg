@@ -3,6 +3,19 @@
 
 using Core, Gui, Gui.Testing, Viewers
 
+// RTF identifiers have the full signed 32-bit range.
+#test
+{
+    let maximum = expect Rtf.Control.parse(cast(const [..] u8, "\\listid2147483647 "), 0)
+    let minimum = expect Rtf.Control.parse(cast(const [..] u8, "\\bliptag-2147483648 "), 0)
+    Swag.require(maximum.hasNumber and maximum.number == Swag.S32.Max)
+    Swag.require(minimum.hasNumber and minimum.number == Swag.S32.Min)
+
+    var overflow: Swag.Error
+    discard catch Rtf.Control.parse(cast(const [..] u8, "\\listid2147483648 "), 0) as overflow
+    Swag.require(overflow.value() != null)
+}
+
 // A long public-domain story retains its narrative scale, opening prose and Unicode typography.
 #test
 {

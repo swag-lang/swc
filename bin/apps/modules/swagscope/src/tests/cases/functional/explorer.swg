@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-func fixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
+func fixture(name: string)->String => scopeTestDataPath(name, #curlocation)
 
 internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 {

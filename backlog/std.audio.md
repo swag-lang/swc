@@ -28,8 +28,8 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 - Evidence: the decoder accepts scalar-coded 14- and 16-bit Core streams, reconstructs four-tap
   ADPCM prediction across frame boundaries, and consumes VQ-bearing frames while omitting those
-  high-frequency bands. It still explicitly rejects Huffman-coded side information or audio,
-  and joint intensity. DTS-HD packets are accepted through their backward-compatible Core prefix;
+  high-frequency bands. It still rejects joint intensity. DTS-HD packets are accepted through
+  their backward-compatible Core prefix;
   extension substreams are not decoded. Prediction and VQ omission are validated against
   DTS-HD Core packets from a real-world Matroska stream; the reproducible `dcaenc` fixture
   exercises none of the remaining tools.

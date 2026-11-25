@@ -6,7 +6,7 @@ using Core, Pixel, Gui, Viewers
 // The fixed afternoon the home writes its times against, so the pictures do not age.
 internal const HomeNow = 17'u64 * Time.TicksPerHour + 50 * Time.TicksPerMinute + 739_000'u64 * Time.TicksPerDay
 
-func homeFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
+func homeFixture(name: string)->String => scopeTestDataPath(name, #curlocation)
 
 // Builds a window whose history holds six fixtures opened over the last days and two explored
 // folders, on the theme of `light`, with the application mark the home shows.

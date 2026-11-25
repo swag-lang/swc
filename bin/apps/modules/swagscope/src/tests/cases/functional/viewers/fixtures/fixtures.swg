@@ -5,8 +5,9 @@ using Core, Pixel, Gui, TrueType, Viewers
 
 private struct Fixture
 {
-    name:   string
-    viewer: string
+    name:    string
+    viewer:  string
+    aliasOf: string = ""
 }
 
 // A collection wraps a real face and still exposes its character map to the font reader.
@@ -137,16 +138,16 @@ private struct Fixture
         Fixture{"viewer.aac", "sound"},
         Fixture{"viewer.ac3", "sound"},
         Fixture{"viewer.eac3", "sound"},
-        Fixture{"viewer.ec3", "sound"},
+        Fixture{"viewer.ec3", "sound", "viewer.eac3"},
         Fixture{"viewer.dts", "sound"},
         Fixture{"viewer.ogg", "sound"},
-        Fixture{"viewer.oga", "sound"},
+        Fixture{"viewer.oga", "sound", "viewer.ogg"},
         Fixture{"viewer.opus", "sound"},
         Fixture{"viewer.mp4", "video"},
         Fixture{"viewer.synthetic-field.mp4", "video"},
-        Fixture{"viewer.m4v", "video"},
-        Fixture{"viewer.mov", "video"},
-        Fixture{"viewer.mkv", "video"},
+        Fixture{"viewer.m4v", "video", "glint-aac-mjpeg.mp4"},
+        Fixture{"viewer.mov", "video", "glint-aac-mjpeg.mp4"},
+        Fixture{"viewer.mkv", "video", "ffmpeg-h264-two-aac.mkv"},
         Fixture{"viewer.avi", "video"},
         Fixture{"viewer.y4m", "video"},
         Fixture{"viewer.cmyk.jpg", "image"},
@@ -157,10 +158,10 @@ private struct Fixture
         Fixture{"viewer.surround.flac", "sound"},
         Fixture{"viewer.surround.eac3", "sound"},
         Fixture{"viewer.hybrid.opus", "sound"},
-        Fixture{"viewer.h264.mp4", "video"},
+        Fixture{"viewer.h264.mp4", "video", "ffmpeg-h264-baseline.mp4"},
         Fixture{"viewer.hevc.mp4", "video"},
         Fixture{"viewer.raw.avi", "video"},
-        Fixture{"viewer.rv40.mkv", "video"},
+        Fixture{"viewer.rv40.mkv", "video", "rv40-legacy-clock.mkv"},
         Fixture{"viewer.json", "code"},
         Fixture{"viewer.xml", "code"},
         Fixture{"viewer.py", "code"},
@@ -230,7 +231,10 @@ private struct Fixture
     let registry = createViewerPluginRegistry()
     for &item in Cases
     {
-        let path = scopeTestDataPath(item.name)
+        let isAlias = item.aliasOf.count != 0
+        let path    = isAlias ? isolatedScopeFixture(item.aliasOf, asName: item.name) : scopeTestDataPath(item.name)
+        defer if isAlias do
+            discardIsolatedScopeFixture(path)
         Swag.require(File.exists(path), item.name)
         let choices = registry.choices(path)
         Swag.require(not choices.isEmpty() and choices[0].key == item.viewer, item.name)

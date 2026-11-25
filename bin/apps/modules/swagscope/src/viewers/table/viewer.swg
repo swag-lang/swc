@@ -268,6 +268,9 @@ func parseDocument(text: string, delimiter: u8)->Document fail
 
         if value == '"' and cell.isEmpty() and not closedQuote
         {
+            // An orphan quote on its own final line is an incomplete record, not a cell.
+            if at + 1 == text.count and not touched and result.rows.count do
+                break
             quoted  = true
             touched = true
             at      += 1

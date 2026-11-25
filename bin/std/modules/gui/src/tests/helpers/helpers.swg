@@ -100,7 +100,25 @@ func pdfPageRectOnScreen(view: *Gui.PdfView, index: u64)->Math.Rectangle
 //
 // Resolving it from the source location keeps a focused run working from every worktree and
 // current directory.
-func corpusPdfPath(name: string)->String => Path.combine(testSourceRoot(#curlocation), Format.toString("datas/%", name).toString())
+func corpusPdfPath(name: string)->String
+{
+    var sharedName: string
+    switch name
+    {
+    case "synthetic-ccitt-cmyk.pdf": sharedName = "viewer.ccitt.pdf"
+    case "pdfbox-jpeg-rgb.pdf": sharedName = "viewer.jpeg.pdf"
+    case "pdfbox-object-stream.pdf": sharedName = "viewer.object-stream.pdf"
+    case "llvm-openmp-reference.pdf": sharedName = "viewer.openmp-reference.pdf"
+    case "pdfbox-rotation.pdf": sharedName = "viewer.rotation.pdf"
+    default:
+        return Path.combine(testSourceRoot(#curlocation), "datas", name)
+    }
+
+    return guiSharedFixturePath("pdf", sharedName)
+}
+
+// Resolves a shared input relative to this checkout's bin/testdata directory.
+func guiSharedFixturePath(category, name: string)->String => Path.combine(testSourceRoot(#curlocation), "../../../../../testdata", category, name)
 
 // Returns the module's test root for test cases stored under cases/<type>.
 

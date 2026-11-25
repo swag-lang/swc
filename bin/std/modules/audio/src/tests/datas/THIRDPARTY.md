@@ -1,5 +1,8 @@
 # Audio fixture sources and licences
 
+The MP3 mono 48 kHz, Opus stereo 48 kHz and Vorbis stereo 44.1 kHz PCM references
+are shared with Video in `bin/testdata/audio`.
+
 `aac-lc-stereo-44100.aac` is a one-second stereo AAC-LC stream generated for this repository.
 Its input is a mathematically generated 440 Hz left-channel sine and 660 Hz right-channel sine,
 both with a 512-sample attack, so it contains no third-party recording. It was encoded at
@@ -100,6 +103,10 @@ fixtures and is not a build or runtime dependency.
 - `adpcm-ima-stereo-44100.wav` SHA-256: `00d370166e7d30bab7e405335724348eee24f2c36a2c6dd5d7f4e7f9d119ceb8`
 - `adpcm-ima-mono-11025.wav` SHA-256: `b1d255f10ec34b383493891d6843c6e9bf3d5eacbc38f206574914363deb2bbe`
 - License: same as this repository.
+
+`flac-stereo-44100.oga` is the same synthetic lossless track as the shared
+`bin/testdata/audio/viewer.flac`, remuxed into Ogg without re-encoding by PyAV 17.1.0
+and libavformat 62.12.101. It carries the same licence as the original fixture.
 
 `vorbis-stereo-44100.ogg` and `vorbis-transient-44100.ogg` are one-second Ogg Vorbis files generated
 for this repository with the FFmpeg libraries bundled by PyAV 17.1.0 (libavformat 62.12, native

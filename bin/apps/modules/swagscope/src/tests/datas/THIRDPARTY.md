@@ -574,17 +574,18 @@ All are covered by this repository's licence.
 - Generation: `python3 generator/generate-image-archive-fixtures.py`; Pillow 12.3.0 plus Python standard library.
 - License: same as this repository.
 
-## Swag Scope copies of standard-module fixtures
+## Swag Scope and standard-module fixtures
 
-The following viewer inputs are byte-identical copies of named fixtures in the standard-module
-corpora. The local mapping and hash make alias suffixes explicit; source provenance and licences
+The following entries map Scope names and original standard-module names to the same bytes.
+Shared payloads live under `bin/testdata`; alias and smoke inputs use their documented names.
+The mapping and hash identify each payload. Source provenance and licences
 are recorded in `bin/std/modules/audio/src/tests/datas/THIRDPARTY.md`,
 `bin/std/modules/video/src/tests/datas/THIRDPARTY.md`, and
 `bin/std/modules/gui/src/tests/datas/THIRDPARTY.md`. Audio/video sources are generated examples
 under this repository's licence; PDFBox files retain Apache License 2.0 terms, and the LLVM manual
 retains the LLVM project licence.
 
-| Swag Scope fixture | Byte-identical source (relative to the module's `src/tests/datas`) | SHA-256 |
+| Swag Scope fixture | Original standard-module fixture name | SHA-256 |
 | --- | --- | --- |
 | `viewer.aac` | `audio/aac-lc-stereo-44100.aac` | `e002c74b334f68808367d2a0881afa9928efed09f1433a6ead214e452d117b8f` |
 | `viewer.ac3` | `audio/ac3-5.1-48000.ac3` | `62398152fe980bbcb9dc149e4ad31aaceb13dd7bc0462c1ce3eeb48a8d54b685` |

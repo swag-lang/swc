@@ -57,6 +57,7 @@ public struct LinePath
         flattenTolerance: f32                 // Tolerance used to build the current flattened cache, in path units.
         isPolyOnly:       bool                // Whether every segment is already polygonal.
         isFlatten:        bool                // Whether flattened geometry is available.
+        hasPolygonMetrics: bool               // Whether the cached points have polygon metrics.
         revision:         u64                 // Advances whenever the flattened contour changes; keys derived caches.
         minBounds:        Vector2             // Minimum cached path bound.
         maxBounds:        Vector2             // Maximum cached path bound.
@@ -134,6 +135,7 @@ public impl LinePath
         .triangles.clear()
         .triangleOffsets.clear()
         .polygon.clear()
+        .hasPolygonMetrics = false
         .isFlatten = false
         .isDirty   = true
         .revision  = nextContourRevision()
@@ -625,6 +627,7 @@ public impl LinePath
     mtd recomputeFlattenedPolygon()
     {
         .polygon.recompute()
+        .hasPolygonMetrics = true
         .minBounds = .polygon.minBounds
         .maxBounds = .polygon.maxBounds
         .triangles.clear()
@@ -640,6 +643,17 @@ public impl LinePath
     // The cache keeps the finest flattening produced so far, whichever combination of quality
     // and scale asked for it.
     mtd flatten(quality = PaintQuality.Normal, scale = 1.0'f32)
+    {
+        .flattenPoints(quality, scale)
+        if not .hasPolygonMetrics and not .isPolyOnly and not .elements.isEmpty()
+        {
+            .polygon.recompute()
+            .hasPolygonMetrics = true
+        }
+    }
+
+    // Builds the contour points without measuring properties needed only by triangulation.
+    internal mtd flattenPoints(quality: PaintQuality, scale: f32)
     {
         // A path adopted from a polygon has no segments to flatten.
         if .isPolyOnly do
@@ -686,8 +700,6 @@ public impl LinePath
             case .Arc:     .flattenArc(pos, elem.p1, elem.p2, tolerance)
             }
         }
-
-        .polygon.recompute()
     }
 }
 

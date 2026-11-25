@@ -299,15 +299,16 @@ func releaseVideoProducer(view: *Film.Panel)
 
 internal func waitForVideoAudio(view: *Film.Panel, count: u32)
 {
+    // The decoder can publish tracks before the viewer has installed their first voice.
     var attempts: u32
-    while view.video.audioTrackCount() != count and attempts < 5000
+    while (view.video.audioTrackCount() != count or not view.voice) and attempts < 5000
     {
         Threading.Thread.sleep(1'ms)
         view.updatePlayback()
         attempts += 1
     }
 
-    Swag.require(view.video.audioTrackCount() == count)
+    Swag.require(view.video.audioTrackCount() == count and view.voice != null)
 }
 
 func waitForVideoVoicePlaying(view: *Film.Panel)
@@ -1283,6 +1284,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 // A Matroska file carrying several sound tracks exposes them on a chip. Changing it creates and
 // positions the replacement voice before releasing the previous one, so transport, volume, and
 // mute state survive the handoff.
+#[Swag.TestTag("focus.mkv-track-switch")]
 #test
 {
     Swag.require(Sound.acquireEngine(.NoSound))
@@ -1307,6 +1309,7 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     var result = openTestViewer(Film.viewerPlugin(), &host.root, path, commandParent: commands)
     Swag.require(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
+    view.autoPlayPending = false
     waitForVideoFrame(view)
     Swag.require(view.timeline.isEnabled())
     waitForVideoAudio(view, 2)
@@ -1329,20 +1332,19 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
 
     // This fixture lasts only 800 ms. Inspect the popup while paused, then exercise the same
     // handoff while playing at an explicitly held position, independent of menu/render latency.
-    view.togglePlayback()
     view.seekFrame(5)
     waitForVideoFrame(view)
     Swag.require(not view.playing and not view.voice!.isPlaying())
-    let previousVoice = unwrap view.voice
 
     host.activateOptionRowWhenShown(Film.texts().ui_OptionAudio)
     host.thenActivateOptionRow("Alternate")
     view.showTracks()
-    Swag.require(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
-    Swag.require(view.voice != null and view.voice != previousVoice)
-    Swag.require(not view.playing and not view.voice.isPlaying())
-    Swag.require(view.muted and Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))
-    let switchedSample = view.voice.playbackSampleFrame()
+    Swag.require(host.autoHandled, host.autoFailure)
+    Swag.require(view.audioTrackIndex == 1 and view.audio!.displayName() == "Alternate")
+    let pausedVoice = unwrap view.voice
+    Swag.require(not view.playing and not pausedVoice.isPlaying())
+    Swag.require(view.muted and Math.isEqualEpsilon(expect pausedVoice.volume(), 0, 0.001))
+    let switchedSample = pausedVoice.playbackSampleFrame()
     let seekSample     = cast(u64, Math.round(view.video.frameTimestamp(5) * 44_100.0))
     let currentSample  = Film.soundSample(unwrap view.audio, view.currentSeconds())
     let sampleDrift    = switchedSample > currentSample ? switchedSample - currentSample : currentSample - switchedSample
@@ -1353,7 +1355,12 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     view.togglePlayback()
     Swag.require(view.playing and view.voice.isPlaying())
     view.clock.reset()
+
+    // The popup pumps the event loop and a Matroska index update can replace a voice there.
+    // Check its identity across the synchronous handoff, before another update can run.
+    let playingVoiceAddress = cast(u64, view.voice)
     expect view.selectAudioTrack(0)
+    Swag.require(view.voice != null and cast(u64, view.voice) != playingVoiceAddress)
     waitForVideoVoicePlaying(view)
     Swag.require(view.playing and view.audioTrackIndex == 0)
     view.clock.reset()

@@ -44,6 +44,7 @@ struct Shape
     internal
     {
         pathList: LinePathList     // Contours, in drawing user units.
+        scanFill: ScanFill         // Raster cache for a dense solid shape.
 
         fillBrush:   Brush       // Resolved fill paint.
         fillColor:   Color       // Inherited solid fill before paint-server resolution.
@@ -1695,6 +1696,26 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
 // Elements /////////////////////////////////////////////////////////////////////
 
+// Dense solid fills can scan-convert their original winding directly, avoiding both the
+// contour-containment walk and the triangulation of regions with thousands of holes.
+private func usesScanFill(list: const *LinePathList, state: const *GroupState)->bool
+{
+    if not state.hasFill or state.hasStroke or state.inDefs or
+       not state.fillPaintId.isEmpty() or not state.filterId.isEmpty() do
+        return false
+    if list.paths.count >= 512 do
+        return true
+    var segments = 0'u64
+    for path in list.paths
+    {
+        segments += path.elements.count
+        if segments >= 8192 do
+            return true
+    }
+
+    return false
+}
+
 private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *GroupState)
 {
     if list.paths.isEmpty() do
@@ -1706,7 +1727,7 @@ private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *Grou
     // the first, so a path whose contours are DISJOINT unions (an arrow above a bar)
     // would lose all but one region. Decompose by containment depth: every even-depth
     // contour roots its own shape and odd-depth contours join their root as holes.
-    if state.hasFill and list.paths.count > 1
+    if state.hasFill and list.paths.count > 1 and not usesScanFill(&list, state)
     {
         var work = #move list
         let n    = work.paths.count
@@ -1773,6 +1794,9 @@ private func emitShapeOne(drawing: *Drawing, list: #move LinePathList, state: *G
 {
     let shapeIndex = drawing.shapes.count
     let shape      = drawing.shapes.emplaceInitAddress()
+    shape.scanFill.enabled = usesScanFill(&list, state)
+    if shape.scanFill.enabled do
+        shape.scanFill.bounds = list.controlBounds()
     shape.pathList = #move list
     shape.hidden   = state.inDefs
 
@@ -3750,7 +3774,10 @@ impl Drawing
         {
             var brush = shape.fillBrush
 
-            painter.fillPath(&shape.pathList, brush)
+            if shape.scanFill.enabled do
+                shape.scanFill.paint(painter, &shape.pathList, brush.color, shape.evenOdd)
+            else do
+                painter.fillPath(&shape.pathList, brush)
         }
 
         if shape.hasStroke

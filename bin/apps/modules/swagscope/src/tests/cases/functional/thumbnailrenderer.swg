@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Gui.Testing, Viewers
 
-private func thumbnailFixture(name: string)->String => Path.combine(testSourceRoot(#curlocation), "datas", name)
+private func thumbnailFixture(name: string)->String => scopeTestDataPath(name, #curlocation)
 
 // Image and video decoders do not initialize the text-card canvas, and the text card draws
 // in the embedded interface face: a test run has no installed font to offer it.

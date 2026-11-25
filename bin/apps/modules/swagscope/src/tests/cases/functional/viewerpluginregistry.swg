@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func viewerRegistryFixturePath(name: string)->String => Path.combine(Path.combine(testSourceRoot(#curlocation), "datas"), name)
+func viewerRegistryFixturePath(name: string)->String => scopeTestDataPath(name, #curlocation)
 
 private func choicePlugin(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->const *Viewer.Plugin => &registry.plugins[choice.pluginIndex]
 

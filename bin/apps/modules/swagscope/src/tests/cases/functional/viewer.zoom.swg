@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func zoomFixturePath(name: string)->String => Path.combine(Path.combine(testSourceRoot(#curlocation), "datas"), name)
+func zoomFixturePath(name: string)->String => scopeTestDataPath(name, #curlocation)
 
 private var g_ReportedDetails: String
 

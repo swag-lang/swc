@@ -12,20 +12,49 @@ func openPackage(fileName, mediaType, invalid, tooLarge, encrypted: string)->Arc
     if archive.entries.count > 4096 do
         fail Errors.UnsupportedFormatError{tooLarge}
     let mime = archive.tryFindEntry("mimetype")
-    if not mime or mime.uncompressedSize > 256 do
-        fail Errors.InvalidFormatError{invalid}
-    let mimeBytes = try Archive.Zip.loadEntry(fileName, mime)
-    if cast(string, mimeBytes.toSlice()) != mediaType do
-        fail Errors.InvalidFormatError{invalid}
+    if mime
+    {
+        if mime.uncompressedSize > 256 do
+            fail Errors.InvalidFormatError{invalid}
+        let mimeBytes = try Archive.Zip.loadEntry(fileName, mime)
+        if cast(string, mimeBytes.toSlice()) != mediaType do
+            fail Errors.InvalidFormatError{invalid}
+    }
+
     let parts    = Package.PartReader{fileName, &archive, invalid, tooLarge}
-    let manifest = try parts.text("META-INF/manifest.xml", required: false, limit: 1024 * 1024)
+    let manifest = try parts.text("META-INF/manifest.xml", required: mime == null, limit: 1024 * 1024, allowDocumentType: true)
     var scan     = Package.Scanner.create(manifest)
+    scan.allowDocumentType = true
+    var rootType: String
+    var rootEntry = false
+    var depth = 0'u32
     var token: Package.Token
     while scan.next(&token)
     {
-        if token.kind == .Start and token.isElement("encryption-data") do
-            fail Errors.UnsupportedFormatError{encrypted}
+        if token.kind == .Start
+        {
+            if not depth and not token.isElement("manifest") do
+                fail Errors.InvalidFormatError{invalid}
+            if token.isElement("encryption-data") do
+                fail Errors.UnsupportedFormatError{encrypted}
+            if depth == 1 and token.isElement("file-entry") and (token.attribute("full-path") orelse "") == "/"
+            {
+                if rootEntry do
+                    fail Errors.InvalidFormatError{invalid}
+                rootEntry = true
+                rootType = token.attribute("media-type") orelse ""
+            }
+
+            if not token.empty do
+                depth += 1
+        }
+        elif token.kind == .End do
+            depth -= 1
     }
+
+    // Some producers leave the package type only in the manifest's root entry.
+    if (rootEntry and rootType != mediaType) or (not mime and not rootEntry) do
+        fail Errors.InvalidFormatError{invalid}
 
     return archive
 }

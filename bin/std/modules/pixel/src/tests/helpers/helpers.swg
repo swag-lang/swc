@@ -32,7 +32,16 @@ func expectedChromaSample(plane: const [*] u8, stride: u64, planeWidth, planeHei
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let path = Path.combine(testSourceRoot(loc), "datas", fileName)
+    var directory = "datas"
+    switch fileName
+    {
+    case "imageset-animation.apng", "imageset-animation.webp", "imageset-icons.ico":
+        directory = "../../../../../testdata/image"
+    case "segoeui.ttf":
+        directory = "../../../../../testdata/font"
+    }
+
+    let path = Path.combine(testSourceRoot(loc), directory, fileName)
     Swag.require(File.exists(path))
     return path
 }

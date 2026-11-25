@@ -93,7 +93,7 @@ enum SoundFileEncoding
     Ac3          // Dolby Digital AC-3 sync frames.
     Eac3         // Dolby Digital Plus E-AC-3 sync frames.
     Dts          // DTS Coherent Acoustics Core frames.
-    Flac         // Free Lossless Audio Codec frames.
+    Flac         // Free Lossless Audio Codec frames, raw or inside Ogg pages.
     Mp3          // MPEG-1, MPEG-2, and MPEG-2.5 Layer III frames.
     AdpcmMs      // Microsoft ADPCM blocks of a WAVE file.
     AdpcmIma     // IMA ADPCM blocks of a WAVE file.

@@ -509,12 +509,13 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
 #[Swag.TestTag("golden")]
 #test
 {
+    let picturePath = isolatedScopeFixture("viewer.png")
+    defer discardIsolatedScopeFixture(picturePath)
     var host: Testing.HeadlessHost
     let workspace = testWorkspace(&host)
     defer host.shutdown()
-    let left  = scopeTestDataPath("viewer.png")
-    let right = scopeTestDataPath("sample.cpp")
-    workspace.openScene([left, right], .SideBySide)
+    let codePath = scopeTestDataPath("sample.cpp")
+    workspace.openScene([picturePath, codePath], .SideBySide)
     openViews(&host, workspace)
     workspace.selectView(1)
     let window   = workspace.activeDocument()

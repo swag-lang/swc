@@ -1,5 +1,5 @@
 //! Format: Audio Video Interleave (AVI/RIFF) decoder component.
-//! Supported: Indexed Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit video, plus integer PCM audio tracks of 8, 16, 24, or 32 bits.
+//! Supported: Indexed Motion JPEG, MPEG-4 Part 2, uncompressed RGB555 16-bit or RGB 24-/32-bit video, integer PCM, and MPEG Layer III audio with complete frames in each AVI chunk.
 //! Not supported: OpenDML files beyond the supported RIFF index model and video codecs other than Motion JPEG, MPEG-4 Part 2, or uncompressed RGB.
 //! Role: This file owns RIFF chunks, stream indexes, frame/audio packet lookup, and top-level decode.
 //
@@ -30,6 +30,7 @@ const AudioStreamId  = fourCc('a'u32, 'u'u32, 'd'u32, 's'u32)
 
 // WAVE format tag used by uncompressed integer PCM streams.
 private const PcmFormatTag = 1'u16
+private const Mp3FormatTag = 0x55'u16
 
 // Identifier of the list an OpenDML file groups its frames into.
 private const RecordListId = fourCc('r'u32, 'e'u32, 'c'u32, ' 'u32)
@@ -170,7 +171,7 @@ private struct Layout
     indexStart:  u64                  // Offset of the `idx1` payload, or zero when the file has none.
     indexSize:   u64                  // Length of the `idx1` payload, in bytes.
     streamIndex: u32                  // Ordinal of the video stream among the streams of the file.
-    audioTracks: Array'AudioTrack     // Playable PCM streams, in declaration order.
+    audioTracks: Array'AudioTrack     // Playable sound streams, in declaration order.
     hasMain:     bool
     hasStream:   bool
 }
@@ -350,7 +351,11 @@ private impl AudioFormat
     // Reports whether std/audio can stream this interleaved AVI format without conversion.
     mtd const isPlayable()->bool
     {
-        if .formatTag != PcmFormatTag or not .channels or not .sampleRate do
+        if not .channels or not .sampleRate do
+            return false
+        if .formatTag == Mp3FormatTag do
+            return .channels <= 2
+        if .formatTag != PcmFormatTag do
             return false
         if .bitsPerSample != 8 and
            .bitsPerSample != 16 and
@@ -395,7 +400,7 @@ struct Decoder
         info:          StreamInfo           // What the container headers described.
         frames:        Array'FrameEntry     // Where every frame of the video stream lies.
         payload:       Array'u8             // Scratch storage of one encoded frame.
-        soundTracks:   Array'SoundFile      // PCM tracks streamed from the AVI file.
+        soundTracks:   Array'SoundFile      // Tracks streamed from the AVI file.
         bytesPerPixel: u64                  // Source bytes of one pixel of an uncompressed frame.
         rowBytes:      u64                  // Padded length of one row of an uncompressed frame.
         isRgb555:      bool                 // Whether 16-bit BI_RGB pixels use the default 5-5-5 masks.
@@ -514,7 +519,7 @@ impl IAudioDecoder for Decoder
 
 private impl Decoder
 {
-    // Exposes every supported PCM stream as a sparse, file-backed std/audio source.
+    // Exposes each supported stream as a sparse, file-backed audio source.
     mtd buildSoundTracks(source: *ByteSource, layout: const *Layout) fail
     {
         let path = source.path()
@@ -532,14 +537,54 @@ private impl Decoder
             if not packets.count do
                 continue
 
-            let sound = try SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
-            .soundTracks.add(#move sound)
+            if track.format.formatTag == Mp3FormatTag
+            {
+                var frames = 0'u64
+                for packet in packets do
+                    frames += packet.sampleFrameCount
+                let sound = try SoundFile.openPacketStream(path, .Mp3, track.format.sampleRate, track.format.channels, frames, packets.toSlice(), [])
+                .soundTracks.add(#move sound)
+            }
+            else
+            {
+                let sound = try SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
+                .soundTracks.add(#move sound)
+            }
         }
     }
 
-    // Records the PCM chunks of one audio stream in playback order.
+    // Records the packets of one audio stream in playback order.
     mtd walkSoundPackets(source: *ByteSource, layout: const *Layout, track: const *AudioTrack, packets: *Array'SoundPacket) fail
     {
+        func addChunk(source: *ByteSource, chunk: const *Chunk, format: const *AudioFormat, packets: *Array'SoundPacket) fail
+        {
+            if not chunk.size do
+                return
+            if format.formatTag == PcmFormatTag
+            {
+                if chunk.size % format.blockAlign do
+                    fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
+                packets.add(SoundPacket{chunk.data, cast(u32, chunk.size), cast(u32, chunk.size / format.blockAlign)})
+                return
+            }
+
+            var position = chunk.data
+            let end      = chunk.data + chunk.size
+            while position < end
+            {
+                if end - position < 4 do
+                    fail InvalidFormatError{"AVI Layer III chunk ends inside a frame header"}
+                try source.seek(position)
+                let frame = try Audio.mp3FrameInfo(try source.peek(4))
+                if frame.byteSize > end - position do
+                    fail InvalidFormatError{"AVI Layer III chunk ends inside a frame"}
+                if frame.sampleRate != format.sampleRate or frame.channels != format.channels do
+                    fail InvalidFormatError{"AVI Layer III frame differs from the track sample rate or channel count"}
+                packets.add(SoundPacket{position, frame.byteSize, frame.sampleFrames})
+                position += frame.byteSize
+            }
+        }
+
         let audioId  = frameChunkId(track.streamIndex, 'w'u32, 'b'u32)
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
@@ -548,12 +593,7 @@ private impl Decoder
             let chunk = try readChunk(source, layout.frameEnd)
             if chunk.id == audioId
             {
-                if chunk.size
-                {
-                    if chunk.size % track.format.blockAlign do
-                        fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
-                    packets.add(SoundPacket{chunk.data, cast(u32, chunk.size), cast(u32, (chunk.size / track.format.blockAlign))})
-                }
+                try addChunk(source, &chunk, &track.format, packets)
 
                 position = chunk.next
                 continue
@@ -570,12 +610,8 @@ private impl Decoder
                 {
                     try source.seek(nestedPosition)
                     let nested = try readChunk(source, groupEnd)
-                    if nested.id == audioId and nested.size
-                    {
-                        if nested.size % track.format.blockAlign do
-                            fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
-                        packets.add(SoundPacket{nested.data, cast(u32, nested.size), cast(u32, (nested.size / track.format.blockAlign))})
-                    }
+                    if nested.id == audioId do
+                        try addChunk(source, &nested, &track.format, packets)
 
                     nestedPosition = nested.next
                 }

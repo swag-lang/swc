@@ -96,6 +96,31 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     }
 }
 
+// The same Layer III track decodes identically when interleaved with Motion JPEG in AVI.
+#test
+{
+    let reader = expect Reader.open(videoFixturePath("ffmpeg-mjpeg-mp3.avi"))
+    Swag.require(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleEncoding() == .Mp3 and sound.sampleRateHz() == 48_000 and sound.numChannels() == 1)
+
+    let reference = expect Reader.open(videoFixturePath("ffmpeg-h264-mp3.mp4"))
+    let referenceSound = unwrap reference.audioTrack(0)
+    Swag.require(sound.packetCount() == referenceSound.packetCount() and sound.sampleFrameCount() == referenceSound.sampleFrameCount())
+    var decoded, expected: Array's16
+    expect sound.decodePcm16(func|&decoded|(samples)
+    {
+        decoded.add(samples)
+        return true
+    })
+    expect referenceSound.decodePcm16(func|&expected|(samples)
+    {
+        expected.add(samples)
+        return true
+    })
+    Swag.require(Slice.equals(decoded.toSlice(), expected.toSlice()))
+}
+
 // ffmpeg codes 4:2:2 and 4:4:4 Motion JPEG with chroma grids that differ from the usual 4:2:0
 // layout. Decode all three through the same public path and compare them with independent output.
 #test

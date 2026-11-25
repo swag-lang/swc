@@ -203,7 +203,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     host.setup(640, 360)
-    let path    = Path.combine(testSourceRoot(#curlocation), "datas/document-outline.pdf")
+    let path    = scopeTestDataPath("document-outline.pdf")
     var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, path)
     let view    = assume cast(*PdfDocument.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)

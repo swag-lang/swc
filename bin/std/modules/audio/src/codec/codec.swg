@@ -79,6 +79,16 @@ public func packetEncodingNeedsConfig(encoding: SoundFileEncoding)->bool
     }
 }
 
+// Reads the size and audio shape of an MPEG Layer III frame from its four-byte header.
+//
+// `byteSize` includes the header and `sampleFrames` counts frames across all channels.
+// An invalid or unsupported header fails. The frame payload need not be present.
+public func mp3FrameInfo(header: const [..] u8)->{byteSize: u32, sampleFrames: u32, sampleRate: u32, channels: u32} fail
+{
+    let frame = try Mp3.readHeader(header)
+    return {cast(u32, frame.frameBytes), frame.frameSamples, frame.sampleRate, frame.channels}
+}
+
 // Returns the number of sample frames one packet of `encoding` decodes to.
 //
 // A container builds its packet index before any decoding happens, so this reads the count from

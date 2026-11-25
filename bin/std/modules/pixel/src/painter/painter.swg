@@ -533,6 +533,14 @@ impl Painter
         return .rendererItf
     }
 
+    // Gives the physical bounds of the target currently receiving recorded commands.
+    internal mtd recordingTargetSize()->{width, height: s32}
+    {
+        if .curRT do
+            return {.curRT.colorBuffer.width, .curRT.colorBuffer.height}
+        return .renderer().targetSize()
+    }
+
     // Reports whether commands are currently being recorded between `begin` and `end`.
     internal mtd const isRecording()->bool => .drawingBegin
 

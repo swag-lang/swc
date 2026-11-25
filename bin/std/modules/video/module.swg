@@ -46,7 +46,7 @@ Four codecs ship in the box:
   4:2:2, or 4:4:4 frames. It does not compress, so it favors a small
   implementation over the size of what it produces.
 - AVI (`.avi`) reads Motion JPEG, MPEG-4 Part 2, and uncompressed RGB555 16-bit or RGB 24-/32-bit
-  frames, exposes integer PCM sound
+  frames, exposes integer PCM and MPEG Layer III sound
   tracks, and writes Motion JPEG pictures. A coded stream states its codec through the bitmap
   header of the container and its setup headers inside the stream, and stores a bidirectional plane
   behind the plane it refers forward to, which is what this container's lack of a decoding order

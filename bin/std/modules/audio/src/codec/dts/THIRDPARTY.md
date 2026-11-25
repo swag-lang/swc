@@ -10,6 +10,15 @@
 The numeric Q13 vectors were transcribed into a typed Swag array. No FFmpeg decoder code is
 reproduced. The upstream licence text follows.
 
+## FFmpeg DTS core Huffman codebooks
+
+- Licence: LGPL-2.1-or-later
+- Copyright: Copyright (C) 2004 Gildas Bazin. Copyright (C) 2007 Konstantin Shishkov.
+- Origin: <https://github.com/FFmpeg/FFmpeg/blob/9f35e220ffbba21c88356eb2bbfa3679ede93793/libavcodec/dcahuff.c>
+- Used by: the DTS Core decoder's quantization, bit allocation, and scale delta codebooks.
+
+The symbol and length tables are represented as binary decoding trees in `huffman.swg`.
+
 ## Licence text
                   GNU LESSER GENERAL PUBLIC LICENSE
                        Version 2.1, February 1999

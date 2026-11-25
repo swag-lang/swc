@@ -14,7 +14,8 @@ struct OutlineCounter
 // 'Path.combine' results are dropped (caught by the owner-view escape analysis).
 func getTestDataPath(fileName: string, loc = #callerlocation)->String
 {
-    let path = Path.combine(testSourceRoot(loc), "datas", fileName)
+    let directory = fileName == "segoeui.ttf" ? "../../../../../testdata/font" : "datas"
+    let path      = Path.combine(testSourceRoot(loc), directory, fileName)
     Swag.require(File.exists(path))
     return path
 }

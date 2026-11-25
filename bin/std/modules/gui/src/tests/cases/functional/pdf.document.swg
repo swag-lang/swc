@@ -2,11 +2,9 @@
 
 using Core, Pixel, Pdf
 
-private func pdfFixturePath(name: string)->String => Path.combine(testSourceRoot(#curlocation), Format.toString("datas/%", name).toString())
-
 private func loadPdfFixture(name: string, pageCount: u64)->Document
 {
-    let result = expect Document.load(pdfFixturePath(name))
+    let result = expect Document.load(corpusPdfPath(name))
     Swag.require(result.pages.count == pageCount)
     for page in result.pages do
         Swag.require(page.width > 0 and
@@ -400,7 +398,7 @@ private func buildIncrementalPdf(word, updated: string)->Array'u8
 // fall through to the other rather than cost the document.
 #test
 {
-    var bytes = expect File.readAllBytes(pdfFixturePath("llvm-polly-passes-only.pdf").toString())
+    var bytes = expect File.readAllBytes(corpusPdfPath("llvm-polly-passes-only.pdf").toString())
 
     // Blunt the pointer the file ends with, leaving every object where it was.
     var found = false

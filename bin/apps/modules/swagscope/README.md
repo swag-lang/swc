@@ -305,7 +305,7 @@ are also available.
   hints leave after three playback gestures and can be shown again through the options or lens.
   It indexes packets without decoding the file up front and keeps bounded picture and audio
   queues alongside codec reference buffers.
-  AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
+  AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM or MPEG Layer III sound.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
   sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
   E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, chosen among the options when
@@ -314,7 +314,7 @@ are also available.
   The output-device sample cursor is the master clock: slow picture decoding drops to a clean
   video sync frame without moving or stretching sound.
 - `Sound` uses the Audio module to stream WAV (PCM, float, and ADPCM), FLAC, MP3, AAC, AC-3, E-AC-3, DTS,
-  Ogg Vorbis, and Opus files. Its transport provides the same
+  Ogg FLAC, Ogg Vorbis, and Opus files. Its transport provides the same
   basic time, seek, mute, volume, and keyboard controls as video, and names the recording by the title,
   artist, album, and year of its ID3 or Vorbis tags. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.

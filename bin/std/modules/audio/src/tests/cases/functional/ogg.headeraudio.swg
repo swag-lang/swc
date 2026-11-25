@@ -265,6 +265,25 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     Swag.require(rms <= 0.0001'f64)
 }
 
+// Ogg FLAC keeps its lossless PCM, including audio placed on the last setup page.
+#test
+{
+    let path = audioGetTestDataPath("flac-stereo-44100.oga")
+    let native = expect SoundFile.load(audioGetTestDataPath("flac-stereo-44100.flac"))
+    let expected = expect oggDecodePcm16(&native)
+    let ogg = expect SoundFile.load(path)
+    Swag.require(ogg.sampleEncoding() == .Flac and ogg.numChannels() == 2 and ogg.sampleRateHz() == 44_100)
+    Swag.require(Slice.equals((expect oggDecodePcm16(&ogg)).toSlice(), expected.toSlice()))
+
+    let source = expect File.readAllBytes(path)
+    let merged = expect oggMoveAudioPageAfterHeaders(source.toSlice(), 1, 2)
+    let mixedPath = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-ogg-flac-%.oga", Guid64.random()))
+    defer discard catch File.delete(mixedPath)
+    expect File.writeAllBytes(mixedPath, merged.toSlice())
+    let mixed = expect SoundFile.load(mixedPath)
+    Swag.require(Slice.equals((expect oggDecodePcm16(&mixed)).toSlice(), expected.toSlice()))
+}
+
 // Header and audio packets may share an Ogg page; indexing and decoding retain every audio packet.
 #test
 {

@@ -12,7 +12,7 @@ using Core, Pixel
 
     // Golden inputs own their fallback faces; installed CJK and emoji fonts differ by OS.
     let cjk   = expect TypeFace.load(guiFixturePath("fonts/html-cjk.otf"))
-    let emoji = expect TypeFace.load(guiFixturePath("fonts/html-emoji.ttf"))
+    let emoji = expect TypeFace.load(guiSharedFixturePath("font", "font-fixture-emoji.ttf"))
     host.app.renderer.fontCache().setFallbackTypeFaces([cjk, emoji], false)
 
     let view = HtmlView.createText(&host.root, (expect File.readAllText(htmlFixturePath())).toString())

@@ -279,7 +279,7 @@ private struct GroupState
     strokePaintId: string       = ""        // Inherited stroke paint server.
     strokeOpacity: f32          = 1         // Inherited stroke-only opacity.
     strokeWidth:   f32          = 1         // Inherited stroke width, in user units.
-    strokePattern: Array'SvgLength          // Inherited alternating dash and gap lengths.
+    strokePattern: string       = ""        // Inherited authored dash and gap lengths.
     strokeOffset:  SvgLength                // Inherited offset into the dash sequence.
     strokeMiter:   f32          = 3         // Inherited miter limit.
     hasStroke:     bool                     // Whether stroke is enabled.
@@ -348,6 +348,8 @@ private struct Parser
     patterns:       HashTable'(String, Pattern)
     filters:        HashTable'(String, SvgFilter)
     styles:         StyleSheet
+    dashPatterns:   HashTable'(string, Array'SvgLength)
+    dashScratch:    Array'SvgLength
     embeddedImages: HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
     options:        ParseOptions
     typeFaces:      [FontFamilyKind.count] (*TypeFace?)
@@ -1154,7 +1156,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
         state.strokeWidth = scanNumber(value, &pos)
 
     case "stroke-dasharray":
-        state.strokePattern = parseDashPattern(value)
+        state.strokePattern = value
 
     case "stroke-dashoffset":
         state.strokeOffset = parseLength(value)
@@ -1993,193 +1995,221 @@ private func(Candidates) appendHoles(group: *LinePathList, paths: const *LinePat
     }
 }
 
-private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *GroupState)
+private impl Parser
 {
-    if list.paths.isEmpty() do
-        return
-    if not state.drawsShape() do
-        return
-
-    // A triangulated fill needs one outer contour followed by its holes. Split separate islands
-    // by containment depth, keeping the source order of both islands and holes.
-    if state.hasFill and list.paths.count > 1 and not usesScanFill(&list, state)
+    mtd strokeDashes(value: string)->const *Array'SvgLength?
     {
-        var work  = #move list
-        let count = work.paths.count
-        for path in work.paths do
-            path.flatten(.Normal)
+        if not value.count do
+            return null
 
-        let indexed = count >= MinIndexedContours
-        var index: ContourIndex
-        if indexed do
-            index.build(&work)
+        let key = .sourceView(value)
+        if let existing = .dashPatterns.tryFind(key) do
+            return &existing.value
 
-        var depth: Array's32
-        depth.resize(count)
-        for i in count
+        var parsed = parseDashPattern(key)
+
+        // Keep the cache small even when every shape declares a different dash array.
+        if .dashPatterns.count >= 64 or parsed.count > 64
         {
-            let points = &work.paths[i].polygon.points
-            if points.isEmpty() do
-                continue
-
-            let probe = points[0]
-            if indexed do
-                depth[i] = containerCount(&work, probe, i, index.candidateContainers(probe))
-            else do
-                depth[i] = containerCount(&work, probe, i, count)
+            .dashScratch = #move parsed
+            return &.dashScratch
         }
 
-        var roots = 0
-        for i in count where depth[i] % 2 == 0 do
-            roots += 1
+        return &.dashPatterns.add(key, #move parsed).value
+    }
 
-        if roots <= 1
+    mtd emitShape(list: #move LinePathList, state: *GroupState)
+    {
+        if list.paths.isEmpty() do
+            return
+        if not state.drawsShape() do
+            return
+
+        // A triangulated fill needs one outer contour followed by its holes. Split separate islands
+        // by containment depth, keeping the source order of both islands and holes.
+        if state.hasFill and list.paths.count > 1 and not usesScanFill(&list, state)
         {
-            emitShapeOne(drawing, #move work, state)
+            var work  = #move list
+            let count = work.paths.count
+            for path in work.paths do
+                path.flatten(.Normal)
+
+            let indexed = count >= MinIndexedContours
+            var index: ContourIndex
+            if indexed do
+                index.build(&work)
+
+            var depth: Array's32
+            depth.resize(count)
+            for i in count
+            {
+                let points = &work.paths[i].polygon.points
+                if points.isEmpty() do
+                    continue
+
+                let probe = points[0]
+                if indexed do
+                    depth[i] = containerCount(&work, probe, i, index.candidateContainers(probe))
+                else do
+                    depth[i] = containerCount(&work, probe, i, count)
+            }
+
+            var roots = 0
+            for i in count where depth[i] % 2 == 0 do
+                roots += 1
+
+            if roots <= 1
+            {
+                .emitShapeOne(#move work, state)
+                return
+            }
+
+            for i in count where depth[i] % 2 == 0
+            {
+                var group: LinePathList
+                group.paths.add(work.paths[i])
+                if indexed do
+                    appendHoles(&group, &work, depth.toSlice(), i, index.candidateHoles(i))
+                else do
+                    appendHoles(&group, &work, depth.toSlice(), i, count)
+                .emitShape(#move group, state)
+            }
+
+            // The group lists now own the path pointers.
+            work.paths.clear()
             return
         }
 
-        for i in count where depth[i] % 2 == 0
+        .emitShapeOne(#move list, state)
+    }
+
+    mtd emitShapeOne(list: #move LinePathList, state: *GroupState)
+    {
+        let shapeIndex = .drawing.shapes.count
+        let shape      = .drawing.shapes.emplaceInitAddress()
+        shape.scanFill.enabled = usesScanFill(&list, state)
+        if shape.scanFill.enabled do
+            shape.scanFill.bounds = list.controlBounds()
+        shape.pathList = #move list
+        shape.hidden   = state.inDefs
+
+        shape.hasFill = state.hasFill
+        if state.hasFill
         {
-            var group: LinePathList
-            group.paths.add(work.paths[i])
-            if indexed do
-                appendHoles(&group, &work, depth.toSlice(), i, index.candidateHoles(i))
+            shape.fillColor   = state.fillColor
+            shape.fillPaintId = state.fillPaintId
+            shape.fillOpacity = state.fillOpacity * state.opacity
+            shape.evenOdd     = state.evenOdd
+        }
+
+        shape.hasStroke = state.hasStroke
+        if state.hasStroke
+        {
+            shape.strokeColor   = state.strokeColor
+            shape.strokePaintId = state.strokePaintId
+            shape.strokeOpacity = state.strokeOpacity * state.opacity
+            let geometryScale = transformScale(state.transform)
+            shape.strokeWidth = state.strokeWidth * geometryScale
+            let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
+            shape.strokeOffset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * geometryScale
+            shape.strokeMiter  = state.strokeMiter
+            if let dashes = .strokeDashes(state.strokePattern)
+            {
+                shape.strokePattern.reserve(dashes.count)
+                for value in dashes
+                {
+                    let length = value.isPercent ? value.value * viewportDiagonal : value.value
+                    shape.strokePattern.add(length * geometryScale)
+                }
+            }
+
+            shape.capStyle  = state.capStyle
+            shape.joinStyle = state.joinStyle
+        }
+
+        shape.paintTransform = state.transform
+        shape.filterId       = state.filterId
+
+        if not shape.hidden do
+            .drawing.items.add(DrawingItem{.Shape, shapeIndex})
+    }
+
+    mtd emitRect(state: *GroupState, x, y, w, h, rx, ry: f32)
+    {
+        if w <= 0 or h <= 0 do
+            return
+
+        var list: LinePathList
+        let path = list.newPath()
+        let crx  = Math.min(rx, w * 0.5)
+        let cry  = Math.min(ry, h * 0.5)
+
+        if crx >= w * 0.5 - 0.001 and cry >= h * 0.5 - 0.001
+        {
+            // Full horizontal and vertical corner radii form an ellipse.
+            appendEllipse(path, state, x + w * 0.5, y + h * 0.5, w * 0.5, h * 0.5)
+        }
+        elif isAxisAligned(state.transform)
+        {
+            let origin = mapPoint(state, x, y)
+            let scale  = state.transform.axisScale()
+            let sx     = scale.x
+            let sy     = scale.y
+            if crx > 0 and cry > 0 do
+                path.setRoundRectRaw(origin.x, origin.y, w * sx, h * sy, crx * sx, cry * sy)
             else do
-                appendHoles(&group, &work, depth.toSlice(), i, count)
-            emitShape(drawing, #move group, state)
+                path.setRectRaw(origin.x, origin.y, w * sx, h * sy)
         }
-
-        // The group lists now own the path pointers.
-        work.paths.clear()
-        return
-    }
-
-    emitShapeOne(drawing, #move list, state)
-}
-
-private func emitShapeOne(drawing: *Drawing, list: #move LinePathList, state: *GroupState)
-{
-    let shapeIndex = drawing.shapes.count
-    let shape      = drawing.shapes.emplaceInitAddress()
-    shape.scanFill.enabled = usesScanFill(&list, state)
-    if shape.scanFill.enabled do
-        shape.scanFill.bounds = list.controlBounds()
-    shape.pathList = #move list
-    shape.hidden   = state.inDefs
-
-    shape.hasFill = state.hasFill
-    if state.hasFill
-    {
-        shape.fillColor   = state.fillColor
-        shape.fillPaintId = state.fillPaintId
-        shape.fillOpacity = state.fillOpacity * state.opacity
-        shape.evenOdd     = state.evenOdd
-    }
-
-    shape.hasStroke = state.hasStroke
-    if state.hasStroke
-    {
-        shape.strokeColor   = state.strokeColor
-        shape.strokePaintId = state.strokePaintId
-        shape.strokeOpacity = state.strokeOpacity * state.opacity
-        let geometryScale = transformScale(state.transform)
-        shape.strokeWidth = state.strokeWidth * geometryScale
-        let viewportDiagonal = Math.sqrt(drawing.width * drawing.width + drawing.height * drawing.height) / Math.ConstF32.Sqrt2
-        shape.strokeOffset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * geometryScale
-        shape.strokeMiter  = state.strokeMiter
-        for value in state.strokePattern
+        else
         {
-            let length = value.isPercent ? value.value * viewportDiagonal : value.value
-            shape.strokePattern.add(length * geometryScale)
+            appendRectContour(path, state, x, y, w, h, crx, cry)
         }
 
-        shape.capStyle  = state.capStyle
-        shape.joinStyle = state.joinStyle
+        .emitShape(#move list, state)
     }
 
-    shape.paintTransform = state.transform
-    shape.filterId       = state.filterId
-
-    if not shape.hidden do
-        drawing.items.add(DrawingItem{.Shape, shapeIndex})
-}
-
-private func emitRect(drawing: *Drawing, state: *GroupState, x, y, w, h, rx, ry: f32)
-{
-    if w <= 0 or h <= 0 do
-        return
-
-    var list: LinePathList
-    let path = list.newPath()
-    let crx  = Math.min(rx, w * 0.5)
-    let cry  = Math.min(ry, h * 0.5)
-
-    if crx >= w * 0.5 - 0.001 and cry >= h * 0.5 - 0.001
+    mtd emitEllipse(state: *GroupState, cx, cy, rx, ry: f32)
     {
-        // Full horizontal and vertical corner radii form an ellipse.
-        appendEllipse(path, state, x + w * 0.5, y + h * 0.5, w * 0.5, h * 0.5)
+        if rx <= 0 or ry <= 0 do
+            return
+
+        var list: LinePathList
+        let path = list.newPath()
+        appendEllipse(path, state, cx, cy, rx, ry)
+        .emitShape(#move list, state)
     }
-    elif isAxisAligned(state.transform)
+
+    mtd emitPoly(state: *GroupState, points: string, closeIt: bool)
     {
-        let origin = mapPoint(state, x, y)
-        let scale  = state.transform.axisScale()
-        let sx     = scale.x
-        let sy     = scale.y
-        if crx > 0 and cry > 0 do
-            path.setRoundRectRaw(origin.x, origin.y, w * sx, h * sy, crx * sx, cry * sy)
-        else do
-            path.setRectRaw(origin.x, origin.y, w * sx, h * sy)
+        var list: LinePathList
+        let path = list.newPath()
+        var pos  = 0'u64
+        var idx  = 0
+
+        while pos < points.count
+        {
+            var look = pos
+            while look < points.count and (points[look] == ' ' or points[look] == ',') do
+                look += 1
+            if look >= points.count or not isNumberStart(points[look]) do
+                break
+
+            let x     = scanNumber(points, &pos)
+            let y     = scanNumber(points, &pos)
+            let point = mapPoint(state, x, y)
+            if idx == 0 do
+                path.start(point.x, point.y)
+            else do
+                path.lineTo(point.x, point.y)
+            idx += 1
+        }
+
+        if idx < 2 do
+            return
+        if closeIt do
+            path.close()
+        .emitShape(#move list, state)
     }
-    else
-    {
-        appendRectContour(path, state, x, y, w, h, crx, cry)
-    }
-
-    emitShape(drawing, #move list, state)
-}
-
-private func emitEllipse(drawing: *Drawing, state: *GroupState, cx, cy, rx, ry: f32)
-{
-    if rx <= 0 or ry <= 0 do
-        return
-
-    var list: LinePathList
-    let path = list.newPath()
-    appendEllipse(path, state, cx, cy, rx, ry)
-    emitShape(drawing, #move list, state)
-}
-
-private func emitPoly(drawing: *Drawing, state: *GroupState, points: string, closeIt: bool)
-{
-    var list: LinePathList
-    let path = list.newPath()
-    var pos  = 0'u64
-    var idx  = 0
-
-    while pos < points.count
-    {
-        var look = pos
-        while look < points.count and (points[look] == ' ' or points[look] == ',') do
-            look += 1
-        if look >= points.count or not isNumberStart(points[look]) do
-            break
-
-        let x     = scanNumber(points, &pos)
-        let y     = scanNumber(points, &pos)
-        let point = mapPoint(state, x, y)
-        if idx == 0 do
-            path.start(point.x, point.y)
-        else do
-            path.lineTo(point.x, point.y)
-        idx += 1
-    }
-
-    if idx < 2 do
-        return
-    if closeIt do
-        path.close()
-    emitShape(drawing, #move list, state)
 }
 
 private impl StyleSheet
@@ -3102,7 +3132,7 @@ private impl Parser
                     var list:     LinePathList
                     var vertices: Array'MarkerVertex
                     parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null)
-                    emitShape(.drawing, #move list, &state)
+                    .emitShape(#move list, &state)
                     if hasMarkers do
                         .applyMarkers(&state, vertices.toSlice())
                 }
@@ -3117,30 +3147,28 @@ private impl Parser
                     rx = ry
                 if ry < 0 do
                     ry = rx
-                emitRect(.drawing,
-                         &state,
-                         .geoNumber(&geo, .X),
-                         .geoNumber(&geo, .Y),
-                         .geoNumber(&geo, .Width),
-                         .geoNumber(&geo, .Height),
-                         Math.max(rx, 0),
-                         Math.max(ry, 0))
+                .emitRect(&state,
+                          .geoNumber(&geo, .X),
+                          .geoNumber(&geo, .Y),
+                          .geoNumber(&geo, .Width),
+                          .geoNumber(&geo, .Height),
+                          Math.max(rx, 0),
+                          Math.max(ry, 0))
                 if not selfClosed do
                     try .parseContent(state)
 
             case "circle":
                 let r = .geoNumber(&geo, .R)
-                emitEllipse(.drawing, &state, .geoNumber(&geo, .Cx), .geoNumber(&geo, .Cy), r, r)
+                .emitEllipse(&state, .geoNumber(&geo, .Cx), .geoNumber(&geo, .Cy), r, r)
                 if not selfClosed do
                     try .parseContent(state)
 
             case "ellipse":
-                emitEllipse(.drawing,
-                            &state,
-                            .geoNumber(&geo, .Cx),
-                            .geoNumber(&geo, .Cy),
-                            .geoNumber(&geo, .Rx),
-                            .geoNumber(&geo, .Ry))
+                .emitEllipse(&state,
+                             .geoNumber(&geo, .Cx),
+                             .geoNumber(&geo, .Cy),
+                             .geoNumber(&geo, .Rx),
+                             .geoNumber(&geo, .Ry))
                 if not selfClosed do
                     try .parseContent(state)
 
@@ -3163,7 +3191,7 @@ private impl Parser
                         path.lineTo(target.x, target.y)
                         var strokeOnly = state
                         strokeOnly.hasFill = false
-                        emitShape(.drawing, #move list, &strokeOnly)
+                        .emitShape(#move list, &strokeOnly)
                     }
 
                     if hasMarkers
@@ -3322,13 +3350,13 @@ private impl Parser
                     if name == "polygon"
                     {
                         if state.drawsShape() do
-                            emitPoly(.drawing, &state, pts.value, true)
+                            .emitPoly(&state, pts.value, true)
                     }
                     elif state.drawsShape(strokeOnly: true)
                     {
                         var strokeOnly = state
                         strokeOnly.hasFill = false
-                        emitPoly(.drawing, &strokeOnly, pts.value, false)
+                        .emitPoly(&strokeOnly, pts.value, false)
                     }
 
                     if state.hasMarkers()

@@ -66,18 +66,26 @@ func writeAvi4kFrame(path: string, pixels: const [..] u8, bitCount: u16, topDown
 
 func assertAvi4kFrame(path: string, reference: const *Image)
 {
-    var reader = expect Reader.open(path)
-    Swag.require(reader.frameCount() == 1 and reader.width() == Width and reader.height() == Height)
+    func check(reader: *Reader, reference: const *Image)
+    {
+        Swag.require(reader.frameCount() == 1 and reader.width() == Width and reader.height() == Height)
+        var decoded: Image
+        expect reader.decodeFrameInto(&decoded, 0)
+        Swag.require(decoded.pixelFormat == .RGB8 and decoded.isValid())
+        Swag.require(Slice.equals(decoded.pixels.toSlice(), reference.pixels.toSlice()))
 
-    var decoded: Image
-    expect reader.decodeFrameInto(&decoded, 0)
-    Swag.require(decoded.pixelFormat == .RGB8 and decoded.isValid())
-    Swag.require(Slice.equals(decoded.pixels.toSlice(), reference.pixels.toSlice()))
+        let storage = decoded.pixels.buffer
+        expect reader.decodeFrameInto(&decoded, 0)
+        Swag.require(decoded.pixels.buffer == storage)
+        Swag.require(Slice.equals(decoded.pixels.toSlice(), reference.pixels.toSlice()))
+    }
 
-    let storage = decoded.pixels.buffer
-    expect reader.decodeFrameInto(&decoded, 0)
-    Swag.require(decoded.pixels.buffer == storage)
-    Swag.require(Slice.equals(decoded.pixels.toSlice(), reference.pixels.toSlice()))
+    var file = expect Reader.open(path)
+    check(&file, reference)
+
+    let bytes  = expect File.readAllBytes(path)
+    var memory = expect Reader.openMemory(path, bytes.toSlice())
+    check(&memory, reference)
 }
 
 // Check every output byte for all three packed depths and both bitmap row orders.

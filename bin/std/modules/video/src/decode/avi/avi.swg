@@ -485,15 +485,26 @@ impl IDecoder for Decoder
         if entry.offset > source.size() or entry.size > source.size() - entry.offset do
             fail InvalidFormatError{"AVI frame payload is truncated"}
 
-        if .payload.count != entry.size do
-            .payload.resize(entry.size)
         try source.seek(entry.offset)
-        try source.readExact(.payload.toSlice())
+        if not .isJpeg and not source.path().count
+        {
+            // Memory-backed bitmap rows can be converted directly from the borrowed payload.
+            let payload = (try source.peek(entry.size))[until entry.size]
+            try .decodeBitmapFrame(payload, target)
+            try source.skip(entry.size)
+        }
+        else
+        {
+            if .payload.count != entry.size do
+                .payload.resize(entry.size)
+            try source.readExact(.payload.toSlice())
 
-        if .isJpeg do
-            try .decodeJpegFrame(target)
-        else do
-            try .decodeBitmapFrame(target)
+            if .isJpeg do
+                try .decodeJpegFrame(target)
+            else do
+                try .decodeBitmapFrame(.payload.toSlice(), target)
+        }
+
         .nextIndex = current + 1
     }
 }
@@ -915,18 +926,18 @@ private impl Decoder
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
-    mtd decodeBitmapFrame(target: *Image) fail
+    mtd const decodeBitmapFrame(payload: const [..] u8, target: *Image) fail
     {
-        if .rowBytes * cast(u64, .info.height) > .payload.count do
+        if .rowBytes * cast(u64, .info.height) > payload.count do
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
 
         .prepareTarget(target)
-        let payload = .payload.storage()
+        let pixels = payload.buffer
         switch .bytesPerPixel
         {
-        case 2: copyBitmapRows'2(payload, target, .rowBytes, .isTopDown)
-        case 3: copyBitmapRows'3(payload, target, .rowBytes, .isTopDown)
-        case 4: copyBitmapRows'4(payload, target, .rowBytes, .isTopDown)
+        case 2: copyBitmapRows'2(pixels, target, .rowBytes, .isTopDown)
+        case 3: copyBitmapRows'3(pixels, target, .rowBytes, .isTopDown)
+        case 4: copyBitmapRows'4(pixels, target, .rowBytes, .isTopDown)
         }
     }
 

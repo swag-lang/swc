@@ -410,6 +410,12 @@ impl Decoder
         .destBytesPerScanLine     = .maxMcusPerRow * .maxMcuSizeX * .destBytesPerPixel
         .realDestBytesPerScanLine = (.imageSizeX * .destBytesPerPixel)
 
+        .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
+        .totalLinesLeft  = .imageSizeY
+        .mcuLinesLeft    = 0
+        if not .decOptions.decodePixels do
+            return
+
         .scanLine0.resize(cast(u64, .destBytesPerScanLine) + 8)
         let scanLine0 = .scanLine0.storage()
         Memory.clear(scanLine0, cast(u64, .destBytesPerScanLine))
@@ -418,7 +424,6 @@ impl Decoder
         let scanLine1 = .scanLine1.storage()
         Memory.clear(scanLine1, cast(u64, .destBytesPerScanLine))
 
-        .maxBlocksPerRow = .maxMcusPerRow * .maxBlocksPerMcu
         .quantBuf.resize(cast(u64, .maxBlocksPerRow) * 64 * #sizeof(s16) + 8)
         Memory.clear(.quantBuf.storage(), .quantBuf.count)
 
@@ -426,9 +431,6 @@ impl Decoder
         // slack for a sixteen-byte read that starts on it.
         .sampleBuf.resize(cast(u64, .maxBlocksPerRow) * 64 + 64)
         .pSampleBuf = .sampleBuf.buffer
-
-        .totalLinesLeft = .imageSizeY
-        .mcuLinesLeft   = 0
     }
 
     mtd initScan()->bool fail

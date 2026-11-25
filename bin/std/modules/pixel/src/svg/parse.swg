@@ -306,9 +306,14 @@ private struct Parser
 // The parser borrows these slices from the document for the duration of parsing.
 private alias AttributeMap = HashTable'(string, string)
 
+private struct StyleDeclaration
+{
+    name, value: string
+}
+
 private struct StyleRule
 {
-    declarations: string
+    first, count: u64
     next:         u64 = Swag.U64.Max
 }
 
@@ -322,10 +327,11 @@ private struct StyleRuleList
 // Each selector links rules in source order through the shared array.
 private struct StyleSheet
 {
-    rules:   Array'StyleRule
-    byTag:   HashTable'(String, StyleRuleList)
-    byClass: HashTable'(string, StyleRuleList)
-    byId:    HashTable'(string, StyleRuleList)
+    declarations: Array'StyleDeclaration
+    rules:        Array'StyleRule
+    byTag:        HashTable'(String, StyleRuleList)
+    byClass:      HashTable'(string, StyleRuleList)
+    byId:         HashTable'(string, StyleRuleList)
 
     classMatches:    Array'u64
     matchGeneration: u64
@@ -1058,28 +1064,41 @@ private func composeTransformList(value: string, parent: Math.Transform2)->Math.
     return result
 }
 
+// Reads the next name/value pair and leaves the cursor on the following declaration.
+private func nextStyleDeclaration(text: string, cursor: *u64)->StyleDeclaration
+{
+    while cursor[] < text.count
+    {
+        let start = cursor[]
+        var end   = start
+        while end < text.count and text[end] != ';' do
+            end += 1
+        cursor[] = end < text.count ? end + 1 : end
+
+        var colon = start
+        while colon < end and text[colon] != ':' do
+            colon += 1
+        if colon == end do
+            continue
+
+        let name = Latin1.trim(text[start until colon])
+        if name.count do
+            return {name: name, value: Latin1.trim(text[colon + 1 until end])}
+    }
+
+    return {name: "", value: ""}
+}
+
 private func applyAttribute(state: *GroupState, name, value: string)
 {
     if name == "style"
     {
-        // Inline declarations: name:value pairs separated by ';'.
-        var scan = value
-        while scan.count
+        var cursor = 0'u64
+        while cursor < value.count
         {
-            var stop = 0'u64
-            while stop < scan.count and scan[stop] != ';' do
-                stop += 1
-            let decl = scan[until stop]
-
-            var sep = 0'u64
-            while sep < decl.count and decl[sep] != ':' do
-                sep += 1
-            if sep < decl.count do
-                applyStyleProperty(state, Latin1.trim(decl[until sep]), Latin1.trim(decl[sep + 1 until decl.count]))
-
-            if stop == scan.count do
-                break
-            scan = scan[stop + 1 until scan.count]
+            let declaration = nextStyleDeclaration(value, &cursor)
+            if declaration.name.count do
+                applyStyleProperty(state, declaration.name, declaration.value)
         }
 
         return
@@ -1090,27 +1109,12 @@ private func applyAttribute(state: *GroupState, name, value: string)
 
 private func styleValue(style, property: string)->string
 {
-    var scan = style
-    while scan.count
+    var cursor = 0'u64
+    while cursor < style.count
     {
-        var stop = 0'u64
-        while stop < scan.count and scan[stop] != ';' do
-            stop += 1
-        let declaration = scan[until stop]
-
-        var sep = 0'u64
-        while sep < declaration.count and declaration[sep] != ':' do
-            sep += 1
-        if sep < declaration.count
-        {
-            let name = Latin1.trim(declaration[until sep])
-            if not Latin1.compare(name, property, ignoreCase: true) do
-                return Latin1.trim(declaration[sep + 1 until declaration.count])
-        }
-
-        if stop == scan.count do
-            break
-        scan = scan[stop + 1 until scan.count]
+        let declaration = nextStyleDeclaration(style, &cursor)
+        if not Latin1.compare(declaration.name, property, ignoreCase: true) do
+            return declaration.value
     }
 
     return ""
@@ -1984,7 +1988,26 @@ private impl StyleSheet
         else do
             .rules[list.last].next = index
         list.last = index
-        .rules.add(StyleRule{declarations: declarations})
+
+        let first  = .declarations.count
+        var cursor = 0'u64
+        while cursor < declarations.count
+        {
+            let declaration = nextStyleDeclaration(declarations, &cursor)
+            if declaration.name.count do
+                .declarations.add(declaration)
+        }
+
+        .rules.add(StyleRule{first: first, count: .declarations.count - first})
+    }
+
+    mtd const applyRule(rule: const *StyleRule, state: *GroupState)
+    {
+        for i in rule.first until rule.first + rule.count
+        {
+            let declaration = &.declarations[i]
+            applyStyleProperty(state, declaration.name, declaration.value)
+        }
     }
 
     mtd const applyRules(list: const *StyleRuleList, state: *GroupState)
@@ -1993,7 +2016,7 @@ private impl StyleSheet
         while index != Swag.U64.Max
         {
             let rule = &.rules[index]
-            applyAttribute(state, "style", rule.declarations)
+            .applyRule(rule, state)
             index = rule.next
         }
     }
@@ -2038,7 +2061,7 @@ private impl StyleSheet
         if matchedLists > 1 do
             .classMatches.sort()
         for index in .classMatches do
-            applyAttribute(state, "style", .rules[index].declarations)
+            .applyRule(&.rules[index], state)
     }
 
     mtd apply(elementName: string, geo: *AttributeMap, state: *GroupState)

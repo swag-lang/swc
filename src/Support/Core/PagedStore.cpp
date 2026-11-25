@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/PagedStore.h"
+#include "Support/Core/FlatTable.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Os/Os.h"
 #include "Support/Report/Assert.h"
@@ -22,6 +23,79 @@ namespace
     }
 }
 
+// A backing page can cross one address-bucket boundary. At most two
+// nonoverlapping pages of this size can intersect a bucket.
+struct PagedStore::ReversePageTable
+{
+    static constexpr uintptr_t K_FREE = std::numeric_limits<uintptr_t>::max();
+
+    struct Bucket
+    {
+        std::atomic<uintptr_t>    key{K_FREE};
+        std::atomic<const Page*> first{nullptr};
+        std::atomic<const Page*> second{nullptr};
+    };
+
+    explicit ReversePageTable(size_t capacity) :
+        buckets(std::make_unique<Bucket[]>(capacity)),
+        capacity(capacity)
+    {
+    }
+
+    std::pair<Bucket*, bool> findSlot(uintptr_t key) const noexcept
+    {
+        const size_t mask = capacity - 1;
+        for (size_t index = FlatTable::slotIndex(key, mask);; index = (index + 1) & mask)
+        {
+            Bucket&         bucket = buckets[index];
+            const uintptr_t stored = bucket.key.load(std::memory_order_acquire);
+            if (stored == key || stored == K_FREE)
+                return {&bucket, stored != K_FREE};
+        }
+    }
+
+    void add(uintptr_t key, const Page& page)
+    {
+        SWC_ASSERT(key != K_FREE);
+        const auto [bucket, found] = findSlot(key);
+        if (found)
+        {
+            SWC_ASSERT(!bucket->second.load(std::memory_order_relaxed));
+            bucket->second.store(&page, std::memory_order_release);
+            return;
+        }
+
+        bucket->first.store(&page, std::memory_order_relaxed);
+        bucket->key.store(key, std::memory_order_release);
+        ++bucketCount;
+    }
+
+    void copyFrom(const ReversePageTable& source)
+    {
+        for (size_t i = 0; i < source.capacity; ++i)
+        {
+            const Bucket&   old = source.buckets[i];
+            const uintptr_t key = old.key.load(std::memory_order_relaxed);
+            if (key == K_FREE)
+                continue;
+            Bucket& bucket = *findSlot(key).first;
+            bucket.first.store(old.first.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            bucket.second.store(old.second.load(std::memory_order_relaxed), std::memory_order_relaxed);
+            bucket.key.store(key, std::memory_order_relaxed);
+        }
+        bucketCount = source.bucketCount;
+        pageCount   = source.pageCount;
+    }
+
+    std::unique_ptr<Bucket[]>         buckets;
+    const size_t                      capacity;
+    size_t                            bucketCount = 0;
+    size_t                            pageCount   = 0;
+    std::unique_ptr<ReversePageTable> previous;
+};
+
+PagedStore::~PagedStore() = default;
+
 PagedStore::PagedStore(uint32_t pageSize, ReverseLookup reverseLookup) :
     pageSizeValue_(pageSize),
     pageShift_(static_cast<uint32_t>(std::countr_zero(pageSize))),
@@ -35,7 +109,7 @@ PagedStore::PagedStore(uint32_t pageSize, ReverseLookup reverseLookup) :
 PagedStore::PagedStore(PagedStore&& other) noexcept :
     pagesStorage_(std::move(other.pagesStorage_)),
     publishedPagesStorage_(std::move(other.publishedPagesStorage_)),
-    publishedPageRangesStorage_(std::move(other.publishedPageRangesStorage_)),
+    reversePagesStorage_(std::move(other.reversePagesStorage_)),
     totalBytes_(other.totalBytes_),
     pageSizeValue_(other.pageSizeValue_),
     pageShift_(other.pageShift_),
@@ -46,17 +120,15 @@ PagedStore::PagedStore(PagedStore&& other) noexcept :
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
 {
-    const auto* pages      = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
-    const auto* pageRanges = publishedPageRangesStorage_.empty() ? nullptr : publishedPageRangesStorage_.back().get();
-    publishedPages_.store(pages, std::memory_order_release);
-    publishedPageRanges_.store(pageRanges, std::memory_order_release);
+    publishedPages_.store(other.snapshotPages(), std::memory_order_release);
+    publishedReversePages_.store(reversePagesStorage_.get(), std::memory_order_release);
 
     other.totalBytes_   = 0;
     other.curPage_      = nullptr;
     other.curPageIndex_ = 0;
     other.lastPtr_      = nullptr;
     other.publishedPagesStorage_.clear();
-    other.publishedPageRangesStorage_.clear();
+    other.publishedReversePages_.store(nullptr, std::memory_order_release);
     other.publishPages();
 }
 
@@ -66,17 +138,15 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
     {
         std::swap(pagesStorage_, other.pagesStorage_);
         std::swap(publishedPagesStorage_, other.publishedPagesStorage_);
-        std::swap(publishedPageRangesStorage_, other.publishedPageRangesStorage_);
+        std::swap(reversePagesStorage_, other.reversePagesStorage_);
 
-        const auto* leftSnapshot       = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
-        const auto* rightSnapshot      = other.publishedPagesStorage_.empty() ? nullptr : other.publishedPagesStorage_.back().get();
-        const auto* leftRangeSnapshot  = publishedPageRangesStorage_.empty() ? nullptr : publishedPageRangesStorage_.back().get();
-        const auto* rightRangeSnapshot = other.publishedPageRangesStorage_.empty() ? nullptr : other.publishedPageRangesStorage_.back().get();
+        const auto* leftSnapshot  = other.snapshotPages();
+        const auto* rightSnapshot = snapshotPages();
 
         publishedPages_.store(leftSnapshot, std::memory_order_release);
         other.publishedPages_.store(rightSnapshot, std::memory_order_release);
-        publishedPageRanges_.store(leftRangeSnapshot, std::memory_order_release);
-        other.publishedPageRanges_.store(rightRangeSnapshot, std::memory_order_release);
+        publishedReversePages_.store(reversePagesStorage_.get(), std::memory_order_release);
+        other.publishedReversePages_.store(other.reversePagesStorage_.get(), std::memory_order_release);
 
         std::swap(totalBytes_, other.totalBytes_);
         std::swap(pageSizeValue_, other.pageSizeValue_);
@@ -495,7 +565,8 @@ void PagedStore::Page::deallocateAligned(std::byte* p) noexcept
     operator delete(p, static_cast<std::align_val_t>(K_MAX_ALIGN));
 }
 
-PagedStore::Page::Page(uint32_t pageSize, bool proximity)
+PagedStore::Page::Page(uint32_t pageSize, uint32_t pageIndex, bool proximity) :
+    index(pageIndex)
 {
     if (proximity)
     {
@@ -516,35 +587,39 @@ PagedStore::Page::~Page()
 
 PagedStore::Page* PagedStore::newPage()
 {
-    pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_, proximityPages_));
+    const auto index = static_cast<uint32_t>(pagesStorage_.size());
+    pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_, index, proximityPages_));
     curPage_      = pagesStorage_.back().get();
-    curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
+    curPageIndex_ = index;
     publishPages();
+    if (reverseLookup_ == ReverseLookup::Enabled)
+        publishReversePages();
     return curPage_;
 }
 
 Ref PagedStore::findRef(const void* ptr) const noexcept
 {
     SWC_ASSERT(reverseLookup_ == ReverseLookup::Enabled);
-    if (!ptr)
-        return std::numeric_limits<Ref>::max();
+    const auto* table = publishedReversePages_.load(std::memory_order_acquire);
+    if (!ptr || !table)
+        return INVALID_REF;
 
-    const auto address = reinterpret_cast<uintptr_t>(ptr);
-    const auto ranges  = snapshotPageRanges();
-    const auto nextIt  = std::ranges::upper_bound(*ranges, address, {}, &PageRange::begin);
-    if (nextIt == ranges->begin())
-        return std::numeric_limits<Ref>::max();
+    const auto address         = reinterpret_cast<uintptr_t>(ptr);
+    const auto [bucket, found] = table->findSlot(address >> pageShift_);
+    if (!found)
+        return INVALID_REF;
 
-    const PageRange& range = *std::prev(nextIt);
-    SWC_ASSERT(range.page != nullptr);
-    // Keep the full address difference until the bounds check: an unrelated address
-    // more than 4 GiB away must not wrap into this page's live bytes.
-    const uintptr_t offset   = address - range.begin;
-    const uint32_t  pageUsed = range.page->used.load(std::memory_order_relaxed);
-    if (offset >= pageUsed)
-        return std::numeric_limits<Ref>::max();
+    const auto fromPage = [&](const Page* page) {
+        if (!page)
+            return INVALID_REF;
+        const uintptr_t offset = address - reinterpret_cast<uintptr_t>(page->bytes());
+        if (offset >= page->used.load(std::memory_order_relaxed))
+            return INVALID_REF;
+        return makeRef(pageSizeValue_, page->index, static_cast<uint32_t>(offset));
+    };
 
-    return makeRef(pageSizeValue_, range.index, static_cast<uint32_t>(offset));
+    const Ref first = fromPage(bucket->first.load(std::memory_order_acquire));
+    return first != INVALID_REF ? first : fromPage(bucket->second.load(std::memory_order_acquire));
 }
 
 Ref PagedStore::makeRef(uint32_t pageSize, uint32_t pageIndex, uint32_t offset) noexcept
@@ -597,29 +672,59 @@ std::pair<Ref, void*> PagedStore::allocate(uint32_t size, uint32_t align)
     return {r, static_cast<void*>(page->bytes() + offset)};
 }
 
-const std::vector<PagedStore::PageRange>* PagedStore::snapshotPageRanges() const noexcept
+void PagedStore::publishReversePages()
 {
-    const auto* ranges = publishedPageRanges_.load(std::memory_order_acquire);
-    SWC_ASSERT(ranges != nullptr);
-    return ranges;
+    // If an earlier publication failed to allocate its table, also publish any
+    // pages that were appended before it failed.
+    const size_t publishedCount = reversePagesStorage_ ? reversePagesStorage_->pageCount : 0;
+    for (size_t index = publishedCount; index < pagesStorage_.size(); ++index)
+    {
+        const Page&     page     = *pagesStorage_[index];
+        const auto      begin    = reinterpret_cast<uintptr_t>(page.bytes());
+        const uintptr_t first    = begin >> pageShift_;
+        const uintptr_t last     = (begin + pageMask_) >> pageShift_;
+        const size_t    count    = reversePagesStorage_ ? reversePagesStorage_->bucketCount : 0;
+        const size_t    capacity = FlatTable::capacityFor(count + 1 + (first != last), 8);
+        if (!reversePagesStorage_ || capacity > reversePagesStorage_->capacity)
+        {
+            auto table = std::make_unique<ReversePageTable>(capacity);
+            if (reversePagesStorage_)
+                table->copyFrom(*reversePagesStorage_);
+            // Readers using the previous table may finish without a reclamation step.
+            table->previous      = std::move(reversePagesStorage_);
+            reversePagesStorage_ = std::move(table);
+        }
+
+        reversePagesStorage_->add(first, page);
+        if (first != last)
+            reversePagesStorage_->add(last, page);
+        reversePagesStorage_->pageCount = index + 1;
+        publishedReversePages_.store(reversePagesStorage_.get(), std::memory_order_release);
+    }
 }
 
 void PagedStore::publishPages()
 {
     const size_t pageCount = pagesStorage_.size();
-    PageTable*   pages     = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
+    if (!pageCount)
+    {
+        static const PageTable emptyPages;
+        publishedPages_.store(&emptyPages, std::memory_order_release);
+        return;
+    }
+
+    PageTable* pages = publishedPagesStorage_.empty() ? nullptr : publishedPagesStorage_.back().get();
     if (!pages || pageCount > pages->capacity)
     {
         auto grown      = std::make_unique<PageTable>();
-        grown->capacity = pageCount ? std::bit_ceil(pageCount) : 0;
-        if (grown->capacity)
-            grown->entries = std::make_unique<std::atomic<Page*>[]>(grown->capacity);
+        grown->capacity = std::bit_ceil(pageCount);
+        grown->entries  = std::make_unique<std::atomic<Page*>[]>(grown->capacity);
         for (size_t index = 0; index < pageCount; ++index)
             grown->entries[index].store(pagesStorage_[index].get(), std::memory_order_relaxed);
         pages = grown.get();
         publishedPagesStorage_.push_back(std::move(grown));
     }
-    else if (pageCount)
+    else
     {
         // A published slot is never rewritten. The new slot is visible before the count
         // or any reference into that page is handed to a reader.
@@ -627,25 +732,6 @@ void PagedStore::publishPages()
     }
     pages->count.store(pageCount, std::memory_order_release);
     publishedPages_.store(pages, std::memory_order_release);
-
-    // These snapshots serve only pointer-to-reference lookup. Most owners already keep
-    // references, so building and retaining a sorted copy for each page wastes memory.
-    if (reverseLookup_ == ReverseLookup::Disabled)
-        return;
-
-    auto pageRanges = std::make_unique<std::vector<PageRange>>();
-    pageRanges->reserve(pagesStorage_.size());
-    for (uint32_t index = 0; index < pagesStorage_.size(); ++index)
-    {
-        const std::unique_ptr<Page>& page  = pagesStorage_[index];
-        const auto                   begin = reinterpret_cast<uintptr_t>(page->bytes());
-        pageRanges->push_back({.begin = begin, .index = index, .page = page.get()});
-    }
-    std::ranges::sort(*pageRanges, {}, &PageRange::begin);
-
-    publishedPageRangesStorage_.push_back(std::move(pageRanges));
-    const auto* publishedRanges = publishedPageRangesStorage_.back().get();
-    publishedPageRanges_.store(publishedRanges, std::memory_order_release);
 }
 
 SWC_END_NAMESPACE();

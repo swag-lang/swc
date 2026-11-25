@@ -715,9 +715,10 @@ SWC_TEST_END()
 SWC_TEST_BEGIN(PagedStore_ReadersKeepReferencesAcrossPageGrowth)
 {
     constexpr uint32_t                 pageCount = 256;
-    PagedStore                         store(64);
+    constexpr uint32_t                 pageSize = PagedStore::K_DEFAULT_PAGE_SIZE;
+    PagedStore                         store(pageSize);
     std::array<Ref, pageCount>         refs{};
-    std::array<const void*, pageCount> addresses{};
+    std::array<const std::byte*, pageCount> addresses{};
     std::atomic<uint32_t>              published{0};
     std::atomic<bool>                  done{false};
     std::atomic<bool>                  failed{false};
@@ -736,9 +737,10 @@ SWC_TEST_BEGIN(PagedStore_ReadersKeepReferencesAcrossPageGrowth)
             for (const uint32_t index : {0u, count / 2, count - 1})
             {
                 const Ref ref = refs[index];
-                if (!store.containsRef(ref, 64) || store.ptr<uint32_t>(ref) != addresses[index] ||
-                    store.at<uint32_t>(ref) != index || store.at<uint32_t>(ref + 60) != ~index ||
-                    store.findRef(addresses[index]) != ref)
+                if (!store.containsRef(ref, pageSize) || store.ptr<std::byte>(ref) != addresses[index] ||
+                    store.at<uint32_t>(ref) != index || store.at<uint32_t>(ref + pageSize - sizeof(uint32_t)) != ~index ||
+                    store.findRef(addresses[index]) != ref ||
+                    store.findRef(addresses[index] + pageSize - 1) != ref + pageSize - 1)
                 {
                     failed.store(true, std::memory_order_relaxed);
                     return;
@@ -752,9 +754,9 @@ SWC_TEST_BEGIN(PagedStore_ReadersKeepReferencesAcrossPageGrowth)
     ready.wait();
     for (uint32_t index = 0; index < pageCount; ++index)
     {
-        const auto [bytes, ref]      = store.reserveSpan(64);
+        const auto [bytes, ref]      = store.reserveSpan(pageSize);
         store.at<uint32_t>(ref)      = index;
-        store.at<uint32_t>(ref + 60) = ~index;
+        store.at<uint32_t>(ref + pageSize - sizeof(uint32_t)) = ~index;
         refs[index]                  = ref;
         addresses[index]             = bytes.data();
         published.store(index + 1, std::memory_order_release);
@@ -768,11 +770,12 @@ SWC_TEST_BEGIN(PagedStore_ReadersKeepReferencesAcrossPageGrowth)
     PagedStore moved(std::move(store));
     for (uint32_t index = 0; index < pageCount; ++index)
     {
-        if (moved.ptr<uint32_t>(refs[index]) != addresses[index] || moved.at<uint32_t>(refs[index]) != index)
+        if (moved.ptr<std::byte>(refs[index]) != addresses[index] || moved.at<uint32_t>(refs[index]) != index ||
+            moved.findRef(addresses[index] + pageSize - 1) != refs[index] + pageSize - 1)
             return Result::Error;
     }
     const Ref reused = store.pushBack(uint32_t{42});
-    if (store.at<uint32_t>(reused) != 42)
+    if (store.at<uint32_t>(reused) != 42 || store.findRef(store.ptr<uint32_t>(reused)) != reused)
         return Result::Error;
 }
 SWC_TEST_END()

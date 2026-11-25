@@ -32,6 +32,7 @@ public:
     PagedStore(const PagedStore&)            = delete;
     PagedStore& operator=(const PagedStore&) = delete;
     PagedStore(PagedStore&& other) noexcept;
+    ~PagedStore();
     PagedStore& operator=(PagedStore&& other) noexcept;
 
     uint32_t pageSize() const noexcept { return pageSizeValue_; }
@@ -173,25 +174,19 @@ private:
         std::byte*            storage       = nullptr;
         std::atomic<uint32_t> used          = 0;
         uint32_t              proximitySize = 0;
+        const uint32_t        index;
 
         static std::byte* allocateAligned(uint32_t size);
         static void       deallocateAligned(std::byte* p) noexcept;
 
-        explicit Page(uint32_t pageSize, bool proximity = false);
+        Page(uint32_t pageSize, uint32_t pageIndex, bool proximity);
         ~Page();
 
         uint8_t*       bytes() noexcept { return reinterpret_cast<uint8_t*>(storage); }
         const uint8_t* bytes() const noexcept { return reinterpret_cast<const uint8_t*>(storage); }
     };
 
-    struct PageRange
-    {
-        uintptr_t   begin = 0;
-        uint32_t    index = 0;
-        const Page* page  = nullptr;
-    };
-
-    static_assert(sizeof(void*) != 8 || sizeof(PageRange) == 24);
+    struct ReversePageTable;
 
     // Append page slots in place; only capacity growth publishes a new table. Keep older
     // tables alive for readers, with immutable slots once their page has been published.
@@ -250,15 +245,15 @@ private:
         return pages;
     }
 
-    const std::vector<PageRange>* snapshotPageRanges() const noexcept;
-    void                          publishPages();
+    void publishPages();
+    void publishReversePages();
 
-    std::vector<std::unique_ptr<Page>>                         pagesStorage_;
-    std::vector<std::unique_ptr<PageTable>>                    publishedPagesStorage_;
-    std::vector<std::unique_ptr<const std::vector<PageRange>>> publishedPageRangesStorage_;
+    std::vector<std::unique_ptr<Page>>      pagesStorage_;
+    std::vector<std::unique_ptr<PageTable>> publishedPagesStorage_;
+    std::unique_ptr<ReversePageTable>       reversePagesStorage_;
 
-    std::atomic<const PageTable*>              publishedPages_{nullptr};
-    std::atomic<const std::vector<PageRange>*> publishedPageRanges_{nullptr};
+    std::atomic<const PageTable*>        publishedPages_{nullptr};
+    std::atomic<const ReversePageTable*> publishedReversePages_{nullptr};
 
     uint64_t totalBytes_    = 0;
     uint32_t pageSizeValue_ = K_DEFAULT_PAGE_SIZE;

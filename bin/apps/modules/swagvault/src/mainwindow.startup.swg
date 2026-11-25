@@ -17,15 +17,12 @@ impl MainWindow
     {
         .fillDriveChoice()
         .openVault(path)
-        if .operation.kind != .None
-        {
-            // Selecting a different vault can resume the saved startup queue.
-            if .pendingMountPath.isEmpty() do
-                .queueAutomaticMount(path)
-            return
-        }
+        .checkEmptyAccess(path)
+    }
 
-        if not .pendingMountPath.isEmpty() or not .canMount() do
+    private mtd checkEmptyAccess(path: string)
+    {
+        if .operation.kind != .None or not .pendingMountPath.isEmpty() or .chosenLockedPath() != path or not .canMount() do
             return
 
         let startup = .startupIndex(path)
@@ -40,20 +37,64 @@ impl MainWindow
         if not .mountPassword.isEmpty() or not .unlockKeyFiles.isEmpty() or .protectHiddenOnMount do
             return
 
-        // Authenticate before offering to install a driver for this vault. With a driver
-        // already available, its ordinary mount performs the same check in one pass.
-        if .needsDriverChoice()
+        // Checking for empty access is part of opening the file. Driver setup begins only
+        // once the container has opened successfully.
+        .operation.path = path
+        .beginOperation(.CheckEmptyAccess)
+    }
+
+    // Continues opening the selected vault after its background access check.
+    mtd finishEmptyAccessCheck(error: any?)
+    {
+        let active = not .resident.isHidden() and not .resident.batch and not .surface!.isDisabled and .page == .List
+        let selected = .chosenLockedPath()
+        let manual = active and selected.count != 0 and .manualMountPath == selected and
+                     (.pendingMountPath.isEmpty() or .pendingMountPath == selected)
+        let current = active and selected.count != 0 and .operation.path == selected and .pendingMountPath.isEmpty()
+
+        .operation.forgetRequest()
+        .manualMountPath.clear()
+        for row in .list.rows do
+            row.unmount.enable(true)
+        .refreshActions()
+
+        defer
         {
-            .operation.path = path
-            .beginOperation(.CheckEmptyAccess)
-            return
+            if .operation.kind == .None and .pendingMountPath.isEmpty() and not .resident.batch and .startupQueue.count and
+               (.startupWaiting.isEmpty() or .startupWaiting != .chosenPath or .isMounted(.startupWaiting)) do
+                .pumpStartupQueue()
         }
 
-        .operation.access.clear()
-        .operation.hiddenAccess.clear()
-        .operation.protectHidden  = false
-        .operation.automaticMount = true
-        .startMount(String.from(path), .selectedMountPoint(), fromStartup: false, readOnly: .readOnly.isChecked())
+        if manual
+        {
+            if .pendingMountPath == selected
+            {
+                .pendingMountPath.clear()
+                .stopTimer(&.automaticMountTimer)
+            }
+
+            .mountContainer()
+        }
+        elif not .pendingMountPath.isEmpty() and not .automaticMountTimer
+        {
+            let path = #move .pendingMountPath
+            if active and path == selected do
+                .checkEmptyAccess(path)
+        }
+        elif current
+        {
+            if error == null
+            {
+                if .mountPassword.isEmpty() and .unlockKeyFiles.isEmpty() and not .protectHiddenOnMount do
+                    .mountContainer()
+            }
+            else
+            {
+                if error is Error as volumeError where volumeError.kind == .PasswordOrDamaged do
+                    return
+                .finishMount(error)
+            }
+        }
     }
 
     // Returns the startup entry for `path`, or `Swag.U64.Max` when there is none.

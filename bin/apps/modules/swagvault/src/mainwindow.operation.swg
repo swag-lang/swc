@@ -10,10 +10,15 @@ impl MainWindow
         Swag.assert(.operation.kind == .None)
         .operation.kind = kind
         .operation.error.reset()
-        .statusHeadline  = {}
-        .statusDetail    = {}
         .operation.timer = .addTimer(50'ms)
+        if kind == .CheckEmptyAccess
+        {
+            .operation.task.submit(func|window = me|() { window.runOperation() })
+            return
+        }
 
+        .statusHeadline = {}
+        .statusDetail   = {}
         let hasKeyFiles = .operation.access.keyFiles.count != 0 or
                           (.operation.createHidden and .operation.hiddenAccess.keyFiles.count != 0)
         let phase = hasKeyFiles ? VolumeProgressPhase.KeyFile : VolumeProgressPhase.Volume
@@ -98,7 +103,7 @@ impl MainWindow
     // Mounts the drive when the unfolded vault holds everything it needs.
     mtd submitMount()
     {
-        if .operation.kind != .None or not .canMount() do
+        if not .canOpenVaultFile() or not .canMount() do
             return
         .mountContainer()
     }
@@ -199,6 +204,13 @@ impl MainWindow
     // Checks the unfolded vault, then mounts its container in the background.
     mtd mountContainer()
     {
+        if .operation.kind == .CheckEmptyAccess
+        {
+            if not .resident.batch and .canMount() do
+                .manualMountPath = .chosenLockedPath()
+            return
+        }
+
         if .operation.kind != .None or .resident.batch do
             return
         let path = String.from(.chosenLockedPath())
@@ -590,32 +602,26 @@ impl MainWindow
         catch .operation.error.raise() as operationErrorOutcome
         let operationError = operationErrorOutcome.value()
         .stopTimer(&.operation.timer)
-        .showBusy(false)
+        if .operation.kind == .CheckEmptyAccess
+        {
+            .finishEmptyAccessCheck(operationError)
+            return
+        }
 
-        let checkingEmptyAccess = .operation.kind == .CheckEmptyAccess
-        let resumeMount         = (checkingEmptyAccess or .operation.kind == .InstallDriver) and
-                                  operationError == null and
-                                  not .operation.path.isEmpty() and
-                                  .operation.path == .chosenPath and
-                                  .page == .List and
-                                  (not checkingEmptyAccess or (.pendingMountPath.isEmpty() and not .resident.isHidden()))
-        var needsAccess = false
-        if operationError is Error as error where checkingEmptyAccess or .operation.automaticMount do
-            needsAccess = error.kind == .PasswordOrDamaged
+        .showBusy(false)
+        let resumeMount = .operation.kind == .InstallDriver and operationError == null and
+                          not .operation.path.isEmpty() and .operation.path == .chosenPath and .page == .List
 
         switch #complete .operation.kind
         {
-        case .None:
+        case .None, .CheckEmptyAccess:
             return
 
         case .Create:
             .finishCreate(operationError)
 
-        case .Mount, .CheckEmptyAccess:
-            if needsAccess do
-                .setStatus(.Ready)
-            elif not checkingEmptyAccess or operationError != null do
-                .finishMount(operationError)
+        case .Mount:
+            .finishMount(operationError)
 
         case .InstallDriver:
             .finishDriverInstall(operationError)
@@ -634,8 +640,6 @@ impl MainWindow
         .showOperation()
         .refreshActions()
         .resident.refreshTray()
-        if needsAccess and .chosenLockedPath().count != 0 do
-            .mountPassword.setFocus()
         if resumeMount
         {
             .mountContainer()

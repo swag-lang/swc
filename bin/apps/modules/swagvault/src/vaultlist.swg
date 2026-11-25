@@ -136,15 +136,13 @@ struct VaultList
         openFile: *PushButton
     }
 
-    card:      UnlockCard
-    rows:      Array'*VaultRow
-    arranging: bool
-    built:     bool     // Whether the parts exist: the scroll window lays its view out as soon as it makes it.
-
-    // The vault whose place in the list is open, or closing back to a row; empty when every row rests.
-    openPath:   String
-    openHeight: f32     // Height that place takes now.
-    openTarget: f32     // Height it is opening or closing to.
+    card:         UnlockCard
+    rows:         Array'*VaultRow
+    unfolding:    AnimationHandle
+    noticeExtent: f32
+    noticeTarget: f32
+    arranging:    bool
+    built:        bool     // Whether the parts exist: the scroll window lays its view out as soon as it makes it.
 
     // Where the arrangement put what the page paints itself: the section label of each group, empty
     // when the group is; and the mark and the hairline of the home's foot, empty while the list has
@@ -169,6 +167,8 @@ impl VaultList
     const BottomRoom    = 72'f32       // Room kept under the page for the hint line.
     const RecedeOpacity = 0.45'f32     // Opacity of the rows behind an unfolded vault.
     const OpenChannel   = "Vault.Card.Height"
+    const RecedeChannel = "Vault.Row.Recede"
+    const NoticeChannel = "Vault.Notice.Height"
 
     // The home: the mark, the title and its two lines, the two ways, then the foot under a hairline.
     const MarkSize         = 64'f32
@@ -203,6 +203,7 @@ impl VaultList
         }
 
         result.notice = NoticeLine.create(result)
+        result.notice.hide()
         result.card   = UnlockCard.create(result, window)
 
         let headingFont = result.theme().createDefaultFont(HeadingSize, .Bold)
@@ -243,28 +244,28 @@ impl VaultList
     // list, which is also the order of the keyboard.
     mtd refresh()
     {
-        while .rows.count > .window.vaults.count do
-            .rows.popBack().destroy()
-        while .rows.count < .window.vaults.count do
-            .rows.add(VaultRow.create(me, .window))
-
-        .mountedCount = 0
-        for vault in .window.vaults where .window.isMounted(vault.path)
-        {
-            .rows[.mountedCount].setPath(vault.path)
-            .mountedCount += 1
-        }
-
-        var index = .mountedCount
-        for vault in .window.vaults where not .window.isMounted(vault.path)
-        {
-            .rows[index].setPath(vault.path)
-            index += 1
-        }
+        var previous = #move .rows
+        for vault in .window.vaults where .window.isMounted(vault.path) do
+            .rows.add(.takeRow(&previous, vault.path))
+        .mountedCount = .rows.count
+        for vault in .window.vaults where not .window.isMounted(vault.path) do
+            .rows.add(.takeRow(&previous, vault.path))
+        for removed in previous do
+            removed.destroy()
 
         let chosen = .window.chosenLockedPath()
-        for row in .rows
+        // The rows and the overlay form the last block of children, in keyboard order.
+        .card.panel.bringToFront()
+        let firstRow = .children.count - .rows.count - 1
+        for row, index in .rows
         {
+            let childIndex = firstRow + index
+            if .children[childIndex] != row
+            {
+                row.bringToFront()
+                .moveLastChildrenTo(childIndex, 1)
+            }
+
             row.refresh()
             row.show(row.path != chosen)
         }
@@ -289,55 +290,104 @@ impl VaultList
         .card.panel.bringToFront()
 
         let opacity = chosen.count == 0 ? 1'f32 : RecedeOpacity
-        for row in .rows where row.isLocallyVisible() and row.presentationOpacity != opacity
+        let channel = AnimationChannel.from(RecedeChannel)
+        let animator = &.app().animator
+        for row in .rows
         {
+            if not row.isLocallyVisible()
+            {
+                row.opacityTarget = opacity
+                row.setPresentationOpacity(opacity)
+                continue
+            }
+
+            if row.opacityTarget == opacity and (row.presentationOpacity == opacity or animator.isActive(row, channel)) do
+                continue
+
+            row.opacityTarget = opacity
             var options: AnimationOptions
             options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_QuickSeconds)
             options.easing   = .EaseOut
-            discard .app().animator.animateF32(row, AnimationChannel.from("Vault.Row.Recede"), row.presentationOpacity, opacity, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
+            discard animator.animateF32(row, channel, row.presentationOpacity, opacity, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
         }
 
         .invalidate()
     }
 
-    // Opens the place of `chosen` to the height of its card, the rows below following it, or closes
-    // the open place back to a row when nothing is chosen. A vault chosen while another is open
-    // takes the place from the height of its own row.
-    mtd unfold(chosen: string)
+    private mtd takeRow(previous: *Array'(*VaultRow), path: string)->*VaultRow
     {
-        if chosen.count != 0 and .openPath != chosen
+        for old, index in previous[] where old.path == path
         {
-            .openPath   = chosen
-            .openHeight = VaultRow.Height
-            .openTarget = VaultRow.Height
+            let row = old
+            previous.removeAtOrdered(index)
+            return row
         }
 
-        if .openPath.isEmpty() do
+        let row = VaultRow.create(me, .window)
+        row.setPath(path)
+        return row
+    }
+
+    // Closes the old slot and opens the new one from their current on-screen heights.
+    mtd unfold(chosen: string)
+    {
+        let extra = chosen.count == 0 ? 0 : Math.max(0, .card.measureHeight(.rowWidth()) - VaultRow.Height)
+        var changed = false
+        for row in .rows
+        {
+            let target = row.path == chosen ? extra : 0
+            changed = changed or row.expansionTarget != target
+            row.expansionTarget = target
+        }
+
+        if not changed do
             return
 
+        // Both slots use one clock owned by the list. The row under the card is hidden.
         let animator = &.app().animator
-        let channel  = AnimationChannel.from(OpenChannel)
-        let target   = chosen.count == 0 ? VaultRow.Height : .card.measureHeight(.rowWidth())
-        if target == .openTarget and (animator.isActive(me, channel) or target == .openHeight) do
-            return
-
-        .openTarget = target
+        animator.cancel(.unfolding)
+        for row in .rows do
+            row.expansionFrom = row.expansion
 
         var options: AnimationOptions
         options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
         options.easing   = .EaseInOut
-
-        func follow(list: *VaultList, height: f32)
+        .unfolding = animator.animateF32(me, AnimationChannel.from(OpenChannel), 0, 1, func(list, amount)
         {
-            list.openHeight = height
+            for row in list.rows do
+                row.expansion = Math.lerp(row.expansionFrom, row.expansionTarget, amount)
             list.arrange()
+        }, options)
+    }
+
+    // Opens space under the title as a notice appears, and gives it back when it clears.
+    mtd showNotice(visible: bool)
+    {
+        let target = visible ? NoticeGap + .notice.measureHeight(.rowWidth() - 2 * RowOutset) : 0
+        let changed = target != .noticeTarget
+        .noticeTarget = target
+        .notice.show(visible)
+        if .rows.isEmpty() or not .isVisible()
+        {
+            .noticeExtent = target
+            .arrange()
+            return
         }
 
-        discard animator.animateF32(me, channel, .openHeight, target, &follow, options, func|list = me|(result)
+        if not changed
         {
-            if result == .Completed and list.window.chosenLockedPath().count == 0 do
-                list.openPath.clear()
-        })
+            .arrange()
+            return
+        }
+
+        var options: AnimationOptions
+        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PanelSeconds)
+        options.easing   = .EaseInOut
+        discard .app().animator.animateF32(me, AnimationChannel.from(NoticeChannel), .noticeExtent, target, func(list, extent)
+        {
+            list.noticeExtent = extent
+            list.arrange()
+        }, options)
     }
 
     // Returns the width of a row: the column, and the outset its ground reaches past it on each side.
@@ -400,32 +450,23 @@ impl VaultList
         .openFile.arrange(Math.Rectangle{.newVault.position.x - ActionsGap - openSize.x, waysY, openSize.x, openSize.y})
         y += .title.position.height
 
+        if .noticeExtent == .noticeTarget
+        {
+            .noticeExtent = .notice.isLocallyVisible() ? NoticeGap + .notice.measureHeight(width) : 0
+            .noticeTarget = .noticeExtent
+        }
         if .notice.isLocallyVisible()
         {
-            y += NoticeGap
-            let height = .notice.measureHeight(width)
-            .notice.place(Math.Rectangle{x, y, width, height})
-            y += height
+            let height = Math.min(.notice.measureHeight(width), .noticeExtent + RowsGap - NoticeGap)
+            .notice.setPresentationOpacity(Math.saturate(.noticeExtent / (NoticeGap + NoticeLine.Height)))
+            .notice.place(Math.Rectangle{x, y + NoticeGap, width, height})
         }
 
-        y += RowsGap
+        y += .noticeExtent + RowsGap
 
-        // At rest, an open place follows what its card holds at this width, and a place whose vault
-        // was folded is a row again.
-        let rowW   = .rowWidth()
+        let rowW = .rowWidth()
         let chosen = .window.chosenLockedPath()
-        if not .app().animator.isActive(me, AnimationChannel.from(OpenChannel))
-        {
-            if chosen.count == 0
-            {
-                .openPath.clear()
-            }
-            elif .openPath == chosen
-            {
-                .openHeight = .card.measureHeight(rowW)
-                .openTarget = .openHeight
-            }
-        }
+        let channel = AnimationChannel.from(OpenChannel)
 
         // The rows reach past the column on both sides, so their words stand on its edge. A group
         // opens with its label; the open place holds the card while its vault is chosen, and its
@@ -449,12 +490,19 @@ impl VaultList
                 y += HeadHeight + HeadGap
             }
 
-            let open = not .openPath.isEmpty() and row.path == .openPath
-            if open and row.path == chosen do
-                .card.place(Math.Rectangle{rowX, y, rowW, .openHeight})
-            else do
-                row.arrange(Math.Rectangle{rowX, y, rowW, row.height()})
-            y += (open ? .openHeight : row.height()) + RowGap
+            let height = row.height()
+            row.arrange(Math.Rectangle{rowX, y, rowW, height})
+            if row.path == chosen
+            {
+                if row.expansionTarget > 0 and row.expansion == row.expansionTarget and not .app().animator.isActive(me, channel)
+                {
+                    row.expansion = Math.max(0, .card.measureHeight(rowW) - height)
+                    row.expansionTarget = row.expansion
+                }
+
+                .card.place(Math.Rectangle{rowX, y, rowW, height + row.expansion})
+            }
+            y += height + row.expansion + RowGap
         }
 
         return y - RowGap
@@ -502,6 +550,7 @@ impl VaultList
         if noticeH > 0
         {
             y += NoticeGap
+            .notice.setPresentationOpacity(1)
             .notice.place(Math.Rectangle{Math.round(center - noticeW * 0.5), y, noticeW, noticeH})
             y += noticeH
         }

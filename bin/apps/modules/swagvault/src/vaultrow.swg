@@ -24,6 +24,10 @@ struct VaultRow
     modify:        *IconButton?
     hovered:       bool
     focused:       bool
+    expansion:     f32     // Animated space below the resting row.
+    expansionFrom: f32
+    expansionTarget: f32
+    opacityTarget: f32 = 1
     containerSize: u64     // Size of the container file of a locked vault, or zero when it cannot be read.
 }
 
@@ -117,7 +121,7 @@ impl VaultRow
         if let modify = .modify
         {
             modify.toolTip = appStrings().ui_ModifyVault
-            modify.enable(not .path.isEmpty() and .window.operation.kind == .None)
+            modify.enable(not .path.isEmpty() and .window.canOpenVaultFile())
         }
 
         // A locked container says how large it is; reading it here keeps the file system out of

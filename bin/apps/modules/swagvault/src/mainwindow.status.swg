@@ -37,8 +37,7 @@ impl MainWindow
             notice.set(detail, "", .Idle)
         else do
             notice.set(.statusText(), detail, .statusTone())
-        notice.show(failed or .statusMessage != .Ready or not detail.isEmpty() or notice.busy.isLocallyVisible())
-        .list.arrange()
+        .list.showNotice(failed or .statusMessage != .Ready or not detail.isEmpty() or notice.busy.isLocallyVisible())
     }
 
     // Returns the emphasis the current status message carries.

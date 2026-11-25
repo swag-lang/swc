@@ -206,12 +206,12 @@ impl MainWindow
         case VaultCommands.NewVault:
             name     = texts.ui_NewVault
             icon     = .Plus
-            disabled = not ready
+            disabled = (not .canOpenVaultFile() or .resident.batch)
 
         case VaultCommands.OpenFile:
             name     = texts.ui_OpenFile
             icon     = .OpenFile
-            disabled = not ready
+            disabled = (not .canOpenVaultFile() or .resident.batch)
 
         case VaultCommands.Vaults:
             name   = texts.ui_VaultsTitle
@@ -232,7 +232,7 @@ impl MainWindow
             name     = texts.ui_Mount
             icon     = .Link
             hidden   = not locked
-            disabled = not ready or not .canMount()
+            disabled = (not .canOpenVaultFile() or .resident.batch) or not .canMount()
 
         case VaultCommands.Unmount:
             name     = texts.ui_Unmount
@@ -428,7 +428,7 @@ impl MainWindow
     // Lets the reader pick a container to mount or unlock.
     mtd openVaultFile()
     {
-        if .operation.kind != .None do
+        if not .canOpenVaultFile() do
             return
 
         // Privacy controls persistence, not the convenience of returning to the last folder

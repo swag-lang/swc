@@ -175,7 +175,6 @@ struct VaultOperation
     removesPassword:   bool     // Whether a password change leaves its password field empty.
     accessChange:      AccessChangeKind     // Which control family the change and its result belong to.
     fromStartup:       bool     // Whether the mount came from the startup list rather than from the list of vaults.
-    automaticMount:    bool     // Whether the mount is trying empty access for an explicit file open.
     securityEpoch:     u64      // Security-event generation at which this mount started.
     securityStopped:   bool     // Whether a security event interrupted this mount.
 
@@ -201,7 +200,6 @@ impl VaultOperation
         .removesPassword   = false
         .accessChange      = .Password
         .fromStartup       = false
-        .automaticMount    = false
         .securityStopped   = false
         .camouflageOnly    = false
         .size              = 0
@@ -296,6 +294,7 @@ struct MainWindow
     startupTimer:        *Timer?
     automaticMountTimer: *Timer?
     pendingMountPath:    String
+    manualMountPath:     String     // Mount requested while the access check finishes.
     securityTimer:       *Timer?
     securityMonitor:     AutoUnmountMonitor
 
@@ -781,6 +780,8 @@ impl MainWindow
         // The access typed for one vault is never offered to another.
         .forgetAccess()
         .chosenPath = path
+        if .canOpenVaultFile() and .statusMessage == .MountStopped do
+            .setStatus(.Ready)
         if let vault = .findVault(path)
         {
             .readOnly.setState(vault.readOnly ? .Checked : .Unchecked)
@@ -810,6 +811,7 @@ impl MainWindow
     // protection of its next mount.
     mtd forgetAccess()
     {
+        .manualMountPath.clear()
         .mountPassword.clear()
         .unlockKeyFiles.clear()
         .list.card.clearKeyFiles()
@@ -897,6 +899,9 @@ impl MainWindow
             add(line, texts.ui_StateProtected)
     }
 
+    // File selection can continue while the worker checks an earlier file's access.
+    mtd canOpenVaultFile()->bool => .operation.kind == .None or .operation.kind == .CheckEmptyAccess
+
     // Whether the create page holds everything a container needs.
     //
     // Neither password is read here: an empty pair is a vault that opens without one, and a
@@ -921,10 +926,10 @@ impl MainWindow
     // capacity out of range — is still reported when the operation runs.
     mtd refreshActions()
     {
-        if .operation.kind != .None do
-            return
-        .createButton.enable(.canCreate())
-        .mountButton.enable(.canMount())
+        if .operation.kind == .None do
+            .createButton.enable(.canCreate())
+        if .canOpenVaultFile() do
+            .mountButton.enable(.canMount())
     }
 
     // Enables what the running operation leaves usable.
@@ -935,16 +940,17 @@ impl MainWindow
     {
         let ready = .operation.kind == .None
         let card  = &.list.card
+        let selectionReady = .canOpenVaultFile()
 
         .optionsPage.refreshDriverAction()
         .createPage.form.enable(ready)
         .createPage.actions.enable(ready)
         .createButton.enable(ready and .canCreate())
-        card.form.enable(ready)
-        card.options.enable(ready)
-        .mountButton.enable(ready and .canMount())
-        .list.newVault.enable(ready)
-        .list.openFile.enable(ready)
+        card.form.enable(selectionReady)
+        card.options.enable(selectionReady)
+        .mountButton.enable(selectionReady and .canMount())
+        .list.newVault.enable(selectionReady)
+        .list.openFile.enable(selectionReady)
         for row in .list.rows do
             row.refresh()
         .list.card.header.refresh()
@@ -1153,12 +1159,19 @@ impl IWnd for MainWindow
         }
         elif evt.timer == .automaticMountTimer
         {
-            // A file open waits for the current operation or dialog before changing selection.
-            if .operation.kind == .None and not .resident.batch and not .surface!.isDisabled
+            if .resident.batch or .surface!.isDisabled do
+                return
+
+            if .operation.kind == .None
             {
                 .stopTimer(&.automaticMountTimer)
                 let path = #move .pendingMountPath
                 .openForAutomaticMount(path)
+            }
+            elif .operation.kind == .CheckEmptyAccess
+            {
+                .stopTimer(&.automaticMountTimer)
+                .openVault(.pendingMountPath)
             }
         }
         elif evt.timer == .securityTimer

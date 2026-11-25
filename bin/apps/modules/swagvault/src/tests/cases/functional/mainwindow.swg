@@ -1242,25 +1242,50 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.setReducedMotion(false)
     host.settleAnimations(window)
 
-    let list  = window.list
-    let below = list.rows[2]
+    let list   = window.list
+    let first  = unwrap list.rowOf(PictureLockedPath)
+    let second = unwrap list.rowOf(PictureArchivePath)
     window.chooseVault(PictureLockedPath)
     Swag.require(window.mountPassword.hasFocus())
-    let open = list.card.measureHeight(list.rowWidth())
+    let extra = list.card.measureHeight(list.rowWidth()) - VaultRow.Height
     host.advanceAnimations(0.05)
-    Swag.require(list.openHeight > VaultRow.Height and list.openHeight < open)
-    Swag.require(Math.abs(list.card.panel.position.height - list.openHeight) < 0.5)
-    Swag.require(Math.abs(below.position.y - (list.card.panel.position.y + list.openHeight + VaultList.RowGap)) < 0.5)
+    Swag.require(first.expansion > 0 and first.expansion < extra)
+    Swag.require(Math.abs(list.card.panel.position.height - (VaultRow.Height + first.expansion)) < 0.5)
+    Swag.require(Math.abs(second.position.y - (first.position.bottom() + first.expansion + VaultList.RowGap)) < 0.5)
     host.app.animator.finishAll()
-    Swag.require(list.openHeight == open)
+    Swag.require(first.expansion == extra)
+
+    let secondTop = second.position.y
+    window.chooseVault(PictureArchivePath)
+    Swag.require(second.position.y == secondTop and window.mountPassword.hasFocus())
+    host.advanceAnimations(0.05)
+    Swag.require(first.expansion > 0 and first.expansion < extra)
+    Swag.require(second.expansion > 0 and second.expansion < extra)
+    let firstShown = first.expansion
+    let secondShown = second.expansion
+    window.chooseVault(PictureLockedPath)
+    Swag.require(first.expansion == firstShown and second.expansion == secondShown)
+    host.app.animator.finishAll()
+    Swag.require(first.expansion == extra and second.expansion == 0)
 
     window.foldVault()
     host.advanceAnimations(0.05)
-    Swag.require(list.openHeight > VaultRow.Height and list.openHeight < open)
-    Swag.require(Math.abs(below.position.y - (list.rows[1].position.y + list.openHeight + VaultList.RowGap)) < 0.5)
+    Swag.require(first.expansion > 0 and first.expansion < extra)
+    Swag.require(Math.abs(second.position.y - (first.position.bottom() + first.expansion + VaultList.RowGap)) < 0.5)
     host.app.animator.finishAll()
-    Swag.require(list.openPath.isEmpty())
-    Swag.require(Math.abs(below.position.y - (list.rows[1].position.bottom() + VaultList.RowGap)) < 0.5)
+    Swag.require(first.expansion == 0)
+    Swag.require(Math.abs(second.position.y - (first.position.bottom() + VaultList.RowGap)) < 0.5)
+
+    let firstTop = first.position.y
+    window.setStatus(.StartingDriver)
+    Swag.require(first.position.y == firstTop)
+    host.advanceAnimations(0.05)
+    Swag.require(first.position.y > firstTop and list.noticeExtent < list.noticeTarget)
+    host.app.animator.finishAll()
+    Swag.require(first.position.y == firstTop + list.noticeExtent)
+    window.setStatus(.Ready)
+    host.app.animator.finishAll()
+    Swag.require(first.position.y == firstTop)
 }
 
 // A protected startup vault unfolds in the list for its access, on the drive and the read-only
@@ -1392,7 +1417,14 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.acceptModalFileDialog(path)
     Swag.require(window.runCommand(VaultCommands.OpenFile))
     Swag.require(host.autoHandled)
-    finishAutomaticMountRequest(&host, window)
+    host.fireTimer(unwrap window.automaticMountTimer)
+    Swag.require(window.operation.kind == .CheckEmptyAccess)
+    Swag.require(window.list.openFile.isEnabled() and window.list.newVault.isEnabled())
+    Swag.require(window.mountButton.isEnabled() and window.mountPassword.hasFocus())
+    Swag.require(not window.list.notice.isLocallyVisible() and not window.list.notice.busy.isLocallyVisible())
+    let cardPosition = window.list.card.panel.position
+    window.finishOperation()
+    Swag.require(window.list.card.panel.position == cardPosition and not window.list.notice.isLocallyVisible())
     Swag.require(window.chosenLockedPath() == path.toString() and window.vaults.count == 1)
     Swag.require(window.list.card.panel.isLocallyVisible())
     Swag.require(window.mountButton.isEnabled() and window.statusMessage == .Ready)
@@ -1428,6 +1460,31 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.list.rowOf(first)!.isLocallyVisible())
 }
 
+// A pending access check cannot take selection or keyboard focus back from the next file.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    let first  = createProtectedVaultFixture()
+    defer discard catch File.delete(first)
+    let second = createProtectedVaultFixture()
+    defer discard catch File.delete(second)
+
+    window.openForAutomaticMount(first)
+    Swag.require(window.operation.kind == .CheckEmptyAccess)
+    host.acceptModalFileDialog(second)
+    Swag.require(window.runCommand(VaultCommands.OpenFile) and host.autoHandled)
+    host.fireTimer(unwrap window.automaticMountTimer)
+    Swag.require(window.chosenLockedPath() == second and window.operation.path == first)
+    Swag.require(window.mountPassword.hasFocus() and window.mountButton.isEnabled())
+    window.finishOperation()
+    Swag.require(window.chosenLockedPath() == second and window.mountPassword.hasFocus())
+    Swag.require(window.operation.kind == .CheckEmptyAccess and window.operation.path == second)
+    Swag.require(not window.list.notice.isLocallyVisible())
+    window.finishOperation()
+    Swag.require(window.vaults.count == 2 and window.list.rowOf(first)!.isLocallyVisible())
+}
+
 // An unsuccessful mount leaves the first vault available after another file is opened.
 #test
 {
@@ -1441,15 +1498,17 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     host.acceptModalFileDialog(first)
     window.openVaultFile()
     Swag.require(host.autoHandled)
-    finishAutomaticMountRequest(&host, window)
-    Swag.require(window.chosenLockedPath() == first)
+    host.fireTimer(unwrap window.automaticMountTimer)
+    Swag.require(window.chosenLockedPath() == first and window.operation.kind == .CheckEmptyAccess)
 
     // The wrong password fails before the filesystem driver starts.
     window.preferPortableWinFsp = true
     host.sendRune(.X, 'x')
     Swag.require(not window.mountPassword.isEmpty())
-    host.clickModalButtonWhenShown(Dialog.BtnOk)
     window.mountContainer()
+    Swag.require(window.operation.kind == .CheckEmptyAccess)
+    window.finishOperation()
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
     Swag.require(window.operation.kind == .Mount)
     window.finishOperation()
     Swag.require(host.autoHandled and window.statusMessage == .MountStopped)
@@ -1460,6 +1519,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(host.autoHandled)
     finishAutomaticMountRequest(&host, window)
     Swag.require(window.chosenLockedPath() == second and window.vaults.count == 2)
+    Swag.require(window.statusMessage == .Ready and not window.list.notice.isLocallyVisible())
     Swag.require(window.list.rowOf(first)!.isLocallyVisible())
 
     window.chooseVault(first)

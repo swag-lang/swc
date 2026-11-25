@@ -46,7 +46,7 @@ struct Shape
     internal
     {
         pathList: LinePathList     // Contours, in drawing user units.
-        scanFill: ScanFill         // Raster cache for a dense solid shape.
+        scanFill: u64     // Index plus one of the raster cache for a dense solid fill.
 
         fillGradient: u64         // Index plus one of the resolved gradient, or zero for solid paint.
         fillColor:    Color       // Solid fill color, including opacity once resolved.
@@ -106,6 +106,7 @@ struct Drawing
     paintBins:       Array'PaintBin                 // Spatial buckets of paint item indices.
     paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
     gradientBrushes: Array'Brush                    // Resolved fill and stroke gradient brushes.
+    scanFills:       Array'ScanFill                 // Raster caches for dense solid fills.
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
 }
@@ -2011,7 +2012,8 @@ private impl Parser
 
         // A triangulated fill needs one outer contour followed by its holes. Split separate islands
         // by containment depth, keeping the source order of both islands and holes.
-        if state.hasFill and list.paths.count > 1 and not usesScanFill(&list, state)
+        let scanFill = usesScanFill(&list, state)
+        if state.hasFill and list.paths.count > 1 and not scanFill
         {
             var work  = #move list
             let count = work.paths.count
@@ -2064,16 +2066,19 @@ private impl Parser
             return
         }
 
-        .emitShapeOne(#move list, state)
+        .emitShapeOne(#move list, state, scanFill)
     }
 
-    mtd emitShapeOne(list: #move LinePathList, state: *GroupState)
+    mtd emitShapeOne(list: #move LinePathList, state: *GroupState, scanFill = false)
     {
         let shapeIndex = .drawing.shapes.count
         let shape      = .drawing.shapes.emplaceInitAddress()
-        shape.scanFill.enabled = usesScanFill(&list, state)
-        if shape.scanFill.enabled do
-            shape.scanFill.bounds = list.controlBounds()
+        if scanFill
+        {
+            .drawing.scanFills.add(ScanFill{bounds: list.controlBounds()})
+            shape.scanFill = .drawing.scanFills.count
+        }
+
         shape.pathList = #move list
         shape.hidden   = state.inDefs
 
@@ -4339,8 +4344,8 @@ impl Drawing
     {
         if paintFill and shape.hasFill
         {
-            if shape.scanFill.enabled do
-                shape.scanFill.paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
+            if shape.scanFill do
+                .scanFills[shape.scanFill - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do
                 painter.fillPath(&shape.pathList, .gradientBrushes[shape.fillGradient - 1])
             else do

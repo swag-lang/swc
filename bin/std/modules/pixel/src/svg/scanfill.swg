@@ -15,8 +15,7 @@ private struct Crossing
 // A dense solid fill keeps its authored contours and evaluates coverage at the device scale.
 struct ScanFill
 {
-    enabled: bool
-    bounds:  Rectangle
+    bounds: Rectangle
 
     lastTile:      Rectangle
     lastTransform: Transform2

@@ -469,6 +469,33 @@ SWC_TEST_BEGIN(DataSegment_LargeBlockPointersPreservePagedPrefixAndAlignedAlloca
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_LargeBlockLookupTracksGrowthAndSegmentLifetime)
+{
+    std::optional<DataSegment> segment(std::in_place);
+    const auto [largeOffset, large] = segment->reserveBytes(PagedStore::K_DEFAULT_PAGE_SIZE + 1, 8, false);
+    constexpr uint32_t innerOffset  = 256;
+    const Ref          oldRef       = largeOffset + innerOffset;
+    if (segment->ptr<std::byte>(oldRef) != large + innerOffset)
+        return Result::Error;
+
+    const auto [firstOffset, first] = segment->reserveBytes(16, 8, false);
+    if (segment->ptr<std::byte>(firstOffset) != first)
+        return Result::Error;
+    const auto [secondOffset, second] = segment->reserveBytes(16, 8, false);
+    if (second != first + 16 || segment->ptr<std::byte>(secondOffset) != second)
+        return Result::Error;
+    if (segment->ptr<std::byte>(oldRef) != large + innerOffset)
+        return Result::Error;
+
+    segment.reset();
+    segment.emplace();
+    segment->reserveBlock(128, 8, false);
+    const auto [replacementOffset, replacement] = segment->reserveBytes(PagedStore::K_DEFAULT_PAGE_SIZE + 1, 8, false);
+    if (replacementOffset >= oldRef || segment->ptr<std::byte>(oldRef) != replacement + (oldRef - replacementOffset))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_SmallAllocationsAfterLargeBlocksShareStorage)
 {
     for (const bool proximity : {false, true})

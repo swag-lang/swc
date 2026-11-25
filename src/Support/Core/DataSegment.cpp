@@ -18,22 +18,6 @@ void DataSegment::LargeBlockStorageDeleter::operator()(std::byte* ptr) const noe
 
 namespace
 {
-    bool containsLargeBlockRange(const DataSegment::LargeBlock& block, const Ref ref, const uint32_t size) noexcept
-    {
-        return ref >= block.offset && ref + size <= block.offset + block.size;
-    }
-
-    const std::byte* findLargeBlockPtr(const std::vector<DataSegment::LargeBlock>& blocks, const Ref ref, const uint32_t size) noexcept
-    {
-        // Page-backed addresses precede these append-only, offset-ordered blocks.
-        if (ref < blocks.front().offset)
-            return nullptr;
-
-        const auto  it    = std::ranges::upper_bound(blocks, ref, {}, &DataSegment::LargeBlock::offset);
-        const auto& block = *std::prev(it);
-        return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
-    }
-
     struct EmptyRelocationRange
     {
         uint64_t segmentId = 0;
@@ -153,15 +137,11 @@ void DataSegment::addFunctionRelocation(uint32_t offset, const SymbolFunction* t
 
 Ref DataSegment::findRef(const void* ptr) const noexcept
 {
-    // Fast path: with no large blocks, findRef only consults the lock-free PagedStore.
-    if (!hasLargeBlocks_.load(std::memory_order_acquire))
-        return store_.findRef(ptr);
-
-    const std::shared_lock lock(mutex_);
-    const Ref              ref = store_.findRef(ptr);
-    if (ref != INVALID_REF)
+    const Ref ref = store_.findRef(ptr);
+    if (ref != INVALID_REF || firstLargeBlockOffset_.load(std::memory_order_acquire) == INVALID_REF)
         return ref;
 
+    const std::shared_lock lock(mutex_);
     return findLargeBlockRefLocked(ptr);
 }
 
@@ -563,9 +543,9 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
             .blockOffset = offset,
         };
         largeBlocks_.push_back(std::move(block));
-        // Publish that large blocks now exist so lock-free readers fall back to the locked path
-        // (which consults largeBlocks_). Release pairs with the acquire load in ptr()/findRef().
-        hasLargeBlocks_.store(true, std::memory_order_release);
+        // Large blocks are append-only. Publish the start of their offset range once.
+        if (largeBlocks_.size() == 1)
+            firstLargeBlockOffset_.store(offset, std::memory_order_release);
         return {offset, ptr};
     }
 
@@ -575,18 +555,34 @@ std::pair<uint32_t, std::byte*> DataSegment::allocateStorageLocked(uint32_t size
     return {ref, span.data()};
 }
 
-const std::byte* DataSegment::findPtrLocked(const Ref ref, const uint32_t size) const noexcept
+const std::byte* DataSegment::findLargeBlockPtr(const Ref ref, const uint32_t size) const noexcept
 {
     SWC_ASSERT(ref != INVALID_REF);
 
-    if (!largeBlocks_.empty())
+    struct CachedBlock
     {
-        if (const std::byte* ptr = findLargeBlockPtr(largeBlocks_, ref, size))
-            return ptr;
-    }
+        uint64_t         segmentId = 0;
+        const std::byte* storage   = nullptr;
+        Ref              offset    = 0;
+        uint32_t         size      = 0;
+    };
 
-    SWC_ASSERT(ref + size <= store_.extentSize());
-    return store_.ptr<std::byte>(ref);
+    // Published bytes keep their addresses for the lifetime of the segment. Cache
+    // only the range already allocated so a growing block is looked up on demand.
+    thread_local std::array<CachedBlock, 256> cache;
+    const uint64_t                          key    = (id_ << 32) | (ref / PagedStore::K_DEFAULT_PAGE_SIZE);
+    CachedBlock&                            cached = cache[FlatTable::slotIndex(key, cache.size() - 1)];
+    const uint64_t                          end    = static_cast<uint64_t>(ref) + size;
+    if (cached.segmentId == id_ && ref >= cached.offset && end <= static_cast<uint64_t>(cached.offset) + cached.size)
+        return cached.storage + (ref - cached.offset);
+
+    const std::shared_lock lock(mutex_);
+    const auto             it    = std::ranges::upper_bound(largeBlocks_, ref, {}, &LargeBlock::offset);
+    SWC_ASSERT(it != largeBlocks_.begin());
+    const LargeBlock& block = *std::prev(it);
+    SWC_ASSERT(end <= static_cast<uint64_t>(block.offset) + block.size);
+    cached = {.segmentId = id_, .storage = block.storage.get(), .offset = block.offset, .size = block.size};
+    return cached.storage + (ref - cached.offset);
 }
 
 Ref DataSegment::findLargeBlockRefLocked(const void* ptr) const noexcept

@@ -199,15 +199,11 @@ public:
     template<class T>
     const T* ptr(Ref ref) const noexcept
     {
-        // Fast path: when no large blocks have ever been allocated, the data lives entirely in
-        // the underlying PagedStore, whose reads are lock-free (atomically-published page snapshot,
-        // append-only storage). This avoids touching the per-segment shared_mutex on the hot read
-        // path, which otherwise serializes against every interning add()/addSpan() on the segment.
-        if (!hasLargeBlocks_.load(std::memory_order_acquire))
+        // The page-backed prefix remains lock-free when large blocks follow it.
+        if (ref < firstLargeBlockOffset_.load(std::memory_order_acquire))
             return reinterpret_cast<const T*>(store_.ptr<std::byte>(ref));
 
-        const std::shared_lock lock(mutex_);
-        return reinterpret_cast<const T*>(findPtrLocked(ref, static_cast<uint32_t>(sizeof(T))));
+        return reinterpret_cast<const T*>(findLargeBlockPtr(ref, static_cast<uint32_t>(sizeof(T))));
     }
 
 private:
@@ -220,7 +216,7 @@ private:
 
     uint32_t                        currentExtentLocked() const noexcept;
     std::pair<uint32_t, std::byte*> allocateStorageLocked(uint32_t size, uint32_t align, bool zeroInit);
-    const std::byte*                findPtrLocked(Ref ref, uint32_t size) const noexcept;
+    const std::byte*                findLargeBlockPtr(Ref ref, uint32_t size) const noexcept;
     Ref                             findLargeBlockRefLocked(const void* ptr) const noexcept;
 
     bool findRelocationLocked(DataSegmentRelocation& outRelocation, uint32_t offset, DataSegmentRelocationKind kind) const;
@@ -257,8 +253,8 @@ private:
 
     std::vector<DataSegmentAllocation> allocations_;
 
-    std::atomic<bool> hasLargeBlocks_{false};
-    bool              proximityStorage_ = false;
+    std::atomic<Ref> firstLargeBlockOffset_{INVALID_REF};
+    bool             proximityStorage_ = false;
 
     mutable std::shared_mutex mutex_;
     mutable std::shared_mutex relocationsMutex_;

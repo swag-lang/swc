@@ -467,7 +467,7 @@ impl Decoder
         if not coded
         {
             // A macroblock the plane did not code repeats what the reference holds, unmoved.
-            .predictMacroblock(mbX, mbY, state, header.rounding)
+            .copyMacroblock(&.anchorNew, mbX, mbY)
             .clearBlockState(mbIndex)
             return
         }
@@ -563,11 +563,12 @@ impl Decoder
             .backward = {}
         }
 
-        // A macroblock the anchor ahead did not code is not coded here either, and the stream
-        // spends no bit on it: it takes that macroblock's motion, which was none.
+        // The next anchor copied this macroblock from the preceding anchor without motion.
+        // The B-picture does the same, and its bitstream has no code for this macroblock.
         if not .coLocated[mbIndex].coded
         {
-            .predictDirect(mbX, mbY, {}, header.rounding)
+            if .anchorSpan > 0 do
+                .copyMacroblock(&.anchorOld, mbX, mbY)
             return
         }
 
@@ -878,6 +879,27 @@ impl Decoder
         result.x = median(candidates[0].x, candidates[1].x, candidates[2].x)
         result.y = median(candidates[0].y, candidates[1].y, candidates[2].y)
         return result
+    }
+
+    private mtd copyMacroblock(anchor: const *Frame, mbX, mbY: s32)
+    {
+        // All three frames use the same strides and padding.
+        let x      = cast(u64, mbX)
+        let y      = cast(u64, mbY)
+        let lumaAt = .current.lumaOrigin() + y * 16 * .current.strideLuma + x * 16
+        for row in 16'u64
+        {
+            let at = lumaAt + row * .current.strideLuma
+            Math.Simd.store(.current.luma.storage() + at, Math.Simd.load(anchor.luma.storage() + at))
+        }
+
+        let chromaAt = .current.chromaOrigin() + y * 8 * .current.strideChroma + x * 8
+        for row in 8'u64
+        {
+            let at = chromaAt + row * .current.strideChroma
+            cast([*] u64, .current.chromaB.storage() + at)[0] = cast(const [*] u64, anchor.chromaB.storage() + at)[0]
+            cast([*] u64, .current.chromaR.storage() + at)[0] = cast(const [*] u64, anchor.chromaR.storage() + at)[0]
+        }
     }
 
     // Fills one macroblock of the current picture from the reference it points at.

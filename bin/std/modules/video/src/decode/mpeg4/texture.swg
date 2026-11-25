@@ -16,41 +16,45 @@ struct Coefficient
     last:  bool
 }
 
-// The largest magnitude the table codes for one run, clause 7.4.1.3.
-//
-// The standard prints this as Table B.19 for intra blocks and B.20 for inter ones, but it is not
-// separate information: it is the largest level the coefficient table itself holds for that run,
-// and the tables here reproduce all four of those tabulations exactly. Deriving it is therefore
-// four fewer tables to be right about, and `mpeg4.tables.swg` proves the derivation.
-func levelMax(inter: bool, last: u32, run: u32)->u32
+// Derive the escape limits of Tables B.19 through B.22 from the coefficient codes.
+private struct EscapeLimits
 {
-    let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast
-    let runOf:   const [..] u8  = inter ? TcoefInterRun : TcoefIntraRun
-    let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
-
-    var result = 0'u32
-    for entry in lastOf.count where cast(u32, lastOf[entry]) == last and cast(u32, runOf[entry]) == run do
-        result = Math.max(result, cast(u32, levelOf[entry]))
-    return result
+    levelByRun: [2, 64] u16
+    runByLevel: [2, 64] u8
 }
 
-// The largest run the table codes for one magnitude, which the standard prints as Table B.21 and
-// B.22. Derived the same way, and proved the same way.
-func runMax(inter: bool, last: u32, level: u32)->u32
-{
-    let lastOf:  const [..] u8  = inter ? TcoefInterLast : TcoefIntraLast
-    let runOf:   const [..] u8  = inter ? TcoefInterRun : TcoefIntraRun
-    let levelOf: const [..] u16 = inter ? TcoefInterLevel : TcoefIntraLevel
+private const IntraLimits: EscapeLimits = #run buildEscapeLimits(TcoefIntraLast, TcoefIntraRun, TcoefIntraLevel)
+private const InterLimits: EscapeLimits = #run buildEscapeLimits(TcoefInterLast, TcoefInterRun, TcoefInterLevel)
 
-    var result = 0'u32
-    var found  = false
-    for entry in lastOf.count where cast(u32, lastOf[entry]) == last and cast(u32, levelOf[entry]) == level
+private func buildEscapeLimits(lasts, runs: const [..] u8, levels: const [..] u16)->EscapeLimits
+{
+    var result: #returntype
+    for index in lasts.count
     {
-        result = found ? Math.max(result, cast(u32, runOf[entry])) : cast(u32, runOf[entry])
-        found  = true
+        let last  = lasts[index]
+        let run   = runs[index]
+        let level = levels[index]
+        result.levelByRun[last, run]   = Math.max(result.levelByRun[last, run], level)
+        result.runByLevel[last, level] = Math.max(result.runByLevel[last, level], run)
     }
 
     return result
+}
+
+// Largest level for the given run, clause 7.4.1.3, and zero for an absent key.
+func levelMax(inter: bool, last: u32, run: u32)->u32
+{
+    if last > 1 or run >= 64 do
+        return 0
+    return inter ? InterLimits.levelByRun[last, run] : IntraLimits.levelByRun[last, run]
+}
+
+// Largest run for the given level, clause 7.4.1.3, and zero for an absent key.
+func runMax(inter: bool, last: u32, level: u32)->u32
+{
+    if last > 1 or level >= 64 do
+        return 0
+    return inter ? InterLimits.runByLevel[last, level] : IntraLimits.runByLevel[last, level]
 }
 
 // Each short prefix carries its bit length and table index. The normative codes are

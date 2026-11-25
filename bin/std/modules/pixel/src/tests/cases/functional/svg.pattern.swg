@@ -11,8 +11,14 @@ using Swag, Core
         <rect width='2' height='4' fill='#ff0000'/><rect x='2' width='2' height='4' fill='#0000ff'/>\
         </pattern></defs><rect x='2' y='2' width='16' height='8' fill='url(#bars)'/></svg>"""
 
-    let drawing = expect Svg.Drawing.parse(Source)
-    let image   = drawing.rasterize(20, 12, 1)
+    var source  = String.from(Source)
+    let drawing = expect Svg.Drawing.parse(source.toString())
+
+    // Paint references belong to the drawing after parsing.
+    for &byte in source.toSlice() do
+        byte[] = ' '
+
+    let image = drawing.rasterize(20, 12, 1)
     Swag.require(image.pixelColor(0, 6).a == 0)
     let red  = image.pixelColor(4, 6)
     let blue = image.pixelColor(6, 6)

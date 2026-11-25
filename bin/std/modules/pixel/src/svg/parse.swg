@@ -219,6 +219,7 @@ internal struct SvgFilter
 }
 
 // Attribute state inherited through `svg` and `g` elements.
+// References borrow the SVG source. Shapes copy the references they keep after parsing.
 private struct GroupState
 {
     // User space to drawing space, composed down the element tree.
@@ -229,14 +230,14 @@ private struct GroupState
     // somewhere it was never meant to be.
     transform: Math.Transform2 = Math.Transform2.Identity
 
-    fillColor:   Color = Color.fromArgb(Argb.Black)     // Inherited fill color.
-    fillPaintId: String           // Inherited fill paint server.
-    fillOpacity: f32   = 1        // Inherited fill-only opacity.
-    hasFill:     bool  = true     // Whether fill is enabled.
-    evenOdd:     bool             // Inherited fill rule.
+    fillColor:   Color  = Color.fromArgb(Argb.Black)     // Inherited fill color.
+    fillPaintId: string = ""       // Inherited fill paint server.
+    fillOpacity: f32    = 1        // Inherited fill-only opacity.
+    hasFill:     bool   = true     // Whether fill is enabled.
+    evenOdd:     bool              // Inherited fill rule.
 
     strokeColor:   Color                    // Inherited stroke color.
-    strokePaintId: String                   // Inherited stroke paint server.
+    strokePaintId: string       = ""        // Inherited stroke paint server.
     strokeOpacity: f32          = 1         // Inherited stroke-only opacity.
     strokeWidth:   f32          = 1         // Inherited stroke width, in user units.
     strokePattern: Array'SvgLength          // Inherited alternating dash and gap lengths.
@@ -246,11 +247,11 @@ private struct GroupState
     capStyle:      LineCapStyle = None      // Inherited stroke cap.
     joinStyle:     JoinStyle    = Miter     // Inherited stroke join.
 
-    markerStartId: String     // Inherited `marker-start` reference.
-    markerMidId:   String     // Inherited `marker-mid` reference.
-    markerEndId:   String     // Inherited `marker-end` reference.
+    markerStartId: string = ""     // Inherited `marker-start` reference.
+    markerMidId:   string = ""     // Inherited `marker-mid` reference.
+    markerEndId:   string = ""     // Inherited `marker-end` reference.
 
-    clipPathId:    String     // Inherited `clip-path` reference.
+    clipPathId:    string = ""     // Inherited `clip-path` reference.
     clipTransform: Math.Transform2 = Math.Transform2.Identity     // Transform of the element that named the clip.
 
     currentColor: Color = Color.fromArgb(Argb.Black)     // Inherited `currentColor` value.
@@ -261,21 +262,21 @@ private struct GroupState
     opacity: f32 = 1     // Accumulated group opacity.
     inDefs:  bool        // Whether the element sits inside a `defs` scope.
 
-    fontSize:      f32 = 16
+    fontSize:      f32    = 16
     fontFamily:    FontFamilyKind
     letterSpacing: f32     // Extra space between glyphs, in the user units of this scope.
     wordSpacing:   f32     // Extra space added to each blank, in the user units of this scope.
     textAnchor:    TextAnchor
     forceBold:     bool
     forceItalic:   bool
-    filterId:      String
+    filterId:      string = ""
 }
 
 private impl GroupState
 {
     // Reports whether this element draws markers, so a path that draws none never pays for
     // collecting the vertices they would sit on.
-    mtd const hasMarkers()->bool => not .markerStartId.isEmpty() or not .markerMidId.isEmpty() or not .markerEndId.isEmpty()
+    mtd const hasMarkers()->bool => .markerStartId.count or .markerMidId.count or .markerEndId.count
 }
 
 private struct Parser
@@ -517,19 +518,16 @@ private func parseImageLength(value: string)->f32
     }
 }
 
-private func parsePaintId(value: string)->String
+private func parsePaintId(value: string)->string
 {
-    var result: #returntype
     let trimmed = Latin1.trim(value)
     if trimmed.count < 7 or Latin1.compare(trimmed[until 5], "url(#", ignoreCase: true) do
-        return result
+        return ""
 
     var end = 5'u64
     while end < trimmed.count and trimmed[end] != ')' do
         end += 1
-    if end > 5 do
-        result = trimmed[5 until end]
-    return result
+    return trimmed[5 until end]
 }
 
 // Reduces a `font-family` list to the class a host can honour.
@@ -806,14 +804,14 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
     {
     case "fill":
         let paintId = parsePaintId(value)
-        if not paintId.isEmpty()
+        if paintId.count
         {
-            state.fillPaintId = #move paintId
+            state.fillPaintId = paintId
             state.hasFill     = true
         }
         else
         {
-            state.fillPaintId.clear()
+            state.fillPaintId = ""
             if not Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
             {
                 state.fillColor = state.currentColor
@@ -830,14 +828,14 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
 
     case "stroke":
         let paintId = parsePaintId(value)
-        if not paintId.isEmpty()
+        if paintId.count
         {
-            state.strokePaintId = #move paintId
+            state.strokePaintId = paintId
             state.hasStroke     = true
         }
         else
         {
-            state.strokePaintId.clear()
+            state.strokePaintId = ""
             if not Latin1.compare(Latin1.trim(value), "currentColor", ignoreCase: true)
             {
                 state.strokeColor = state.currentColor
@@ -1729,8 +1727,11 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 // contour-containment walk and the triangulation of regions with thousands of holes.
 private func usesScanFill(list: const *LinePathList, state: const *GroupState)->bool
 {
-    if not state.hasFill or state.hasStroke or state.inDefs or
-       not state.fillPaintId.isEmpty() or not state.filterId.isEmpty() do
+    if not state.hasFill or
+       state.hasStroke or
+       state.inDefs or
+       state.fillPaintId.count or
+       state.filterId.count do
         return false
     if list.paths.count >= 512 do
         return true
@@ -2800,14 +2801,14 @@ private impl Parser
 
             // The property is not inherited. Ancestor clips are applied to the completed
             // subtree below, after any clip that a descendant declares for itself.
-            state.clipPathId.clear()
+            state.clipPathId = ""
             let {selfClosed} = .scanAttributes(&state, &geo)
             .applyStyles(name, &geo, &state)
 
             // A clip is stated in the user space of the element that names it, and children may
             // add transforms of their own; remembering that space here is what keeps an
             // inherited clip where the group put it.
-            if not state.clipPathId.isEmpty() do
+            if state.clipPathId.count do
                 state.clipTransform = state.transform
 
             let firstShape = .drawing.shapes.count
@@ -3174,7 +3175,7 @@ private impl Parser
     {
         if state.inDefs or vertices.count == 0 do
             return
-        if state.markerStartId.isEmpty() and state.markerMidId.isEmpty() and state.markerEndId.isEmpty() do
+        if not state.hasMarkers() do
             return
 
         for vertex, index in vertices
@@ -3185,10 +3186,10 @@ private impl Parser
                 id = state.markerStartId
             elif index == vertices.count - 1 do
                 id = state.markerEndId
-            if id.isEmpty() do
+            if not id.count do
                 continue
 
-            let definition = .markers.tryFind(id.toString())
+            let definition = .markers.tryFind(id)
             if not definition or definition.value.count == 0 do
                 continue
 
@@ -3257,7 +3258,7 @@ private impl Parser
     // clip definition is left alone.
     mtd applyClipPath(state: *GroupState, firstItem: u64)
     {
-        if state.inDefs or state.clipPathId.isEmpty() or .drawing.items.count == firstItem do
+        if state.inDefs or not state.clipPathId.count or .drawing.items.count == firstItem do
             return
 
         let definition = .clipPaths.tryFind(state.clipPathId)

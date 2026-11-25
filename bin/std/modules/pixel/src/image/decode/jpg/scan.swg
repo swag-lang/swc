@@ -113,18 +113,23 @@ impl Decoder
         .getBits2(16)
     }
 
+    #[Swag.Inline]
     mtd huffDecode(ph: *HuffTables)->s32
     {
-        // A code of eight bits or less is fully described by the entry the next eight bits select:
-        // it carries its own length, so the symbol costs one load.
-        var symbol = ph.lookUp[(.bitBuf >> 8) & 0xFF]
-        if symbol >= 0
-        {
-            .getBits2(symbol >> 8)
-            return symbol & 0xFF
-        }
+        // A short code carries its own length in the look-ahead table.
+        let symbol = ph.lookUp[(.bitBuf >> 8) & 0xFF]
+        if symbol < 0 do
+            return .decodeLongHuffCode(ph, symbol)
 
+        .getBits2(symbol >> 8)
+        return symbol & 0xFF
+    }
+
+    #[Swag.NoInline]
+    private mtd decodeLongHuffCode(ph: *HuffTables, prefix: s32)->s32
+    {
         .getBits2(8)
+        var symbol = prefix
         for
         {
             symbol = ph.tree[~symbol + (1 - .getBits2(1))]

@@ -123,7 +123,7 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
                     let end  = offset + length + 1
                     let word = ((cast(u32, codes[index]) << 1) | sign) << (32 - end)
                     for byte in 4'u32 do
-                        bytes[byte] = cast(u8, word >> (24 - byte * 8))
+                        bytes[byte] = cast(u8, (word >> (24 - byte * 8)) & 0xFF)
 
                     // The second pass only has the bytes that contain the code and sign.
                     for size in [4'u32, (end + 7) / 8]

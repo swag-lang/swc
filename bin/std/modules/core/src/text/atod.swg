@@ -877,12 +877,62 @@ func special(s: const [..] u8)->{ value: f64, eat: u32 }
 public func parse(s: const [..] u8)->{ value: f64, eat: u32, ovf: bool } fail
     => try .parse(s, g_CultureInfo.numberFormat)
 
+// Converts a complete short decimal without building the digit buffer used for long inputs.
+private func shortDecimal(s: const [..] u8, numberFormat: NumberFormatInfo)->{ value: f64, ok: bool }
+{
+    let unmatched: #returntype = {0, false}
+
+    // Fifteen digits and the corresponding power of ten fit exactly in f64.
+    if s.count > 15 do
+        return unmatched
+
+    let negative = s[0] == numberFormat.negativeSign
+    let first    = negative or s[0] == numberFormat.positiveSign ? 1'u64 : 0'u64
+    var mantissa = 0'u64
+    var divisor  = 1'u64
+    var sawDigit = false
+    var sawPoint = false
+    for i in first until s.count
+    {
+        let c = s[i]
+        if c == numberFormat.decimalSeparator
+        {
+            if sawPoint do
+                return unmatched
+            sawPoint = true
+            continue
+        }
+
+        if not Latin1.isDigit(c) do
+            return unmatched
+
+        sawDigit = true
+        mantissa = mantissa * 10 + cast(u64, c - '0')
+        if sawPoint do
+            divisor *= 10
+    }
+
+    if not sawDigit do
+        return unmatched
+
+    var value = cast(f64, mantissa)
+    if negative do
+        value = -value
+    if divisor != 1 do
+        value /= cast(f64, divisor)
+    return {value, true}
+}
+
 // Parses a floating-point number using the supplied separators and signs.
 public func parse(s: const [..] u8, numberFormat: NumberFormatInfo)->{ value: f64, eat: u32, ovf: bool } fail
 {
     var result: #returntype
     if s.count == 0 do
         fail Errors.SyntaxError{}
+
+    let decimal = shortDecimal(s, numberFormat)
+    if decimal.ok do
+        return {value: decimal.value, eat: cast(u32, s.count), ovf: false}
 
     // Special values, infinity, nan
     #[Swag.Safety(.NaN, false)]

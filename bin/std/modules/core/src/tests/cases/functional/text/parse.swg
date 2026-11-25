@@ -47,6 +47,27 @@ using Swag
     Swag.require(value == 1 and eat == 1)
 }
 
+// Short decimals and exponent-form decimals must round to the same bit pattern.
+#test
+{
+    for text in ["0", "-0", "-.0", ".03125", "+0001.27", "25.", "123456.78901234", "999999999999999"]
+    {
+        let short       = expect StrConv.parseF64(text)
+        let exponential = Format.toString("%e0", text)
+        let full        = expect StrConv.toF64(exponential.toString())
+        Swag.require(cast #bit (u64, short.value) == cast #bit (u64, full))
+        Swag.require(short.eat == text.count and not short.ovf)
+    }
+
+    let numberFormat = Globalization.NumberFormatInfo{negativeSign: '~'u8, positiveSign: '^'u8, decimalSeparator: ','u8}
+    let negative     = expect StrConv.Atod.parse("~000,125", numberFormat)
+    let positive     = expect StrConv.Atod.parse("^1,25", numberFormat)
+    let prefix       = expect StrConv.Atod.parse("^1,25tail", numberFormat)
+    Swag.require(negative.value == -0.125 and negative.eat == 8)
+    Swag.require(positive.value == 1.25 and positive.eat == 5)
+    Swag.require(prefix.value == positive.value and prefix.eat == positive.eat)
+}
+
 // Integer zeros beyond the decimal digit buffer still contribute to the exponent scale.
 #test
 {

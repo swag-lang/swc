@@ -407,14 +407,25 @@ private struct Gradient
 
 private func isNumberStart(c: u8)->bool => (c >= '0' and c <= '9') or c == '-' or c == '+' or c == '.'
 
-// Scans one floating-point number of a path or attribute value.
-private func scanNumber(s: string, pos: *u64)->f32
+private func skipNumberSeparators(text: string, start: u64)->u64
 {
-    let len = s.count
-    var i   = pos[]
-    while i < len and (s[i] == ' ' or s[i] == ',' or s[i] == '\t' or s[i] == '\n' or s[i] == '\r') do
-        i += 1
+    var pos = start
+    while pos < text.count
+    {
+        let c = text[pos]
+        if c != ' ' and c != ',' and c != '\t' and c != '\n' and c != '\r' do
+            break
+        pos += 1
+    }
 
+    return pos
+}
+
+// Scans one floating-point number at the current position.
+private func readNumber(s: string, pos: *u64)->f32
+{
+    let len   = s.count
+    var i     = pos[]
     let start = i
     if i < len and (s[i] == '-' or s[i] == '+') do
         i += 1
@@ -446,6 +457,12 @@ private func scanNumber(s: string, pos: *u64)->f32
     if i == start do
         return 0
     return catch StrConv.toF32(s[start until i]) orelse 0
+}
+
+private func scanNumber(s: string, pos: *u64)->f32
+{
+    pos[] = skipNumberSeparators(s, pos[])
+    return readNumber(s, pos)
 }
 
 private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
@@ -1432,21 +1449,15 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         if not valid[] do
             return 0
 
-        var look = pos[]
-        while look < data.count and
-              (data[look] == ' ' or
-               data[look] == ',' or
-               data[look] == '\t' or
-               data[look] == '\n' or
-               data[look] == '\r') do
-            look += 1
-        if look >= data.count or not isNumberStart(data[look])
+        let start = skipNumberSeparators(data, pos[])
+        if start >= data.count or not isNumberStart(data[start])
         {
             valid[] = false
             return 0
         }
 
-        return scanNumber(data, pos)
+        pos[] = start
+        return readNumber(data, pos)
     }
 
     func flag(data: string, pos: *u64, valid: *bool)->bool
@@ -1454,13 +1465,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         if not valid[] do
             return false
 
-        while pos[] < data.count and
-              (data[pos[]] == ' ' or
-               data[pos[]] == ',' or
-               data[pos[]] == '\t' or
-               data[pos[]] == '\n' or
-               data[pos[]] == '\r') do
-            pos[] += 1
+        pos[] = skipNumberSeparators(data, pos[])
         if pos[] >= data.count or (data[pos[]] != '0' and data[pos[]] != '1')
         {
             valid[] = false

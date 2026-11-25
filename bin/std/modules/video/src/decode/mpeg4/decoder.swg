@@ -316,7 +316,21 @@ impl Decoder
                 if after >= 0
                 {
                     reader.bitPos = cast(u64, after)
+                    let first = index
                     try .readPacketHeader(reader, &active, &index)
+                    if index > first and active.codingType == VopBidirectional
+                    {
+                        // A B macroblock whose future anchor is uncoded spends no bits. A
+                        // marker can therefore appear before the preceding packet is filled.
+                        let columns = cast(u64, .layer.mbWidth)
+                        for skipped in first until index
+                        {
+                            if .coLocated[skipped].coded do
+                                fail InvalidFormatError{"MPEG-4 B-picture packet skips a coded macroblock"}
+                            try .decodeBidirectionalMacroblock(reader, &active, cast(s32, skipped % columns), cast(s32, skipped / columns))
+                        }
+                    }
+
                     .packetStart = index
                     .forward     = {}
                     .backward    = {}

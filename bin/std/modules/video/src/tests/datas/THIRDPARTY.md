@@ -415,6 +415,19 @@ same 96x64, 60-frame content as the H.264 and H.265 fixtures and a difference is
   `d099ba62af714cff4f93034a03a0ff8887853616091cccfe3182e3195d19b9e1`.
 - License: same as this repository.
 
+`ffmpeg-mpeg4-b-packets.avi` is nine 352x256 pictures at 12 fps. It uses two encoder threads to
+produce two video packets per picture. The first two B-pictures omit implicit macroblocks at the
+packet boundary. Decode it with FFmpeg in `yuv420p` to reproduce the luma CRC in the test.
+
+```sh
+ffmpeg -f lavfi -i 'color=blue:s=352x256:r=12:d=0.75' \
+  -vf 'drawbox=x=8:y=8:w=120:h=180:c=red:t=fill:enable=gte(n\,4)' \
+  -c:v mpeg4 -threads 2 -bf 2 -g 12 -q:v 4 ffmpeg-mpeg4-b-packets.avi
+```
+
+- SHA-256: `30db55abc4ff5c01a0c6236df007f60b45076d69e8a2ba4eef5b0ac6f5e97338`
+- License: same as this repository.
+
 `edited-mpeg4-avi-clock.avi` contains ten synthetic 32x32 low-delay MPEG-4 Part 2 pictures at
 8 fps, encoded with FFmpeg through PyAV 17.1.0. Each picture has a distinct luma level. The fifth
 picture's VOP time increment was set to zero to reproduce an AVI whose codec clock steps back.

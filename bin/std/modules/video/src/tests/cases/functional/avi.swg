@@ -458,6 +458,24 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     }
 }
 
+// The packets in B-pictures 1 and 2 contain runs of implicit macroblocks at their ends.
+// Seeking back from red frames must reconstruct all of the original blue luma samples.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-b-packets.avi"))
+    Swag.require(reader.frameCount() == 9)
+    var frame: PlanarFrame
+    for rank in [8'u64, 1, 7, 2]
+    {
+        expect reader.decodeFramePlanesInto(&frame, rank)
+        Swag.require(frame.width == 352 and frame.height == 256)
+        if rank < 4 do
+            Swag.require(Hash.Crc32.compute(frame.luma.toSlice()) == 0x288A1990)
+        else do
+            Swag.require(frame.luma[136 * frame.strideLuma + 20] == 81)
+    }
+}
+
 // A frame that carries no payload repeats the picture before it, which is how the container
 // holds a stream that pauses at a constant frame rate.
 #test

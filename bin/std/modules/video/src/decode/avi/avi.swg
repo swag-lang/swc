@@ -948,11 +948,23 @@ private impl Decoder
         let first = .frames[0]
         if first.size > source.size() or first.offset > source.size() - first.size do
             fail InvalidFormatError{"AVI frame payload is truncated"}
-        .payload.resize(first.size)
         try source.seek(first.offset)
-        try source.readExact(.payload.toSlice())
+        let available = try source.peek(Math.min(first.size, FourCcSize))
+        let head      = available[until Math.min(available.count, first.size)]
+        var setup     = Video.inlineSetupHeaders(head)
 
-        try .pictures.open(PictureMpeg4, Video.inlineSetupHeaders(.payload.toSlice()), samples.toSlice(), Video.storedNothing())
+        // The usual layer header and first VOP marker both fit in the existing window.
+        // When user data stretches beyond it, read the complete sample to find the boundary.
+        var full: Array'u8
+        if setup.count == head.count and head.count < first.size
+        {
+            full.grow(first.size)
+            full.count = first.size
+            try source.readExact(full.toSlice())
+            setup = Video.inlineSetupHeaders(full.toSlice())
+        }
+
+        try .pictures.open(PictureMpeg4, setup, samples.toSlice(), Video.storedNothing())
         .info.width  = .pictures.width()
         .info.height = .pictures.height()
     }

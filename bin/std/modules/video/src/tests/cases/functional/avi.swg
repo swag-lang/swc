@@ -385,9 +385,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     expect reader.decodeFrameInto(&frame, 58)
     Swag.require(frame.width == 96 and frame.height == 64)
     let reference = expect reader.decodeFrame(28)
+    let initial   = expect reader.decodeFrame(0)
     reader.close()
 
-    // MPEG-4 user data can place the VOP marker beyond the first file read window.
+    // MPEG-4 user data can place a VOP marker beyond the first file read window.
     let movieList = Slice.findSubslice(bytes.toSlice(), "movi")
     Swag.require(movieList < bytes.count)
     var chunk = movieList + 4
@@ -397,11 +398,16 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
         chunk += 8 + size + (size & 1)
     }
 
-    let frameSize = aviReadU32(bytes.toSlice(), chunk + 4)
-    let payload   = chunk + 8
-    const Vop: [4] u8 = [0'u8, 0, 1, 0xB6]
-    let vop = Slice.findSubslice(bytes.toSlice()[payload until payload + frameSize], Vop)
-    Swag.require(vop < frameSize)
+    func padHeader(bytes: *Array'u8, chunk: u64, userData: const [..] u8)
+    {
+        let frameSize = aviReadU32(bytes.toSlice(), chunk + 4)
+        let payload   = chunk + 8
+        const Vop: [4] u8 = [0'u8, 0, 1, 0xB6]
+        let vop = Slice.findSubslice(bytes.toSlice()[payload until payload + frameSize], Vop)
+        Swag.require(vop < frameSize)
+        bytes.insertAt(payload + vop, userData)
+        aviWriteU32(bytes.toSlice(), chunk + 4, frameSize + cast(u32, userData.count))
+    }
 
     var userData: Array'u8
     userData.resize(2 * ByteSource.WindowSize)
@@ -410,8 +416,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     userData[1] = 0
     userData[2] = 1
     userData[3] = 0xB2
-    bytes.insertAt(payload + vop, userData.toSlice())
-    aviWriteU32(bytes.toSlice(), chunk + 4, frameSize + cast(u32, userData.count))
+    padHeader(&bytes, chunk, userData.toSlice())
+    padHeader(&bytes, movieList + 4, userData.toSlice())
     aviWriteU32(bytes.toSlice(), movieList - 4, cast(u32, bytes.count - movieList))
     aviWriteU32(bytes.toSlice(), 4, cast(u32, bytes.count - 8))
 
@@ -420,6 +426,8 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     expect File.writeAllBytes(path, bytes.toSlice())
     var file = expect Reader.open(path)
     Swag.require(file.frameCount() == 60 and file.syncFrameAt(1) == 28 and file.syncFrameAt(31) == 58)
+    expect file.decodeFrameInto(&frame, 0)
+    Swag.require(Slice.equals(frame.pixels.toSlice(), initial.pixels.toSlice()))
     expect file.decodeFrameInto(&frame, 28)
     Swag.require(Slice.equals(frame.pixels.toSlice(), reference.pixels.toSlice()))
 }

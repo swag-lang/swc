@@ -496,23 +496,16 @@ impl IDecoder for Decoder
             fail InvalidFormatError{"AVI frame payload is truncated"}
 
         try source.seek(entry.offset)
-        if not .isJpeg and not source.path().count
-        {
-            // Memory-backed bitmap rows can be converted directly from the borrowed payload.
-            let payload = (try source.peek(entry.size))[until entry.size]
-            try .decodeBitmapFrame(payload, target)
-            try source.skip(entry.size)
-        }
-        else
+        if .isJpeg
         {
             if .payload.count != entry.size do
                 .payload.resize(entry.size)
             try source.readExact(.payload.toSlice())
-
-            if .isJpeg do
-                try .decodeJpegFrame(target)
-            else do
-                try .decodeBitmapFrame(.payload.toSlice(), target)
+            try .decodeJpegFrame(target)
+        }
+        else
+        {
+            try .decodeBitmapFrame(source, entry, target)
         }
 
         .nextIndex = current + 1
@@ -979,7 +972,7 @@ private impl Decoder
         .prepareTarget(target)
         if decoded.pixelFormat == .BGR8
         {
-            copyBitmapRows'3(decoded.pixels.storage(), target, decoded.rowStride, false)
+            copyBitmapRows'3(decoded.pixels.storage(), target, decoded.rowStride, false, 0, cast(u64, target.height))
             return
         }
 
@@ -988,18 +981,49 @@ private impl Decoder
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
-    mtd const decodeBitmapFrame(payload: const [..] u8, target: *Image) fail
+    mtd decodeBitmapFrame(source: *ByteSource, entry: FrameEntry, target: *Image) fail
     {
-        if .rowBytes * cast(u64, .info.height) > payload.count do
+        let height = cast(u64, .info.height)
+        let size   = .rowBytes * height
+        if size > entry.size do
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
 
         .prepareTarget(target)
-        let pixels = payload.buffer
+        if not source.path().count
+        {
+            // Memory-backed bitmap rows can be converted directly from the borrowed payload.
+            .copyRows((try source.peek(size)).buffer, target, 0, height)
+            try source.skip(entry.size)
+            return
+        }
+
+        // Convert file-backed rows while the bytes just read are still in cache.
+        const ReadSize = 256 * 1024'u64
+        let rowsPerRead = Math.min(height, Math.max(1'u64, ReadSize / .rowBytes))
+        let capacity    = rowsPerRead * .rowBytes
+        if .payload.count != capacity do
+            .payload.resize(capacity)
+
+        var readRows = 0'u64
+        while readRows < height
+        {
+            let count = Math.min(rowsPerRead, height - readRows)
+            try source.readExact(.payload.toSlice()[until count * .rowBytes])
+            let destRow = .isTopDown ? height - readRows - count : readRows
+            .copyRows(.payload.storage(), target, destRow, count)
+            readRows += count
+        }
+
+        try source.skip(entry.size - size)
+    }
+
+    mtd const copyRows(pixels: const [*] u8, target: *Image, firstRow, count: u64)
+    {
         switch .bytesPerPixel
         {
-        case 2: copyBitmapRows'2(pixels, target, .rowBytes, .isTopDown)
-        case 3: copyBitmapRows'3(pixels, target, .rowBytes, .isTopDown)
-        case 4: copyBitmapRows'4(pixels, target, .rowBytes, .isTopDown)
+        case 2: copyBitmapRows'2(pixels, target, .rowBytes, .isTopDown, firstRow, count)
+        case 3: copyBitmapRows'3(pixels, target, .rowBytes, .isTopDown, firstRow, count)
+        case 4: copyBitmapRows'4(pixels, target, .rowBytes, .isTopDown, firstRow, count)
         }
     }
 
@@ -1028,15 +1052,15 @@ private func rgb555ToRgb24(pixels: Math.Simd.U32x4)->Math.Simd.U8x16
     return Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, rgb), PackRgb24)
 }
 
-private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Image, sourceStride: u64, topDown: bool)
+private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Image, sourceStride: u64, topDown: bool, firstRow, rows: u64)
 {
-    let output = target.pixels.storage()
-    for y in target.height
+    let output = target.pixels.storage() + firstRow * target.rowStride
+    for y in rows
     {
         // Pixel storage is bottom-up, so a top-down bitmap is turned over here.
-        let sourceY     = topDown ? target.height - y - 1 : y
-        var source      = pixels + cast(u64, sourceY) * sourceStride
-        var destination = output + cast(u64, y) * target.rowStride
+        let sourceY     = topDown ? rows - y - 1 : y
+        var source      = pixels + sourceY * sourceStride
+        var destination = output + y * target.rowStride
         var count       = target.width
 
         #static if PIXEL_BYTES == 2

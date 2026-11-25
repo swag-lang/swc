@@ -140,13 +140,7 @@ private
             return value < ExtendTest[s] ? value + ExtendOff[s] : value
         }
 
-        func rol(i, j: u32)->u32
-        {
-            let shift = j & 31
-            if not shift do
-                return i
-            return cast(u32, ((i << #wrap shift) | (i >> (32 - shift))))
-        }
+        func rol(i, j: u32)->u32 => Math.rol(i, cast(u8, j & 31))
     }
 }
 

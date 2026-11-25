@@ -309,16 +309,15 @@ impl Decoder
             else
             {
                 if (.compSampH[0] == 1) and
-                   (.compSampV[0] == 1) and
                    (.compSampH[1] == 1) and
-                   (.compSampV[1] == 1) and
                    (.compSampH[2] == 1) and
-                   (.compSampV[2] == 1)
+                   (.compSampV[1] == .compSampV[0]) and
+                   (.compSampV[2] == .compSampV[0])
                 {
                     .scanType        = YH1V1
-                    .maxBlocksPerMcu = 3
+                    .maxBlocksPerMcu = 3 * .compSampV[0]
                     .maxMcuSizeX     = 8
-                    .maxMcuSizeY     = 8
+                    .maxMcuSizeY     = 8 * .compSampV[0]
                 }
                 elif (.compSampH[0] == 2) and
                      (.compSampH[1] == 1) and

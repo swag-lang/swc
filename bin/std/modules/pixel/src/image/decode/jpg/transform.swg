@@ -325,15 +325,17 @@ impl Decoder
 
     mtd convertH1V1()
     {
-        let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.storage()
-        var s   = .safeSampleBuf() + row * 8
-        for _ in rangeTo(1, .maxMcusPerRow).reversed()
+        let row         = .maxMcuSizeY - .mcuLinesLeft
+        let planeBytes  = .compSampV[0] * 64
+        let mcuBytes    = 3 * planeBytes
+        var destination = .scanLine0.storage()
+        var luma        = .safeSampleBuf() + row * 8
+        for .maxMcusPerRow
         {
-            storeBgr(d, s, chromaBias8(s + 64, s + 128))
+            storeBgr(destination, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
 
-            d += 24
-            s += 64 * 3
+            destination += 24
+            luma        += mcuBytes
         }
     }
 

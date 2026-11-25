@@ -321,16 +321,16 @@ impl Decoder
                     .maxMcuSizeY     = 8
                 }
                 elif (.compSampH[0] == 2) and
-                     (.compSampV[0] == 1) and
                      (.compSampH[1] == 1) and
-                     (.compSampV[1] == 1) and
                      (.compSampH[2] == 1) and
-                     (.compSampV[2] == 1)
+                     (.compSampV[1] == .compSampV[0]) and
+                     (.compSampV[2] == .compSampV[0])
                 {
+                    // Some encoders group two vertical block rows without subsampling them.
                     .scanType        = YH2V1
-                    .maxBlocksPerMcu = 4
+                    .maxBlocksPerMcu = 4 * .compSampV[0]
                     .maxMcuSizeX     = 16
-                    .maxMcuSizeY     = 8
+                    .maxMcuSizeY     = 8 * .compSampV[0]
                 }
                 elif (.compSampH[0] == 1) and
                      (.compSampV[0] == 2) and

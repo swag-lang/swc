@@ -437,25 +437,26 @@ impl Decoder
 
     mtd convertH2V1()
     {
-        let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.storage()
-        var y   = .safeSampleBuf() + row * 8
-        var c   = .safeSampleBuf() + 2 * 64 + row * 8
+        let row              = .maxMcuSizeY - .mcuLinesLeft
+        let blockRow         = row >> 3
+        let sampleOffset     = (row & 7) * 8
+        let chromaPlaneBytes = .compSampV[0] * 64
+        let mcuBytes         = .maxBlocksPerMcu * 64
+        let samples          = .safeSampleBuf()
+        var destination      = .scanLine0.storage()
+        var luma             = samples + blockRow * 128 + sampleOffset
+        var cb               = samples + 2 * chromaPlaneBytes + blockRow * 64 + sampleOffset
 
-        for _ in rangeTo(1, .maxMcusPerRow).reversed()
+        for .maxMcusPerRow
         {
-            // The two luma blocks of the unit are consecutive, and four chroma samples cover each.
-            for 2
-            {
-                storeBgr(d0, y, chromaBias4(c, c + 64))
+            // The matching chroma row covers two horizontally adjacent luma blocks.
+            let cr = cb + chromaPlaneBytes
+            storeBgr(destination, luma, chromaBias4(cb, cr))
+            storeBgr(destination + 24, luma + 64, chromaBias4(cb + 4, cr + 4))
 
-                d0 += 24
-                c  += 4
-                y  += 64
-            }
-
-            y += 64 * 4 - 64 * 2
-            c += 64 * 4 - 8
+            destination += 48
+            luma        += mcuBytes
+            cb          += mcuBytes
         }
     }
 

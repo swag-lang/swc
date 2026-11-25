@@ -46,32 +46,40 @@ namespace
         const ELF::Symbol& symbol() const { return file->symbols[index]; }
     };
 
+    struct GlobalSymbol
+    {
+        SymbolReference definition;
+        size_t          target = K_NO_TARGET;
+    };
+
+    using GlobalSymbols = std::unordered_map<std::string_view, GlobalSymbol>;
+
     struct Target
     {
-        std::string     name;
-        SymbolReference reference;
-        size_t          section          = 0;
-        uint64_t        offset           = 0;
-        uint64_t        size             = 0;
-        uint32_t        dynamicIndex     = 0;
-        uint32_t        nameOffset       = 0;
-        uint32_t        staticNameOffset = 0;
-        uint16_t        version          = 1;
-        uint8_t         info = 0x10, visibility = 0;
-        bool            absolute = false;
-        bool            imported = false;
-        bool            weak     = false;
-        bool            copy     = false;
-        bool            used     = false;
-        bool            exported = false;
-        size_t          got      = K_NO_TARGET;
-        size_t          plt      = K_NO_TARGET;
+        std::string_view name;
+        SymbolReference  reference;
+        size_t           section          = 0;
+        uint64_t         offset           = 0;
+        uint64_t         size             = 0;
+        uint32_t         dynamicIndex     = 0;
+        uint32_t         nameOffset       = 0;
+        uint32_t         staticNameOffset = 0;
+        uint16_t         version          = 1;
+        uint8_t          info = 0x10, visibility = 0;
+        bool             absolute = false;
+        bool             imported = false;
+        bool             weak     = false;
+        bool             copy     = false;
+        bool             used     = false;
+        bool             exported = false;
+        size_t           got      = K_NO_TARGET;
+        size_t           plt      = K_NO_TARGET;
     };
 
     struct InputArchive
     {
-        Archive            archive;
-        std::set<uint32_t> extracted;
+        Archive                      archive;
+        std::unordered_set<uint32_t> extracted;
     };
 
     struct DynamicRelocation
@@ -206,7 +214,7 @@ namespace
         bool     buildUnwindHeader();
         bool     finishDynamic();
         size_t   section(std::string_view name, uint32_t type, uint64_t flags, uint64_t align = 1);
-        size_t   addTarget(const std::string& name, const SymbolReference& reference, bool imported);
+        size_t   addTarget(std::string_view name, const SymbolReference& reference, bool imported);
         uint64_t address(const Target& target) const;
         uint32_t dynamicString(std::string_view name);
         void     dynamicEntry(uint64_t tag, uint64_t value);
@@ -221,7 +229,7 @@ namespace
         std::set<fs::path>                                      loaded_;
         std::vector<std::unique_ptr<ELF::File>>                 objects_, libraries_;
         std::vector<std::unique_ptr<InputArchive>>              archives_;
-        std::map<std::string, SymbolReference>                  definitions_, imports_;
+        std::unordered_map<std::string_view, SymbolReference>   imports_;
         std::unordered_map<ELF::Section*, ELF::Section*>        foldedSections_;
         std::unordered_set<ELF::Section*>                       discardedSections_;
         std::unordered_map<std::string_view, std::string_view>  contentAliases_;
@@ -230,7 +238,7 @@ namespace
         std::unordered_map<const ELF::Relocation*, uint64_t>    unwindRelocationOffsets_;
         std::vector<NativeUnwindRecord>                         nativeUnwind_;
         std::vector<std::pair<uint64_t, uint64_t>>              textPadding_;
-        std::map<std::string, size_t>                           globals_;
+        GlobalSymbols                                           globals_;
         std::vector<Target>                                     targets_;
         std::vector<OutputSection>                              sections_{1};
         std::vector<std::string>                                needed_;
@@ -297,26 +305,25 @@ namespace
             if (!symbol.binding() || !symbol.section || symbol.name.empty())
                 continue;
             const SymbolReference reference{file.get(), index};
-            const auto            found = definitions_.find(symbol.name);
-            if (found == definitions_.end())
-                definitions_.emplace(symbol.name, reference);
-            else
+            const auto [found, inserted] = globals_.try_emplace(symbol.name, GlobalSymbol{reference});
+            if (!inserted)
             {
-                const ELF::Symbol& previous         = found->second.symbol();
+                SymbolReference&   definition       = found->second.definition;
+                const ELF::Symbol& previous         = definition.symbol();
                 const uint8_t      previousStrength = previous.binding() == 2 ? 0 : previous.section == ELF::SHN_COMMON ? 1
                                                                                                                         : 2;
                 const uint8_t      strength         = symbol.binding() == 2 ? 0 : symbol.section == ELF::SHN_COMMON ? 1
                                                                                                                     : 2;
                 if (strength > previousStrength)
-                    found->second = reference;
+                    definition = reference;
                 else if (strength == previousStrength && strength == 1)
                 {
-                    ELF::Symbol& common = found->second.file->symbols[found->second.index];
+                    ELF::Symbol& common = definition.file->symbols[definition.index];
                     common.size         = std::max(common.size, symbol.size);
                     common.value        = std::max(common.value, symbol.value);
                 }
                 else if (strength == previousStrength && strength == 2 && (symbol.binding() != 10 || previous.binding() != 10))
-                    return fail(std::format("symbol '{}' is defined by both '{}' and '{}'", symbol.name, found->second.file->name, name));
+                    return fail(std::format("symbol '{}' is defined by both '{}' and '{}'", symbol.name, definition.file->name, name));
             }
         }
         objects_.push_back(std::move(file));
@@ -505,8 +512,10 @@ namespace
 
     bool ElfImageLink::extractArchives()
     {
-        std::set<std::string> pending;
-        size_t                scanned = 0;
+        if (archives_.empty())
+            return true;
+        std::set<std::string_view> pending;
+        size_t                     scanned = 0;
         // Scan each loaded member once. COMMON declarations also search archives for
         // stronger definitions, including a later entry behind a weak indexed definition.
         while (scanned < objects_.size() || !pending.empty())
@@ -522,29 +531,28 @@ namespace
                     const ELF::Symbol& symbol = file.symbols[relocation.symbol];
                     if (!relocation.type || !symbol.binding() || symbol.binding() == 2)
                         continue;
-                    const auto definition = definitions_.find(symbol.name);
-                    if (definition == definitions_.end() || definition->second.symbol().section == ELF::SHN_COMMON)
+                    const auto definition = globals_.find(symbol.name);
+                    if (definition == globals_.end() || definition->second.definition.symbol().section == ELF::SHN_COMMON)
                         pending.insert(symbol.name);
                 }
             }
             if (pending.empty())
                 break;
-            const std::string name = *pending.begin();
+            const std::string_view name = *pending.begin();
             pending.erase(pending.begin());
-            const auto definition = definitions_.find(name);
-            const bool common     = definition != definitions_.end() && definition->second.symbol().section == ELF::SHN_COMMON;
-            if (definition != definitions_.end() && !common)
+            const auto definition = globals_.find(name);
+            const bool common     = definition != globals_.end() && definition->second.definition.symbol().section == ELF::SHN_COMMON;
+            if (definition != globals_.end() && !common)
                 continue;
             bool loaded = false;
             for (const auto& archive : archives_)
             {
-                const Utf8                    symbolName(name);
-                const std::array<uint32_t, 1> first = {archive->archive.memberOffsetForSymbol(symbolName)};
+                const std::array<uint32_t, 1> first = {archive->archive.memberOffsetForSymbol(name)};
                 std::vector<uint32_t>         alternatives;
                 std::span<const uint32_t>     candidates(first);
                 if (common)
                 {
-                    alternatives = archive->archive.memberOffsetsForSymbol(symbolName);
+                    alternatives = archive->archive.memberOffsetsForSymbol(name);
                     candidates   = alternatives;
                 }
                 for (const uint32_t offset : candidates)
@@ -704,8 +712,8 @@ namespace
             bool               ownsSymbol = !symbol.binding();
             if (!ownsSymbol)
             {
-                const auto selected = definitions_.find(symbol.name);
-                ownsSymbol          = selected != definitions_.end() && selected->second.file == &file && selected->second.index == address->symbol;
+                const auto selected = globals_.find(symbol.name);
+                ownsSymbol          = selected != globals_.end() && selected->second.definition.file == &file && selected->second.definition.index == address->symbol;
             }
             if (ownsSymbol && !address->addend && symbol.section && symbol.section < file.sections.size() && frame.codeSize && bytes[16] == std::byte{0})
             {
@@ -1101,7 +1109,7 @@ namespace
         return true;
     }
 
-    size_t ElfImageLink::addTarget(const std::string& name, const SymbolReference& reference, const bool imported)
+    size_t ElfImageLink::addTarget(const std::string_view name, const SymbolReference& reference, const bool imported)
     {
         const ELF::Symbol& symbol = reference.symbol();
         Target             target;
@@ -1139,13 +1147,22 @@ namespace
     {
         if (!job_->elfRuntimeHook.empty())
         {
-            const auto hook = definitions_.find(std::string(job_->elfRuntimeHook.view()));
-            if (hook == definitions_.end())
+            const auto hook = globals_.find(job_->elfRuntimeHook.view());
+            if (hook == globals_.end())
                 return fail("shared module has no runtime initialization hook");
-            definitions_.emplace(std::string(K_SHARED_RUNTIME_HOOK_SYMBOL), hook->second);
+            globals_.try_emplace(K_SHARED_RUNTIME_HOOK_SYMBOL, hook->second);
         }
-        for (const auto& [name, reference] : definitions_)
-            globals_.emplace(name, addTarget(name, reference, false));
+
+        // Preserve name order for COMMON storage and the emitted symbol tables.
+        std::vector<GlobalSymbols::value_type*> orderedDefinitions;
+        orderedDefinitions.reserve(globals_.size());
+        for (auto& entry : globals_)
+            orderedDefinitions.push_back(&entry);
+        std::ranges::sort(orderedDefinitions, {}, [](const auto* entry) { return entry->first; });
+        targets_.reserve(orderedDefinitions.size());
+        for (auto* entry : orderedDefinitions)
+            entry->second.target = addTarget(entry->first, entry->second.definition, false);
+
         for (const auto& library : libraries_)
             for (const ELF::Symbol& symbol : library->symbols)
             {
@@ -1153,7 +1170,7 @@ namespace
                     continue;
                 const auto found = globals_.find(symbol.name);
                 if (found != globals_.end())
-                    targets_[found->second].exported = true;
+                    targets_[found->second.target].exported = true;
             }
         for (const auto& file : objects_)
         {
@@ -1162,16 +1179,14 @@ namespace
                 ELF::Symbol& symbol = file->symbols[index];
                 if (symbol.binding())
                 {
-                    auto found = globals_.find(symbol.name);
-                    if (found == globals_.end())
+                    const auto [global, inserted] = globals_.try_emplace(symbol.name);
+                    if (inserted)
                     {
-                        const auto imported = imports_.find(symbol.name);
-                        if (imported != imports_.end())
-                            found = globals_.emplace(symbol.name, addTarget(symbol.name, imported->second, true)).first;
-                        else
-                            found = globals_.emplace(symbol.name, addTarget(symbol.name, {file.get(), index}, true)).first;
+                        const auto            imported  = imports_.find(symbol.name);
+                        const SymbolReference reference = imported != imports_.end() ? imported->second : SymbolReference{file.get(), index};
+                        global->second.target           = addTarget(symbol.name, reference, true);
                     }
-                    symbol.target = found->second;
+                    symbol.target = global->second.target;
                 }
                 else
                     symbol.target = addTarget(symbol.name, {file.get(), index}, false);
@@ -1750,7 +1765,7 @@ namespace
             const auto entry = globals_.find("_start");
             if (entry == globals_.end())
                 return fail("ELF executable has no process entry symbol");
-            image.writeLe64(24, address(targets_[entry->second]));
+            image.writeLe64(24, address(targets_[entry->second.target]));
         }
         image.writeLe64(32, 64);
         image.writeLe64(40, fileEnd_);

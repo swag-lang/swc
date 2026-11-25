@@ -31,11 +31,11 @@ public:
 
     // Returns the file offset of the member header defining the given symbol, or 0 if this archive
     // does not provide it (0 is never a valid member offset because the magic occupies offset 0).
-    uint32_t memberOffsetForSymbol(const Utf8& symbol) const;
+    uint32_t memberOffsetForSymbol(std::string_view symbol) const;
 
     // ELF COMMON definitions can be superseded by a strong definition in a later member.
     // Return every matching directory entry without changing first-definition COFF lookup.
-    std::vector<uint32_t> memberOffsetsForSymbol(const Utf8& symbol) const;
+    std::vector<uint32_t> memberOffsetsForSymbol(std::string_view symbol) const;
 
     // Returns the raw member contents at the given member-header offset.
     std::span<const std::byte> memberData(Diagnostic& outDiag, uint32_t headerOffset) const;

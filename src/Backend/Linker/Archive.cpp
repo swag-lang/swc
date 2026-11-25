@@ -162,13 +162,13 @@ bool Archive::decode(Diagnostic& outDiag)
     return true;
 }
 
-uint32_t Archive::memberOffsetForSymbol(const Utf8& symbol) const
+uint32_t Archive::memberOffsetForSymbol(const std::string_view symbol) const
 {
-    const uint32_t* memberOffset = symbolToMember_.find(symbol.view(), Math::hash(symbol.view()));
+    const uint32_t* memberOffset = symbolToMember_.find(symbol, Math::hash(symbol));
     return memberOffset ? *memberOffset : 0;
 }
 
-std::vector<uint32_t> Archive::memberOffsetsForSymbol(const Utf8& symbol) const
+std::vector<uint32_t> Archive::memberOffsetsForSymbol(const std::string_view symbol) const
 {
     std::vector<uint32_t> result;
     uint32_t              size = 0;
@@ -186,7 +186,7 @@ std::vector<uint32_t> Archive::memberOffsetsForSymbol(const Utf8& symbol) const
         const auto* terminator = static_cast<const char*>(std::memchr(begin, 0, end - cursor));
         if (!terminator)
             return {};
-        if (std::string_view(begin, terminator) == symbol.view())
+        if (std::string_view(begin, terminator) == symbol)
         {
             const uint32_t offset = bytes_.readBe32(data + 4 + size_t{index} * 4);
             if (std::ranges::find(result, offset) == result.end())

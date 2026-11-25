@@ -71,7 +71,6 @@ const ApplicationId     = "swagvault"
 
     // English is the language Swag Vault starts in. The window applies the persisted choice
     // once its state is restored, and says everything again in that language.
-    surface.setTitle(appStrings().ui_WindowTitle)
     let mainWindow = MainWindow.create(surface.wnd)
 
     mainWindow.initialize()

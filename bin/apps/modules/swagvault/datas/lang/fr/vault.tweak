@@ -1,7 +1,5 @@
 # French strings of Swag Vault. A key omitted here keeps its English value.
 
-ui_WindowTitle         Swag Vault — Disques virtuels privés
-
 # Resident mode and ordinary/forced unmounting.
 cmd_ShowWindow         Ouvrir Swag Vault
 cmd_UnmountAll         Démonter tous les coffres
@@ -109,7 +107,7 @@ ui_RandomizeHelp       Swag Vault remplit le fichier de données aléatoires pou
 # The privacy and automatic-unmount page.
 ui_PrivacyTitle        Options
 ui_OptionsHelp         Choisissez comment Swag Vault reste accessible et quand démonter les lecteurs protégés.
-ui_PrivacyMode         Mode vie privée
+ui_PrivacyMode         Mode privé
 ui_PrivacyModeHelp     Ne pas enregistrer les chemins des conteneurs, l'historique de navigation ni les montages au démarrage.
 ui_UnmountOnLock       Démonter au verrouillage de session
 ui_UnmountOnLockHelp   Démonter les lecteurs protégés au verrouillage de la session. Les lecteurs utilisés restent montés.

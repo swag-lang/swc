@@ -960,6 +960,17 @@ impl MainWindow
         .progressPage.arrange()
     }
 
+    // Shows the active privacy mode in the caption and in the system's window switcher.
+    mtd refreshWindowTitle()
+    {
+        let texts = appStrings()
+        var title = String.from(texts.ui_WindowTitle)
+        if .privacyMode do
+            title.appendFormat(" — %", texts.ui_PrivacyMode)
+        if let surface = .surface where surface.wnd.name.text != title do
+            surface.setTitle(title)
+    }
+
     // Says everything the window said at construction, in the language now active.
     //
     // Only text set once by hand needs this: the buttons and the wrapped paragraphs
@@ -967,7 +978,7 @@ impl MainWindow
     // the language actually costs instead of around the widths English needed.
     mtd retranslate()
     {
-        .surface?.setTitle(appStrings().ui_WindowTitle)
+        .refreshWindowTitle()
         .createPage.retranslate()
         .optionsPage.retranslate()
         .resident.applySettings()

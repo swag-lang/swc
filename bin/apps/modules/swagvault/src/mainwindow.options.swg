@@ -4,6 +4,7 @@ impl MainWindow
     mtd applyPrivacyControl()
     {
         .privacyModeControl.setChecked(.privacyMode)
+        .refreshWindowTitle()
         .publishMountPrivacy()
         .refreshHint()
         .refreshVaults()
@@ -24,6 +25,7 @@ impl MainWindow
     mtd readPrivacyControl()
     {
         .privacyMode = .privacyModeControl.isChecked()
+        .refreshWindowTitle()
         .publishMountPrivacy()
         if .privacyMode do
             .clearStartupMounts()

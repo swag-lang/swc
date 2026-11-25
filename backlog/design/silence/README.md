@@ -923,7 +923,8 @@ the screen to its work.
   Unmount and Force Unmount, Unmount All, Options, and Unmount and Quit. These actions share the
   lens commands. The menu identifies drives by their mount destinations.
 - The list keeps recent vaults during the session, and each can be removed individually. Privacy mode
-  skips saving the vault list, file picker history and startup mounts to disk.
+  skips saving the vault list, file picker history and startup mounts to disk. The window title shows
+  “Privacy Mode” while it is active.
 - An ordinary unmount retains an occupied drive and reports that it remains accessible. Force
   Unmount is a separate warning with Cancel as the default; it invalidates open handles and can
   lose pending application writes. Automatic policies use ordinary unmounts and retain a visible

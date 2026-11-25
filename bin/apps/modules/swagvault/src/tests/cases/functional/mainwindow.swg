@@ -149,7 +149,6 @@ internal func testSetupMainWindow(host: *Testing.HeadlessHost, scale = 1.0'f32, 
     // as the view of its surface, which destroys whatever view was there before.
     let result = MainWindow.create(&host.surfaceWnd)
 
-    host.surface.setTitle(ProductName)
     result.applyLayout()
     return result
 }
@@ -275,6 +274,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
     Swag.require(window.privacyMode and window.privacyModeControl.isChecked())
+    Swag.require(host.surfaceWnd.name.text == "Swag Vault — Privacy Mode")
     Swag.require(not window.protectHiddenOnMount)
 
     const VaultPath    = "C:\\private\\unlisted"
@@ -286,6 +286,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     window.privacyModeControl.toggle()
     Swag.require(not window.privacyMode)
+    Swag.require(host.surfaceWnd.name.text == ProductName)
     window.startupVaults.add(StartupVault{"C:\\private\\startup", "mount-x", true, false})
     window.fileDlgState.currentFolder = BrowseFolder
     let persistent = saveMainWindowState(window)
@@ -294,6 +295,7 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
 
     window.privacyModeControl.toggle()
     Swag.require(window.privacyMode and window.startupVaults.isEmpty())
+    Swag.require(host.surfaceWnd.name.text == "Swag Vault — Privacy Mode")
     Swag.require(window.vaults.count == 1 and window.list.rowOf(VaultPath)!.isLocallyVisible())
     Swag.require(window.fileDlgState.currentFolder == BrowseFolder)
     let saved = saveMainWindowState(window)
@@ -306,7 +308,10 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     let restored = testSetupMainWindow(&restoredHost)
     loadMainWindowState(restored, saved.toSlice())
     Swag.require(restored.privacyMode and restored.vaults.isEmpty() and restored.list.rows.isEmpty())
+    Swag.require(restoredHost.surfaceWnd.name.text == "Swag Vault — Privacy Mode")
     Swag.require(restored.fileDlgState.currentFolder.isEmpty() and restored.startupVaults.isEmpty())
+    loadMainWindowState(restored, persistent.toSlice())
+    Swag.require(not restored.privacyMode and restoredHost.surfaceWnd.name.text == ProductName)
 }
 
 // About is a lens entry, and reaches the standard application box.
@@ -341,6 +346,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         {
             expect g_App.setLanguage(one.tag)
             host.notify(.LanguageChanged)
+            Swag.require(host.surfaceWnd.name.text == Format.toString("% — %", ProductName, appStrings().ui_PrivacyMode))
+            if one.tag == "fr" do
+                Swag.require(host.surfaceWnd.name.text == "Swag Vault — Mode privé")
 
             window.showPage(.List, animate: false)
             Testing.assertContentFits(window)

@@ -24,7 +24,7 @@ struct AppStrings
     search_Create: string = "create vault;new container"
     search_Open:   string = "open vault;open container"
 
-    ui_WindowTitle: string = "Swag Vault — Private virtual drives"
+    ui_WindowTitle: string = ProductName
 
     // The list of vaults, and what a row says about the vault it names. The state words are
     // joined with " · " on the mono line under the name.

@@ -293,7 +293,7 @@ private struct Parser
     gradients:      HashTable'(String, Gradient)
     patterns:       HashTable'(String, Pattern)
     filters:        HashTable'(String, SvgFilter)
-    styles:         Array'StyleRule
+    styles:         StyleSheet
     options:        ParseOptions
     typeFaces:      [FontFamilyKind.count] (*TypeFace?)
     svgDepth:       u32
@@ -301,10 +301,32 @@ private struct Parser
     dimensionsOnly: bool
 }
 
+// The parser borrows these slices from the document for the duration of parsing.
+private alias AttributeMap = HashTable'(string, string)
+
 private struct StyleRule
 {
-    selector:     String
-    declarations: String
+    declarations: string
+    next:         u64 = Swag.U64.Max
+}
+
+private struct StyleRuleList
+{
+    first:     u64 = Swag.U64.Max
+    last:      u64 = Swag.U64.Max
+    matchedIn: u64
+}
+
+// Each selector links rules in source order through the shared array.
+private struct StyleSheet
+{
+    rules:   Array'StyleRule
+    byTag:   HashTable'(String, StyleRuleList)
+    byClass: HashTable'(string, StyleRuleList)
+    byId:    HashTable'(string, StyleRuleList)
+
+    classMatches:    Array'u64
+    matchGeneration: u64
 }
 
 // A marker definition: the shapes it draws, the viewport they are drawn in, and how each
@@ -1047,9 +1069,8 @@ private func applyAttribute(state: *GroupState, name, value: string)
     applyStyleProperty(state, name, value)
 }
 
-private func styleValue(style, property: string)->String
+private func styleValue(style, property: string)->string
 {
-    var result: #returntype
     var scan = style
     while scan.count
     {
@@ -1064,11 +1085,8 @@ private func styleValue(style, property: string)->String
         if sep < declaration.count
         {
             let name = Latin1.trim(declaration[until sep])
-            if not Latin1.compare(name, property, ignoreCase: true)
-            {
-                result = Latin1.trim(declaration[sep + 1 until declaration.count])
-                return result
-            }
+            if not Latin1.compare(name, property, ignoreCase: true) do
+                return Latin1.trim(declaration[sep + 1 until declaration.count])
         }
 
         if stop == scan.count do
@@ -1076,7 +1094,7 @@ private func styleValue(style, property: string)->String
         scan = scan[stop + 1 until scan.count]
     }
 
-    return result
+    return ""
 }
 
 // Geometry /////////////////////////////////////////////////////////////////////
@@ -1914,13 +1932,125 @@ private func emitPoly(drawing: *Drawing, state: *GroupState, points: string, clo
     emitShape(drawing, #move list, state)
 }
 
+private impl StyleSheet
+{
+    mtd add(selector, declarations: string)
+    {
+        switch selector[0]
+        {
+        case '.':
+            if selector.count > 1 do
+                .appendRule(&.byClass.findOrAdd(selector[1 to]).value, declarations)
+
+        case '#':
+            if selector.count > 1 do
+                .appendRule(&.byId.findOrAdd(selector[1 to]).value, declarations)
+
+        default:
+            .appendRule(&.byTag.findOrAdd(String.toLower(selector)).value, declarations)
+        }
+    }
+
+    mtd appendRule(list: *StyleRuleList, declarations: string)
+    {
+        let index = .rules.count
+        if list.last == Swag.U64.Max do
+            list.first = index
+        else do
+            .rules[list.last].next = index
+        list.last = index
+        .rules.add(StyleRule{declarations: declarations})
+    }
+
+    mtd const applyRules(list: const *StyleRuleList, state: *GroupState)
+    {
+        var index = list.first
+        while index != Swag.U64.Max
+        {
+            let rule = &.rules[index]
+            applyAttribute(state, "style", rule.declarations)
+            index = rule.next
+        }
+    }
+
+    mtd applyClassRules(value: string, state: *GroupState)
+    {
+        .matchGeneration += 1
+        .classMatches.clear()
+
+        var classes      = value
+        var matchedLists = 0'u64
+        while classes.count
+        {
+            var end = 0'u64
+            while end < classes.count and
+                  classes[end] != ' ' and
+                  classes[end] != '\t' and
+                  classes[end] != '\n' and
+                  classes[end] != '\r' do
+                end += 1
+
+            // A class may appear more than once on an element. Apply its rules once.
+            let entry = .byClass.tryFind(classes[until end])
+            if entry and entry.value.matchedIn != .matchGeneration
+            {
+                entry.value.matchedIn = .matchGeneration
+                matchedLists += 1
+                var index = entry.value.first
+                while index != Swag.U64.Max
+                {
+                    .classMatches.add(index)
+                    index = .rules[index].next
+                }
+            }
+
+            if end == classes.count do
+                break
+            classes = Latin1.trim(classes[end to])
+        }
+
+        // Different classes have equal specificity; their rules follow stylesheet order.
+        if matchedLists > 1 do
+            .classMatches.sort()
+        for index in .classMatches do
+            applyAttribute(state, "style", .rules[index].declarations)
+    }
+
+    mtd apply(elementName: string, geo: *AttributeMap, state: *GroupState)
+    {
+        // Apply the indexed rules in increasing selector specificity.
+        if .byTag.count
+        {
+            if let rules = .byTag.tryFind(String.toLower(elementName)) do
+                .applyRules(&rules.value, state)
+        }
+
+        if .byClass.count
+        {
+            if let classAttr = geo.tryFind("class") do
+                .applyClassRules(classAttr.value, state)
+        }
+
+        if .byId.count
+        {
+            if let idAttr = geo.tryFind("id")
+            {
+                if let rules = .byId.tryFind(idAttr.value) do
+                    .applyRules(&rules.value, state)
+            }
+        }
+    }
+}
+
 private impl Parser
 {
     mtd skipUntil(c: u8)
     {
         let len = (.text).count
-        while .pos < len and .text[.pos] != c do
-            .pos += 1
+        if .pos >= len or .text[.pos] == c do
+            return
+        let end = Utf8.indexOf(.text, cast(rune, c), .pos)
+        .pos = end == Swag.U64.Max ? len : end
     }
 
     mtd parseStyleSheet()
@@ -1957,7 +2087,7 @@ private impl Parser
                 break
 
             if selector.count and selector[0] != '@' do
-                .styles.add(StyleRule{String.from(selector), String.from(Latin1.trim(content[declarationsStart until pos]))})
+                .styles.add(selector, Latin1.trim(content[declarationsStart until pos]))
             pos += 1
         }
 
@@ -1967,72 +2097,22 @@ private impl Parser
             .pos += 1
     }
 
-    mtd applyStyleRules(elementName: string, geo: *HashTable'(String, String), state: *GroupState)
+    mtd applyStyles(elementName: string, geo: *AttributeMap, state: *GroupState)
     {
-        let idAttr    = geo.tryFind("id")
-        let classAttr = geo.tryFind("class")
-
-        // Apply increasing selector specificity, preserving source order within
-        // each class. This deliberately supports the compact selectors common in
-        // standalone artwork without pretending to be a complete CSS engine.
-        for specificity in 3
-        {
-            for &rule in .styles
-            {
-                let selector = rule.selector.toString()
-                var matches  = false
-                switch specificity
-                {
-                case 0:
-                    matches = selector.count and
-                              selector[0] != '.' and
-                              selector[0] != '#' and
-                              not Latin1.compare(selector, elementName, ignoreCase: true)
-
-                case 1:
-                    if selector.count > 1 and selector[0] == '.' and classAttr
-                    {
-                        let wanted  = selector[1 until selector.count]
-                        var classes = classAttr.value.toString()
-                        while classes.count
-                        {
-                            var end = 0'u64
-                            while end < classes.count and
-                                  classes[end] != ' ' and
-                                  classes[end] != '\t' and
-                                  classes[end] != '\n' and
-                                  classes[end] != '\r' do
-                                end += 1
-                            if not Latin1.compare(classes[until end], wanted) do
-                                matches = true
-                            if matches or end == classes.count do
-                                break
-                            classes = Latin1.trim(classes[end until classes.count])
-                        }
-                    }
-
-                case 2:
-                    if selector.count > 1 and selector[0] == '#' and idAttr do
-                        matches = not Latin1.compare(selector[1 until selector.count], idAttr.value.toString())
-                }
-
-                if matches do
-                    applyAttribute(state, "style", rule.declarations.toString())
-            }
-        }
-
-        let inlineStyle = geo.tryFind("style")
-        if inlineStyle do
-            applyAttribute(state, "style", inlineStyle.value.toString())
+        if .styles.rules.count do
+            .styles.apply(elementName, geo, state)
+        if let inlineStyle = geo.tryFind("style") do
+            applyAttribute(state, "style", inlineStyle.value)
     }
 
-    // Scans the attributes of the current element into `state` and collects the
-    // geometry attributes by name.
-    mtd scanAttributes(state: *GroupState, geo: *HashTable'(String, String))->{ selfClosed: bool }
+    // Applies presentation attributes and collects slices of the remaining supported attributes.
+    // Each nesting level reuses its map for siblings.
+    mtd scanAttributes(state: *GroupState, geo: *AttributeMap)->{ selfClosed: bool }
     {
+        geo.clear()
+
         var result: #returntype
         let len = (.text).count
-
         while .pos < len
         {
             while .pos < len and (.text[.pos] == ' ' or .text[.pos] == '\t' or .text[.pos] == '\n' or .text[.pos] == '\r') do
@@ -2075,8 +2155,7 @@ private impl Parser
             let quote = .text[.pos]
             .pos += 1
             let valueStart = .pos
-            while .pos < len and .text[.pos] != quote do
-                .pos += 1
+            .skipUntil(quote)
             let value = .text[valueStart until .pos]
             .pos += 1
 
@@ -2102,21 +2181,21 @@ private impl Parser
         return result
     }
 
-    mtd geoNumber(geo: *HashTable'(String, String), name: string, defaultValue = 0.0'f32)->f32
+    mtd geoNumber(geo: *AttributeMap, name: string, defaultValue = 0.0'f32)->f32
     {
         let here = geo.tryFind(name)
         if not here do
             return defaultValue
         var pos = 0'u64
-        return scanNumber(here.value.toString(), &pos)
+        return scanNumber(here.value, &pos)
     }
 
-    mtd geoLength(geo: *HashTable'(String, String), name: string, defaultValue: SvgLength)->SvgLength
+    mtd geoLength(geo: *AttributeMap, name: string, defaultValue: SvgLength)->SvgLength
     {
         let here = geo.tryFind(name)
         if not here do
             return defaultValue
-        return parseLength(here.value.toString(), defaultValue)
+        return parseLength(here.value, defaultValue)
     }
 
     mtd applyPathLength(first, count: u64, authoredLength, geometryScale: f32)
@@ -2154,6 +2233,7 @@ private impl Parser
     mtd parseGradientStops(gradient: *Gradient) fail
     {
         let len = (.text).count
+        var geo: AttributeMap
         while .pos < len
         {
             .skipUntil('<')
@@ -2189,45 +2269,44 @@ private impl Parser
             let name = .text[nameStart until .pos]
 
             var state: GroupState
-            var geo:   HashTable'(String, String)
             let {selfClosed} = .scanAttributes(&state, &geo)
             if name == "stop"
             {
                 var offset     = SvgLength{}
                 let offsetAttr = geo.tryFind("offset")
                 if offsetAttr do
-                    offset = parseLength(offsetAttr.value.toString())
+                    offset = parseLength(offsetAttr.value)
 
-                var color     = Color.fromArgb(Argb.Black)
-                var colorValue: String
-                let colorAttr = geo.tryFind("stop-color")
+                var color      = Color.fromArgb(Argb.Black)
+                var colorValue = ""
+                let colorAttr  = geo.tryFind("stop-color")
                 if colorAttr do
                     colorValue = colorAttr.value
                 let style = geo.tryFind("style")
                 if style
                 {
-                    let styled = styleValue(style.value.toString(), "stop-color")
-                    if not styled.isEmpty() do
-                        colorValue = #move styled
+                    let styled = styleValue(style.value, "stop-color")
+                    if styled.count do
+                        colorValue = styled
                 }
 
-                if not colorValue.isEmpty() do
-                    color = parseColor(colorValue.toString()).color
+                if colorValue.count do
+                    color = parseColor(colorValue).color
 
                 var opacity     = 1.0'f32
                 let opacityAttr = geo.tryFind("stop-opacity")
                 if opacityAttr
                 {
-                    let parsed = parseLength(opacityAttr.value.toString(), {1, false})
+                    let parsed = parseLength(opacityAttr.value, {1, false})
                     opacity = Math.saturate(parsed.value)
                 }
 
                 if style
                 {
-                    let styled = styleValue(style.value.toString(), "stop-opacity")
-                    if not styled.isEmpty()
+                    let styled = styleValue(style.value, "stop-opacity")
+                    if styled.count
                     {
-                        let parsed = parseLength(styled.toString(), {1, false})
+                        let parsed = parseLength(styled, {1, false})
                         opacity = Math.saturate(parsed.value)
                     }
                 }
@@ -2244,7 +2323,7 @@ private impl Parser
         }
     }
 
-    mtd parseGradient(kind: GradientKind, geo: *HashTable'(String, String), selfClosed: bool) fail
+    mtd parseGradient(kind: GradientKind, geo: *AttributeMap, selfClosed: bool) fail
     {
         var gradient: Gradient
 
@@ -2255,7 +2334,7 @@ private impl Parser
             href = geo.tryFind("xlink:href")
         if href
         {
-            var baseId = href.value.toString()
+            var baseId = href.value
             if baseId.count and baseId[0] == '#' do
                 baseId = baseId[1 until baseId.count]
             gradient.href = String.from(baseId)
@@ -2294,14 +2373,14 @@ private impl Parser
         let units = geo.tryFind("gradientUnits")
         if units
         {
-            gradient.userSpace       = units.value.toString() == "userSpaceOnUse"
+            gradient.userSpace       = units.value == "userSpaceOnUse"
             gradient.specified.units = true
         }
 
         let spread = geo.tryFind("spreadMethod")
         if spread
         {
-            switch spread.value.toString()
+            switch spread.value
             {
             case "repeat":  gradient.spread = .Repeat
             case "reflect": gradient.spread = .Mirror
@@ -2314,7 +2393,7 @@ private impl Parser
         let transform = geo.tryFind("gradientTransform")
         if transform
         {
-            gradient.transform = composeTransformList(transform.value.toString(), Math.Transform2.Identity)
+            gradient.transform = composeTransformList(transform.value, Math.Transform2.Identity)
             gradient.specified.transform = true
         }
 
@@ -2356,7 +2435,7 @@ private impl Parser
         return try Image.load(fullPath.toString())
     }
 
-    mtd emitImage(state: *GroupState, geo: *HashTable'(String, String)) fail
+    mtd emitImage(state: *GroupState, geo: *AttributeMap) fail
     {
         if not state.isDisplayed or not state.isVisible do
             return
@@ -2374,7 +2453,7 @@ private impl Parser
 
         let index = .drawing.images.count
         let item  = .drawing.images.emplaceInitAddress()
-        item.image = try .loadImage(href.value.toString())
+        item.image = try .loadImage(href.value)
 
         // The rectangle stays in user units and carries its transform, so a mirrored or turned
         // picture is painted through the same matrix as its siblings instead of being
@@ -2415,7 +2494,7 @@ private impl Parser
         return face
     }
 
-    mtd addTextRun(text: string, state: *GroupState, geo: *HashTable'(String, String), block: *SvgText, first: bool) fail
+    mtd addTextRun(text: string, state: *GroupState, geo: *AttributeMap, block: *SvgText, first: bool) fail
     {
         let normalized = normalizedText(text)
         if normalized.isEmpty() or not state.isDisplayed or not state.isVisible or not state.hasFill do
@@ -2450,7 +2529,7 @@ private impl Parser
         run.forceItalic   = state.forceItalic
     }
 
-    mtd parseText(state: GroupState, geo: *HashTable'(String, String), selfClosed: bool) fail
+    mtd parseText(state: GroupState, geo: *AttributeMap, selfClosed: bool) fail
     {
         let index = .drawing.texts.count
         let block = .drawing.texts.emplaceInitAddress()
@@ -2459,6 +2538,7 @@ private impl Parser
 
         let len   = (.text).count
         var first = true
+        var childGeo: AttributeMap
         while .pos < len
         {
             let textStart = .pos
@@ -2492,9 +2572,8 @@ private impl Parser
             let name = .text[nameStart until .pos]
 
             var childState = state
-            var childGeo: HashTable'(String, String)
             let {selfClosed: childClosed} = .scanAttributes(&childState, &childGeo)
-            .applyStyleRules(name, &childGeo, &childState)
+            .applyStyles(name, &childGeo, &childState)
             if name != "tspan"
             {
                 if not childClosed do
@@ -2518,7 +2597,7 @@ private impl Parser
             .drawing.items.add(DrawingItem{.Text, index})
     }
 
-    mtd parsePattern(state: GroupState, geo: *HashTable'(String, String), selfClosed: bool) fail
+    mtd parsePattern(state: GroupState, geo: *AttributeMap, selfClosed: bool) fail
     {
         let first        = .drawing.shapes.count
         var contentState = state
@@ -2538,16 +2617,17 @@ private impl Parser
         pattern.width  = .geoLength(geo, "width", {})
         pattern.height = .geoLength(geo, "height", {})
         let units = geo.tryFind("patternUnits")
-        pattern.userSpace = units != null and units.value.toString() == "userSpaceOnUse"
+        pattern.userSpace = units != null and units.value == "userSpaceOnUse"
         .patterns.add(id.value, #move pattern)
     }
 
-    mtd parseFilter(geo: *HashTable'(String, String), selfClosed: bool) fail
+    mtd parseFilter(geo: *AttributeMap, selfClosed: bool) fail
     {
         var filter: SvgFilter
         if not selfClosed
         {
             let len = (.text).count
+            var attrs: AttributeMap
             while .pos < len
             {
                 .skipUntil('<')
@@ -2572,7 +2652,6 @@ private impl Parser
                     .pos += 1
                 let name = .text[nameStart until .pos]
                 var state: GroupState
-                var attrs: HashTable'(String, String)
                 let {selfClosed: childClosed} = .scanAttributes(&state, &attrs)
 
                 var primitive: FilterPrimitive
@@ -2595,10 +2674,10 @@ private impl Parser
                     primitive.radius = Math.max(.geoNumber(&attrs, "stdDeviation"), 0)
                     let flood = attrs.tryFind("flood-color")
                     if flood do
-                        primitive.color = parseColor(flood.value.toString()).color
+                        primitive.color = parseColor(flood.value).color
                     let opacity = attrs.tryFind("flood-opacity")
                     if opacity do
-                        primitive.color = primitive.color.withAlphaF32(Math.saturate(parseLength(opacity.value.toString()).value))
+                        primitive.color = primitive.color.withAlphaF32(Math.saturate(parseLength(opacity.value).value))
 
                 default:
                     keep = false
@@ -2620,6 +2699,7 @@ private impl Parser
     mtd parseContent(parent: GroupState) fail
     {
         let len = (.text).count
+        var geo: AttributeMap
         while .pos < len
         {
             .skipUntil('<')
@@ -2661,9 +2741,8 @@ private impl Parser
             // The property is not inherited. Ancestor clips are applied to the completed
             // subtree below, after any clip that a descendant declares for itself.
             state.clipPathId.clear()
-            var geo: HashTable'(String, String)
             let {selfClosed} = .scanAttributes(&state, &geo)
-            .applyStyleRules(name, &geo, &state)
+            .applyStyles(name, &geo, &state)
 
             // A clip is stated in the user space of the element that names it, and children may
             // add transforms of their own; remembering that space here is what keeps an
@@ -2682,17 +2761,17 @@ private impl Parser
                 if isRoot
                 {
                     if let width = geo.tryFind("width") do
-                        .drawing.imageSize.x = parseImageLength(width.value.toString())
+                        .drawing.imageSize.x = parseImageLength(width.value)
                     if let height = geo.tryFind("height") do
-                        .drawing.imageSize.y = parseImageLength(height.value.toString())
+                        .drawing.imageSize.y = parseImageLength(height.value)
                     let vb = geo.tryFind("viewBox")
                     if vb
                     {
                         var pos   = 0'u64
-                        let viewX = scanNumber(vb.value.toString(), &pos)
-                        let viewY = scanNumber(vb.value.toString(), &pos)
-                        .drawing.width  = scanNumber(vb.value.toString(), &pos)
-                        .drawing.height = scanNumber(vb.value.toString(), &pos)
+                        let viewX = scanNumber(vb.value, &pos)
+                        let viewY = scanNumber(vb.value, &pos)
+                        .drawing.width  = scanNumber(vb.value, &pos)
+                        .drawing.height = scanNumber(vb.value, &pos)
                         state.transform = prependTranslation(state.transform, -viewX, -viewY)
                     }
                     else
@@ -2723,7 +2802,7 @@ private impl Parser
                 {
                     var list:     LinePathList
                     var vertices: Array'MarkerVertex
-                    parsePathData(&list, d.value.toString(), &state, state.hasMarkers() ? &vertices : null)
+                    parsePathData(&list, d.value, &state, state.hasMarkers() ? &vertices : null)
                     emitShape(.drawing, #move list, &state)
                     .applyMarkers(&state, vertices.toSlice())
                 }
@@ -2837,10 +2916,10 @@ private impl Parser
                     if box
                     {
                         var boxPos = 0'u64
-                        viewport.viewX      = scanNumber(box.value.toString(), &boxPos)
-                        viewport.viewY      = scanNumber(box.value.toString(), &boxPos)
-                        viewport.viewWidth  = scanNumber(box.value.toString(), &boxPos)
-                        viewport.viewHeight = scanNumber(box.value.toString(), &boxPos)
+                        viewport.viewX      = scanNumber(box.value, &boxPos)
+                        viewport.viewY      = scanNumber(box.value, &boxPos)
+                        viewport.viewWidth  = scanNumber(box.value, &boxPos)
+                        viewport.viewHeight = scanNumber(box.value, &boxPos)
                         viewport.hasViewBox = true
                     }
 
@@ -2892,7 +2971,7 @@ private impl Parser
                     href = geo.tryFind("xlink:href")
                 if href
                 {
-                    var target = href.value.toString()
+                    var target = href.value
                     if target.count and target[0] == '#' do
                         target = target[1 until target.count]
                     let here = .defs.tryFind(target)
@@ -2932,8 +3011,8 @@ private impl Parser
                 let pts = geo.tryFind("points")
                 if pts
                 {
-                    emitPoly(.drawing, &state, pts.value.toString(), true)
-                    var vertices = polyVertices(pts.value.toString(), state.hasMarkers())
+                    emitPoly(.drawing, &state, pts.value, true)
+                    var vertices = polyVertices(pts.value, state.hasMarkers())
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
@@ -2946,8 +3025,8 @@ private impl Parser
                 {
                     var strokeOnly = state
                     strokeOnly.hasFill = false
-                    emitPoly(.drawing, &strokeOnly, pts.value.toString(), false)
-                    var vertices = polyVertices(pts.value.toString(), state.hasMarkers())
+                    emitPoly(.drawing, &strokeOnly, pts.value, false)
+                    var vertices = polyVertices(pts.value, state.hasMarkers())
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
@@ -2978,7 +3057,7 @@ private impl Parser
     }
 
     // Reads a `marker` element's viewport, reference point and orientation rule.
-    mtd readMarkerDefinition(geo: *HashTable'(String, String), first, count: u64)->MarkerDefinition
+    mtd readMarkerDefinition(geo: *AttributeMap, first, count: u64)->MarkerDefinition
     {
         var result: #returntype
         result.first  = first
@@ -2990,23 +3069,23 @@ private impl Parser
 
         let units = geo.tryFind("markerUnits")
         if units do
-            result.scaleWithWidth = units.value.toString() != "userSpaceOnUse"
+            result.scaleWithWidth = units.value != "userSpaceOnUse"
 
         let box = geo.tryFind("viewBox")
         if box
         {
             var boxPos = 0'u64
-            result.viewX      = scanNumber(box.value.toString(), &boxPos)
-            result.viewY      = scanNumber(box.value.toString(), &boxPos)
-            result.viewWidth  = scanNumber(box.value.toString(), &boxPos)
-            result.viewHeight = scanNumber(box.value.toString(), &boxPos)
+            result.viewX      = scanNumber(box.value, &boxPos)
+            result.viewY      = scanNumber(box.value, &boxPos)
+            result.viewWidth  = scanNumber(box.value, &boxPos)
+            result.viewHeight = scanNumber(box.value, &boxPos)
             result.hasViewBox = true
         }
 
         let orient = geo.tryFind("orient")
         if orient
         {
-            let text = Latin1.trim(orient.value.toString())
+            let text = Latin1.trim(orient.value)
             if not Latin1.compare(text, "auto-start-reverse", ignoreCase: true)
             {
                 result.orientAuto         = true

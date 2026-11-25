@@ -47,6 +47,28 @@ using Swag, Core
     Swag.require(sizeError != null)
 }
 
+// A symbol keeps its viewport, and an omitted attribute stays omitted on the next element.
+#test
+{
+    func parseDrawing()->Svg.Drawing
+    {
+        let source = String.from("""\
+            <svg width='30' height='10'>\
+            <defs><symbol id='tile' viewBox='0 0 5 5'>\
+            <rect width='5' height='5' fill='red'/></symbol></defs>\
+            <use href='#tile' width='10' height='10'/><use x='10'/>\
+            <rect x='20' width='10' height='10' fill="blue" data-note='a > "b"'/>\
+            <rect y='5' height='5' fill='green'/></svg>""")
+        return expect Svg.Drawing.parse(source.toString())
+    }
+
+    let drawing = parseDrawing()
+    let image   = drawing.rasterize(30, 10, 1)
+    Swag.require(image.pixelColor(8, 8).r == 255)
+    Swag.require(image.pixelColor(15, 8).a == 0)
+    Swag.require(image.pixelColor(25, 8).b == 255)
+}
+
 // Image dimensions and drawing coordinates are separate, including offset view boxes.
 #test
 {
@@ -147,6 +169,32 @@ private const ManyStopSvg = """\
     Swag.require(red.r > 170 and red.g == 0 and red.b == 0 and red.a > 120 and red.a < 136)
     Swag.require(green.g > 240 and green.a == 255)
     Swag.require(blue.b > 170 and blue.r == 0 and blue.g == 0 and blue.a > 120 and blue.a < 136)
+}
+
+// Class rules follow stylesheet order, even with a reordered or repeated class on the element.
+#test
+{
+    const Source = """\
+        <svg width='50' height='10'>\
+        <style>RECT { fill: yellow; } .second { fill: blue; opacity: 0.5; }\
+        .first { fill: red; } #selected { fill: lime; } #inline { fill: lime; }</style>\
+        <rect width='10' height='10' class='first second second'/>\
+        <style>.second { fill: blue; }</style>\
+        <rect x='10' width='10' height='10' class='second first'/>\
+        <rect x='20' width='10' height='10' class='first' id='selected'/>\
+        <rect x='30' width='10' height='10' style='fill:white' id='inline'/>\
+        <rect x='40' width='10' height='10' class='Second' id='SELECTED'/></svg>"""
+
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(50, 10, 1)
+    let red     = image.pixelColor(5, 5)
+    let blue    = image.pixelColor(15, 5)
+    Swag.require(red.r >= 253 and red.g == 0 and red.b == 0)
+    Swag.require(blue.r == 0 and blue.g == 0 and blue.b >= 253)
+    Swag.require(red.a == blue.a and Math.abs(cast(s32, red.a) - 128) <= 2)
+    Swag.require(image.pixelColor(25, 5) == Color.fromRgb(0, 255, 0))
+    Swag.require(image.pixelColor(35, 5) == Color.fromRgb(255, 255, 255))
+    Swag.require(image.pixelColor(45, 5) == Color.fromRgb(255, 255, 0))
 }
 
 // A radial paint server carries its inner radius, stop opacity and repeat policy.

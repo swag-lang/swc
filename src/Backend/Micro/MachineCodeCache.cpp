@@ -229,7 +229,7 @@ namespace
     struct InputIdentity
     {
         TaskContext*                                                 ctx = nullptr;
-        std::unordered_map<uint64_t, uint32_t>                       allocations;
+        FlatKeyMap<uint32_t, uint64_t>                               allocations;
         std::unordered_map<ConstantLeaf, uint32_t, ConstantLeafHash> leaves;
         uint32_t                                                     numAllocations = 0;
         std::unordered_map<const SymbolFunction*, uint32_t>          functions;
@@ -303,13 +303,15 @@ namespace
                 return false;
             if (allocation.size > K_MAX_IMAGE_SIZE - std::min<size_t>(out.size(), K_MAX_IMAGE_SIZE))
                 return false;
-            const uint64_t key                             = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
-            const auto [allocationEntry, unseen]           = allocations.emplace(key, numAllocations);
-            bool                                  inserted = unseen;
+            const uint64_t key = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
+            // Use one-based ordinals so a new slot starts at zero.
+            uint32_t&                             ordinal  = allocations.getOrInsert(key);
+            bool                                  inserted = ordinal == 0;
             SmallVector<DataSegmentRelocation, 4> relocations;
             const std::byte*                      payload = nullptr;
-            if (unseen)
+            if (inserted)
             {
+                ordinal = numAllocations + 1;
                 segment.copyRelocations(relocations, allocation.offset, allocation.size);
                 payload = segment.ptr<std::byte>(allocation.offset);
                 if (relocations.empty())
@@ -318,11 +320,11 @@ namespace
                     const std::string_view text{reinterpret_cast<const char*>(payload), allocation.size};
                     const ConstantLeaf     leaf{text, allocation.align, Math::hash(text, allocation.align)};
                     const auto [leafEntry, added] = leaves.emplace(leaf, numAllocations);
-                    allocationEntry->second       = leafEntry->second;
+                    ordinal                       = leafEntry->second + 1;
                     inserted                      = added;
                 }
             }
-            const uint32_t index = allocationEntry->second;
+            const uint32_t index = ordinal - 1;
             numAllocations += inserted;
             out.appendLe32(index);
             out.appendLe32(source.offset - allocation.offset);

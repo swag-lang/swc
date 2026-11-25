@@ -417,18 +417,18 @@ struct Decoder
 {
     internal
     {
-        info:          StreamInfo           // What the container headers described.
-        frames:        Array'FrameEntry     // Where every frame of the video stream lies.
-        payload:       Array'u8             // Scratch storage of one encoded frame.
-        soundTracks:   Array'SoundFile      // Tracks streamed from the AVI file.
-        bytesPerPixel: u64                  // Source bytes of one pixel of an uncompressed frame.
-        rowBytes:      u64                  // Padded length of one row of an uncompressed frame.
-        nextIndex:     u64                  // Index of the frame the decoder is positioned on.
-        pictures:      PictureStream        // Coded pictures, when frames are a coded stream.
-        isTopDown:     bool                 // Whether uncompressed rows start with the top one.
-        isJpeg:        bool                 // Whether frames are complete JPEG images.
-        isCoded:       bool                 // Whether frames are planes of a coded picture stream.
-        pictureOnly:   bool                 // Whether the reader opens without sound tracks.
+        info:          StreamInfo            // What the container headers described.
+        frames:        Array'FrameEntry      // Where every frame of the video stream lies.
+        payload:       Array'u8              // Scratch storage of one encoded frame.
+        soundTracks:   Array'SoundFile       // Tracks streamed from the AVI file.
+        bytesPerPixel: u64                   // Source bytes of one pixel of an uncompressed frame.
+        rowBytes:      u64                   // Padded length of one row of an uncompressed frame.
+        nextIndex:     u64                   // Index of the frame the decoder is positioned on.
+        pictures:      Mpeg4.Mpeg4Stream     // Coded pictures, when frames are a coded stream.
+        isTopDown:     bool                  // Whether uncompressed rows start with the top one.
+        isJpeg:        bool                  // Whether frames are complete JPEG images.
+        isCoded:       bool                  // Whether frames are planes of a coded picture stream.
+        pictureOnly:   bool                  // Whether the reader opens without sound tracks.
     }
 }
 
@@ -964,9 +964,9 @@ private impl Decoder
             setup = Video.inlineSetupHeaders(full.toSlice())
         }
 
-        try .pictures.open(PictureMpeg4, setup, samples.toSlice(), Video.storedNothing(), slotTimestamps: true)
-        .info.width  = .pictures.width()
-        .info.height = .pictures.height()
+        try .pictures.open(setup, #move samples, slotTimestamps: true)
+        .info.width  = .pictures.width
+        .info.height = .pictures.height
     }
 
     // Decodes one Motion JPEG frame, which is a complete JPEG image.

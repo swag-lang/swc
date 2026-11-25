@@ -213,6 +213,25 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     }
 }
 
+// An odd height can end on the first row of a directly written 4:2:0 pair.
+#test
+{
+    var bytes = expect File.readAllBytes(getTestDataPath("h2v2.jpg"))
+    let full  = expect Image.decode("full.jpg", bytes.toSlice())
+    Swag.require(full.width == 1024 and full.height == 768)
+
+    const StartOfFrame: [2] u8 = [0xFF, 0xC0]
+    let marker = Slice.findSubslice(bytes.toSlice(), StartOfFrame)
+    Swag.require(marker < bytes.count and bytes.count - marker > 11 and bytes[marker + 11] == 0x22)
+
+    // Trimming one row within the final MCU leaves every entropy-coded block in place.
+    bytes[marker + 5] = 0x02
+    bytes[marker + 6] = 0xFF
+    let cropped = expect Image.decode("cropped.jpg", bytes.toSlice())
+    Swag.require(cropped.width == 1024 and cropped.height == 767)
+    Swag.require(Slice.equals(cropped.pixels.toSlice(), full.pixels.toSlice()[cast(u64, full.rowStride) to]))
+}
+
 // Metadata-only decode must populate dimensions without allocating pixels.
 #test
 {

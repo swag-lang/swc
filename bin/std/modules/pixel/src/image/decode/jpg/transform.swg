@@ -310,10 +310,10 @@ impl Decoder
         .totalBytesRead -= .inBufLeft
     }
 
-    mtd convertGrayscale()
+    mtd convertGrayscale(output: [*] u8)
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.storage()
+        var d   = output
         var s   = .safeSampleBuf() + row * 8
         for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -324,12 +324,12 @@ impl Decoder
         }
     }
 
-    mtd convertH1V1()
+    mtd convertH1V1(output: [*] u8)
     {
         let row         = .maxMcuSizeY - .mcuLinesLeft
         let planeBytes  = .compSampV[0] * 64
         let mcuBytes    = 3 * planeBytes
-        var destination = .scanLine0.storage()
+        var destination = output
         var luma        = .safeSampleBuf() + row * 8
         for .maxMcusPerRow
         {
@@ -340,10 +340,10 @@ impl Decoder
         }
     }
 
-    mtd convertRgbH1V1()
+    mtd convertRgbH1V1(output: [*] u8)
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d   = .scanLine0.storage()
+        var d   = output
         var s   = .safeSampleBuf() + row * 8
         for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -368,12 +368,12 @@ impl Decoder
     //
     // The scalar form is deliberate: this layout is unsubsampled, so the vector helpers of the
     // luma paths have no group of pixels to share one chroma correction over.
-    mtd convertCmykH1V1()
+    mtd convertCmykH1V1(output: [*] u8)
     {
         let row       = .maxMcuSizeY - .mcuLinesLeft
         let chromatic = .adobeTransform == 2
         let inverse   = .hasAdobeMarker and not chromatic
-        var d         = .scanLine0.storage()
+        var d         = output
         var s         = .safeSampleBuf() + row * 8
         for _ in rangeTo(1, .maxMcusPerRow).reversed()
         {
@@ -411,11 +411,11 @@ impl Decoder
         }
     }
 
-    mtd convertH1V2()
+    mtd convertH1V2(output0, output1: [*] u8)
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.storage()
-        var d1  = .scanLine1.storage()
+        var d0  = output0
+        var d1  = output1
 
         var y: [*] u8
         if row < 8 do
@@ -438,7 +438,7 @@ impl Decoder
         }
     }
 
-    mtd convertH2V1()
+    mtd convertH2V1(output: [*] u8)
     {
         let row              = .maxMcuSizeY - .mcuLinesLeft
         let blockRow         = row >> 3
@@ -446,7 +446,7 @@ impl Decoder
         let chromaPlaneBytes = .compSampV[0] * 64
         let mcuBytes         = .maxBlocksPerMcu * 64
         let samples          = .safeSampleBuf()
-        var destination      = .scanLine0.storage()
+        var destination      = output
         var luma             = samples + blockRow * 128 + sampleOffset
         var cb               = samples + 2 * chromaPlaneBytes + blockRow * 64 + sampleOffset
 
@@ -463,11 +463,11 @@ impl Decoder
         }
     }
 
-    mtd convertH2V2()
+    mtd convertH2V2(output0, output1: [*] u8)
     {
         let row = .maxMcuSizeY - .mcuLinesLeft
-        var d0  = .scanLine0.storage()
-        var d1  = .scanLine1.storage()
+        var d0  = output0
+        var d1  = output1
 
         var y: [*] u8
         if row < 8 do
@@ -508,14 +508,14 @@ impl Decoder
     // Converts any legal three-component sampling layout not covered by the SIMD specializations.
     // The entropy stream keeps every block in MCU component order; these ratios map one output
     // sample back to the exact component block and sample that covers it.
-    mtd convertGeneric()
+    mtd convertGeneric(output: [*] u8)
     {
         let row          = .maxMcuSizeY - .mcuLinesLeft
         let maxSamplingH = .maxMcuSizeX / 8
         let maxSamplingV = .maxMcuSizeY / 8
         let cbBase       = .compSampH[0] * .compSampV[0]
         let crBase       = cbBase + .compSampH[1] * .compSampV[1]
-        var destination  = .scanLine0.storage()
+        var destination  = output
         var mcu          = cast(const [*] u8, .safeSampleBuf())
         for .maxMcusPerRow
         {

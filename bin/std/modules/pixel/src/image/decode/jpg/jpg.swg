@@ -24,8 +24,6 @@ private
     const CmykH1V1        = 6
     const YGeneric        = 7
     const Failed          = -1
-    const Done            = 1
-    const Okay            = 0
     const ConstBits       = 13'u32
     const Pass1Bits       = 2'u32
     const Fix_0_298631336 = 2446
@@ -286,46 +284,37 @@ impl Decoder
 
     mtd doit(buf: [*] u8) fail
     {
-        var scanLineOfs: *void?
-        var scanLineLen: u32
-        let stride = cast(u64, .imageSizeX) * 3
-
-        // Gray scale (1BPP)
+        let stride      = cast(u64, .imageSizeX) * 3
+        var destination = buf + cast(u64, .imageSizeY - 1) * stride
         if .compsInFrame == 1
         {
-            var pdest = buf
-            pdest += cast(u64, (.imageSizeY - 1)) * stride
-            for
+            for .imageSizeY
             {
-                if try .decode(&scanLineOfs, &scanLineLen) do
-                    break
-
-                var pdest1 = pdest
-                var psrc   = cast([*] u8, unwrap scanLineOfs)
+                var source = try .decodeScanLine()
+                var output = destination
                 for .imageSizeX
                 {
-                    pdest1[0] = psrc[]
-                    pdest1[1] = psrc[]
-                    pdest1[2] = psrc[]
-                    pdest1    += 3
-                    psrc      += 1
+                    output[0] = source[]
+                    output[1] = source[]
+                    output[2] = source[]
+                    output    += 3
+                    source    += 1
                 }
 
-                pdest -= stride
+                destination -= stride
             }
+
+            return
         }
-        // 3 BPP
-        else
+
+        // A complete MCU row can go straight to the image when it has no right-edge padding.
+        let direct = .destBytesPerScanLine == .realDestBytesPerScanLine
+        for .imageSizeY
         {
-            var pdest = buf
-            pdest += cast(u64, (.imageSizeY - 1)) * stride
-            for
-            {
-                if try .decode(&scanLineOfs, &scanLineLen) do
-                    break
-                Memory.copy(pdest, cast(*void, unwrap scanLineOfs), stride)
-                pdest -= stride
-            }
+            let source = try .decodeScanLine(direct ? destination : null)
+            if source != destination do
+                Memory.copy(destination, source, stride)
+            destination -= stride
         }
     }
 }

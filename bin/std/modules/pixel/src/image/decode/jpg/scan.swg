@@ -213,11 +213,8 @@ impl Decoder
         }
     }
 
-    mtd decode(scanLineOfs: *(*void?), scanLineLen: *u32)->s32 fail
+    mtd decodeScanLine(destination: [*] u8? = null)->[*] u8 fail
     {
-        if .totalLinesLeft == 0 do
-            return Done
-
         if .mcuLinesLeft == 0
         {
             if .progressiveFlag do
@@ -230,60 +227,47 @@ impl Decoder
             .mcuLinesLeft = .maxMcuSizeY
         }
 
+        let first  = destination orelse .scanLine0.storage()
+        var output = first
         switch .scanType
         {
-        case YH2V2:
+        case YH2V2, YH1V2:
             if (.mcuLinesLeft & 1) == 0
             {
-                .convertH2V2()
-                scanLineOfs[] = .scanLine0.buffer
+                let second = destination and .totalLinesLeft > 1 ?
+                             first - cast(u64, .realDestBytesPerScanLine) : .scanLine1.storage()
+                if .scanType == YH2V2 do
+                    .convertH2V2(first, second)
+                else do
+                    .convertH1V2(first, second)
             }
             else
             {
-                scanLineOfs[] = .scanLine1.buffer
+                output = destination orelse .scanLine1.storage()
             }
 
         case YH2V1:
-            .convertH2V1()
-            scanLineOfs[] = .scanLine0.buffer
-
-        case YH1V2:
-            if (.mcuLinesLeft & 1) == 0
-            {
-                .convertH1V2()
-                scanLineOfs[] = .scanLine0.buffer
-            }
-            else
-            {
-                scanLineOfs[] = .scanLine1.buffer
-            }
+            .convertH2V1(first)
 
         case YH1V1:
-            .convertH1V1()
-            scanLineOfs[] = .scanLine0.buffer
+            .convertH1V1(first)
 
         case RGBH1V1:
-            .convertRgbH1V1()
-            scanLineOfs[] = .scanLine0.buffer
+            .convertRgbH1V1(first)
 
         case CmykH1V1:
-            .convertCmykH1V1()
-            scanLineOfs[] = .scanLine0.buffer
+            .convertCmykH1V1(first)
 
         case YGeneric:
-            .convertGeneric()
-            scanLineOfs[] = .scanLine0.buffer
+            .convertGeneric(first)
 
         case GrayScale:
-            .convertGrayscale()
-            scanLineOfs[] = .scanLine0.buffer
+            .convertGrayscale(first)
         }
 
-        scanLineLen[]   = .realDestBytesPerScanLine
         .mcuLinesLeft   -= 1
         .totalLinesLeft -= 1
-
-        return Okay
+        return output
     }
 
     mtd initFrame() fail

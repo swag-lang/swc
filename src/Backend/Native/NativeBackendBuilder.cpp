@@ -70,14 +70,16 @@ Utf8 nativeScopedSectionBaseSymbol(const uint32_t scopeHash, const std::string_v
 }
 
 // The emitted offset, unlike the shard and source offset, does not depend on compilation scheduling.
-Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t emittedOffset)
+Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t emittedOffset, const DataSegmentAllocationKind kind)
 {
-    return std::format("__swc_rdata_{:08x}_{:08x}", scopeHash, emittedOffset);
+    if (kind >= DataSegmentAllocationKind::TypeDescriptorIdentity)
+        return std::format("{}{:02x}_{:08x}_{:08x}", K_TYPE_IDENTITY_SYMBOL_PREFIX, std::to_underlying(kind), scopeHash, emittedOffset);
+    return std::format("{}{:08x}_{:08x}", kind == DataSegmentAllocationKind::TypeMetadata ? K_TYPE_METADATA_SYMBOL_PREFIX : "__swc_rdata_", scopeHash, emittedOffset);
 }
 
 Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, const uint32_t emittedOffset)
 {
-    return nativeScopedRDataAllocationSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), emittedOffset);
+    return nativeScopedRDataAllocationSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), emittedOffset, DataSegmentAllocationKind::Constant);
 }
 
 Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
@@ -1646,7 +1648,7 @@ Utf8 NativeBackendBuilder::rdataAllocationSymbol(const NativeRDataAllocationMapE
 {
     if (!allocation.symbolName.empty())
         return allocation.symbolName;
-    return nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation.emittedOffset);
+    return nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation.emittedOffset, allocation.kind);
 }
 
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept

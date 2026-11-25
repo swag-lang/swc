@@ -1010,10 +1010,18 @@ SWC_TEST_BEGIN(PeLinker_FoldsSelfReferencesWithoutConflatingDistinctCycles)
         makeReadOnlyAllocation("__swc_rdata_self_c", 1, "__swc_rdata_self_c"),
         makeReadOnlyAllocation("__swc_rdata_cycle_a", 2, "__swc_rdata_cycle_b"),
         makeReadOnlyAllocation("__swc_rdata_cycle_b", 2, "__swc_rdata_cycle_a"),
+        makeReadOnlyAllocation("__swc_rdata_type_a", 1, "__swc_rdata_type_b"),
+        makeReadOnlyAllocation("__swc_rdata_type_b", 2, "__swc_rdata_type_a"),
+        makeReadOnlyAllocation("__swc_rdata_type_c", 1, "__swc_rdata_type_d"),
+        makeReadOnlyAllocation("__swc_rdata_type_d", 2, "__swc_rdata_type_c"),
+        makeReadOnlyAllocation("__swc_rdata_type_e", 1, "__swc_rdata_type_f"),
+        makeReadOnlyAllocation("__swc_rdata_type_f", 3, "__swc_rdata_type_e"),
     };
     std::unordered_map<Utf8, Utf8> aliases;
     PELinker::foldReadOnlyData(objects, aliases);
-    if (aliases.size() != 2 || objects[3].sections.empty() || objects[4].sections.empty())
+    if (aliases.size() != 4 || objects[3].sections.empty() || objects[4].sections.empty() ||
+        !aliases.contains("__swc_rdata_type_c") || aliases.at("__swc_rdata_type_c") != "__swc_rdata_type_a" ||
+        !aliases.contains("__swc_rdata_type_d") || aliases.at("__swc_rdata_type_d") != "__swc_rdata_type_b")
         return Result::Error;
     for (const auto& [_, target] : aliases)
         if (aliases.contains(target))
@@ -1310,7 +1318,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsSelfReferentialConstantsWithoutConflatin
     main.symbols.push_back({.name = "main"});
     if (!appendObject(main))
         return Result::Error;
-    const std::array<std::pair<const char*, const char*>, 8> definitions = {{
+    const std::array<std::pair<const char*, const char*>, 12> definitions = {{
         {"__swc_rdata_self_a", "__swc_rdata_self_a"},
         {"__swc_rdata_self_b", "__swc_rdata_self_b"},
         {"__swc_rdata_foreign", "$self"},
@@ -1319,6 +1327,10 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsSelfReferentialConstantsWithoutConflatin
         {"__swc_rdata_cycle_b", "__swc_rdata_cycle_a"},
         {"__swc_rdata_cycle_c", "__swc_rdata_cycle_d"},
         {"__swc_rdata_cycle_d", "__swc_rdata_cycle_c"},
+        {"__swc_rdata_type_a", "__swc_rdata_type_b"},
+        {"__swc_rdata_type_b", "__swc_rdata_type_a"},
+        {"__swc_rdata_type_c", "__swc_rdata_type_d"},
+        {"__swc_rdata_type_d", "__swc_rdata_type_c"},
     }};
     for (const auto& [name, target] : definitions)
     {
@@ -1328,6 +1340,8 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsSelfReferentialConstantsWithoutConflatin
         data.flags = LinkSectionFlagsE::Read;
         data.align = 8;
         data.bytes.appendLe64(0);
+        if (std::string_view(name).starts_with("__swc_rdata_type_"))
+            data.bytes.appendLe64(name[std::string_view(name).size() - 1] % 2);
         data.relocs.push_back({.offset = 0, .kind = LinkRelocKind::Abs64, .symbolName = target});
         image.sections.push_back(std::move(data));
         image.symbols.push_back({.name = name});
@@ -1347,10 +1361,14 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsSelfReferentialConstantsWithoutConflatin
     if (address("__swc_rdata_self_a") != address("__swc_rdata_self_b") ||
         address("__swc_rdata_self_a") == address("__swc_rdata_foreign"))
         return Result::Error;
-    for (size_t left = 4; left < definitions.size(); ++left)
+    for (size_t left = 4; left < 8; ++left)
         for (size_t right = left + 1; right < definitions.size(); ++right)
             if (address(definitions[left].first) == address(definitions[right].first))
                 return Result::Error;
+    if (address("__swc_rdata_type_a") != address("__swc_rdata_type_c") ||
+        address("__swc_rdata_type_b") != address("__swc_rdata_type_d") ||
+        address("__swc_rdata_type_a") == address("__swc_rdata_type_b"))
+        return Result::Error;
     const uint64_t headers = bytes.readLe64(40);
     for (const auto& [name, target] : definitions)
     {
@@ -1447,7 +1465,7 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsCallGraphsWithTheirUnwindAndRuntimeNames
     }
     const auto names  = elfImageSection(bytes, SymbolTable::IMAGE_SECTION);
     const auto unwind = elfImageSection(bytes, ".eh_frame_hdr");
-    if (!names || !unwind || bytes.readLe32(names->offset + 8) != depth || bytes.readLe32(unwind->offset + 8) != depth)
+    if (!names || !unwind || bytes.readLe32(names->offset + 4) != SymbolTable::VERSION_LZ4 || bytes.readLe32(unwind->offset + 8) != 1)
         return Result::Error;
     const auto rules = elfImageSection(bytes, ".eh_frame");
     if (!rules)
@@ -1463,13 +1481,16 @@ SWC_FILESYSTEM_TEST_BEGIN(ELFImage_FoldsCallGraphsWithTheirUnwindAndRuntimeNames
             ++cieCount;
         else
         {
-            if (offset + 4 != cie)
+            const int32_t  relative = std::bit_cast<int32_t>(bytes.readLe32(rules->offset + offset + 8));
+            const uint64_t start    = rules->address + offset + 8 + static_cast<uint64_t>(relative);
+            const uint64_t end      = start + bytes.readLe32(rules->offset + offset + 12);
+            if (offset + 4 != cie || start != symbols.at("__swc_fn_a0").value || end != symbols.at(std::format("__swc_fn_a{}", depth - 1)).value + 6)
                 return Result::Error;
             ++frameCount;
         }
         offset += length + 4;
     }
-    if (cieCount != 1 || frameCount != depth)
+    if (cieCount != 1 || frameCount != 1)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -2056,7 +2077,18 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
         uint64_t second = expected;
         for (uint64_t step = 0; step < 32; ++step)
             second = ((second << 3) ^ (second >> 2)) ^ (seed + step);
-        source += std::format("#main {{ let first = cachedLeaf(7); let second = cachedLeaf(first); Swag.assert(first == {}'u64 and second == {}'u64); Swag.print(\"cache-ok-{}\\n\") }}\n", expected, second, marker);
+        source += std::format(R"(#main
+{{
+    let first = cachedLeaf(7)
+    let second = cachedLeaf(first)
+    Swag.assert(first == {}'u64 and second == {}'u64)
+    let symbol = Swag.symbolizeStackAddress(cast(*void, &cachedLeaf))
+    let location = #curlocation
+    Swag.require(symbol.hasLine and symbol.file == location.fileName and symbol.line == {})
+    Swag.print("cache-ok-{}\n")
+}}
+)",
+                              expected, second, blankLines + 5, marker);
         return directory.write("program.swg", source);
     };
     const std::vector<Utf8> arguments = {
@@ -2075,46 +2107,10 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
         }
         return Result::Continue;
     };
-    const auto checkSourceLine = [&](const uint32_t expected) -> Result {
-        const fs::path              table = directory.path() / "symbols.bin";
-        const std::vector<Utf8>     dump  = {"--dump-section", ".swagdbg=" + Utf8(table), Utf8(directory.path() / "output/cache-probe"), Utf8(directory.path() / "inspected-elf")};
-        std::string                 output;
-        uint32_t                    exitCode = 0;
-        const Os::ProcessRunOptions options{.capturedOutput = &output, .forwardOutput = false};
-        if (Os::runProcess(exitCode, "objcopy", dump, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
-            return Result::Error;
-        ByteArray               bytes;
-        FileSystem::IoErrorInfo error;
-        SWC_RESULT(FileSystem::readBinaryFile(table, bytes, error));
-        // An image table contains resolved addresses, not the object relocations
-        // required by SymbolTable::read. Inspect its runtime layout directly.
-        if (!bytes.containsRange(0, SymbolTable::HEADER_SIZE) || bytes.readLe32(0) != SymbolTable::MAGIC || bytes.readLe32(4) != SymbolTable::VERSION_PLAIN)
-            return Result::Error;
-        const uint32_t count   = bytes.readLe32(8);
-        const uint32_t strings = bytes.readLe32(12);
-        if (strings < SymbolTable::HEADER_SIZE + static_cast<uint64_t>(count) * SymbolTable::ENTRY_SIZE || strings > bytes.size())
-            return Result::Error;
-        const auto readString = [&](const uint32_t offset) -> std::string_view {
-            if (offset < strings || offset >= bytes.size())
-                return {};
-            const char* begin = reinterpret_cast<const char*>(bytes.data() + offset);
-            const char* end   = static_cast<const char*>(std::memchr(begin, 0, bytes.size() - offset));
-            return end ? std::string_view(begin, end) : std::string_view{};
-        };
-        for (uint32_t index = 0; index < count; ++index)
-        {
-            const uint64_t entry = SymbolTable::HEADER_SIZE + static_cast<uint64_t>(index) * SymbolTable::ENTRY_SIZE;
-            if (readString(bytes.readLe32(entry + 8)).ends_with(".cachedLeaf"))
-                return bytes.readLe32(entry + 16) == expected && readString(bytes.readLe32(entry + 12)).ends_with("/program.swg") ? Result::Continue : Result::Error;
-        }
-        return Result::Error;
-    };
     SWC_RESULT(writeProgram(11, 0, 1));
     SWC_RESULT(run(false, 1));
-    SWC_RESULT(checkSourceLine(5));
     SWC_RESULT(writeProgram(11, 0, 2));
     SWC_RESULT(run(true, 2));
-    SWC_RESULT(checkSourceLine(5));
 
     fs::path        cachePath;
     std::error_code error;
@@ -2133,7 +2129,6 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_LinuxFunctionCacheReusesAndInvalidatesNativeObj
     SWC_RESULT(run(false, 5));
     SWC_RESULT(writeProgram(12, 3, 6));
     SWC_RESULT(run(true, 6));
-    SWC_RESULT(checkSourceLine(8));
     FileSystem::IoErrorInfo ioError;
     const std::array        corrupt = {std::byte{0}, std::byte{1}};
     SWC_RESULT(FileSystem::writeBinaryFile(cachePath, corrupt.data(), corrupt.size(), ioError));

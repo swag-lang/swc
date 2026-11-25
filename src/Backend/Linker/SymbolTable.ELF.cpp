@@ -7,8 +7,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // This is an object-only envelope. Published images use SymbolTable::VERSION_PLAIN,
-    // shared with PE and the runtime; no platform parser leaks into that format.
+    // ELF objects use an envelope for link-time address resolution. The runtime
+    // table is built after merging and can then be compressed as a single block.
     constexpr uint32_t K_OBJECT_VERSION     = 3;
     constexpr uint32_t K_OBJECT_HEADER_SIZE = 24;
     constexpr uint32_t K_OBJECT_ENTRY_SIZE  = 24;
@@ -109,6 +109,72 @@ namespace
         if (outBase == UINT64_MAX)
             return tableError(error, "the ELF image has no load segment");
         return true;
+    }
+
+    void appendLz4Length(ByteArray& bytes, size_t length)
+    {
+        while (length >= 255)
+        {
+            bytes.pushBack(std::byte{255});
+            length -= 255;
+        }
+        bytes.pushBack(static_cast<std::byte>(length));
+    }
+
+    void appendLz4Sequence(ByteArray& bytes, std::span<const std::byte> literals, uint16_t distance, size_t matchSize)
+    {
+        constexpr size_t inlineLength = 15;
+        const size_t     matchLength  = distance ? matchSize - 4 : 0;
+        bytes.pushBack(static_cast<std::byte>((std::min(literals.size(), inlineLength) << 4) | std::min(matchLength, inlineLength)));
+        if (literals.size() >= inlineLength)
+            appendLz4Length(bytes, literals.size() - inlineLength);
+        bytes.append(literals);
+        if (!distance)
+            return;
+        bytes.appendLe16(distance);
+        if (matchLength >= inlineLength)
+            appendLz4Length(bytes, matchLength - inlineLength);
+    }
+
+    ByteArray packRuntimeSymbols(const ByteArray& table)
+    {
+        ByteArray packed;
+        // Small tables do not amortize the header and match dictionary.
+        if (table.size() < 256)
+            return packed;
+        packed.appendLe32(SymbolTable::MAGIC);
+        packed.appendLe32(SymbolTable::VERSION_LZ4);
+        packed.appendLe32(static_cast<uint32_t>(table.size()));
+        packed.appendLe32(0);
+
+        constexpr size_t      hashBits = 16;
+        std::vector<uint32_t> last(1 << hashBits, UINT32_MAX);
+        size_t                literalStart = 0;
+        size_t                cursor       = 0;
+        // LZ4 leaves at least five trailing literals, and the last match starts
+        // at least twelve bytes before the end of the block.
+        const size_t matchLimit = table.size() - 5;
+        while (cursor + 12 <= table.size())
+        {
+            const uint32_t word     = table.readLe32(cursor);
+            const uint32_t hash     = (word * 2654435761u) >> (32 - hashBits);
+            const uint32_t previous = std::exchange(last[hash], static_cast<uint32_t>(cursor));
+            if (previous == UINT32_MAX || cursor - previous > UINT16_MAX || table.readLe32(previous) != word)
+            {
+                ++cursor;
+                continue;
+            }
+            size_t length = 4;
+            while (cursor + length < matchLimit && table[cursor + length] == table[previous + length])
+                ++length;
+            appendLz4Sequence(packed, table.span().subspan(literalStart, cursor - literalStart), static_cast<uint16_t>(cursor - previous), length);
+            cursor += length;
+            literalStart = cursor;
+        }
+        appendLz4Sequence(packed, table.span().subspan(literalStart), 0, 0);
+        if (packed.size() >= table.size())
+            packed.clear();
+        return packed;
     }
 
     void compactTable(ByteArray& image, const TableSection& section, const uint64_t tableSize)
@@ -308,10 +374,12 @@ bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError, const bool 
         return tableError(outError, "the ELF runtime symbol table exceeds its reserved section");
     for (size_t index = 0; index < addresses.size(); ++index)
         table.writeLe32(SymbolTable::HEADER_SIZE + index * SymbolTable::ENTRY_SIZE, addresses[index]);
+    const ByteArray  packed = packRuntimeSymbols(table);
+    const ByteArray& stored = packed.empty() ? table : packed;
     std::fill_n(image.data() + section.offset, section.size, std::byte{0});
-    std::memcpy(image.data() + section.offset, table.data(), table.size());
-    image.writeLe64(section.header + 32, table.size());
-    compactTable(image, section, table.size());
+    std::memcpy(image.data() + section.offset, stored.data(), stored.size());
+    image.writeLe64(section.header + 32, stored.size());
+    compactTable(image, section, stored.size());
     return true;
 }
 

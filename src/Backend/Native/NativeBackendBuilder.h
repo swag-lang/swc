@@ -85,6 +85,7 @@ struct NativeRDataAllocationMapEntry
     uint32_t align         = 1;
     uint32_t emittedOffset = 0;
     bool     zeroFilled    = false;
+    DataSegmentAllocationKind kind          = DataSegmentAllocationKind::Constant;
 
     // Cached during archive partitioning, when relocations name each allocation.
     // Other layouts leave this empty and compute the name when needed.

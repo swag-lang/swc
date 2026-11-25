@@ -194,6 +194,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         mapEntry.align         = alignment;
         mapEntry.emittedOffset = emittedOffset;
         mapEntry.zeroFilled    = zeroFilled;
+        mapEntry.kind          = allocation.kind;
         builder_->mergedRData.requireAlignment(mapEntry.align);
 
         entry.allocation->emittedIndex = static_cast<uint32_t>(builder_->rdataAllocations.size());

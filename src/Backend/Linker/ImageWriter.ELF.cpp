@@ -7,6 +7,7 @@
 #include "Backend/Linker/LinkJob.h"
 #include "Backend/Linker/ObjectWriter.ELF.h"
 #include "Backend/Linker/Reader.ELF.h"
+#include "Backend/Native/NativeNames.h"
 #include "Backend/RuntimeName.h"
 #include "Main/FileSystem.h"
 #include "Support/Math/Hash.h"
@@ -81,6 +82,17 @@ namespace
         int64_t  addend  = 0;
     };
 
+    struct NativeUnwindRecord
+    {
+        std::span<const std::byte> bytes;
+        std::span<const std::byte> instructions;
+        const ELF::Relocation*     address    = nullptr;
+        size_t                     section    = 0;
+        uint64_t                   codeOffset = UINT64_MAX;
+        uint32_t                   codeSize   = 0;
+        uint32_t                   lastPc     = 0;
+    };
+
     struct ElfContentCandidate
     {
         ELF::File*                          file   = nullptr;
@@ -105,7 +117,8 @@ namespace
         }
     }
 
-    uint32_t contentHash(const ElfContentCandidate& candidate, const std::unordered_map<std::string_view, std::string_view>& aliases)
+    template<typename TargetKey>
+    uint32_t contentHash(const ElfContentCandidate& candidate, TargetKey targetKey)
     {
         uint32_t hash = 0;
         for (uint32_t index = 0; index < candidate.sectionCount; ++index)
@@ -125,14 +138,15 @@ namespace
             hash              = Math::hashCombine(hash, relocation->offset);
             hash              = Math::hashCombine(hash, relocation->type);
             hash              = Math::hashCombine(hash, static_cast<uint64_t>(relocation->addend));
-            const auto target = contentRelocationTarget(candidate, *relocation, aliases);
-            hash              = Math::hashCombine(hash, target.first);
+            const auto target = targetKey(candidate, *relocation);
+            hash              = Math::hashCombine(hash, static_cast<uint64_t>(target.first));
             hash              = Math::hashCombine(hash, Math::hash(target.second));
         }
         return hash;
     }
 
-    bool sameContent(const ElfContentCandidate& left, const ElfContentCandidate& right, const std::unordered_map<std::string_view, std::string_view>& aliases)
+    template<typename TargetKey>
+    bool sameContent(const ElfContentCandidate& left, const ElfContentCandidate& right, TargetKey targetKey)
     {
         if (left.sectionCount != right.sectionCount || left.relocations.size() != right.relocations.size())
             return false;
@@ -150,7 +164,7 @@ namespace
             const ELF::Relocation& a = *left.relocations[entry];
             const ELF::Relocation& b = *right.relocations[entry];
             if (left.file->sections[a.section].name != right.file->sections[b.section].name || a.offset != b.offset || a.type != b.type || a.addend != b.addend ||
-                contentRelocationTarget(left, a, aliases) != contentRelocationTarget(right, b, aliases))
+                targetKey(left, a) != targetKey(right, b))
                 return false;
         }
         return true;
@@ -178,6 +192,7 @@ namespace
         bool     loadScript(const fs::path& path, std::span<const std::byte> bytes, bool direct);
         fs::path findLibrary(const fs::path& name, const fs::path& relative) const;
         bool     extractArchives();
+        bool     emitNativeUnwind();
         void     foldReadOnlyData();
         void     foldFunctions();
         bool     mergeObjects();
@@ -213,6 +228,8 @@ namespace
         std::vector<std::pair<size_t, uint64_t>>                frameOffsets_;
         std::unordered_map<size_t, uint64_t>                    sharedCieOffsets_;
         std::unordered_map<const ELF::Relocation*, uint64_t>    unwindRelocationOffsets_;
+        std::vector<NativeUnwindRecord>                         nativeUnwind_;
+        std::vector<std::pair<uint64_t, uint64_t>>              textPadding_;
         std::map<std::string, size_t>                           globals_;
         std::vector<Target>                                     targets_;
         std::vector<OutputSection>                              sections_{1};
@@ -592,6 +609,8 @@ namespace
             output.entrySize = 8;
         }
         input.contribution = alignTo(output.size, alignment);
+        if (input.name == ".text" && output.size < input.contribution)
+            textPadding_.emplace_back(output.size, input.contribution);
         output.size        = input.contribution + input.size;
         if (output.size > UINT32_MAX)
             return fail("ELF output section exceeds the image size limit");
@@ -631,7 +650,7 @@ namespace
                 if (length < 12)
                     return fail("ELF unwind FDE has no complete code address");
                 native &= !records.empty() && records.back().cie && records.back().offset + 24 == offset &&
-                          file.bytes.readLe32(input.offset + offset + 4) == 28 && (length + 4) % 8 == 0;
+                          file.bytes.readLe32(input.offset + offset + 4) == 28 && (length + 4) >= 24 && (length + 4) % 8 == 0;
                 addresses.emplace(offset + 8, nullptr);
             }
             records.push_back({offset, length + 4, cie});
@@ -677,16 +696,90 @@ namespace
         {
             if (record.cie)
                 continue;
-            output.bytes.align(8);
-            const uint64_t offset = output.bytes.size();
-            if (offset > UINT32_MAX - record.size)
-                return fail("ELF output section exceeds the image size limit");
-            output.bytes.append(file.bytes.span().subspan(input.offset + record.offset, record.size));
-            output.bytes.writeLe32(offset + 4, static_cast<uint32_t>(offset + 4 - cie->second));
-            unwindRelocationOffsets_.emplace(addresses.at(record.offset + 8), offset + 8);
-            frameOffsets_.emplace_back(input.output, offset);
+            const auto             bytes   = file.bytes.span().subspan(input.offset + record.offset, record.size);
+            const ELF::Relocation* address = addresses.at(record.offset + 8);
+            NativeUnwindRecord     frame{.bytes = bytes, .instructions = bytes.subspan(17), .address = address, .section = input.output};
+            frame.codeSize                = file.bytes.readLe32(input.offset + record.offset + 12);
+            const ELF::Symbol& symbol     = file.symbols[address->symbol];
+            bool               ownsSymbol = !symbol.binding();
+            if (!ownsSymbol)
+            {
+                const auto selected = definitions_.find(symbol.name);
+                ownsSymbol          = selected != definitions_.end() && selected->second.file == &file && selected->second.index == address->symbol;
+            }
+            if (ownsSymbol && !address->addend && symbol.section && symbol.section < file.sections.size() && frame.codeSize && bytes[16] == std::byte{0})
+            {
+                const ELF::Section& code = file.sections[symbol.section];
+                if (code.output && code.name == ".text" && symbol.value <= code.size && frame.codeSize <= code.size - symbol.value &&
+                    X64DwarfFrame::trimObjectInstructions(frame.instructions, frame.lastPc, frame.codeSize))
+                    frame.codeOffset = code.contribution + symbol.value;
+            }
+            nativeUnwind_.push_back(frame);
         }
         output.size = output.bytes.size();
+        return true;
+    }
+
+    bool ElfImageLink::emitNativeUnwind()
+    {
+        std::stable_sort(nativeUnwind_.begin(), nativeUnwind_.end(), [](const NativeUnwindRecord& left, const NativeUnwindRecord& right) {
+            return std::tie(left.section, left.codeOffset) < std::tie(right.section, right.codeOffset);
+        });
+        // Bound the extra CFI a system unwinder may need to walk at a lookup site.
+        constexpr size_t   maxFunctionsPerFde = 16;
+        constexpr uint32_t maxCodeSpan        = 64 * 1024;
+        for (size_t first = 0; first < nativeUnwind_.size();)
+        {
+            const NativeUnwindRecord& head = nativeUnwind_[first];
+            size_t                    end  = first + 1;
+            if (head.codeOffset != UINT64_MAX)
+            {
+                for (; end < nativeUnwind_.size() && end - first < maxFunctionsPerFde; ++end)
+                {
+                    const NativeUnwindRecord& previous    = nativeUnwind_[end - 1];
+                    const NativeUnwindRecord& next        = nativeUnwind_[end];
+                    const uint64_t            previousEnd = previous.codeOffset + previous.codeSize;
+                    if (next.section != head.section || next.codeOffset == UINT64_MAX || next.codeOffset + next.codeSize - head.codeOffset > maxCodeSpan ||
+                        (next.codeOffset != previousEnd && !std::ranges::binary_search(textPadding_, std::pair{previousEnd, next.codeOffset})))
+                        break;
+                }
+            }
+
+            OutputSection& output = sections_[head.section];
+            output.bytes.align(8);
+            const uint64_t offset = output.bytes.size();
+            if (end == first + 1)
+                output.bytes.append(head.bytes);
+            else
+            {
+                output.bytes.append(head.bytes.first(17));
+                output.bytes.pushBack(std::byte{0x0a}); // DW_CFA_remember_state: the CIE's entry rules.
+                output.bytes.append(head.instructions);
+                for (size_t i = first + 1; i < end; ++i)
+                {
+                    const NativeUnwindRecord& previous = nativeUnwind_[i - 1];
+                    const NativeUnwindRecord& frame    = nativeUnwind_[i];
+                    X64DwarfFrame::appendAdvance(output.bytes, static_cast<uint32_t>(frame.codeOffset - previous.codeOffset - previous.lastPc));
+                    output.bytes.pushBack(std::byte{0x0b}); // DW_CFA_restore_state
+                    if (i + 1 < end)
+                        output.bytes.pushBack(std::byte{0x0a});
+                    output.bytes.append(frame.instructions);
+                    unwindRelocationOffsets_.emplace(frame.address, UINT64_MAX);
+                }
+                const NativeUnwindRecord& tail = nativeUnwind_[end - 1];
+                output.bytes.align(8);
+                output.bytes.writeLe32(offset, static_cast<uint32_t>(output.bytes.size() - offset - 4));
+                output.bytes.writeLe32(offset + 12, static_cast<uint32_t>(tail.codeOffset + tail.codeSize - head.codeOffset));
+            }
+            if (output.bytes.size() > UINT32_MAX)
+                return fail("ELF unwind section exceeds the image size limit");
+            const uint64_t cie = sharedCieOffsets_.at(head.section);
+            output.bytes.writeLe32(offset + 4, static_cast<uint32_t>(offset + 4 - cie));
+            unwindRelocationOffsets_.emplace(head.address, offset + 8);
+            frameOffsets_.emplace_back(head.section, offset);
+            output.size = output.bytes.size();
+            first       = end;
+        }
         return true;
     }
 
@@ -763,16 +856,35 @@ namespace
                 if (target != byName.end())
                     readers[target->second].push_back(index);
             }
-        const auto hash = [&](const size_t index) {
-            return contentHash(candidates[index], contentAliases_);
+        const auto targetKey = [&](const ElfContentCandidate& candidate, const ELF::Relocation& relocation) {
+            return contentRelocationTarget(candidate, relocation, contentAliases_);
         };
-        const auto equal = [&](const size_t index, const size_t other) {
-            return sameContent(candidates[index], candidates[other], contentAliases_);
+        const auto hash = [&](const size_t index, const auto& key) {
+            return contentHash(candidates[index], key);
         };
-        foldIdenticalContentGraph(readers, hash, equal, [&](const size_t index, const size_t survivor) {
+        const auto equal = [&](const size_t index, const size_t other, const auto& key) {
+            return sameContent(candidates[index], candidates[other], key);
+        };
+        const auto fold = [&](const size_t index, const size_t survivor) {
             canonical[index] = survivor;
             contentAliases_.emplace(candidates[index].symbol->name, candidates[survivor].symbol->name);
-        });
+        };
+        foldIdenticalContentGraph(readers, [&](const size_t index) { return hash(index, targetKey); }, [&](const size_t index, const size_t other) { return equal(index, other, targetKey); }, fold);
+
+        const auto metadataName = [&](const size_t index) -> std::string_view {
+            const std::string_view name = candidates[index].symbol->name;
+            return canonical[index] == index && name.starts_with(K_TYPE_METADATA_SYMBOL_PREFIX) ? name : std::string_view{};
+        };
+        const auto metadataKey = [&](const auto& classify, const ElfContentCandidate& owner, const ELF::Relocation& relocation) {
+            return classify(targetKey(owner, relocation), typeIdentityLayout(owner.symbol->name, relocation.offset));
+        };
+        const auto metadataHash = [&](const size_t index, const auto& classify) {
+            return hash(index, [&](const ElfContentCandidate& owner, const ELF::Relocation& relocation) { return metadataKey(classify, owner, relocation); });
+        };
+        const auto metadataEqual = [&](const size_t index, const size_t other, const auto& classify) {
+            return equal(index, other, [&](const ElfContentCandidate& owner, const ELF::Relocation& relocation) { return metadataKey(classify, owner, relocation); });
+        };
+        foldCyclicContentGraph(candidates.size(), metadataName, metadataHash, metadataEqual, fold);
         for (size_t index = 0; index < candidates.size(); ++index)
         {
             if (canonical[index] == index)
@@ -890,11 +1002,14 @@ namespace
                     readers[target->second].push_back(index);
             }
         }
+        const auto targetKey = [&](const ElfContentCandidate& candidate, const ELF::Relocation& relocation) {
+            return contentRelocationTarget(candidate, relocation, contentAliases_);
+        };
         const auto hash = [&](const size_t index) {
-            return contentHash(candidates[order[index]], contentAliases_);
+            return contentHash(candidates[order[index]], targetKey);
         };
         const auto equal = [&](const size_t index, const size_t other) {
-            return !observed[order[index]] && sameContent(candidates[order[index]], candidates[order[other]], contentAliases_);
+            return !observed[order[index]] && sameContent(candidates[order[index]], candidates[order[other]], targetKey);
         };
         foldIdenticalContentGraph(readers, hash, equal, [&](const size_t index, const size_t survivor) {
             canonical[index] = survivor;
@@ -930,6 +1045,7 @@ namespace
             uint32_t      priority = 65535;
         };
         std::vector<ArrayContribution> arrays;
+        std::vector<ArrayContribution> frames;
         for (const auto& file : objects_)
         {
             for (size_t index = 1; index < file->sections.size(); ++index)
@@ -937,6 +1053,11 @@ namespace
                 ELF::Section& input = file->sections[index];
                 if (foldedSections_.contains(&input) || discardedSections_.contains(&input))
                     continue;
+                if (input.name == ".eh_frame")
+                {
+                    frames.push_back({file.get(), &input});
+                    continue;
+                }
                 if (input.type < ELF::SHT_INIT_ARRAY || input.type > ELF::SHT_PREINIT_ARRAY)
                 {
                     if (!mergeSection(*file, input))
@@ -967,6 +1088,11 @@ namespace
             input->output       = survivor->output;
             input->contribution = survivor->contribution;
         }
+        for (const auto& frame : frames)
+            if (!mergeSection(*frame.file, *frame.input))
+                return false;
+        if (!emitNativeUnwind())
+            return false;
         for (const auto& [index, _] : sharedCieOffsets_)
         {
             sections_[index].bytes.appendLe32(0);
@@ -1392,8 +1518,15 @@ namespace
                 const Target&  target = targets_[file->symbols[relocation.symbol].target];
                 uint64_t       offset = source.contribution + relocation.offset;
                 if (source.name == ".eh_frame")
-                    if (const auto remapped = unwindRelocationOffsets_.find(&relocation); remapped != unwindRelocationOffsets_.end())
+                {
+                    const auto remapped = unwindRelocationOffsets_.find(&relocation);
+                    if (remapped != unwindRelocationOffsets_.end())
+                    {
+                        if (remapped->second == UINT64_MAX)
+                            continue;
                         offset = remapped->second;
+                    }
+                }
                 const uint64_t location = output.address + offset;
                 uint64_t       value    = address(target);
                 const bool     got      = relocation.type == ELF::R_GOTPCREL || relocation.type == ELF::R_GOTPCRELX || relocation.type == ELF::R_REX_GOTPCRELX;

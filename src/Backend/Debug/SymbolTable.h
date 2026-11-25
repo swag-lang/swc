@@ -25,6 +25,7 @@ namespace SymbolTable
     inline constexpr uint32_t         MAGIC           = 0x42445753u; // 'SWDB'
     inline constexpr uint32_t         VERSION_PLAIN   = 1;
     inline constexpr uint32_t         VERSION_PACKED  = 2; // an image's table, LZNT1-compressed by the PE writer
+    inline constexpr uint32_t         VERSION_LZ4     = 4; // an ELF image table in an LZ4 block
     inline constexpr uint32_t         HEADER_SIZE     = 16;
     inline constexpr uint32_t         ENTRY_SIZE      = 20;
     inline constexpr uint32_t         ENTRY_START_RVA = 0;

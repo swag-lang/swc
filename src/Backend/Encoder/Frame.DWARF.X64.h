@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -13,6 +14,7 @@ public:
 
     void reset();
     void advance(uint32_t codeOffset);
+    static void appendAdvance(ByteArray& instructions, uint32_t delta);
     void defineCfa(uint32_t reg, uint32_t offset);
     void saveRegister(uint32_t reg, int32_t cfaOffset);
     void restoreRegister(uint32_t reg);
@@ -22,6 +24,7 @@ public:
 
     // Recognizes the compiler's relocation-free, PC-relative CIE record.
     static bool isObjectCie(std::span<const std::byte> bytes);
+    static bool trimObjectInstructions(std::span<const std::byte>& instructions, uint32_t& endPc, uint32_t codeSize);
 
     // Append one PC-relative CIE/FDE pair without its terminator. The address needs
     // a Rel32 relocation with addend 4 (DWARF measures from the field's first byte).
@@ -33,8 +36,10 @@ public:
 
 private:
     ByteArray instructions_;
-    uint32_t  codeOffset_  = 0;
-    uint32_t  savedStates_ = 0;
+    SmallVector<std::pair<uint32_t, uint32_t>, 2> savedCfa_;
+    uint32_t                                      codeOffset_ = 0;
+    uint32_t                                      cfaReg_     = 7;
+    uint32_t                                      cfaOffset_  = 8;
 };
 
 SWC_END_NAMESPACE();

@@ -617,7 +617,7 @@ void DataSegment::recordRelocationIndexLocked(uint32_t index)
         rebuildRelocationsByOffsetLocked();
 }
 
-void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, uint32_t align)
+void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, uint32_t align, const DataSegmentAllocationKind kind)
 {
     if (!size)
         return;
@@ -633,7 +633,7 @@ void DataSegment::recordAllocation(const uint32_t offset, const uint32_t size, u
         SWC_ASSERT(last.offset + last.size <= offset);
     }
 
-    allocations_.push_back({.offset = offset, .size = size, .align = align});
+    allocations_.push_back({.offset = offset, .size = size, .align = align, .kind = kind});
 }
 
 SWC_END_NAMESPACE();

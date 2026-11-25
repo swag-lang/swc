@@ -270,7 +270,8 @@ namespace
         return {false, canonical ? canonical->view() : target.view()};
     }
 
-    uint32_t readOnlyDataFoldHash(const CoffInputSection& section, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    template<typename TargetKey>
+    uint32_t readOnlyDataFoldHash(const CoffInputSection& section, const Utf8& selfSymbol, TargetKey targetKey)
     {
         uint32_t hash = Math::hash(section.bytes.span(), section.characteristics);
         hash          = Math::hashCombine(hash, section.bssSize);
@@ -278,15 +279,16 @@ namespace
         {
             hash              = Math::hashCombine(hash, relocation.offset);
             hash              = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
-            const auto target = canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases);
-            hash              = Math::hashCombine(hash, target.first);
+            const auto target = targetKey(relocation, selfSymbol);
+            hash              = Math::hashCombine(hash, static_cast<uint64_t>(target.first));
             hash              = Math::hashCombine(hash, Math::hash(target.second));
         }
 
         return hash;
     }
 
-    bool sameFoldableReadOnlyData(const CoffInputSection& lhs, const Utf8& lhsSymbol, const CoffInputSection& rhs, const Utf8& rhsSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
+    template<typename TargetKey>
+    bool sameFoldableReadOnlyData(const CoffInputSection& lhs, const Utf8& lhsSymbol, const CoffInputSection& rhs, const Utf8& rhsSymbol, TargetKey targetKey)
     {
         if (lhs.characteristics != rhs.characteristics || lhs.isBss != rhs.isBss || lhs.bssSize != rhs.bssSize || lhs.bytes != rhs.bytes || lhs.relocs.size() != rhs.relocs.size())
             return false;
@@ -297,7 +299,7 @@ namespace
             const CoffInputReloc& rhsRelocation = rhs.relocs[i];
             if (lhsRelocation.offset != rhsRelocation.offset || lhsRelocation.type != rhsRelocation.type)
                 return false;
-            if (canonicalRelocationTarget(lhsRelocation.symbolName, lhsSymbol, knownAliases) != canonicalRelocationTarget(rhsRelocation.symbolName, rhsSymbol, knownAliases))
+            if (targetKey(lhsRelocation, lhsSymbol) != targetKey(rhsRelocation, rhsSymbol))
                 return false;
         }
 
@@ -784,20 +786,39 @@ void PELinker::foldReadOnlyData(std::vector<CoffObject>& objects, std::unordered
                 readers[target->second].push_back(index);
         }
     }
-    const auto hash = [&](const size_t index) {
-        const auto& candidate = candidates[index];
-        return readOnlyDataFoldHash(objects[candidate.objectIndex].sections[candidate.sectionIndex], candidate.symbolName, outAliases);
+    const auto targetKey = [&](const CoffInputReloc& relocation, const Utf8& owner) {
+        return canonicalRelocationTarget(relocation.symbolName, owner, outAliases);
     };
-    const auto equal = [&](const size_t index, const size_t other) {
+    const auto hash = [&](const size_t index, const auto& key) {
+        const auto& candidate = candidates[index];
+        return readOnlyDataFoldHash(objects[candidate.objectIndex].sections[candidate.sectionIndex], candidate.symbolName, key);
+    };
+    const auto equal = [&](const size_t index, const size_t other, const auto& key) {
         const auto& candidate = candidates[index];
         const auto& canonical = candidates[other];
-        return sameFoldableReadOnlyData(objects[candidate.objectIndex].sections[candidate.sectionIndex], candidate.symbolName, objects[canonical.objectIndex].sections[canonical.sectionIndex], canonical.symbolName, outAliases);
+        return sameFoldableReadOnlyData(objects[candidate.objectIndex].sections[candidate.sectionIndex], candidate.symbolName, objects[canonical.objectIndex].sections[canonical.sectionIndex], canonical.symbolName, key);
     };
     const auto fold = [&](const size_t index, const size_t canonical) {
         outAliases.emplace(candidates[index].symbolName, candidates[canonical].symbolName);
         objects[candidates[index].objectIndex] = {};
     };
-    foldIdenticalContentGraph(readers, hash, equal, fold);
+    foldIdenticalContentGraph(readers, [&](const size_t index) { return hash(index, targetKey); }, [&](const size_t index, const size_t other) { return equal(index, other, targetKey); }, fold);
+
+    const auto metadataName = [&](const size_t index) -> std::string_view {
+        const auto& candidate = candidates[index];
+        const auto  name      = candidate.symbolName.view();
+        return name.starts_with(K_TYPE_METADATA_SYMBOL_PREFIX) && !outAliases.contains(candidate.symbolName) ? name : std::string_view{};
+    };
+    const auto metadataKey = [&](const auto& classify, const CoffInputReloc& relocation, const Utf8& owner) {
+        return classify(targetKey(relocation, owner), typeIdentityLayout(owner.view(), relocation.offset));
+    };
+    const auto metadataHash = [&](const size_t index, const auto& classify) {
+        return hash(index, [&](const CoffInputReloc& relocation, const Utf8& owner) { return metadataKey(classify, relocation, owner); });
+    };
+    const auto metadataEqual = [&](const size_t index, const size_t other, const auto& classify) {
+        return equal(index, other, [&](const CoffInputReloc& relocation, const Utf8& owner) { return metadataKey(classify, relocation, owner); });
+    };
+    foldCyclicContentGraph(candidates.size(), metadataName, metadataHash, metadataEqual, fold);
 
     // Alias insertion order no longer matters when every name points straight at a survivor.
     for (auto& [_, target] : outAliases)

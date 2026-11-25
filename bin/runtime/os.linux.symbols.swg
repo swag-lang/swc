@@ -180,17 +180,97 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
     return section
 }
 
-// ELF uses the uncompressed, target-neutral table. The Windows LZNT1 envelope is not a
-// Linux debug format; an unsupported table is absent, just as an image with no symbols is.
+private func __linuxDecodeLz4(source: const [*] u8, sourceSize: u64, target: [*] u8, targetSize: u64)->bool
+{
+    func readLength(source: const [*] u8, size: u64, cursor: *u64, length: *u64)->bool
+    {
+        if length[] != 15 do
+            return true
+        while cursor[] < size
+        {
+            let extra = source[cursor[]]
+            cursor[] += 1
+            length[] += extra
+            if extra != 255 do
+                return true
+        }
+
+        return false
+    }
+
+    var input, output: u64
+    while input < sourceSize
+    {
+        let token = source[input]
+        input += 1
+        var literals = cast(u64, token >> 4)
+        if not readLength(source, sourceSize, &input, &literals) or
+           literals > sourceSize - input or
+           literals > targetSize - output do
+            return false
+        if literals do
+            Swag.memcpy(&target[output], &source[input], literals)
+        input  += literals
+        output += literals
+        if input == sourceSize do
+            return output == targetSize
+
+        if sourceSize - input < 2 do
+            return false
+        let distance = cast(u64, source[input]) | (cast(u64, source[input + 1]) << 8)
+        input += 2
+        var match = cast(u64, token & 15)
+        if not distance or
+           distance > output or
+           not readLength(source, sourceSize, &input, &match) or
+           match + 4 > targetSize - output do
+            return false
+        match += 4
+
+        // A match can repeat bytes produced by the same sequence.
+        if distance >= match do
+            Swag.memcpy(&target[output], &target[output - distance], match)
+        else do
+            for index in match do
+                target[output + index] = target[output - distance + index]
+        output += match
+    }
+
+    return false
+}
+
+// Expand the packed table on first use. Version 1 remains a view of the image.
 func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSize: *u64)->[*] u8?
 {
     decodedSize[] = 0
-    if sectionSize < 16 do
+    if sectionSize < 16 or sectionSize > 0xFFFF_FFFF or Swag.__dbgU32(section, 0) != 0x4244_5753 do
         return null
-    if Swag.__dbgU32(section, 0) != 0x4244_5753 or Swag.__dbgU32(section, 4) != 1 do
+
+    let version = Swag.__dbgU32(section, 4)
+    if version == 1
+    {
+        decodedSize[] = sectionSize
+        return section
+    }
+
+    if version != 4 do
         return null
-    decodedSize[] = sectionSize
-    return section
+
+    let size       = cast(u64, Swag.__dbgU32(section, 8))
+    let packedSize = sectionSize - 16
+    if size < 16 or size > packedSize * 255 or Swag.__dbgU32(section, 12) != 0 do
+        return null
+    let decoded = cast([*] u8?, __LinuxRT.malloc(size))
+    if not decoded do
+        return null
+    if not __linuxDecodeLz4(&section[16], packedSize, decoded, size)
+    {
+        __LinuxRT.free(decoded)
+        return null
+    }
+
+    decodedSize[] = size
+    return decoded
 }
 
 func __hostReleaseDecodedDebugSection(section: [*] u8?)

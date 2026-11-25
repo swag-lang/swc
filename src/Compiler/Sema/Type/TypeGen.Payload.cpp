@@ -114,7 +114,7 @@ namespace
 
         entryGenericsCount = static_cast<uint32_t>(genericArgs.size());
 
-        const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entryGenericsCount);
+        const auto [genericsOffset, genericsPtr] = storage.reserveSpan<Runtime::TypeValue>(entryGenericsCount, DataSegmentAllocationKind::TypeMetadata);
 
         entryGenericsOffset   = genericsOffset;
         rtType.generics.ptr   = genericsPtr;
@@ -323,7 +323,7 @@ namespace
     template<typename T>
     std::pair<uint32_t, Runtime::TypeInfo*> reservePayload(DataSegment& storage, Runtime::TypeInfoKind kind)
     {
-        const auto res = storage.reserve<T>();
+        const auto res = storage.reserve<T>(DataSegmentAllocationKind::TypeMetadata);
         const auto off = res.first;
         T*         ptr = res.second;
 
@@ -567,7 +567,7 @@ namespace
         if (attribute.params.empty())
             return;
 
-        const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::AttributeParam>(static_cast<uint32_t>(attribute.params.size()));
+        const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::AttributeParam>(static_cast<uint32_t>(attribute.params.size()), DataSegmentAllocationKind::TypeMetadata);
 
         rtAttribute.params.ptr = paramsPtr;
         storage.addRelocation(attributeOffset + offsetof(Runtime::Attribute, params.ptr), paramsOffset);
@@ -600,7 +600,7 @@ namespace
         auto* attrsSlice  = storage.ptr<Runtime::Slice<Runtime::Attribute>>(ownerOffset + attributesFieldOffset);
         attrsSlice->count = attributes.attributes.size();
 
-        const auto [attrsOffset, attrsPtr] = storage.reserveSpan<Runtime::Attribute>(static_cast<uint32_t>(attributes.attributes.size()));
+        const auto [attrsOffset, attrsPtr] = storage.reserveSpan<Runtime::Attribute>(static_cast<uint32_t>(attributes.attributes.size()), DataSegmentAllocationKind::TypeMetadata);
 
         attrsSlice->ptr = attrsPtr;
         storage.addRelocation(ownerOffset + attributesFieldOffset + offsetof(Runtime::Slice<Runtime::Attribute>, ptr), attrsOffset);
@@ -638,7 +638,7 @@ namespace
         if (values.empty())
             return;
 
-        const auto [valuesOffset, valuesPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(values.size()));
+        const auto [valuesOffset, valuesPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(values.size()), DataSegmentAllocationKind::TypeMetadata);
 
         rtType.values.ptr      = valuesPtr;
         entry.enumValuesOffset = valuesOffset;
@@ -699,7 +699,7 @@ namespace
             const auto          slots     = symStruct.dynamicSlotOffsets();
             if (!slots.empty())
             {
-                const auto [slotsOffset, slotsPtr] = storage.reserveSpan<Runtime::DynamicStructInfo>(static_cast<uint32_t>(slots.size()));
+                const auto [slotsOffset, slotsPtr] = storage.reserveSpan<Runtime::DynamicStructInfo>(static_cast<uint32_t>(slots.size()), DataSegmentAllocationKind::TypeMetadata);
 
                 rtType.dynamicSlots.ptr   = slotsPtr;
                 rtType.dynamicSlots.count = slots.size();
@@ -760,7 +760,7 @@ namespace
                 return;
             }
 
-            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structFieldsCount);
+            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structFieldsCount, DataSegmentAllocationKind::TypeMetadata);
 
             entry.structFieldsOffset = fieldsOffset;
             rtType.fields.ptr        = fieldsPtr;
@@ -853,7 +853,7 @@ namespace
         }
         else
         {
-            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
+            const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()), DataSegmentAllocationKind::TypeMetadata);
 
             entry.structFieldsOffset = fieldsOffset;
             rtType.fields.ptr        = fieldsPtr;
@@ -863,7 +863,7 @@ namespace
             uint32_t            usingFieldsOffset = 0;
             if (usingCount)
             {
-                const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+                const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount, DataSegmentAllocationKind::TypeMetadata);
 
                 usingFieldsOffset       = usingStorage.first;
                 usingFieldsPtr          = usingStorage.second;
@@ -940,7 +940,7 @@ namespace
         }
         else
         {
-            const auto [methodsOffset, methodsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structMethodsCount);
+            const auto [methodsOffset, methodsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structMethodsCount, DataSegmentAllocationKind::TypeMetadata);
 
             entry.structMethodsOffset = methodsOffset;
             rtType.methods.ptr        = methodsPtr;
@@ -969,7 +969,7 @@ namespace
         }
         else
         {
-            const auto [interfacesOffset, interfacesPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structInterfacesCount);
+            const auto [interfacesOffset, interfacesPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structInterfacesCount, DataSegmentAllocationKind::TypeMetadata);
 
             entry.structInterfacesOffset = interfacesOffset;
             rtType.interfaces.ptr        = interfacesPtr;
@@ -1015,7 +1015,7 @@ namespace
                 if (itableComplete)
                 {
                     const uint32_t slotCount           = static_cast<uint32_t>(implMethods.size()) + 1;
-                    const auto [tableOffset, tablePtr] = storage.reserveSpan<const void*>(slotCount);
+                    const auto [tableOffset, tablePtr] = storage.reserveSpan<const void*>(slotCount, DataSegmentAllocationKind::TypeMetadata);
 
                     // The first slot points back to the owning struct's typeinfo.
                     tablePtr[0] = storage.ptr<Runtime::TypeInfo>(offset);
@@ -1057,7 +1057,7 @@ namespace
 
         if (!parameters.empty())
         {
-            const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcParamsCount);
+            const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcParamsCount, DataSegmentAllocationKind::TypeMetadata);
 
             entry.funcParamsOffset  = paramsOffset;
             rtType.parameters.ptr   = paramsPtr;
@@ -1172,7 +1172,7 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
 
         case LayoutKind::Interface:
         {
-            const auto res = storage.reserve<Runtime::TypeInfo>();
+            const auto res = storage.reserve<Runtime::TypeInfo>(DataSegmentAllocationKind::TypeMetadata);
 
             res.second->kind = Runtime::TypeInfoKind::Interface;
             return res;
@@ -1202,7 +1202,7 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
         case LayoutKind::Base:
         default:
         {
-            const auto res = storage.reserve<Runtime::TypeInfo>();
+            const auto res = storage.reserve<Runtime::TypeInfo>(DataSegmentAllocationKind::TypeMetadata);
             return {res.first, res.second};
         }
     }
@@ -1235,7 +1235,8 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
     // A copied or user-created descriptor must not acquire a compiler type's identity.
     // Its self reference is sealed in the hidden DynCast slot, outside public fields.
-    const auto [identityOffset, identity] = storage.reserve<Runtime::DynamicStructInfo>();
+    const auto allocationKind             = static_cast<DataSegmentAllocationKind>(std::to_underlying(DataSegmentAllocationKind::TypeDescriptorIdentity) + std::to_underlying(kind));
+    const auto [identityOffset, identity] = storage.reserve<Runtime::DynamicStructInfo>(allocationKind);
 
     identity->type           = &metadata->base;
     identity->offset         = offsetof(Runtime::TypeInfo, dynamicIdentity);

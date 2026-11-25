@@ -35,11 +35,20 @@ struct DataSegmentRelocation
     const SymbolFunction* targetSymbol = nullptr;
 };
 
+enum class DataSegmentAllocationKind : uint8_t
+{
+    Constant,
+    TypeMetadata,
+    // The following values identify sealed descriptors by their built-in layout kind.
+    TypeDescriptorIdentity,
+};
+
 struct DataSegmentAllocation
 {
-    uint32_t offset = 0;
-    uint32_t size   = 0;
-    uint32_t align  = 1;
+    uint32_t                  offset = 0;
+    uint32_t                  size   = 0;
+    uint32_t                  align  = 1;
+    DataSegmentAllocationKind kind   = DataSegmentAllocationKind::Constant;
 };
 
 struct DataSegmentRef
@@ -142,16 +151,16 @@ public:
     std::mutex& allocationMutex(uint32_t allocationOffset) const;
 
     template<typename T>
-    std::pair<uint32_t, T*> reserve()
+    std::pair<uint32_t, T*> reserve(DataSegmentAllocationKind kind = DataSegmentAllocationKind::Constant)
     {
         std::unique_lock lock(mutex_);
         const auto [offset, ptr] = allocateStorageLocked(static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), true);
-        recordAllocation(offset, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)));
+        recordAllocation(offset, static_cast<uint32_t>(sizeof(T)), static_cast<uint32_t>(alignof(T)), kind);
         return {offset, reinterpret_cast<T*>(ptr)};
     }
 
     template<typename T>
-    std::pair<uint32_t, T*> reserveSpan(uint32_t count)
+    std::pair<uint32_t, T*> reserveSpan(uint32_t count, DataSegmentAllocationKind kind = DataSegmentAllocationKind::Constant)
     {
         if (!count)
             return {INVALID_REF, nullptr};
@@ -159,7 +168,7 @@ public:
         std::unique_lock lock(mutex_);
         const uint32_t   bytes   = static_cast<uint32_t>(sizeof(T)) * count;
         const auto [offset, ptr] = allocateStorageLocked(bytes, static_cast<uint32_t>(alignof(T)), true);
-        recordAllocation(offset, bytes, static_cast<uint32_t>(alignof(T)));
+        recordAllocation(offset, bytes, static_cast<uint32_t>(alignof(T)), kind);
         return {offset, reinterpret_cast<T*>(ptr)};
     }
 
@@ -219,7 +228,7 @@ private:
     void rebuildRelocationsByOffsetLocked() const;
     void recordRelocationIndexLocked(uint32_t index);
 
-    void recordAllocation(uint32_t offset, uint32_t size, uint32_t align);
+    void recordAllocation(uint32_t offset, uint32_t size, uint32_t align, DataSegmentAllocationKind kind = DataSegmentAllocationKind::Constant);
 
     template<typename T>
     void copyRelocationsImpl(T& outRelocations, uint32_t offset, uint32_t size) const;

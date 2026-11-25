@@ -856,10 +856,17 @@ Result NativeArtifactBuilder::partitionObjects() const
         maxJobs = 1;
 
     const uint32_t numJobs = std::max<uint32_t>(1, static_cast<uint32_t>(functionCount ? std::min<size_t>(functionCount, maxJobs) : 1));
-    builder_->objectDescriptions.resize(numJobs);
+    // Static dependencies already expose their read-only allocations separately.
+    // Give the executable the same granularity so its type graph can share them.
+    const CompilerInstance& compiler   = builder_->compiler();
+    const bool              splitRData = compiler.cmdLine().targetOs == Runtime::TargetOs::Linux &&
+                                        compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable &&
+                                        !compiler.buildCfg().backend.debugInfo && compiler.hasImportedStaticLinkInputs();
+    const auto objectCount = numJobs + (splitRData ? static_cast<uint32_t>(builder_->rdataAllocations.size()) : 0);
+    builder_->objectDescriptions.resize(objectCount);
 
     NativeArtifactPaths paths;
-    queryPaths(paths, numJobs);
+    queryPaths(paths, objectCount);
     builder_->buildDir     = paths.buildDir;
     builder_->artifactPath = paths.artifactPath;
     builder_->pdbPath      = paths.pdbPath;
@@ -869,11 +876,21 @@ Result NativeArtifactBuilder::partitionObjects() const
     const size_t extraFunctions     = functionCount % numJobs;
     for (uint32_t i = 0; i < numJobs; ++i)
     {
-        builder_->objectDescriptions[i].index              = i;
-        builder_->objectDescriptions[i].includeData        = i == 0;
-        builder_->objectDescriptions[i].includeMergedRData = i == 0;
-        builder_->objectDescriptions[i].objPath            = paths.objectPaths[i];
+        builder_->objectDescriptions[i].index                 = i;
+        builder_->objectDescriptions[i].includeData           = i == 0;
+        builder_->objectDescriptions[i].includeMergedRData   = i == 0 && !splitRData;
+        builder_->objectDescriptions[i].splitRDataReferences = splitRData;
+        builder_->objectDescriptions[i].objPath               = paths.objectPaths[i];
         builder_->objectDescriptions[i].functions.reserve(functionsPerObject + (i < extraFunctions ? 1 : 0));
+    }
+
+    for (uint32_t i = numJobs; i < objectCount; ++i)
+    {
+        NativeObjDescription& description = builder_->objectDescriptions[i];
+        description.index                 = i;
+        description.objPath               = paths.objectPaths[i];
+        description.rdataAllocationIndex  = i - numJobs;
+        description.rdataAllocationCount  = 1;
     }
 
     if (builder_->startup)
@@ -963,7 +980,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     for (uint32_t allocationIndex = 0; allocationIndex < allocations.size(); ++allocationIndex)
     {
         NativeRDataAllocationMapEntry& allocation = allocations[allocationIndex];
-        allocation.symbolName                     = nativeScopedRDataAllocationSymbol(scopeHash, allocation.emittedOffset);
+        allocation.symbolName                     = nativeScopedRDataAllocationSymbol(scopeHash, allocation.emittedOffset, allocation.kind);
 
         if (allocationIndex % batchSize == 0)
         {
@@ -977,7 +994,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     for (auto& mappings : builder_->rdataAllocationMap)
     {
         for (NativeRDataAllocationMapEntry& mapping : mappings)
-            mapping.symbolName = nativeScopedRDataAllocationSymbol(scopeHash, mapping.emittedOffset);
+            mapping.symbolName = nativeScopedRDataAllocationSymbol(scopeHash, mapping.emittedOffset, mapping.kind);
     }
 
     SWC_ASSERT(objIndex == numObjects);

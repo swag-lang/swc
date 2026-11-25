@@ -44,7 +44,9 @@ void X64DwarfFrame::reset()
 {
     instructions_.clear();
     codeOffset_  = 0;
-    savedStates_ = 0;
+    savedCfa_.clear();
+    cfaReg_    = 7;
+    cfaOffset_ = 8;
 }
 
 void X64DwarfFrame::advance(const uint32_t codeOffset)
@@ -53,31 +55,52 @@ void X64DwarfFrame::advance(const uint32_t codeOffset)
     const uint32_t delta = codeOffset - codeOffset_;
     if (!delta)
         return;
+    appendAdvance(instructions_, delta);
+    codeOffset_ = codeOffset;
+}
+
+void X64DwarfFrame::appendAdvance(ByteArray& instructions, const uint32_t delta)
+{
+    if (!delta)
+        return;
     if (delta < 64)
-        instructions_.pushBack(std::byte{static_cast<uint8_t>(0x40 | delta)});
+        instructions.pushBack(std::byte{static_cast<uint8_t>(0x40 | delta)});
     else if (delta <= UINT8_MAX)
     {
-        instructions_.pushBack(std::byte{0x02}); // DW_CFA_advance_loc1
-        instructions_.pushBack(static_cast<std::byte>(delta));
+        instructions.pushBack(std::byte{0x02}); // DW_CFA_advance_loc1
+        instructions.pushBack(static_cast<std::byte>(delta));
     }
     else if (delta <= UINT16_MAX)
     {
-        instructions_.pushBack(std::byte{0x03}); // DW_CFA_advance_loc2
-        instructions_.appendLe16(static_cast<uint16_t>(delta));
+        instructions.pushBack(std::byte{0x03}); // DW_CFA_advance_loc2
+        instructions.appendLe16(static_cast<uint16_t>(delta));
     }
     else
     {
-        instructions_.pushBack(std::byte{0x04}); // DW_CFA_advance_loc4
-        instructions_.appendLe32(delta);
+        instructions.pushBack(std::byte{0x04}); // DW_CFA_advance_loc4
+        instructions.appendLe32(delta);
     }
-    codeOffset_ = codeOffset;
 }
 
 void X64DwarfFrame::defineCfa(const uint32_t reg, const uint32_t offset)
 {
-    instructions_.pushBack(std::byte{0x0c}); // DW_CFA_def_cfa
-    Dwarf::appendUnsignedLeb128(instructions_, reg);
+    if (reg == cfaReg_)
+        instructions_.pushBack(std::byte{0x0e}); // DW_CFA_def_cfa_offset
+    else if (offset == cfaOffset_)
+    {
+        instructions_.pushBack(std::byte{0x0d}); // DW_CFA_def_cfa_register
+        Dwarf::appendUnsignedLeb128(instructions_, reg);
+        cfaReg_ = reg;
+        return;
+    }
+    else
+    {
+        instructions_.pushBack(std::byte{0x0c}); // DW_CFA_def_cfa
+        Dwarf::appendUnsignedLeb128(instructions_, reg);
+    }
     Dwarf::appendUnsignedLeb128(instructions_, offset);
+    cfaReg_    = reg;
+    cfaOffset_ = offset;
 }
 
 void X64DwarfFrame::saveRegister(const uint32_t reg, const int32_t cfaOffset)
@@ -103,19 +126,20 @@ void X64DwarfFrame::restoreRegister(const uint32_t reg)
 void X64DwarfFrame::rememberState()
 {
     instructions_.pushBack(std::byte{0x0a});
-    ++savedStates_;
+    savedCfa_.emplace_back(cfaReg_, cfaOffset_);
 }
 
 void X64DwarfFrame::restoreState()
 {
-    SWC_ASSERT(savedStates_);
+    SWC_ASSERT(!savedCfa_.empty());
     instructions_.pushBack(std::byte{0x0b});
-    --savedStates_;
+    std::tie(cfaReg_, cfaOffset_) = savedCfa_.back();
+    savedCfa_.pop_back();
 }
 
 void X64DwarfFrame::build(ByteArray& outFrame, const uint32_t codeSize) const
 {
-    SWC_ASSERT(codeSize && codeOffset_ <= codeSize && !savedStates_);
+    SWC_ASSERT(codeSize && codeOffset_ <= codeSize && savedCfa_.empty());
     outFrame.clear();
     outFrame.append(std::as_bytes(std::span{K_CIE}));
     outFrame.appendLe32(0);                // FDE length, patched after padding
@@ -132,6 +156,60 @@ void X64DwarfFrame::build(ByteArray& outFrame, const uint32_t codeSize) const
 bool X64DwarfFrame::isObjectCie(const std::span<const std::byte> bytes)
 {
     return bytes.size() == K_OBJECT_CIE.size() && std::memcmp(bytes.data(), K_OBJECT_CIE.data(), K_OBJECT_CIE.size()) == 0;
+}
+
+bool X64DwarfFrame::trimObjectInstructions(std::span<const std::byte>& instructions, uint32_t& endPc, const uint32_t codeSize)
+{
+    uint64_t pc     = 0;
+    size_t   cursor = 0;
+    size_t   used   = 0;
+    size_t   saved  = 0;
+    while (cursor < instructions.size())
+    {
+        const uint8_t op = std::to_integer<uint8_t>(instructions[cursor++]);
+        if (!op) // DW_CFA_nop also pads the FDE.
+            continue;
+        size_t operands = 0;
+        if ((op & 0xc0) == 0x40)
+            pc += op & 0x3f;
+        else if ((op & 0xc0) == 0x80)
+            operands = 1;
+        else if (op >= 2 && op <= 4)
+        {
+            const uint32_t width = 1u << (op - 2);
+            if (width > instructions.size() - cursor)
+                return false;
+            for (uint32_t i = 0; i < width; ++i)
+                pc += uint64_t{std::to_integer<uint8_t>(instructions[cursor++])} << (8 * i);
+        }
+        else if (op == 0x05 || op == 0x0c) // offset_extended, def_cfa
+            operands = 2;
+        else if (op == 0x08 || op == 0x0d || op == 0x0e) // same_value, def_cfa_register, def_cfa_offset
+            operands = 1;
+        else if (op == 0x0a) // remember_state
+            ++saved;
+        else if (op == 0x0b && saved) // restore_state
+            --saved;
+        else
+            return false;
+
+        for (size_t operand = 0; operand < operands; ++operand)
+        {
+            while (cursor < instructions.size() && (instructions[cursor] & std::byte{0x80}) != std::byte{0})
+                ++cursor;
+            if (cursor == instructions.size())
+                return false;
+            ++cursor;
+        }
+        if (pc > codeSize)
+            return false;
+        used = cursor;
+    }
+    if (saved)
+        return false;
+    instructions = instructions.first(used);
+    endPc        = static_cast<uint32_t>(pc);
+    return true;
 }
 
 bool X64DwarfFrame::appendObjectFrame(ByteArray& frames, uint32_t& addressOffset, const ByteArray& frame, const uint32_t codeSize)

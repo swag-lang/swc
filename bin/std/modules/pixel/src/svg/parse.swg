@@ -608,6 +608,11 @@ private struct Gradient
     spread:    GradientSpread  = Clamp
     transform: Math.Transform2 = Math.Transform2.Identity
     stops:     Array'GradientStop
+
+    // Most user-space references in a group share one transform and opacity.
+    cachedBrush:     u64
+    cachedTransform: Math.Transform2
+    cachedOpacity:   f32
 }
 
 // Numeric scanning /////////////////////////////////////////////////////////////
@@ -3822,13 +3827,29 @@ private impl Parser
         }
     }
 
-    mtd storeGradient(gradient: const *Gradient, shape: *Shape, opacity: f32)->u64
+    mtd storeGradient(gradient: *Gradient, shape: *Shape, opacity: f32)->u64
     {
         shape.pathList.flatten(.Normal)
+
+        // User-space coordinates depend on the transform, independently of the shape bounds.
+        if gradient.userSpace and
+           gradient.cachedBrush and
+           gradient.cachedOpacity == opacity and
+           Memory.compare(&gradient.cachedTransform, &shape.paintTransform, #sizeof(Math.Transform2)) == 0 do
+            return gradient.cachedBrush
+
         var brush = .gradientBrush(gradient, shape)
         brush.multiplyOpacity(opacity)
         .drawing.gradientBrushes.add(#move brush)
-        return .drawing.gradientBrushes.count
+        let index = .drawing.gradientBrushes.count
+        if gradient.userSpace
+        {
+            gradient.cachedBrush     = index
+            gradient.cachedTransform = shape.paintTransform
+            gradient.cachedOpacity   = opacity
+        }
+
+        return index
     }
 
     mtd resolvePaints()

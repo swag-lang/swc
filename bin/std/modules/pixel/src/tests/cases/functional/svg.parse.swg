@@ -211,6 +211,25 @@ private const ManyStopSvg = """\
     Swag.require(image.pixelColor(20, 4) == Color.fromRgb(0, 0, 255))
 }
 
+// Shapes sharing a user-space gradient can use different opacities and transforms.
+#test
+{
+    const Source = """\
+        <svg width='28' height='16'><defs>\
+        <linearGradient id='color' gradientUnits='userSpaceOnUse' x1='0' x2='12'>\
+        <stop offset='0' stop-color='red'/><stop offset='1' stop-color='blue'/>\
+        </linearGradient></defs><g fill='url(#color)'>\
+        <rect width='12' height='8'/><rect y='8' width='12' height='8' fill-opacity='0.5'/>\
+        <g transform='translate(16,0)'><rect width='12' height='8'/></g></g></svg>"""
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(28, 16, 1)
+    let solid   = image.pixelColor(2, 4)
+    let faded   = image.pixelColor(2, 12)
+    Swag.require(solid.r > solid.b and solid.a == 255)
+    Swag.require(image.pixelColor(18, 4) == solid)
+    Swag.require(faded.r > faded.b and faded.a > 120 and faded.a < 135)
+}
+
 // Class rules follow stylesheet order, even with a reordered or repeated class on the element.
 #test
 {

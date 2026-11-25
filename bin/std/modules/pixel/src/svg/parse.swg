@@ -292,7 +292,7 @@ private struct Parser
     clipPaths:      HashTable'(String, { first: u64, count: u64 })
     symbols:        HashTable'(String, SymbolViewport)
     markers:        HashTable'(String, MarkerDefinition)
-    gradients:      HashTable'(String, Gradient)
+    gradients:      HashTable'(string, Gradient)
     patterns:       HashTable'(String, Pattern)
     filters:        HashTable'(String, SvgFilter)
     styles:         StyleSheet
@@ -391,7 +391,7 @@ private struct Gradient
 {
     kind: GradientKind = Linear
 
-    href:      String     // Gradient this one inherits from, without its `#`.
+    href:      string = ""           // Gradient this one inherits from, without its `#`.
     specified: GradientSpecified     // Attributes this gradient states itself.
 
     x1: SvgLength = {0, true}
@@ -2093,6 +2093,15 @@ private impl StyleSheet
 
 private impl Parser
 {
+    // Returns an attribute value as a view into the SVG source.
+    mtd const sourceView(value: string)->string
+    {
+        if not value.count do
+            return ""
+        let start = cast(u64, value.buffer - .text.buffer)
+        return .text[start until start + value.count]
+    }
+
     mtd skipUntil(c: u8)
     {
         let len = (.text).count
@@ -2386,7 +2395,7 @@ private impl Parser
             var baseId = href.value
             if baseId.count and baseId[0] == '#' do
                 baseId = baseId[1 until baseId.count]
-            gradient.href = String.from(baseId)
+            gradient.href = .sourceView(baseId)
         }
 
         gradient.kind = kind
@@ -2455,7 +2464,7 @@ private impl Parser
 
         let id = geo.tryFind("id")
         if id do
-            .gradients.add(id.value, #move gradient)
+            .gradients.add(.sourceView(id.value), #move gradient)
     }
 
     mtd loadRaster(href: string)->u64 fail
@@ -2467,9 +2476,7 @@ private impl Parser
             if (href.count / 4) * 3 > .options.maxImageBytes do
                 fail Swag.SystemError{"embedded SVG image exceeds the configured byte limit"}
 
-            // Attribute values slice the document. Keep that source as the cache key's owner.
-            let start = cast(u64, href.buffer - .text.buffer)
-            let entry = .embeddedImages.findOrAdd(.text[start until start + href.count])
+            let entry = .embeddedImages.findOrAdd(.sourceView(href))
             if entry.value do
                 return entry.value - 1
 
@@ -3412,38 +3419,27 @@ private impl Parser
     // instead of hanging, and a reference to nothing leaves the gradient with its own values.
     mtd resolveGradientInheritance()
     {
-        const MaxInheritanceDepth = 16'u32
+        const MaxInheritanceDepth = 16'u64
 
-        var keys: Array'String
-        for id in .gradients do
-            keys.add(id)
-
-        for id in keys
+        // Values can be edited in slot order while the keys and table capacity stay fixed.
+        let lookup: const *HashTable'(string, Gradient) = &.gradients
+        for &id, resolved in .gradients where resolved.href.count and resolved.href != id[]
         {
-            let entry = .gradients.tryFind(id.toString())
-            if not entry do
-                continue
-            var resolved = entry.value
-
-            var visited: Array'String
-            visited.add(id)
+            var visited: StaticArray'(const *Gradient?, MaxInheritanceDepth + 1)
+            visited.add(resolved)
 
             var current = resolved.href
-            var depth   = 0'u32
-            while not current.isEmpty() and depth < MaxInheritanceDepth
+            while current.count and visited.count <= MaxInheritanceDepth
             {
-                var seen = false
-                for name in visited where name.toString() == current.toString() do
-                    seen = true
-                if seen do
-                    break
-                visited.add(current)
-
-                let base = .gradients.tryFind(current.toString())
+                let base = lookup.tryFind(current)
                 if not base do
                     break
 
                 let from = &base.value
+                if visited.contains(from) do
+                    break
+                visited.add(from)
+
                 if not resolved.specified.x1
                 {
                     resolved.x1 = from.x1
@@ -3529,10 +3525,7 @@ private impl Parser
                 }
 
                 current = from.href
-                depth   += 1
             }
-
-            .gradients.add(id, #move resolved)
         }
     }
 

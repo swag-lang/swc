@@ -337,6 +337,23 @@ private func gradientBand(source: string)->[5] Color
     return result
 }
 
+// Cyclic and unresolved gradient references retain each definition's authored stops.
+#test
+{
+    const Source = """\
+        <svg width='20' height='10'><defs>\
+        <linearGradient id='a' href='#b'/>\
+        <linearGradient id='b' href='#a'><stop offset='0' stop-color='red'/></linearGradient>\
+        <linearGradient id='missing' href='#unknown'><stop offset='0' stop-color='lime'/></linearGradient>\
+        </defs><rect width='10' height='10' fill='url(#a)'/>\
+        <rect x='10' width='10' height='10' fill='url(#missing)'/></svg>"""
+
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(20, 10, 1)
+    Swag.require(image.pixelColor(5, 5) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(15, 5) == Color.fromRgb(0, 255, 0))
+}
+
 // A gradient inherits from the one it references, whichever order the two are written in.
 #test
 {

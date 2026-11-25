@@ -4505,6 +4505,20 @@ impl Drawing
 
     internal mtd const paintImpl(painter: *Painter, x, y: f32, scale: f32)
     {
+        #[Swag.Inline]
+        func transformAxisAlignedBounds(transform: Transform2, rect: Rectangle)->Rectangle
+        {
+            // Under an axis-aligned transform, two opposite corners give the full extent.
+            let first = transform.transformPoint(Vector2{rect.x, rect.y})
+            let last  = transform.transformPoint(Vector2{rect.right(), rect.bottom()})
+            if not finitePoint(first) or not finitePoint(last) do
+                return transform.transformBounds(rect)
+
+            let minimum = Vector2.min(first, last)
+            let size    = Vector2.max(first, last) - minimum
+            return Rectangle{minimum.x, minimum.y, size.x, size.y}
+        }
+
         // A drawing is mostly stroke, and a stroke is mostly the bands extruded along it, so its
         // coverage is measured from the centre line instead: two triangles a segment rather than
         // eighteen vertices. On a 1724 by 15036 document fitted to a 4K window that is 4.53
@@ -4557,7 +4571,7 @@ impl Drawing
                 let item = &.items[i]
                 if item.hasBounds
                 {
-                    var painted = tr.transformBounds(item.bounds)
+                    var painted = useBlocks ? transformAxisAlignedBounds(tr, item.bounds) : tr.transformBounds(item.bounds)
                     painted.inflate(InkFringeMargin)
                     if not visible.intersects(painted) do
                         continue

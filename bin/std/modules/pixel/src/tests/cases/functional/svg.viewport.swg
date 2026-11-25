@@ -33,7 +33,8 @@ private const ViewportSource = #raw """
 """
 
 // Renders `width` by `height` pixels of a drawing, optionally under a clipping rectangle.
-private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, y, scale: f32, clip: Math.Rectangle, useClip: bool)->Image
+private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, y, scale: f32,
+                            clip: Math.Rectangle, useClip: bool, transform = Math.Transform2.Identity)->Image
 {
     var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
@@ -45,6 +46,7 @@ private func renderViewport(drawing: const *Svg.Drawing, width, height: s32, x, 
     painter.bindRenderTarget(&target, paintAlpha: false)
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
+    painter.setTransform(transform)
     if useClip do
         painter.pushClippingSurfaceRect(clip)
     drawing.paint(&painter, x, y, scale)
@@ -128,6 +130,12 @@ private func differingPixels(a, b: const *Image, rect: Math.Rectangle)->u64
     Swag.require(image.pixelColor(18, 14) == Color.fromRgb(255, 0, 0))
     Swag.require(image.pixelColor(24, 14) == Color.fromRgb(0, 0, 255))
     Swag.require(image.pixelColor(46, 14) == Color.fromRgb(0, 255, 0))
+
+    let clip      = Math.Rectangle{0, 0, 96, 64}
+    let mirror    = Math.Transform2.createScale(-1, 1, 48, 0)
+    let reflected = renderViewport(&drawing, 96, 64, 0, -1980, 1, clip, true, mirror)
+    let whole     = renderViewport(&drawing, 96, 64, 0, -1980, 1, clip, false, mirror)
+    Swag.require(differingPixels(&reflected, &whole, clip) == 0)
 }
 
 // Shown smaller than its own units, a document still draws the picture it draws at full

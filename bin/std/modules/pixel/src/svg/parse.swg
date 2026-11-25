@@ -4078,6 +4078,8 @@ impl Drawing
     // shaping can give, so the first paint measures it and every later one rejects it.
     private mtd measureItems()
     {
+        var clipFirst, clipCount: u64
+        var clipBounds: Rectangle
         for &item in .items
         {
             switch item.kind
@@ -4102,8 +4104,18 @@ impl Drawing
                 break
             }
 
-            if item.hasBounds and item.clipCount do
-                item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
+            if item.hasBounds and item.clipCount
+            {
+                // A group can apply the same complex clip to every one of its children.
+                if item.clipFirst != clipFirst or item.clipCount != clipCount
+                {
+                    clipFirst  = item.clipFirst
+                    clipCount  = item.clipCount
+                    clipBounds = .clipRangeBounds(clipFirst, clipCount)
+                }
+
+                item.bounds.intersect(clipBounds)
+            }
         }
     }
 

@@ -145,20 +145,21 @@ impl Decoder
 
             for mcuBlock in .blocksPerMcu
             {
-                let componentId = .mcuOrg[mcuBlock]
-                let q = .quant[.compQuant[componentId]].storage()
+                let block      = &.baselineBlocks[mcuBlock]
+                let q          = unwrap block.quant
+                let previousDc = unwrap block.previousDc
 
-                var s = .huffDecode(&.h[.compDcTab[componentId]])
+                var s = .huffDecode(unwrap block.dc)
                 if s != 0
                 {
                     s = extendSign(.getBits2(s), s)
                 }
 
-                s += .lastDcVal[componentId]
-                .lastDcVal[componentId] = s
+                s += previousDc[]
+                previousDc[] = s
 
                 p[0] = cast(s16, (s * q[0]))
-                let ph = &.h[.compAcTab[componentId]]
+                let ph = unwrap block.ac
 
                 var k = 1
                 while k < 64
@@ -442,6 +443,19 @@ impl Decoder
         try .checkHuffTables()
         try .checkQuantTables()
 
+        if not .progressiveFlag and .decOptions.decodePixels
+        {
+            for index in .blocksPerMcu
+            {
+                let component = .mcuOrg[index]
+                .baselineBlocks[index] = BaselineBlock{
+                    dc: &.h[.compDcTab[component]],
+                    ac: &.h[.compAcTab[component]],
+                    quant: .quant[.compQuant[component]].storage(),
+                    previousDc: &.lastDcVal[component]}
+            }
+        }
+
         Memory.clear(.lastDcVal, cast(u64, .compsInFrame) * #sizeof(u32))
 
         .eobRun = 0
@@ -611,13 +625,6 @@ impl Decoder
             {
                 .makeHuffTable(i, &.h[i])
             }
-        }
-
-        for i in .blocksPerMcu
-        {
-            .dcHuffSeg[i] = &.h[.compDcTab[.mcuOrg[i]]]
-            .acHuffSeg[i] = &.h[.compAcTab[.mcuOrg[i]]]
-            .component[i] = cast(*u32, &.lastDcVal[.mcuOrg[i]])
         }
     }
 

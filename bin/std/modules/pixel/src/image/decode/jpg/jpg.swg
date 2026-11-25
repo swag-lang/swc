@@ -150,6 +150,15 @@ private
     }
 }
 
+// Tables and the DC predictor for one block position in a baseline MCU.
+struct BaselineBlock
+{
+    dc:         *HuffTables?
+    ac:         *HuffTables?
+    quant:      const [*] s16?
+    previousDc: *s32?
+}
+
 // Decodes baseline and progressive JPEG image data.
 //
 // The decoder is opaque and reusable only through its public decoding operations.
@@ -226,11 +235,10 @@ internal struct Decoder
         compBlocksV: [MaxComponents] s32
         mcuOrg:      [MaxBlocksPerMcu] u32
         h:           [MaxHuffTables] HuffTables
-        dcHuffSeg:   [MaxBlocksPerMcu] (*HuffTables?)
-        acHuffSeg:   [MaxBlocksPerMcu] (*HuffTables?)
         blockMcuY:   [MaxComponents] s32
-        component:   [MaxBlocksPerMcu] (*u32?)
         lastDcVal:   [MaxComponents] s32
+
+        baselineBlocks: [MaxBlocksPerMcu] BaselineBlock
 
         coefficients: [MaxComponents] CoeffBuf
         huffNum:      [MaxHuffTables] Array'u8

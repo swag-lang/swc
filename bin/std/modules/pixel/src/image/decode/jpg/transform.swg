@@ -20,6 +20,37 @@ private
     const TripletHighR  = cast(Math.Simd.U8x16, [0x80'u8, 5, 0x80, 0x80, 6, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
 }
 
+// Replicates a row's luma samples across the three channels of the BGR image.
+private func expandGrayRow(output: [*] u8, input: const [*] u8, width: s32)
+{
+    const Triplets0 = cast(Math.Simd.U8x16, [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5])
+    const Triplets1 = cast(Math.Simd.U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10])
+    const Triplets2 = cast(Math.Simd.U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
+
+    var source      = input
+    var destination = output
+    var remaining   = width
+    while remaining >= 16
+    {
+        let samples = Math.Simd.load(source)
+        Math.Simd.store(destination, Math.Simd.shuffle(samples, Triplets0))
+        Math.Simd.store(destination + 16, Math.Simd.shuffle(samples, Triplets1))
+        Math.Simd.store(destination + 32, Math.Simd.shuffle(samples, Triplets2))
+        source      += 16
+        destination += 48
+        remaining   -= 16
+    }
+
+    for index in remaining
+    {
+        let sample = source[index]
+        destination[0] = sample
+        destination[1] = sample
+        destination[2] = sample
+        destination    += 3
+    }
+}
+
 // The chroma correction of one group of samples, broadcast over the pixels the group covers.
 //
 // A pixel is its luma sample plus these three values, so a subsampled chroma sample computes them

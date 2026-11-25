@@ -284,17 +284,8 @@ impl Decoder
         {
             for .imageSizeY
             {
-                var source = try .decodeScanLine()
-                var output = destination
-                for .imageSizeX
-                {
-                    output[0] = source[]
-                    output[1] = source[]
-                    output[2] = source[]
-                    output    += 3
-                    source    += 1
-                }
-
+                let source = try .decodeScanLine()
+                expandGrayRow(destination, source, .imageSizeX)
                 destination -= stride
             }
 

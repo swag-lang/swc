@@ -291,7 +291,15 @@ void ByteArray::appendAligned(uint32_t& outOffset, const ByteArray& bytes, const
     const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(currentSize), alignment);
     if (currentSize < alignedOffset)
     {
-        storage_.reserve(static_cast<size_t>(alignedOffset) + bytes.size());
+        // Repeated aligned appends must leave room for later blocks, or each one
+        // reallocates and copies the entire prefix.
+        const size_t required = static_cast<size_t>(alignedOffset) + bytes.size();
+        const size_t capacity = storage_.capacity();
+        if (required > capacity)
+        {
+            const size_t growth = std::min(capacity, storage_.max_size() - capacity);
+            storage_.reserve(std::max(required, capacity + growth));
+        }
         resize(alignedOffset, std::byte{0});
     }
 

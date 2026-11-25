@@ -454,8 +454,12 @@ impl IDecoder for Decoder
 
         .info.frameCount = .frames.count
         .nextIndex       = 0
-        if .isCoded do
+        if .isCoded
+        {
             try .openPictures(source)
+            .frames.reserve(0)
+        }
+
         if not .pictureOnly do
             try .buildSoundTracks(source, &layout)
         return .info
@@ -467,7 +471,7 @@ impl IDecoder for Decoder
     {
         // The container gave every frame position away when the stream was opened, so seeking is
         // arithmetic on the frame table and never touches the source.
-        if index >= .frames.count do
+        if index >= .info.frameCount do
             fail BadParameterError{"AVI frame index exceeds the stream frame count"}
 
         .nextIndex = index
@@ -476,7 +480,7 @@ impl IDecoder for Decoder
     mtd impl decodeFrame(source: *ByteSource, target: *Image) fail
     {
         let current = .nextIndex
-        if current >= .frames.count do
+        if current >= .info.frameCount do
             fail InvalidFormatError{"AVI stream has no frame at this position"}
 
         if .isCoded
@@ -522,7 +526,7 @@ impl IPlanarDecoder for Decoder
             fail UnsupportedFormatError{"AVI frames of this codec are not coded planes"}
 
         let current = .nextIndex
-        if current >= .frames.count do
+        if current >= .info.frameCount do
             fail InvalidFormatError{"AVI stream has no frame at this position"}
 
         .nextIndex = NoFrameIndex
@@ -919,19 +923,14 @@ private impl Decoder
         var samples: Array'SampleEntry
         samples.reserve(.frames.count)
 
-        // How long one frame lasts, which is all these times are: an AVI numbers its frames and
-        // states how fast they run, and says nothing else about when they are shown. The duration
-        // is reduced once rather than per frame, because a writer is free to state a rate as two
-        // large numbers and multiplying by a frame number before dividing overflows on a long file.
-        let rate = .info.frameRate
-        let step = 1_000_000_000'u64 * cast(u64, rate.denominator()) / cast(u64, rate.numerator())
+        // AVI supplies slot order here. Reader derives presentation times from the frame rate.
         for index in .frames.count
         {
             let entry = .frames[index]
             samples.add(SampleEntry{
                 offset: entry.offset,
                 size: entry.size,
-                presentationTime: cast(s64, (index * step)),
+                presentationTime: cast(s64, index),
                 isSync: entry.isSync and entry.size != 0,
                 repeatPrevious: entry.size == 0})
         }

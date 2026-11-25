@@ -74,6 +74,8 @@ impl Mpeg4Stream
     mtd rebuildOrder()
     {
         .sampleAtRank.clear()
+        if .slotTimestamps do
+            return
         .sampleAtRank.reserve(.frames.count)
 
         // A stable insertion by presentation time: the tables are short, and equal times must
@@ -126,16 +128,20 @@ impl Mpeg4Stream
         .rebuildOrder()
     }
 
+    mtd const frameCount()->u64 => .frames.count
+
+    private mtd const sampleIndex(rank: u64)->u64 => .slotTimestamps ? rank : cast(u64, .sampleAtRank[rank])
+
     mtd const presentationTimeAtRank(rank: u64)->s64
     {
-        if rank >= .sampleAtRank.count do
+        if rank >= .frames.count do
             return 0
-        return .frames[cast(u64, .sampleAtRank[rank])].presentationTime
+        return .frames[.sampleIndex(rank)].presentationTime
     }
 
     mtd const isSyncRank(rank: u64)->bool
     {
-        let sample = cast(u64, .sampleAtRank[rank])
+        let sample = .sampleIndex(rank)
         return sample < .frames.count and .frames[sample].isSync
     }
 
@@ -144,18 +150,18 @@ impl Mpeg4Stream
     mtd const syncRankAt(rank: u64)->u64
     {
         var scan = rank
-        while scan < .sampleAtRank.count and not .isSyncRank(scan) do
+        while scan < .frames.count and not .isSyncRank(scan) do
             scan += 1
-        return Math.min(scan, .sampleAtRank.count)
+        return Math.min(scan, .frames.count)
     }
 
     // Returns the last display rank at or before `rank` whose sample starts a clean decode,
     // which is where decoding the picture of `rank` has to begin.
     mtd const decodeStartRank(rank: u64)->u64
     {
-        if not .sampleAtRank.count do
+        if not .frames.count do
             return 0
-        var scan = Math.min(rank, .sampleAtRank.count - 1)
+        var scan = Math.min(rank, .frames.count - 1)
         while scan > 0 and not .isSyncRank(scan) do
             scan -= 1
         return scan
@@ -239,7 +245,7 @@ impl Mpeg4Stream
             .decoder.reset()
             .queued     = 0
             .emitRank   = start
-            .nextDecode = cast(u64, .sampleAtRank[start])
+            .nextDecode = .sampleIndex(start)
             if not .slotTimestamps or .lowDelay or not start do
                 break
 
@@ -261,7 +267,7 @@ impl Mpeg4Stream
     // Decodes forward until the picture of the current rank is reconstructed.
     mtd decodeNextPlanes(source: *ByteSource, target: *PlanarFrame) fail
     {
-        if .nextRank >= .sampleAtRank.count do
+        if .nextRank >= .frames.count do
             fail InvalidFormatError{"MPEG-4 stream has no picture at the requested position"}
 
         // A picture that is not a clean decode point needs everything back to the last one.

@@ -160,7 +160,7 @@ impl PictureStream
         if .kind == PictureRealVideo do
             return .realvideo.sampleAtRank.count
         if .kind == PictureMpeg4 do
-            return .mpeg4.sampleAtRank.count
+            return .mpeg4.frameCount()
         return .avc.frames.count
     }
 

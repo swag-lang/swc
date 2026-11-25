@@ -1,4 +1,5 @@
 #pragma once
+#include "Support/Math/Hash.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -64,13 +65,19 @@ void foldIdenticalContentGraph(std::vector<std::vector<size_t>>& readers, Hash h
     }
 }
 
-// Some compiler-owned allocations (in particular runtime type descriptors) refer
-// back to each other. Start with those targets in one class and refine until the
-// outgoing relocation edges agree. Other edges retain their exact symbol identity.
+// Establish exact classes using immutable contents and relocation shapes, then
+// split those classes on the destination classes of their recursive edges.
 template<typename Name, typename Hash, typename Equal, typename Fold>
 void foldCyclicContentGraph(const size_t count, Name name, Hash hash, Equal equal, Fold fold)
 {
-    std::vector<size_t>                          members;
+    struct Member
+    {
+        size_t candidate;
+        size_t firstEdge = 0;
+        size_t endEdge   = 0;
+    };
+
+    std::vector<Member>                          members;
     std::unordered_map<std::string_view, size_t> byName;
     for (size_t index = 0; index < count; ++index)
     {
@@ -78,50 +85,88 @@ void foldCyclicContentGraph(const size_t count, Name name, Hash hash, Equal equa
         if (symbol.empty())
             continue;
         byName.emplace(symbol, members.size());
-        members.push_back(index);
+        members.push_back({index});
     }
     if (members.size() < 2)
         return;
 
+    std::vector<size_t>                               edges;
     std::vector<size_t>                               classes(members.size());
     std::vector<size_t>                               refined(members.size());
+    std::vector<size_t>                               classSizes(members.size());
     std::unordered_map<uint32_t, std::vector<size_t>> buckets;
-    const auto                                        classify = [&](const std::pair<bool, std::string_view> target, const std::string_view layout = {}) -> std::pair<size_t, std::string_view> {
+    const auto                                        classify = [&](const std::pair<bool, std::string_view> target, const std::string_view layout, const bool recordEdge) -> std::pair<size_t, std::string_view> {
         if (!layout.empty())
             return {2, layout};
         if (target.first)
             return {1, {}};
         const auto found = byName.find(target.second);
-        if (found != byName.end())
-            return {classes[found->second] + 3, {}};
-        return {0, target.second};
+        if (found == byName.end())
+            return {0, target.second};
+        if (recordEdge)
+            edges.push_back(found->second);
+        return {3, {}};
     };
-    // Each class is named by its first member. Since refinement only splits
-    // classes, stable class numbers also mean stable relocation targets.
+    const auto findClass = [&](const size_t index, const uint32_t key, const auto& matches) {
+        auto&      bucket = buckets[key];
+        const auto other  = std::ranges::find_if(bucket, matches);
+        if (other != bucket.end())
+            return *other;
+        bucket.push_back(index);
+        return index;
+    };
+
+    for (size_t index = 0; index < members.size(); ++index)
+    {
+        Member& member     = members[index];
+        member.firstEdge   = edges.size();
+        const uint32_t key = hash(member.candidate, [&](const auto target, const std::string_view layout = {}) {
+            return classify(target, layout, true);
+        });
+        member.endEdge     = edges.size();
+        classes[index]     = findClass(index, key, [&](const size_t other) {
+            return equal(member.candidate, members[other].candidate, [&](const auto target, const std::string_view layout = {}) {
+                return classify(target, layout, false);
+            });
+        });
+        ++classSizes[classes[index]];
+    }
+
+    // Within a class, each recursive edge already occupies the same relocation
+    // slot. Later rounds need only its numeric target class.
+    const auto edgeClasses = [&](const Member& member) {
+        return std::span(edges).subspan(member.firstEdge, member.endEdge - member.firstEdge) |
+               std::views::transform([&](const size_t target) { return classes[target]; });
+    };
     for (;;)
     {
+        bool changed = false;
         buckets.clear();
         for (size_t index = 0; index < members.size(); ++index)
         {
-            auto&      bucket = buckets[hash(members[index], classify)];
-            const auto other  = std::ranges::find_if(bucket, [&](const size_t candidate) {
-                return classes[index] == classes[candidate] && equal(members[index], members[candidate], classify);
+            const Member& member     = members[index];
+            const size_t  priorClass = classes[index];
+            refined[index]           = priorClass;
+            if (classSizes[priorClass] == 1 || member.firstEdge == member.endEdge)
+                continue;
+            uint32_t key = Math::hashCombine(0, priorClass);
+            for (const size_t targetClass : edgeClasses(member))
+                key = Math::hashCombine(key, targetClass);
+            refined[index] = findClass(index, key, [&](const size_t other) {
+                return priorClass == classes[other] && std::ranges::equal(edgeClasses(member), edgeClasses(members[other]));
             });
-            if (other != bucket.end())
-                refined[index] = *other;
-            else
-            {
-                refined[index] = index;
-                bucket.push_back(index);
-            }
+            changed |= refined[index] != priorClass;
         }
-        if (refined == classes)
+        if (!changed)
             break;
         classes.swap(refined);
+        std::ranges::fill(classSizes, 0);
+        for (const size_t group : classes)
+            ++classSizes[group];
     }
     for (size_t index = 0; index < members.size(); ++index)
         if (classes[index] != index)
-            fold(members[index], members[classes[index]]);
+            fold(members[index].candidate, members[classes[index]].candidate);
 }
 
 SWC_END_NAMESPACE();

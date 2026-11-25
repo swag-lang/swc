@@ -1015,7 +1015,8 @@ SWC_TEST_BEGIN(PeLinker_FoldsSelfReferencesWithoutConflatingDistinctCycles)
         makeReadOnlyAllocation("__swc_rdata_type_c", 1, "__swc_rdata_type_d"),
         makeReadOnlyAllocation("__swc_rdata_type_d", 2, "__swc_rdata_type_c"),
         makeReadOnlyAllocation("__swc_rdata_type_e", 1, "__swc_rdata_type_f"),
-        makeReadOnlyAllocation("__swc_rdata_type_f", 3, "__swc_rdata_type_e"),
+        makeReadOnlyAllocation("__swc_rdata_type_f", 2, "__swc_rdata_type_g"),
+        makeReadOnlyAllocation("__swc_rdata_type_g", 3, "__swc_rdata_type_e"),
     };
     std::unordered_map<Utf8, Utf8> aliases;
     PELinker::foldReadOnlyData(objects, aliases);

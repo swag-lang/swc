@@ -60,6 +60,12 @@ namespace
             const __m128i savedAbef = abef;
             const __m128i savedCdgh = cdgh;
             __m128i       message[4];
+            // Constant schedule indices let the compiler keep the message words in registers.
+#if defined(__clang__)
+#pragma clang loop unroll(full)
+#elif defined(__GNUC__)
+#pragma GCC unroll 16
+#endif
             for (int group = 0; group < 16; ++group)
             {
                 __m128i& words = message[group & 3];

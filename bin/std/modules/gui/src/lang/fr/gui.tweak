@@ -43,6 +43,7 @@ print_FindingPrinters      Recherche des imprimantes
 print_Preparing            Préparation des pages
 print_Sending              Envoi à l’imprimante
 print_SavingPdf            Enregistrement du PDF
+print_PdfSaveFailed        Le PDF n’a pas pu être enregistré.
 print_Failed               L’opération d’impression a échoué.
 print_InvalidPage          La page n’a pas pu être préparée.
 print_InvalidRange         La plage dépasse les pages du document.

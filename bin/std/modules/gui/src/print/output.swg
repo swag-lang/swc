@@ -23,7 +23,8 @@ func writePdf(layout: const *Layout, options: JobOptions, fileName: string) fail
 
 func savePdf(layout: const *Layout, options: JobOptions, target: string) fail
 {
-    let temporary = Format.toString("%.swag-print-%.tmp", target, Guid128.random())
+    let folder    = Path.directoryName(target) orelse "."
+    let temporary = Path.combine(folder, Format.toString(".swag-print-%.tmp", Guid128.random()))
     defer discard catch File.delete(temporary)
     try writePdf(layout, options, temporary)
     try checkCancelled()

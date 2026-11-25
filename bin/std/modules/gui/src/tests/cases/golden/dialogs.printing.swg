@@ -74,7 +74,7 @@ using Core, Pixel, Gui.Print
             if not confirmedSettings and dlg.title.text == strings().print_Title
             {
                 confirmedSettings = true
-                Swag.require(host.clickModalButton(Dialog.BtnOk))
+                Swag.require(host.clickModalButton(PrintDlg.PreviewButton))
             }
             elif not captured and dlg.title.text == strings().print_Preview
             {
@@ -92,11 +92,15 @@ using Core, Pixel, Gui.Print
                 navigation.setFocus()
                 host.keyPress(.Home)
                 Swag.require(previous.isDisabled() and next.isEnabled() and count.text() == "Page 1 of 2")
+                let range = unwrap host.findEditByLabel(dlg, strings().print_Range)
+                range.setText("2")
                 host.clickWnd(unwrap dlg.leadingControl)
             }
             elif captured and dlg.title.text == strings().print_Title
             {
                 returned = true
+                let range = unwrap host.findEditByLabel(dlg, strings().print_Range)
+                Swag.require(range.text() == "2")
                 Swag.require(host.clickModalButton(Dialog.BtnCancel))
             }
         }

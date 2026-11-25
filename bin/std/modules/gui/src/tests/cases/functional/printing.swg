@@ -58,7 +58,7 @@ using Core, Core.Math, Pixel, Gui.Print
             switch
             {
             case title == tr.print_Title:
-                Swag.require(host.clickModalButton(Dialog.BtnOk))
+                Swag.require(host.clickModalButton(PrintDlg.PreviewButton))
 
             case title == tr.print_Preparing:
                 break
@@ -137,8 +137,16 @@ using Core, Core.Math, Pixel, Gui.Print
     discard catch PrintDlg.parseRange("3-2", layout.pageCount) as rejected
     Swag.require(rejected.value() is PrintError)
 
-    let target = Testing.tempFilePath("gui-print-range-", ".pdf")
-    defer discard catch File.delete(target)
+    let folder = Testing.tempFilePath("gui-print-range-", "")
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    var fileName = String.from("printed")
+
+    // On Linux the target itself is valid. The old temporary name exceeded NAME_MAX.
+    for #os == Swag.TargetOs.Linux ? 232 : 0 do
+        fileName += "x"
+    fileName += ".pdf"
+    let target = Path.combine(folder, fileName)
     expect savePdf(&layout, {first: range.first, end: range.end}, target)
     var reader = expect Pdf.Reader.open(target)
     Swag.require(reader.pageCount() == 2)
@@ -155,6 +163,7 @@ using Core, Core.Math, Pixel, Gui.Print
     Swag.require(hasInk)
 }
 
+// The primary action exports directly. A failed write keeps the destination available for retry.
 #test
 {
     var host: Testing.HeadlessHost
@@ -167,19 +176,30 @@ using Core, Core.Math, Pixel, Gui.Print
     let target = Path.combine(root, "printed.pdf")
 
     host.clickModalButtonWhenShown(Dialog.BtnOk, maxFrames: 600)
-    host.thenClickModalButton(Dialog.BtnOk)
+    host.withModalEdit(strings().print_Range, "2")
     host.thenClickModalButton(Dialog.BtnOk)
     let save = host.autoStages.backPtr()
     save.folder = root
     save.file   = "printed.pdf"
+    if #os == Swag.TargetOs.Linux
+    {
+        // The editor accepts this name, but the filesystem rejects the rename.
+        for 252 do
+            save.file += "x"
+        host.thenClickModalButton(Dialog.BtnOk)     // Dismiss the write error.
+        host.thenClickModalButton(Dialog.BtnOk)
+        host.autoStages.backPtr().file = "printed.pdf"
+    }
 
     var document: Document
-    document.name  = "Picture"
-    document.image = Image.create(36, 20, .RGB8)
-    document.image.fill(Color.fromArgb(Argb.Blue))
+    document.kind = .Text
+    document.name = "Report"
+    for i in 75 do
+        document.text.appendFormat("Report entry %.\n", i + 1)
     let devices: Array'Printer
     PrintDlg.showDocument(&host.surface, &document, "", devices.toSlice())
     host.pump()
+    Swag.require(host.autoHandled, host.autoFailure)
     var reader = expect Pdf.Reader.open(target)
     Swag.require(reader.pageCount() == 1)
 }

@@ -6,18 +6,13 @@ using Core, Core.Math, Pixel, Win32
 
 func printers()->Array'Printer
 {
-    var result:        #returntype
-    let flags = PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS
-    var needed, count: DWORD
-    discard EnumPrintersW(flags, null, 4, null, 0, &needed, &count)
-    if not needed do
-        return result
-
+    var result:  #returntype
     var storage: Array'u8
-    storage.resize(needed)
-    if not EnumPrintersW(flags, null, 4, storage.buffer, needed, &needed, &count) do
+    let count = enumerateQueues(PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS, 4, &storage)
+    if not count do
         return result
 
+    let interactive = interactiveQueues()
     var defaultLength: DWORD
     discard GetDefaultPrinterW(null, &defaultLength)
     var defaultName: String
@@ -33,10 +28,36 @@ func printers()->Array'Printer
     for i in count
     {
         let name = printerName(entries[i].pPrinterName)
-        if not name.isEmpty() do
+        if not name.isEmpty() and not interactive.contains(name) do
             result.add({name, id: name, isDefault: name == defaultName})
     }
 
+    return result
+}
+
+private func enumerateQueues(flags, level: DWORD, storage: *Array'u8)->DWORD
+{
+    var needed, count: DWORD
+    discard EnumPrintersW(flags, null, level, null, 0, &needed, &count)
+    if not needed do
+        return 0
+    storage.resize(needed)
+    if not EnumPrintersW(flags, null, level, storage.buffer, needed, &needed, &count) do
+        return 0
+    return count
+}
+
+// Read local port names without opening each queue or asking remote drivers for their settings.
+private func interactiveQueues()->HashSet'String
+{
+    var result:  #returntype
+    var storage: Array'u8
+    let count = enumerateQueues(PRINTER_ENUM_LOCAL, 5, &storage)
+    if not count do
+        return result
+    let entries = assume cast([*] PRINTER_INFO_5W, storage.buffer)
+    for i in count where needsDriverDialog(entries[i]) do
+        discard result.add(printerName(entries[i].pPrinterName))
     return result
 }
 
@@ -70,15 +91,25 @@ private func isUnattendedQueue(printer: HANDLE)->bool
         return false
 
     let info = assume cast(const *PRINTER_INFO_5W, storage.buffer)
+    return not needsDriverDialog(info[]) and not printerName(info.pPortName).isEmpty()
+}
+
+private func needsDriverDialog(info: PRINTER_INFO_5W)->bool
+{
     if info.Attributes & PRINTER_ATTRIBUTE_FAX do
-        return false
+        return true
 
     // These ports ask the spooler to open a Windows file picker from StartDoc.
     var ports = printerName(info.pPortName)
     ports.makeUpper()
-    for port in Tokenize.split(ports, ','u8) where port == "FILE:" or port == "PORTPROMPT:" do
-        return false
-    return not ports.isEmpty()
+    for port in Tokenize.split(ports, ','u8)
+    {
+        let name = Latin1.trim(port)
+        if name == "FILE:" or name == "PORTPROMPT:" do
+            return true
+    }
+
+    return false
 }
 
 private func device(printer: const *Printer, setup: PageSetup)->HDC fail

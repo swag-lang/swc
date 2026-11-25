@@ -86,7 +86,7 @@ using Core, Gui, Pixel
                 break
 
             case title == tr.print_Title:
-                Swag.require(host.clickModalButton(Dialog.BtnOk))
+                Swag.require(host.clickModalButton("gui.print.preview"))
 
             case title == tr.print_Preview:
                 previewed = true

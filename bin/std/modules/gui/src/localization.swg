@@ -55,6 +55,7 @@ struct Strings
         print_Preparing:           string = "Preparing Pages"    // Activity while preparing or rendering pages.
         print_Sending:             string = "Sending to Printer"    // Activity while submitting the print job.
         print_SavingPdf:           string = "Saving PDF"    // Activity while creating the PDF file.
+        print_PdfSaveFailed:       string = "The PDF could not be saved."    // Error shown after a PDF write fails.
         print_Failed:              string = "The print operation could not be completed."    // Fallback print error.
         print_InvalidPage:         string = "The page could not be rendered."    // Invalid page or failed rendering.
         print_InvalidRange:        string = "The page range is outside this document."    // Invalid page-range error.

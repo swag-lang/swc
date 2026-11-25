@@ -481,9 +481,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     // and a loop can run the redefinition before an access that appears earlier
     // in the linear order, so the register is disqualified everywhere: accesses
     // through it stop resolving, and its remaining appearances read as
-    // unexplainable escapes.
+    // unexplainable escapes. Count definitions for pointer-copy analysis in this scan.
+    FlatKeySet addressCopies;
     if (!addrRegOffset.empty())
     {
+        FlatKeyMap<uint32_t> definitions;
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);
@@ -494,7 +496,13 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
             {
                 if (modes[i] != MicroInstrRegMode::Def && modes[i] != MicroInstrRegMode::UseDef)
                     continue;
-                AddrRegInfo* found = addrRegOffset.find(ops[i].reg.packed);
+
+                const MicroReg reg = ops[i].reg;
+                if (!reg.isVirtualInt())
+                    continue;
+
+                ++definitions.getOrInsert(reg.packed);
+                AddrRegInfo* found = addrRegOffset.find(reg.packed);
                 if (found && it.current != found->defRef && !addressAdjustments.contains(it.current.get()))
                 {
                     // A frame-derived pointer can cross local-object boundaries:
@@ -511,25 +519,11 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 }
             }
         }
-    }
 
-    // Follow pointer copies whose only definition follows the known address on
-    // the same straight line. Interface dispatch copies a local's address into
-    // a temporary before reading its first field; the copy does not expose the
-    // object. An actual escape through either register still poisons it below.
-    FlatKeySet addressCopies;
-    if (!addrRegOffset.empty())
-    {
-        // Definition counts by register, keyed by its packed form: only looked up, never walked.
-        FlatKeyMap<uint32_t> definitions;
-        for (const MicroInstr& inst : storage.view())
-        {
-            const auto* ops   = inst.ops(operands);
-            const auto  modes = MicroInstr::info(inst.op).resolvedRegModes(ops);
-            for (size_t i = 0; i < modes.size(); ++i)
-                if ((modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef) && ops[i].reg.isVirtualInt())
-                    ++definitions.getOrInsert(ops[i].reg.packed);
-        }
+        // Follow pointer copies whose only definition follows the known address on
+        // the same straight line. Interface dispatch copies a local's address into
+        // a temporary before reading its first field; the copy does not expose the
+        // object. An actual escape through either register still poisons it below.
         const auto definedOnce = [&](const MicroReg reg) {
             const uint32_t* count = definitions.find(reg.packed);
             return count && *count == 1;
@@ -562,7 +556,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     }
 
     auto isTracked = [&](MicroReg reg) -> bool {
-        return reg == frameBase || addrRegOffset.find(reg.packed);
+        return reg == frameBase || (reg.isVirtualInt() && addrRegOffset.find(reg.packed));
     };
 
     // ---- Local-variable extents: escapes poison one variable, not the function. ----

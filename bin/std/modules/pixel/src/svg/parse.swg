@@ -1612,38 +1612,6 @@ private struct MarkerVertex
     inDir, outDir: Vector2
 }
 
-// Returns the marker vertices of a `points` list.
-private func polyVertices(points: string)->Array'MarkerVertex
-{
-    var result: #returntype
-
-    var pos = 0'u64
-    while pos < points.count
-    {
-        var look = pos
-        while look < points.count and (points[look] == ' ' or points[look] == ',') do
-            look += 1
-        if look >= points.count or not isNumberStart(points[look]) do
-            break
-
-        let x = scanNumber(points, &pos)
-        let y = scanNumber(points, &pos)
-        if result.count
-        {
-            let previous  = result[result.count - 1].point
-            let direction = Vector2{x - previous.x, y - previous.y}
-            result[result.count - 1].outDir = direction
-            result.add(MarkerVertex{Vector2{x, y}, direction, Vector2{}})
-        }
-        else
-        {
-            result.add(MarkerVertex{Vector2{x, y}, Vector2{}, Vector2{}})
-        }
-    }
-
-    return result
-}
-
 // Records the vertex a segment just reached, and the direction it left the previous one along.
 private func addMarkerVertex(vertices: *Array'MarkerVertex?, point, inDir, previousOutDir: Vector2)
 {
@@ -2183,10 +2151,16 @@ private impl Parser
 
     mtd emitPoly(state: *GroupState, points: string, closeIt: bool)
     {
-        var list: LinePathList
-        let path = list.newPath()
-        var pos  = 0'u64
-        var idx  = 0
+        let drawsPath  = state.drawsShape(strokeOnly: not closeIt)
+        let hasMarkers = state.hasMarkers()
+        if not drawsPath and not hasMarkers do
+            return
+
+        var list:     LinePathList
+        var vertices: Array'MarkerVertex
+        let path  = drawsPath ? list.newPath() : null
+        var pos   = 0'u64
+        var count = 0'u64
 
         while pos < points.count
         {
@@ -2196,21 +2170,51 @@ private impl Parser
             if look >= points.count or not isNumberStart(points[look]) do
                 break
 
-            let x     = scanNumber(points, &pos)
-            let y     = scanNumber(points, &pos)
-            let point = mapPoint(state, x, y)
-            if idx == 0 do
-                path.start(point.x, point.y)
-            else do
-                path.lineTo(point.x, point.y)
-            idx += 1
+            let x = scanNumber(points, &pos)
+            let y = scanNumber(points, &pos)
+            if path
+            {
+                let point = mapPoint(state, x, y)
+                if not count do
+                    path.start(point.x, point.y)
+                else do
+                    path.lineTo(point.x, point.y)
+            }
+
+            if hasMarkers
+            {
+                let point = Vector2{x, y}
+                var direction: Vector2
+                if count
+                {
+                    let previous = vertices.backPtr()
+                    direction       = Vector2{x - previous.point.x, y - previous.point.y}
+                    previous.outDir = direction
+                }
+
+                vertices.add(MarkerVertex{point, direction, Vector2{}})
+            }
+
+            count += 1
         }
 
-        if idx < 2 do
-            return
-        if closeIt do
-            path.close()
-        .emitShape(#move list, state)
+        if path and count >= 2
+        {
+            if closeIt
+            {
+                path.close()
+                .emitShape(#move list, state)
+            }
+            else
+            {
+                var strokeOnly = state[]
+                strokeOnly.hasFill = false
+                .emitShape(#move list, &strokeOnly)
+            }
+        }
+
+        if hasMarkers do
+            .applyMarkers(state, vertices.toSlice())
     }
 }
 
@@ -3363,26 +3367,8 @@ private impl Parser
 
             case "polygon", "polyline":
                 let pts = geo.tryFind(.Points)
-                if pts
-                {
-                    if name == "polygon"
-                    {
-                        if state.drawsShape() do
-                            .emitPoly(&state, pts.value, true)
-                    }
-                    elif state.drawsShape(strokeOnly: true)
-                    {
-                        var strokeOnly = state
-                        strokeOnly.hasFill = false
-                        .emitPoly(&strokeOnly, pts.value, false)
-                    }
-
-                    if state.hasMarkers()
-                    {
-                        let vertices = polyVertices(pts.value)
-                        .applyMarkers(&state, vertices.toSlice())
-                    }
-                }
+                if pts do
+                    .emitPoly(&state, pts.value, name == "polygon")
 
                 if not selfClosed do
                     try .parseContent(state)

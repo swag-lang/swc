@@ -85,23 +85,6 @@ func testSetupGlobalMain(main: *MainWnd)
     f.gui.pump()
     Swag.require(lineCell.id == ActionToolMode.Arrow and f.main.editMode == .Arrow)
 
-    // The wait indicator of a library scan stands in the command bar, not over the captures. It
-    // used to be a child of the scroll window at 8,8 — which is exactly where the view's own
-    // padding puts the first thumbnail, so it landed on a cell that already carries an hour glass
-    // while its picture loads. The bar is where the state of this window is said, and a control
-    // standing there covers nothing; hidden, it leaves no gap, because the bar stacks only what
-    // is visible.
-    let bar     = f.main.libWnd.commandBar
-    let spinner = cast(*Wnd, f.main.libWnd.view.imgSpin)
-    Swag.require(spinner.parent == cast(*Wnd, bar))
-    Swag.require(not spinner.isLocallyVisible())
-
-    let packed = bar.measure({}).preferred.x
-    spinner.show()
-    Swag.require(bar.measure({}).preferred.x > packed)
-    spinner.hide()
-    Swag.require(bar.measure({}).preferred.x == packed)
-
     var evt = Gui.Testing.commandState(ActionGlobal.ShowLibrary)
     Swag.require(Gui.Testing.actionUpdate'ActionGlobal(f.main, ActionGlobal.ShowLibrary, &evt))
     Swag.require(not evt.name.isEmpty())
@@ -115,6 +98,7 @@ func testSetupGlobalMain(main: *MainWnd)
 
     // The library is a lens entry: the work area, with the dock and the inspector it carries,
     // leaves while the library is on screen.
+    f.gui.surface.show()
     Swag.require(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))
     Swag.require(f.main.libraryMode)
     Swag.require(not f.main.editArea.isLocallyVisible())
@@ -140,6 +124,7 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.require(tool.disabled)
 
     let loading = g_UpdatingLib
+    let spinner = f.main.libWnd.view.imgSpin
     g_UpdatingLib = true
     spinner.show()
     Swag.require(Gui.Testing.actionExecute'ActionGlobal(f.main, ActionGlobal.ShowLibrary))

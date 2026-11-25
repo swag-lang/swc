@@ -758,12 +758,33 @@ impl IAllocator for LibraryRejectAllocator
     }
 
     Swag.require((lib.folderBtn.text()).count != 0)
-    Swag.require(lib.commandBar.children.count == 4)
+    Swag.require(lib.commandBar.children.count == 3)
     Swag.require(lib.filterBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
     Swag.require(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
     Swag.require(lib.searchEdit.surfaceRect().right() == lib.surfaceRect().right() - LibraryPageMargin)
     Swag.require(lib.captureHost.position.y >= lib.header.position.bottom())
     Swag.require(lib.captureHost.backgroundStyle == .Transparent)
+
+    // The loading mark sits between the tabs and the grid. Menu anchors and search keep their
+    // screen rectangles throughout a refresh.
+    let controls: [4] *Wnd = [lib.viewBtn, lib.filterBtn, lib.folderBtn, lib.searchEdit]
+    var bounds:   [4] Math.Rectangle
+    for control, i in controls do
+        bounds[i] = control.surfaceRect()
+
+    let spinner = lib.view.imgSpin
+    Swag.require(not spinner.isLocallyVisible())
+    spinner.show()
+    lib.applyLayout()
+    Swag.require(spinner.surfaceRect().y >= lib.folderTabs.surfaceRect().bottom())
+    Swag.require(spinner.surfaceRect().bottom() <= lib.captureHost.surfaceRect().y)
+    for control, i in controls do
+        Swag.require(control.surfaceRect() == bounds[i])
+
+    spinner.hide()
+    lib.applyLayout()
+    for control, i in controls do
+        Swag.require(control.surfaceRect() == bounds[i])
 
     lib.setTrashMode(true)
     Swag.require(lib.header.isLocallyVisible() and lib.titleLabel.name == appStrings().act_RecycleBin)

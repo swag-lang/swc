@@ -391,3 +391,44 @@ using Swag, Core, Gui, Pixel
     host.pump()
     Swag.require(main.residentPanel == null and surface.isHidden)
 }
+
+// The Library command from the capture window shows the library on its first frame.
+#test
+{
+    var host: Testing.HeadlessHost
+    let main = testSetupSurfaceMain(&host)
+    defer
+    {
+        main.libWnd.requestClose()
+        host.shutdown()
+        g_Main = null
+    }
+
+    let surface = unwrap main.surface
+    host.setReducedMotion(false)
+
+    var shows: u64
+    main.hookOnEvent = func|main, count = &shows|(_, evt)->bool
+    {
+        if evt is StateEvent as state where state.kind == .Show
+        {
+            Swag.require(main.libraryMode and main.libWnd.isLocallyVisible())
+            Swag.require(not main.editArea.isLocallyVisible())
+            Swag.require(main.libWnd.presentationOffset == Math.Point{})
+            count[] += 1
+        }
+
+        return false
+    }
+
+    defer main.hookOnEvent = null
+
+    for i in 2
+    {
+        main.showHub()
+        Swag.require(main.workspace == .Hub and surface.isHidden)
+        main.residentPanel!.choose(ActionGlobal.ShowLibrary)
+        host.pump()
+        Swag.require(shows == i + 1 and not surface.isHidden and main.residentPanel == null)
+    }
+}

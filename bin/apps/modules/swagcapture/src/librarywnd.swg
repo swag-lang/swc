@@ -538,7 +538,6 @@ impl LibraryWnd
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
             .padding.y       = LibraryTopGap
-            .padding.w       = LibraryHeaderGap
             .margin.x        = LibraryCellRing
             .margin.z        = LibraryCellRing
         }
@@ -665,12 +664,18 @@ impl LibraryWnd
         .folderBtn.sigPressed += func|libWnd = me|(btn) { libWnd.showFolderMenu(btn) }
     }
 
-    // The loading state of the previews stays with the menus it updates; hidden, it takes no room.
+    // Use the space below the tabs so the loading mark never moves a menu or covers a capture.
     mtd createSpinner()
     {
-        let iconSize = themeRowIconSize(.themeMetrics())
-        .view.imgSpin = Spinner.create(.commandBar, Math.Rectangle{0, 0, iconSize, iconSize})
-        .view.imgSpin.hide()
+        let iconSize     = themeRowIconSize(.themeMetrics())
+        with let spinner = Spinner.create(.header, Math.Rectangle{0, 0, iconSize, iconSize})
+        {
+            .dockStyle = .Right
+            .maxSize.y = iconSize
+            .hide()
+        }
+
+        .view.imgSpin = spinner
     }
 
     // Names the page after the folder it shows: the library, its recycle bin, or a browsed folder.

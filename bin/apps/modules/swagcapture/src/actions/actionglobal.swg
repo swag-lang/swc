@@ -60,18 +60,17 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            main.showWindow()
             if main.libraryMode do
                 main.swapLibraryMode()
+            main.showWindow()
 
         case .ShowHub:
             main.showHub()
 
         case .ShowLibrary:
-            let wasEditor = main.workspace == .Editor
-            main.showWindow()
-            if wasEditor or not main.libraryMode do
+            if main.workspace == .Editor or not main.libraryMode do
                 main.swapLibraryMode()
+            main.showWindow()
 
         case .Exit:
             main.closeResidentNotice()
@@ -124,23 +123,27 @@ impl MainWnd
         let outgoing = .libraryMode ? .editArea : cast(*Wnd, .libWnd)
         let incoming = .libraryMode ? cast(*Wnd, .libWnd) : .editArea
 
-        // Slide the incoming page without fading it: opacity would record the whole
-        // editor or library into an off-screen layer on every animation frame.
         incoming.show()
         outgoing.hide()
         .surface?.clearFocus()
         outgoing.resetPresentation()
-        let travel = Math.Point{0, .themeMetrics().motion_PageOffset}
-        incoming.setPresentationOffset(travel)
-        var options: AnimationOptions
-        options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
-        options.easing   = .EaseOut
-        discard .app().animator.animatePoint(incoming,
-                                             AnimationChannel.from("Capture.Page.Offset"),
-                                             travel,
-                                             {},
-                                             func(wnd, value) { wnd.setPresentationOffset(value) },
-                                             options)
+
+        // A newly shown window presents its destination on the first frame. Within a visible
+        // window, slide without fading to avoid recording the whole page on every frame.
+        if let surface = .surface where not surface.isHidden and not surface.isMinimized
+        {
+            let travel = Math.Point{0, .themeMetrics().motion_PageOffset}
+            incoming.setPresentationOffset(travel)
+            var options: AnimationOptions
+            options.duration = Time.Duration.fromSeconds(.themeMetrics().motion_PageSeconds)
+            options.easing   = .EaseOut
+            discard .app().animator.animatePoint(incoming,
+                                                 AnimationChannel.from("Capture.Page.Offset"),
+                                                 travel,
+                                                 {},
+                                                 func(wnd, value) { wnd.setPresentationOffset(value) },
+                                                 options)
+        }
 
         .applyLayout()
         if .libraryMode do

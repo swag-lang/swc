@@ -63,11 +63,9 @@ const ListRefreshDelay = 200
 // again the pixel it comes back, which is what a scroll does continuously.
 const TextureKeepBand = 0.5
 
-// How many retained thumbnails one paint is allowed to decode. A capture's preview is a PNG of
-// about 140 KB and costs a couple of milliseconds to unpack, and a scroll brings a whole row —
-// nine cells at the small preview size — into view on the same frame. Unpacking them all there
-// drops that frame; the cells left over are decoded by the frames that follow, which the paint
-// asks for while any remain.
+// How many retained thumbnails one paint is allowed to decode. A scroll brings a whole row
+// into view on the same frame. The cells left over are decoded by the frames that follow,
+// which the paint asks for while any remain.
 const MaxPreviewDecodesPerPaint = 3
 
 // Whether a library entry is a capture document or a plain image.
@@ -363,6 +361,7 @@ impl IWnd for LibraryView
         elif itemLoaded and (not capture or capture.previewBytes.isEmpty()) do
             content.icon = .mainWnd.icon(.Archive, 32)
         var options: FileTile.Options
+        options.fit          = .Contain
         options.hovered      = index == .hotItem
         options.selected     = .selModel.isSelected(cast(u32, index))
         options.nameTick     = .nameTick
@@ -373,7 +372,10 @@ impl IWnd for LibraryView
 
         let {w, h}  = .getPreviewSize()
         let rect    = Math.Rectangle{it.rect.x, it.rect.y, w, h}
+        let sampling = painter.interpolationMode()
+        painter.setInterpolationMode(.Linear)
         let animate = FileTile.paint(me, painter, rect, &content, options)
+        painter.setInterpolationMode(sampling)
         if capture
         {
             let infos = RecentInfos{linkedUpToDate: capture.linkedUpToDate, linked: capture.linkedImage, showLinked: .libWnd.showLinkOverlay, duration: capture.keptDuration()}
@@ -934,8 +936,7 @@ impl LibraryView
                 width  = image.width
                 height = image.height
                 haar   = ImageStatistics.quickExtractHaarFeatures(image, 32)
-                if image.width > 512 or image.height > 512 do
-                    image.resize(image.width >= image.height ? 512 : 0, image.height > image.width ? 512 : 0, .Bicubic)
+                resizeLibraryPreview(&image)
             }
 
             .mutexLoaded.lock()

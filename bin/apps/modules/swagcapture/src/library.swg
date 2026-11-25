@@ -129,14 +129,8 @@ impl Library
                 continue
             }
 
-            let scale = Math.min(1.0,
-                                 Math.min(PreviewWidth / capture.width,
-                                          PreviewHeight / capture.height))
             capture.preview = capture.backImg
-            if scale < 1 do
-                capture.preview.resize(Math.max(1, cast(s32, capture.width * scale)),
-                                       Math.max(1, cast(s32, capture.height * scale)),
-                                       .Bilinear)
+            resizeLibraryPreview(&capture.preview)
             catch capture.saveRecoveredDocument()
             {
                 Memory.delete(capture)

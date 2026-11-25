@@ -875,8 +875,9 @@ the screen to its work.
 
 - The strip of recent captures, shown on demand at the foot of the editor, offers its three
   sizes in words above the pictures, and its key, `Ctrl Shift H`, in the View menu. Each capture
-  is a file tile without a caption, as in the library: the picture fills its cell, the pointer
-  draws a hairline round it, and the capture being edited is ringed in Arc outside its picture.
+  is a file tile without a caption. Like the library, it fits the whole picture inside the cell
+  at its original aspect ratio. The pointer draws a hairline around the cell, and Arc rings the
+  capture being edited.
   A capture linked to an image file carries a link chip inside its picture's corner, soft while
   the image matches and in the caution tone once the capture changed since.
 

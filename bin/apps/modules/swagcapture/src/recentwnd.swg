@@ -184,9 +184,8 @@ impl RecentView
     // Paints one capture of the recent strip in the cell `rect`.
     //
     // It is a file tile without a caption, as the library and the lens draw their captures: the
-    // picture fills the cell around its centre, so a row of pictures of several shapes keeps one
-    // rhythm; a strong hairline marks it under the pointer, and the capture being edited is ringed
-    // in Arc outside its picture, which stays intact.
+    // cell shows the whole picture. A strong hairline marks it under the pointer, and the capture
+    // being edited is ringed in Arc outside its cell.
     func paintRecent(parent: *Wnd, painter: *Painter, texture: Texture, rect: Math.Rectangle, infos: RecentInfos)
     {
         var content: Gui.FileTile.Content
@@ -196,11 +195,14 @@ impl RecentView
             content.badge = appStrings().ui_Loading
 
         var options: Gui.FileTile.Options
-        options.fit         = .Cover
+        options.fit         = .Contain
         options.hovered     = infos.hot or infos.loading
         options.selected    = infos.selected
         options.showCaption = false
+        let sampling = painter.interpolationMode()
+        painter.setInterpolationMode(.Linear)
         Gui.FileTile.paint(parent, painter, rect, &content, options)
+        painter.setInterpolationMode(sampling)
 
         paintLinkBadge(parent, painter, rect, infos, parent.themeMetrics().corner_Chip)
         paintDurationBadge(parent, painter, rect, infos, parent.themeMetrics().corner_Chip)
@@ -676,9 +678,7 @@ impl RecentWnd
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
-        let metrics     = parent.themeMetrics()
-        let barRoom     = metrics.scrollBar_HitSize + metrics.scrollBar_EdgeInset
-        with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2 + barRoom})
+        with let recent = Wnd.create'RecentWnd(parent)
         {
             .backgroundStyle = .Panel
             .main = main

@@ -1,13 +1,28 @@
+// Keep one bounded preview per capture, including for the largest grid tiles on HiDPI.
+private const PreviewWidth  = 768.0
+private const PreviewHeight = 576.0
+
+private func previewScale(width, height: s32)->f32 => Math.min(1.0, PreviewWidth / width, PreviewHeight / height)
+
+// Prepares a standalone image or a recovered video frame without needing an editor or renderer.
+func resizeLibraryPreview(image: *Image)
+{
+    let scale = previewScale(image.width, image.height)
+    if scale < 1 do
+        image.resize(Math.max(1, cast(s32, image.width * scale)),
+                     Math.max(1, cast(s32, image.height * scale)),
+                     .CatmullRom)
+}
+
 impl Capture
 {
     mtd computePreview()
     {
         if not .editView do
             return
-        let zoom = Math.min(PreviewWidth / .width, PreviewHeight / .height)
+
         .previewBytes.clear()
-        .preview = .toImage(zoom)
-        .preview.applyKernel(.GaussianBlur3x3Light)
+        .preview = .toImage(previewScale(.width, .height))
         .changed = true
     }
 
@@ -33,8 +48,10 @@ impl Capture
         render.begin(surface.renderingContext())
         painter.begin()
 
+        let width  = Math.max(1, cast(s32, rect.width))
+        let height = Math.max(1, cast(s32, rect.height))
         var layer: Layer
-        layer.begin(&painter, {width: cast(s32, rect.width), height: cast(s32, rect.height), paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
+        layer.begin(&painter, {width: width, height: height, paintAlpha: false, clearColor: Color.fromArgb(Argb.White)})
 
         .paintBackImage(&painter, 0, 0, zoom)
         with painter
@@ -79,7 +96,7 @@ impl Capture
         let rt     = unwrap layer.contentTarget
         var buffer = render.readTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
-        result.crop(0, 0, cast(s32, rect.width), cast(s32, rect.height))
+        result.crop(0, 0, width, height)
         render.releaseRenderTarget(rt)
 
         return result

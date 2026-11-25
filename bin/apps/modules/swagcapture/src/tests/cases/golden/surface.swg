@@ -850,10 +850,10 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         with let it = testAddLibraryItem(lib.view, Format.toString("capture%.scc", i), 1000, cast(u16, 20 + i), title: LibraryGoldenTitles[i])
         {
             .capture!.width = 1280
-            .capture.height = 800
+            .capture.height = i == 0 ? 256 : 800
             .capture.rating = cast(u8, i % 3)
             .capture.tags.add(i % 2 == 0 ? "gui" : "scope")
-            var preview = Image.create(64, 40, .BGRA8)
+            var preview = Image.create(64, .capture.height / 20, .BGRA8)
             preview.fill(i % 2 == 0 ? Argb.White : Argb.DarkGray)
             .texture = host.app.renderer.addImage(preview)
         }
@@ -1159,12 +1159,21 @@ const LibraryGoldenTitles = ["Side panel", "Error bubble", "Swag lexer", "Dark e
         g_Main = null
     }
 
-    let sizes: [5] Math.Point = [{320, 200}, {200, 200}, {400, 160}, {160, 240}, {320, 180}]
+    let sizes: [5] Math.Point = [{320, 200}, {200, 200}, {956, 189}, {160, 240}, {320, 180}]
     let inks:  [5] u32        = [0xFF3A6EA5, 0xFFE8E6E1, 0xFF2A2C33, 0xFFB0532B, 0xFF4F7A4A]
     for size, i in sizes
     {
         var preview = Image.create(cast(s32, size.x), cast(s32, size.y), .BGRA8)
         preview.fill(Color.fromArgb(inks[i]))
+        if i == 2
+        {
+            // Keep a visible landmark at each end of the panoramic capture.
+            preview.visitPixels()
+            {
+                if x < 100 or x >= 856 do
+                    cast(*u32, pix)[] = x < 100 ? 0xFF3A6EA5 : 0xFFB0532B
+            }
+        }
 
         // Untyped: a short String declared with its type from a call reads zeroed (compiler.core.094).
         var file = Format.toString("recent%", i)

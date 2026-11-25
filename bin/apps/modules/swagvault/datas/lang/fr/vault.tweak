@@ -13,7 +13,6 @@ ui_ResidentHelp        Fermer la fenêtre laisse Swag Vault actif dans la zone d
 ui_SessionStartup      Démarrer avec la session
 ui_SessionStartupHelp  Démarrer derrière l'icône de la zone de notification. Nécessite le mode résident.
 ui_ResidentReminder    Ne plus afficher ce rappel
-ui_ResidentDrive       Lecteur %
 msg_ResidentTitle      Swag Vault reste actif.
 msg_ResidentText       Les lecteurs montés restent accessibles. Double-cliquez sur l'icône de la zone de notification pour ouvrir Swag Vault, ou faites un clic droit pour accéder aux commandes.
 msg_ResidentTip        Swag Vault — % lecteurs montés
@@ -50,11 +49,9 @@ ui_Unlock              Déverrouiller
 ui_DriveFree           % libres sur %
 ui_SectionMounted      Montés
 ui_SectionLocked       Verrouillés
-ui_HomeTitle           Aucun coffre pour l'instant
-ui_HomeTitlePrivacy    Aucun coffre ouvert
+ui_HomeTitle           Aucun coffre ouvert
 ui_HomeWelcome         Un coffre est un fichier chiffré qui s'ouvre comme un lecteur.
 ui_HomeKeeps           Ce qu'on y range n'est lisible que tant qu'il est monté.
-ui_HomePrivacy         Le mode vie privée ne garde aucune liste : ouvrez un coffre depuis son fichier.
 ui_HomeDrop            ou déposez un fichier de coffre sur la fenêtre
 ui_DropTitle           Déposez un coffre pour l'ouvrir
 ui_Mount               Monter

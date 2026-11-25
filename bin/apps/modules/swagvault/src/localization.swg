@@ -66,13 +66,11 @@ struct AppStrings
     ui_HintOpenFile:   string = "open a file"
 
     // The home: the window without a vault and the hint for opening one by dropping a file.
-    ui_HomeTitle:        string = "No vault yet"
-    ui_HomeTitlePrivacy: string = "No vault open"
-    ui_HomeWelcome:      string = "A vault is an encrypted file that opens as a drive."
-    ui_HomeKeeps:        string = "What you keep in it can be read only while it is mounted."
-    ui_HomePrivacy:      string = "Privacy mode keeps no list: open a vault from its file."
-    ui_HomeDrop:         string = "or drop a vault file on the window"
-    ui_DropTitle:        string = "Drop a vault to open it"
+    ui_HomeTitle:   string = "No vault open"
+    ui_HomeWelcome: string = "A vault is an encrypted file that opens as a drive."
+    ui_HomeKeeps:   string = "What you keep in it can be read only while it is mounted."
+    ui_HomeDrop:    string = "or drop a vault file on the window"
+    ui_DropTitle:   string = "Drop a vault to open it"
 
     // The families the lens groups the commands under.
     lens_File:              string = "File"
@@ -90,7 +88,6 @@ struct AppStrings
     ui_SessionStartup:      string = "Start With the Session"
     ui_SessionStartupHelp:  string = "Start behind the notification-area icon. Requires resident mode."
     ui_ResidentReminder:    string = "Do not show this reminder again"
-    ui_ResidentDrive:       string = "Drive %"
     msg_ResidentTitle:      string = "Swag Vault is still running."
     msg_ResidentText:       string = "Mounted drives remain accessible. Double-click the notification-area icon to open Swag Vault, or right-click for its commands."
     msg_ResidentTip:        string = "Swag Vault — % mounted drives"

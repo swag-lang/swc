@@ -9,29 +9,24 @@ impl MainWindow
         .refreshVaults()
     }
 
-    // Removes every persisted or pending path while retaining appearance and
-    // automatic-unmount preferences. The vaults that are mounted, or being unlocked, stay on
-    // the list for as long as that lasts.
-    mtd clearPrivateState()
+    // Clears startup mount requests and their marks on the mounted drives.
+    mtd clearStartupMounts()
     {
-        .fileDlgState = {}
         .startupVaults.clear()
         .startupQueue.clear()
+        .startupWaiting.clear()
+        .stopTimer(&.startupTimer)
         for &one in .mountedDrives.drives do
             one.atStartup = false
-        .pruneVaults()
-        .refreshVaults()
     }
 
-    // Applies the privacy switch: turning it on forgets the remembered containers and drives,
-    // turning it off lets the list and the startup drives be remembered.
+    // Applies the privacy switch and saves the resulting settings.
     mtd readPrivacyControl()
     {
         .privacyMode = .privacyModeControl.isChecked()
         .publishMountPrivacy()
         if .privacyMode do
-            .clearPrivateState()
-        .refreshHint()
+            .clearStartupMounts()
         .refreshVaults()
         catch g_App.saveState()
     }

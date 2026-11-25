@@ -268,10 +268,11 @@ impl MainWindow
             checked  = .protectHiddenOnMount
 
         case VaultCommands.AtStartup:
-            name   = texts.ui_MountAtStartup
-            icon   = .Update
-            hidden = drive == null or .privacyMode
-            toggle = true
+            name     = texts.ui_MountAtStartup
+            icon     = .Update
+            hidden   = drive == null
+            disabled = .privacyMode
+            toggle   = true
             if drive do
                 checked = drive.atStartup
 
@@ -302,7 +303,7 @@ impl MainWindow
         case VaultCommands.Forget:
             name     = texts.ui_Forget
             icon     = .WndClose
-            hidden   = not locked or .privacyMode
+            hidden   = not locked
             disabled = not ready
 
         case VaultCommands.Stop:

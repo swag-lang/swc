@@ -11,8 +11,6 @@ using Core, Gui, Pixel
     let window = testSetupMainWindow(&host)
     fillPictureList(window)
 
-    // Keep this rendering fixture independent of the host-specific privacy label policy.
-    window.privacyMode = false
     host.theme.setDark()
     host.notify(.ThemeChanged)
     let panel = unwrap ResidentMenu.open(window)

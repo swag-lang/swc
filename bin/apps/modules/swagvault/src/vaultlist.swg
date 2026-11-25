@@ -117,11 +117,8 @@ impl IWnd for NoticeLine
 // then the locked ones. The chosen locked vault unfolds into the card that unlocks it, laid over its
 // row: the card opens its height while the rows below follow it, and the others recede.
 //
-// Without a vault — the first visit, and every visit while privacy mode keeps no list — the page is
-// the home of the application: its mark, large and faint, gives the page its centre; a short title
-// and two lines say what a vault is, and where the vaults went when privacy mode keeps none; the
-// two ways stand under them, a new vault as the one primary action of the screen. Under a hairline,
-// a faint foot names what protects a container and recalls that one can be dropped on the window.
+// An empty list shows the home of the application. The mark, a short title and two lines
+// introduce vaults. The ways to create or open one follow, with a hint for dropping a file.
 struct VaultList
 {
     using wnd: Wnd
@@ -272,11 +269,9 @@ impl VaultList
             row.show(row.path != chosen)
         }
 
-        // The home says what a vault is; with privacy mode on, it also says why the list is empty.
-        let texts   = appStrings()
-        let privacy = .window.privacyMode
-        .heading.setText(privacy ? texts.ui_HomeTitlePrivacy : texts.ui_HomeTitle)
-        .welcome.setText(Format.toString("%\n%", texts.ui_HomeWelcome, privacy ? texts.ui_HomePrivacy : texts.ui_HomeKeeps))
+        let texts = appStrings()
+        .heading.setText(texts.ui_HomeTitle)
+        .welcome.setText(Format.toString("%\n%", texts.ui_HomeWelcome, texts.ui_HomeKeeps))
 
         .card.header.setPath(chosen)
         .card.header.refresh()

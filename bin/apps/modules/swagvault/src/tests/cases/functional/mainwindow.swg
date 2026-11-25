@@ -269,33 +269,44 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.appearanceButton.appearanceTheme == .System and host.theme.colors.ground == ThemeColors.encrePalette().ground)
 }
 
-// Privacy is the default: no vault path reaches the state, and the list keeps only what is
-// mounted or being unlocked.
+// Private state leaves session vaults and the browse folder in memory when privacy is enabled.
 #test
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-
-    Swag.require(window.privacyMode)
+    Swag.require(window.privacyMode and window.privacyModeControl.isChecked())
     Swag.require(not window.protectHiddenOnMount)
-    Swag.require(window.privacyModeControl.isChecked())
 
-    window.openVault("C:\\private\\unlisted")
-    Swag.require(window.vaults.count == 1 and window.chosenPath == "C:\\private\\unlisted")
-    window.startupVaults.add(StartupVault{"C:\\private\\startup", "mount-x", true, false})
-    window.fileDlgState.currentFolder = "C:\\private\\browse-private"
-    var state = saveMainWindowState(window)
-    Swag.require(not containsStateBytes(state.toSlice(), "unlisted"))
-    Swag.require(not containsStateBytes(state.toSlice(), "startup"))
-    Swag.require(not containsStateBytes(state.toSlice(), "browse-private"))
-
-    // Folded, a locked vault leaves the list at once.
+    const VaultPath    = "C:\\private\\unlisted"
+    const BrowseFolder = "C:\\private\\browse-private"
+    window.openVault(VaultPath)
     window.foldVault()
-    Swag.require(window.vaults.isEmpty())
-    Swag.require(window.list.rows.isEmpty())
+    Swag.require(window.chosenPath.isEmpty())
+    Swag.require(window.vaults.count == 1 and window.list.rowOf(VaultPath)!.isLocallyVisible())
 
-    window.clearPrivateState()
-    Swag.require(window.startupVaults.isEmpty())
+    window.privacyModeControl.toggle()
+    Swag.require(not window.privacyMode)
+    window.startupVaults.add(StartupVault{"C:\\private\\startup", "mount-x", true, false})
+    window.fileDlgState.currentFolder = BrowseFolder
+    let persistent = saveMainWindowState(window)
+    Swag.require(containsStateBytes(persistent.toSlice(), "unlisted"))
+    Swag.require(containsStateBytes(persistent.toSlice(), "browse-private"))
+
+    window.privacyModeControl.toggle()
+    Swag.require(window.privacyMode and window.startupVaults.isEmpty())
+    Swag.require(window.vaults.count == 1 and window.list.rowOf(VaultPath)!.isLocallyVisible())
+    Swag.require(window.fileDlgState.currentFolder == BrowseFolder)
+    let saved = saveMainWindowState(window)
+    Swag.require(not containsStateBytes(saved.toSlice(), "unlisted"))
+    Swag.require(not containsStateBytes(saved.toSlice(), "startup"))
+    Swag.require(not containsStateBytes(saved.toSlice(), "browse-private"))
+
+    host.shutdown()
+    var restoredHost: Testing.HeadlessHost
+    let restored = testSetupMainWindow(&restoredHost)
+    loadMainWindowState(restored, saved.toSlice())
+    Swag.require(restored.privacyMode and restored.vaults.isEmpty() and restored.list.rows.isEmpty())
+    Swag.require(restored.fileDlgState.currentFolder.isEmpty() and restored.startupVaults.isEmpty())
 }
 
 // About is a lens entry, and reaches the standard application box.
@@ -624,8 +635,8 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(window.mountedDrives.drives[0].path == "C:\\open")
     Swag.require(window.statusMessage == .AutoUnmounted)
 
-    // With privacy mode on, the closed vault leaves the list with its drive.
-    Swag.require(window.vaults.count == 1 and window.list.rows.count == 1)
+    Swag.require(window.vaults.count == 2 and window.list.rows.count == 2)
+    Swag.require(not window.isMounted("C:\\protected") and window.list.rowOf("C:\\protected")!.isLocallyVisible())
 
     window.autoUnmount.onSessionLock = false
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0})
@@ -1168,14 +1179,13 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         host.notify(.LanguageChanged)
         window.applyLayout()
 
-        // Privacy mode is the default, so the home says why the list is empty.
         let texts = appStrings()
         Swag.require(list.rows.isEmpty())
         Swag.require(not list.title.isLocallyVisible() and
                      list.heading.isLocallyVisible() and
                      list.welcome.isLocallyVisible())
-        Swag.require(list.heading.text() == texts.ui_HomeTitlePrivacy)
-        let welcome = Format.toString("%\n%", texts.ui_HomeWelcome, texts.ui_HomePrivacy)
+        Swag.require(list.heading.text() == texts.ui_HomeTitle)
+        let welcome = Format.toString("%\n%", texts.ui_HomeWelcome, texts.ui_HomeKeeps)
         Swag.require(list.welcome.text() == welcome.toString())
         Swag.require(list.newVault.form == .Strong and list.openFile.form == .Normal)
 
@@ -1203,10 +1213,9 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
         Swag.require(window.hintLine.contentWidth() <= window.clientRect().width - 2 * PageGutter)
     }
 
-    // With privacy mode off, the home says what a vault keeps.
-    window.privacyMode = false
-    window.applyPrivacyControl()
-    window.refreshVaults()
+    // The empty window uses the same wording in either mode.
+    window.privacyModeControl.toggle()
+    Swag.require(not window.privacyMode)
     Swag.require(list.heading.text() == appStrings().ui_HomeTitle)
     let welcome = Format.toString("%\n%", appStrings().ui_HomeWelcome, appStrings().ui_HomeKeeps)
     Swag.require(list.welcome.text() == welcome.toString())
@@ -1325,6 +1334,12 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     discard window.runCommand(VaultCommands.AtStartup)
     Swag.require(window.startupVaults.isEmpty())
 
+    window.privacyModeControl.toggle()
+    let startup = window.sendComputeCommandStateEvent(VaultCommands.AtStartup)
+    Swag.require(not startup.hidden and startup.disabled)
+    discard window.runCommand(VaultCommands.AtStartup)
+    Swag.require(window.startupVaults.isEmpty())
+
     // Forgetting a vault takes its mark with it.
     window.mountedDrives.drives.clear()
     window.startupVaults.add(StartupVault{"C:\\one", "mount-x", true, false})
@@ -1388,6 +1403,71 @@ func assertColumnFits(window: *MainWindow, page: *Wnd, column: *Wnd)
     Swag.require(host.autoHandled)
     Swag.require(window.automaticMountTimer == null)
     Swag.require(Path.equals(window.fileDlgState.currentFolder, Path.directoryName(path) orelse ""))
+}
+
+// Two file selections before the mount timer fires still leave both vaults available.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    let first  = createProtectedVaultFixture()
+    defer discard catch File.delete(first)
+    let second = createProtectedVaultFixture()
+    defer discard catch File.delete(second)
+
+    for path in [first.toString(), second.toString()]
+    {
+        host.acceptModalFileDialog(path)
+        window.openVaultFile()
+        Swag.require(host.autoHandled and window.chosenPath.isEmpty())
+    }
+
+    finishAutomaticMountRequest(&host, window)
+    Swag.require(window.privacyMode and window.vaults.count == 2)
+    Swag.require(window.chosenLockedPath() == second)
+    Swag.require(window.list.rowOf(first)!.isLocallyVisible())
+}
+
+// An unsuccessful mount leaves the first vault available after another file is opened.
+#test
+{
+    var host: Testing.HeadlessHost
+    let window = testSetupMainWindow(&host)
+    let first  = createProtectedVaultFixture()
+    defer discard catch File.delete(first)
+    let second = createProtectedVaultFixture()
+    defer discard catch File.delete(second)
+
+    host.acceptModalFileDialog(first)
+    window.openVaultFile()
+    Swag.require(host.autoHandled)
+    finishAutomaticMountRequest(&host, window)
+    Swag.require(window.chosenLockedPath() == first)
+
+    // The wrong password fails before the filesystem driver starts.
+    window.preferPortableWinFsp = true
+    host.sendRune(.X, 'x')
+    Swag.require(not window.mountPassword.isEmpty())
+    host.clickModalButtonWhenShown(Dialog.BtnOk)
+    window.mountContainer()
+    Swag.require(window.operation.kind == .Mount)
+    window.finishOperation()
+    Swag.require(host.autoHandled and window.statusMessage == .MountStopped)
+    Swag.require(window.list.notice.detail.text() == appStrings().msg_ErrPasswordOrDamaged)
+
+    host.acceptModalFileDialog(second)
+    window.openVaultFile()
+    Swag.require(host.autoHandled)
+    finishAutomaticMountRequest(&host, window)
+    Swag.require(window.chosenLockedPath() == second and window.vaults.count == 2)
+    Swag.require(window.list.rowOf(first)!.isLocallyVisible())
+
+    window.chooseVault(first)
+    Swag.require(window.chosenLockedPath() == first and window.mountPassword.isEmpty())
+    let forget = window.sendComputeCommandStateEvent(VaultCommands.Forget)
+    Swag.require(not forget.hidden and not forget.disabled)
+    discard window.runCommand(VaultCommands.Forget)
+    Swag.require(window.vaults.count == 1 and window.list.rowOf(second)!.isLocallyVisible())
 }
 
 // The key-file field can add an existing key file, generate a cryptographically random one, and
@@ -1540,7 +1620,8 @@ func finishAutomaticMountRequest(host: *Testing.HeadlessHost, window: *MainWindo
     window.foldVault()
     Swag.require(host.dropFilesOnWnd(window, ["c:/vaults/a", "c:/vaults/b"]) == DropEffect.None)
     Swag.require(not window.dropHighlight.isLocallyVisible())
-    Swag.require(window.chosenPath.isEmpty() and window.vaults.isEmpty())
+    Swag.require(window.chosenPath.isEmpty() and window.vaults.count == 1)
+    Swag.require(window.list.rowOf(path)!.isLocallyVisible())
     Swag.require(host.dropFilesOnWnd(window, [path.toString()], allowed: .Move) == DropEffect.None)
     Swag.require(window.automaticMountTimer == null)
 }

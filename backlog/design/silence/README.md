@@ -907,12 +907,11 @@ the screen to its work.
   ground and names what choosing it does, "Unlock". Choosing it unfolds it in place (password,
   drive, key files link, read-only, primary "Mount"). The unfolded header offers an edit glyph
   for the password, stored key files and capacity.
-- Without a vault — the first visit, and every start while privacy mode keeps no list — the page
-  is the home: the mark, large and faint, gives the page its centre; a title (22, bold) says that no
-  vault is there or open, and two soft lines say what a vault is, then what it keeps or that
-  privacy mode keeps no list. Under them "New Vault" is the one primary action of the screen, with
-  "Open a File…" beside it as a secondary button. Under a hairline, a faint hint says that a
-  vault file can be dropped on the window. About describes the algorithms that protect the vault.
+- An empty vault list shows the home. The mark, large and faint, gives the page its centre.
+  A title (22, bold) says that no vault is open, and two soft lines introduce vaults. Under them
+  "New Vault" is the primary action, with "Open a File…" beside it as a secondary button.
+  Under a hairline, a faint hint invites the user to drop a vault file on the window. About
+  describes the algorithms that protect the vault.
   The hint line teaches `Ctrl N` and `Ctrl O` before `Ctrl Space`.
 - Create, progress and options are pages with a back link, not tabs: a calm form with the
   capacity in large type; the randomisation progress as a huge percentage over an Arc line;
@@ -922,7 +921,9 @@ the screen to its work.
   Reducing the window keeps the ordinary taskbar behavior. Activating the icon restores the
   window; its detached menu offers the window, Open a File, mounted destinations with Open,
   Unmount and Force Unmount, Unmount All, Options, and Unmount and Quit. These actions share the
-  lens commands. The menu and notifications disclose no container path in privacy mode.
+  lens commands. The menu identifies drives by their mount destinations.
+- The list keeps recent vaults during the session, and each can be removed individually. Privacy mode
+  skips saving the vault list, file picker history and startup mounts to disk.
 - An ordinary unmount retains an occupied drive and reports that it remains accessible. Force
   Unmount is a separate warning with Cancel as the default; it invalidates open handles and can
   lose pending application writes. Automatic policies use ordinary unmounts and retain a visible

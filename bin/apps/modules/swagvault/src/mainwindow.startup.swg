@@ -2,6 +2,10 @@ impl MainWindow
 {
     mtd queueAutomaticMount(path: string)
     {
+        // Keep an earlier file in the session list when a newer one takes the pending mount.
+        if not .pendingMountPath.isEmpty() and .pendingMountPath != path do
+            .addVault(.pendingMountPath)
+
         .pendingMountPath = path
         if not .automaticMountTimer do
             .automaticMountTimer = .addTimer(40'ms)

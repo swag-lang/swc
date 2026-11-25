@@ -65,14 +65,7 @@ impl ResidentMenu
         {
             result.paths.add(drive.path)
             let ready = window.operation.kind == .None and not window.resident.batch
-            var label = String.from(drive.mountLabel)
-            #static if #os != Swag.TargetOs.Windows
-            {
-                if window.privacyMode do
-                    label = Format.toString(texts.ui_ResidentDrive, index + 1)
-            }
-
-            menu.addLabel(label)
+            menu.addLabel(drive.mountLabel)
             menu.addItem(texts.cmd_OpenDrive, Format.toString("vault.resident.open.%", index), result.theme().icon(.OpenExternal, iconSize))
             menu.addItem(texts.ui_Unmount, Format.toString("vault.resident.unmount.%", index), result.theme().icon(.Minus, iconSize), disabled: not ready)
             menu.addItem(texts.cmd_ForceUnmount, Format.toString("vault.resident.force.%", index), result.theme().icon(.Warning, iconSize), disabled: not ready)

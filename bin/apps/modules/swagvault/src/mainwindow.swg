@@ -266,8 +266,7 @@ struct MainWindow
     page:        WindowPage
     layoutReady: bool
 
-    // The vaults the list shows, mounted or locked, newest first. With privacy mode on, the list
-    // keeps only the vaults that are mounted or being unlocked, and none of it reaches the disk.
+    // Recently opened vaults, mounted or locked, newest first. Privacy mode keeps this list in memory.
     vaults:     Array'KnownVault
     chosenPath: String     // Container of the vault the list has chosen, or empty.
 
@@ -722,25 +721,16 @@ impl MainWindow
         return null
     }
 
-    // Puts the container at `path` on the list, newest first, and keeps a remembered list to its
-    // length.
-    //
-    // With privacy mode on, nothing is pruned here: the vault is being opened or mounted, and the
-    // list lets it go once it is neither.
+    // Adds the container at `path` to the list, newest first.
     mtd addVault(path: string)
     {
         if .findVault(path) do
             return
         .vaults.insertAt(0, KnownVault{path: path})
-        if not .privacyMode do
-            .pruneVaults()
+        .pruneVaults()
     }
 
-    // Keeps the list to what it may hold.
-    //
-    // With privacy mode on, a vault stays only while it is mounted or being unlocked: nothing of a
-    // locked vault outlives the moment it was asked for. Otherwise the oldest locked vaults go
-    // first once the list is longer than it keeps.
+    // Keeps the mounted and selected vaults, and the most recent locked vaults.
     mtd pruneVaults()
     {
         var locked = 0'u64
@@ -756,7 +746,7 @@ impl MainWindow
             }
 
             locked += 1
-            if .privacyMode or locked > RememberedVaults
+            if locked > RememberedVaults
             {
                 .vaults.removeAtOrdered(index)
                 continue
@@ -998,7 +988,7 @@ impl MainWindow
         catch g_App.loadState()
         if .privacyMode
         {
-            .clearPrivateState()
+            .clearStartupMounts()
             catch g_App.saveState()
         }
 
@@ -1225,7 +1215,7 @@ impl IWnd for MainWindow
         if evt.serializer.isReading()
         {
             if .privacyMode do
-                .clearPrivateState()
+                .clearStartupMounts()
             .applyPrivacyControl()
             .applyAutoUnmountControls()
             .resident.applySettings()

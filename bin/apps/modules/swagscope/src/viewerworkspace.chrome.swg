@@ -32,8 +32,9 @@ impl SceneTabs
     mtd layoutTabs()
     {
         let caption = unwrap .surface?.wnd
-        let room    = caption.captionContentRect()
-        .show(.workspace.scenes.count >= 2 and room.height > 0 and room.width > 0)
+        let margin  = .themeMetrics().floating_Inset
+        let room    = Math.Rectangle{margin, caption.stripInset(), Math.max(caption.clientRect().width - 2 * margin, 0), .workspace.tabStripHeight()}
+        .show(room.height > 0 and room.width > 0)
         if not .isLocallyVisible()
         {
             .stopTimer(&.slideTimer)
@@ -74,7 +75,7 @@ impl SceneTabs
         }
 
         let active = .items[selected]
-        let next   = Math.Rectangle{active.x, room.height - 12, active.width, 2}
+        let next   = Math.Rectangle{active.x, room.height - 3, active.width, 2}
         if .underline != next
         {
             .previous     = .underline.width > 0 ? .displayedUnderline() : next
@@ -223,7 +224,7 @@ impl ViewerWorkspace
 
     mtd cellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        let top   = .stripInset()
+        let top   = .gridBody().y
         let body  = .clientRect()
         if .comparisonVisible()
         {
@@ -287,9 +288,9 @@ impl ViewerWorkspace
     private mtd paintCellFocus(painter: *Painter, rect: Math.Rectangle)
     {
         let metrics = .themeMetrics()
-        var pen = Pen.createSolid(.themeColors().arc, metrics.fileTile_RingWidth)
-        pen.borderPos = .Inside
-        painter.drawRoundRect(rect, metrics.corner_Control, metrics.corner_Control, pen)
+        let band    = Math.min(ViewTitleHeight, rect.height)
+        let height  = Math.min(metrics.control_DialogHeight * 0.5, band)
+        painter.fillRect(rect.x + metrics.floating_Inset, rect.y + (band - height) * 0.5, 2, height, .themeColors().arc)
     }
 
     // The seams belong to the ground between cells, including vacant ones. The shared
@@ -299,8 +300,8 @@ impl ViewerWorkspace
         let grid = scene.dimensions()
         let cols = cast(u64, grid.x)
         let rows = cast(u64, grid.y)
-        let body = .clientRect()
-        let top = .stripInset()
+        let body = .gridBody()
+        let top  = body.y
         let ink = .themeColors().line
         for col in 1 until cols
         {
@@ -353,8 +354,13 @@ impl ViewerWorkspace
             let compare = unwrap .comparison
             if compare.hasSeparateSides() do
                 .paintCellFocus(painter, .cellRect(scene, scene.active))
-            elif not compare.isPicture() or compare.mode != .Flip do
-                .paintCellFocus(painter, compare.captionArea(scene.active))
+            elif not compare.isPicture() or compare.mode != .Flip
+            {
+                var caption = compare.captionArea(scene.active)
+                caption.x += compare.position.x
+                caption.y += compare.position.y
+                .paintCellFocus(painter, caption)
+            }
         }
 
         .paintDropHighlight(painter, scene)
@@ -728,8 +734,12 @@ impl ViewerWorkspace
 
         let shortcut = document.keyShortcut(evt.modifiers, evt.key) orelse ""
         let swap     = Slice.findLinear(SceneCommands.SwapDirections, shortcut) != Swag.U64.Max
-        if source is EditBox or .focusedWindow() is EditBox do
+        if source is EditBox or .focusedWindow() is EditBox
+        {
+            if document.searchComparison and document.searchBox.hasFocus() and .routeComparisonKey(evt, source) do
+                return true
             return shortcut == SceneCommands.Maximize or swap
+        }
         if .vacancy and evt.modifiers == .None and evt.key == .Return
         {
             .vacancy.chooseFile()

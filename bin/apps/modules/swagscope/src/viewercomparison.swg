@@ -143,7 +143,7 @@ impl SceneComparison
             return
         }
 
-        var area = .workspace.clientRect()
+        var area = .workspace.sceneArea()
         if .kind == .Media
         {
             // Leave the players' own mini-bars below the comparison and its readings.
@@ -153,11 +153,14 @@ impl SceneComparison
                 let document = unwrap view.document
                 let bar      = document.viewerBar.surfaceRect()
                 let top      = .workspace.surfaceToLocal({bar.x, bar.y}).y
-                area.height = Math.min(area.height, Math.max(0, top - .themeMetrics().miniBar_Distance))
+                area.height = Math.min(area.height, Math.max(0, top - area.y - .themeMetrics().miniBar_Distance))
             }
         }
 
         .setPosition(area, computeLayout: false)
+        let activeDocument = .workspace.activeDocument()
+        if activeDocument.searchBar.parent == me do
+            activeDocument.layoutSearchBar()
         .modeButton.show(.isPicture())
         .zoomButton.show(.isPicture())
         if .isPicture()
@@ -188,6 +191,61 @@ impl SceneComparison
     }
 
     mtd hasSeparateSides()->bool => .isPicture() ? .mode == .SideBySide : not .options.unified
+    mtd hasLineNumbers()->bool => .kind == .Text or .kind == .Structured
+
+    mtd collectMatches(query: string, options: Viewer.SearchOptions, matches: *Array'Viewer.SearchMatch)
+    {
+        if .operation.started do
+            return
+        var matcher = catch Viewer.createNameMatcher(query, options) { return; }
+        let side = .workspace.scene()!.active
+        let lines = side == 0 ? .text.left.toSlice() : .text.right.toSlice()
+        for row, index in .text.rows
+        {
+            let line = side == 0 ? row.left : row.right
+            if line < lines.count do
+                Viewer.collectTextMatches(lines[line].text, &matcher, index, side, 0, matches)
+        }
+    }
+
+    mtd describeLine(results: *Lens.Results)
+    {
+        if results.prefix != .Line or .operation.started do
+            return
+        let number = catch StrConv.toU64(Latin1.trim(results.query.toString())) { return; }
+        let right = .workspace.scene()!.active == 1
+        let count = right ? .text.right.count : .text.left.count
+        if not number or number > count do
+            return
+        for row, index in .text.rows where (right ? row.right : row.left) == number - 1
+        {
+            let section = results.addSection(appStrings().lens_InFile)
+            with let entry = section.addEntry(Format.toString(appStrings().lens_GoToLine, number))
+            {
+                .lead = Format.toString("%", number)
+                .run  = func|comparison = me, index|() { comparison.revealLineRow(index) }
+            }
+
+            return
+        }
+    }
+
+    mtd revealLineRow(row: u64)
+    {
+        if row >= .text.rows.count do
+            return
+        .firstRow = row
+        .invalidate()
+    }
+
+    private mtd textBodyTop()->f32
+    {
+        let top = .captionArea(0).bottom()
+        let searchBar = .workspace.activeDocument().searchBar
+        if searchBar.parent == me and searchBar.isLocallyVisible() do
+            return Math.max(top, searchBar.position.bottom() + .themeMetrics().floating_Inset * 0.5)
+        return top
+    }
 
     mtd captionArea(side: u64)->Math.Rectangle
     {
@@ -253,7 +311,7 @@ impl SceneComparison
 
         let mono   = .theme().createDefaultFontFs(.themeMetrics().defaultFixedFontSize)
         let inset  = .themeMetrics().floating_Inset
-        let top    = area.y + ViewerWorkspace.ViewTitleHeight
+        let top    = .textBodyTop()
         let bottom = area.bottom() - FooterHeight
         let band   = Math.Rectangle{area.horzCenter() - DifferenceBand / 2, top, DifferenceBand, Math.max(bottom - top, 0)}
         let left   = Math.Rectangle{area.x, top, band.x - area.x, band.height}
@@ -290,6 +348,7 @@ impl SceneComparison
     private mtd paintUnified(painter: *Painter, area: Math.Rectangle, font: *Font, visible: u64)
     {
         painter.pushClippingRect(area)
+        let showRight = .workspace.scene()!.active == 1
         var position = area.y
         for row in .firstRow until Math.min(.firstRow + visible, .text.rows.count)
         {
@@ -302,7 +361,8 @@ impl SceneComparison
 
             if item.right != Swag.U32.Max
             {
-                .paintRowAt(painter, {area.x, position, area.width, RowHeight}, font, row, true, hatch: false)
+                let right = item.changed or showRight
+                .paintRowAt(painter, {area.x, position, area.width, RowHeight}, font, row, right, hatch: false)
                 position += RowHeight
             }
 
@@ -359,6 +419,20 @@ impl SceneComparison
             let before        = Painter.measureString(lineText[until span.start], font).width
             let width         = Painter.measureString(lineText[span.start until span.end], font).width
             painter.fillRect(x + before, area.y + 3, width, area.height - 6, ink.withAlphaF32(0.30))
+        }
+
+        let document = .workspace.activeDocument()
+        let matchIndex = document.searchIndex
+        if document.searchComparison == me and matchIndex < document.searchMatches.count
+        {
+            let match = document.searchMatches[matchIndex]
+            if match.major == index and (match.minor == 1) == right and
+               Viewer.isByteRangeInBounds(lineText.count, match.offset, match.length)
+            {
+                let start = Painter.measureString(lineText[until match.offset], font).width
+                let width = Painter.measureString(lineText[match.offset until match.offset + match.length], font).width
+                painter.fillRect(x + start, area.y + 3, width, area.height - 6, colors.highlight)
+            }
         }
 
         painter.drawString(x, y, lineText, font, colors.text)
@@ -419,6 +493,14 @@ impl IWnd for SceneComparison
         .error          = #move .operation.error
         .firstRow       = Math.min(.firstRow, .text.rows.isEmpty() ? 0 : .text.rows.count - 1)
         .selectedChange = Math.min(.selectedChange, .text.changes.isEmpty() ? 0 : .text.changes.count - 1)
+        let document = .workspace.activeDocument()
+        if document.lineComparison() == me
+        {
+            if document.searchComparison == me do
+                document.restartSearch()
+            if document.lens.isOpen() do
+                document.lens.refresh()
+        }
         .invalidate()
     }
 
@@ -455,7 +537,7 @@ impl IWnd for SceneComparison
             .invalidate()
 
         case .Pressed where evt.button == .Left:
-            let y      = .stripInset() + ViewerWorkspace.ViewTitleHeight
+            let y      = .textBodyTop()
             let height = Math.max(body.height - FooterHeight - y, 1)
             if not .options.unified and
                Math.abs(point.x - body.horzCenter()) <= DifferenceBand / 2 and
@@ -543,12 +625,20 @@ impl ViewerWorkspace
     {
         let scene = .scene()
         let wasVisible = .comparisonVisible()
+        let hadLines = wasVisible and .comparison!.hasLineNumbers()
         defer
         {
-            if scene and wasVisible != .comparisonVisible()
+            if scene
             {
-                for view in scene.views where view.document do
-                    view.document.layoutFileInfo()
+                let visible  = .comparisonVisible()
+                let hasLines = visible and .comparison!.hasLineNumbers()
+                for view in scene.views where view.document
+                {
+                    if wasVisible != visible do
+                        view.document.layoutFileInfo()
+                    if hadLines != hasLines and (view.document.searchShown or view.document.searchComparison) do
+                        view.document.updateSearchAvailability()
+                }
             }
         }
         if not scene or not scene.compared or scene.views.count != 2 or scene.maximized

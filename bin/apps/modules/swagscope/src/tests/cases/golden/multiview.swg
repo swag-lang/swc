@@ -39,6 +39,29 @@ using Core, Gui, Pixel, Audio
     assertScopeImageGolden(&image, "scene.text.paper")
 }
 
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openDocument(scopeTestDataPath("viewer.srt"))
+    openViews(&host, workspace)
+    let files = [scopeTestDataPath("comprehensive.txt"), scopeTestDataPath("sample.cpp")]
+    workspace.openScene(files, .SideBySide, compare: true)
+    openViews(&host, workspace)
+    let comparison = unwrap workspace.comparison
+    comparison.operation.task.wait()
+    host.pump()
+    workspace.selectView(1)
+    host.keyPress(.F, .Control)
+    let document = workspace.activeDocument()
+    document.searchBox.setText("value")
+    Swag.require(document.searchMatches.count > 0)
+    let image = host.renderSettled(&host.surfaceWnd)
+    assertScopeImageGolden(&image, "scene.tabs.find.encre")
+}
+
 // A selected empty cell teaches its two local open commands and leaves the other readers in place.
 #[Swag.TestTag("golden")]
 #test

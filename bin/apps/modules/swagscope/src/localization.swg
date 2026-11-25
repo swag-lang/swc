@@ -332,6 +332,7 @@ struct AppStrings
     lens_Folder:              string = "Folder"                     // Lens section of the commands of the explored folder.
     lens_InFolder:            string = "In This Folder"             // Lens section listing the files beside the open one.
     lens_InFile:              string = "In This File"               // Lens section listing the lines of the open file that hold the query.
+    cmd_GoToLine:             string = "Go to Line…"
     lens_GoToLine:            string = "Go to Line %"               // Lens row going to the line typed after a colon.
     lens_GoToLineColumn:      string = "Go to Line %, Column %"     // Lens row going to the line and column typed as `:line:column`.
     lens_GoToPage:            string = "Go to Page %"               // Lens row going to the page typed after a colon.

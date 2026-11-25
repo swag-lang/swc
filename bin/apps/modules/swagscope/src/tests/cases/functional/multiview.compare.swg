@@ -63,6 +63,58 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
 
 #test
 {
+    let first  = Testing.tempFilePath("scope-diff-search-left-", ".txt")
+    let second = Testing.tempFilePath("scope-diff-search-right-", ".txt")
+    defer catch File.delete(first)
+    defer catch File.delete(second)
+    discard expect File.writeAllText(first, "heading\nleft only\nend\n")
+    discard expect File.writeAllText(second, "heading\nneedle first\nneedle second\nend\n")
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([first, second], .SideBySide, compare: true)
+    openViews(&host, workspace)
+    let comparison = unwrap workspace.comparison
+    finishComparison(&host, comparison)
+    workspace.selectView(1)
+    let document = workspace.activeDocument()
+
+    host.keyPress(.F, .Control)
+    Swag.require(document.searchShown and document.searchBar.parent == comparison and document.searchBox.hasFocus())
+    document.searchBox.setText("needle")
+    Swag.require(document.searchMatches.count == 2 and document.searchIndex == 0)
+    Swag.require(comparison.firstRow == document.searchMatches[0].major)
+    host.keyPress(.F3)
+    Swag.require(document.searchIndex == 1 and comparison.firstRow == document.searchMatches[1].major)
+    host.keyPress(.F3, .Shift)
+    Swag.require(document.searchIndex == 0)
+
+    host.keyPress(.G, .Control)
+    Swag.require(document.lens.isOpen())
+    document.lens.setQuery(":4")
+    host.finishAnimations()
+    let line = unwrap document.lens.results.sections[0]
+    line.entries[0].run!()
+    document.lens.close()
+    Swag.require(comparison.text.rows[comparison.firstRow].right == 3)
+    document.hideSearch()
+    Swag.require(document.searchBar.parent == document)
+
+    workspace.selectView(0)
+    let left = workspace.activeDocument()
+    Swag.require(left.runCommand(ComparisonCommands.Unified))
+    host.keyPress(.G, .Control)
+    Swag.require(left.lens.isOpen())
+    left.lens.setQuery(":3")
+    host.finishAnimations()
+    host.keyPress(.Return)
+    let row = comparison.text.rows[comparison.firstRow]
+    Swag.require(not left.lens.isOpen() and row.left == 2 and row.right == 3)
+}
+
+#test
+{
     let first  = Testing.tempFilePath("scope-diff-hex-left-", ".bin")
     let second = Testing.tempFilePath("scope-diff-hex-right-", ".bin")
     defer catch File.delete(first)

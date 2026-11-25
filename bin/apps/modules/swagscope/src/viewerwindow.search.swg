@@ -10,6 +10,15 @@ impl ViewerWindow
         .navigateSearch(-1)
     }
 
+    mtd lineComparison()->*SceneComparison?
+    {
+        let workspace = .workspace
+        let compare = workspace?.comparison
+        if workspace and compare and compare.isLocallyVisible() and compare.hasLineNumbers() and workspace.activeDocument() == me do
+            return compare
+        return null
+    }
+
     private mtd searchOptions()->Viewer.SearchOptions =>
     {
         matchCase: .searchMatchCaseOption,
@@ -32,7 +41,7 @@ impl ViewerWindow
     {
         let texts     = appStrings()
         let menu      = MenuCtrl.createPopup(me, owner: me)
-        let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
+        let canFilter = not .lineComparison() and .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
         if canFilter
         {
             menu.addRadioItem(texts.ui_SearchMode, ViewerCommands.SearchMode, checked: not .searchFilterMode)
@@ -52,7 +61,7 @@ impl ViewerWindow
     {
         if not (edit.text()).count do
             return .Valid
-        if .activeChoiceIndex < .instances.count
+        if not .lineComparison() and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
             if instance.view and instance.prepareSearch
@@ -88,7 +97,7 @@ impl ViewerWindow
         .searchNavigation.show()
         var presentation: Viewer.SearchPresentation
         presentation.placeholder = appStrings().ui_Search
-        if .activeChoiceIndex < .instances.count
+        if not .lineComparison() and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]
             if instance.view and instance.describeSearch do
@@ -155,6 +164,21 @@ impl ViewerWindow
             else do
                 .explorer.filter.setText(.searchBox.text())
             .refreshSearchReadout()
+            return
+        }
+
+        if let comparison = .lineComparison()
+        {
+            .forgetSearch()
+            .searchComparison   = comparison
+            .searchQuery        = .searchBox.text()
+            .searchSelectLast   = selectLast
+            .searchKeepPosition = keepPosition
+            .searchError.clear()
+            if not .searchQuery.isEmpty() and .searchBox.isValid() do
+                comparison.collectMatches(.searchQuery, .searchOptions(), &.searchMatches)
+            .finishSearch()
+            comparison.invalidate()
             return
         }
 
@@ -441,7 +465,20 @@ impl ViewerWindow
     // the keyboard in the search box when the reveal started there.
     private mtd revealCurrentSearchMatch()
     {
-        if .searchIndex >= .searchMatches.count or .activeChoiceIndex >= .instances.count do
+        if .searchIndex >= .searchMatches.count do
+            return
+        if let comparison = .searchComparison
+        {
+            if comparison == .lineComparison()
+            {
+                comparison.revealLineRow(.searchMatches[.searchIndex].major)
+                .refreshSearchReadout()
+            }
+
+            return
+        }
+
+        if .activeChoiceIndex >= .instances.count do
             return
         let instance = &.instances[.activeChoiceIndex]
         if not instance.revealMatch or not instance.view do
@@ -544,6 +581,8 @@ impl ViewerWindow
 
         .searchShown = true
         .searchBar.show()
+        if .searchComparison != .lineComparison() do
+            .updateSearchAvailability()
         .updateDocumentInsets()
         .documentHost.applyLayout()
         .layoutFloatingParts()
@@ -614,7 +653,7 @@ impl ViewerWindow
     mtd updateSearchAvailability()
     {
         let active         = .activeChoiceIndex < .instances.count
-        let available      = .isExploring() or (active and .instances[.activeChoiceIndex].revealMatch != null)
+        let available      = .isExploring() or .lineComparison() != null or (active and .instances[.activeChoiceIndex].revealMatch != null)
         let focused        = .focusedWindow()
         let searchHadFocus = focused and (focused == .searchGroup or .searchGroup.isOwnerOf(focused))
 
@@ -644,6 +683,12 @@ impl ViewerWindow
 
         .searchStream.close()
         .searchCarry.clear()
+        if clearPresentation
+        {
+            .searchComparison?.invalidate()
+            .searchComparison = null
+        }
+
         if clearPresentation and .activeChoiceIndex < .instances.count
         {
             let instance = &.instances[.activeChoiceIndex]

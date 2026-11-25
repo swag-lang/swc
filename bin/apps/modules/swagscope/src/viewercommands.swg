@@ -25,6 +25,7 @@ namespace ViewerCommands
     const SameKind          = "scope.sameKind"
     const ClearHistory      = "scope.clearHistory"
     const Find              = "scope.find"
+    const GoToLine          = "scope.goToLine"
     const FindNext          = "scope.findNext"
     const FindPrevious      = "scope.findPrevious"
     const SearchMode        = "scope.search.mode.search"
@@ -178,7 +179,7 @@ impl ViewerWindow
             .addCommands(func()->string => appStrings().lens_View, ViewerCommands.Boards)
             .addCommands(func()->string => appStrings().explore_ThumbnailFraming, ViewerCommands.ThumbnailCrops)
             .addCommands(func()->string => appStrings().lens_Artwork, ViewerCommands.Artwork)
-            .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
+            .addCommands(func()->string => appStrings().lens_Find, [ViewerCommands.GoToLine, ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.SearchMode,
                                                                     ViewerCommands.FilterMode, ViewerCommands.MatchCase, ViewerCommands.WholeWord, ViewerCommands.RegularExpression])
             .addCommand(func()->string => appStrings().lens_View, ViewerCommands.FullScreen, func()->string => appStrings().search_FullScreen)
             .addCommands(func()->string => appStrings().lens_View,
@@ -200,6 +201,7 @@ impl ViewerWindow
         .registerKeyShortcut(.Control, .E, ViewerCommands.Explore)
         .registerKeyShortcut(.None, .F5, ViewerCommands.Reload)
         .registerKeyShortcut(.Control, .F, ViewerCommands.Find)
+        .registerKeyShortcut(.Control, .G, ViewerCommands.GoToLine)
         .registerKeyShortcut(.None, .F3, ViewerCommands.FindNext)
         .registerKeyShortcut(.Shift, .F3, ViewerCommands.FindPrevious)
         .registerKeyShortcut(.None, .F11, ViewerCommands.FullScreen)
@@ -374,6 +376,11 @@ impl ViewerWindow
     {
         if not .acceptsViewCommands() do
             return
+        if let comparison = .lineComparison()
+        {
+            comparison.describeLine(results)
+            return
+        }
         if .isExploring() or .currentFile.isEmpty() do
             return
         if .activeChoiceIndex >= .instances.count or .activeChoiceIndex >= .choices.count do
@@ -706,8 +713,9 @@ impl ViewerWindow
         let texts     = appStrings()
         let hasFile   = not .currentFile.isEmpty()
         let exploring = .isExploring()
-        let search    = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].revealMatch != null
-        let canFilter = .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
+        let compare   = .lineComparison() != null
+        let search    = compare or (.activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].revealMatch != null)
+        let canFilter = not compare and .activeChoiceIndex < .instances.count and .instances[.activeChoiceIndex].filterSearch != null
 
         var name:     string = ""
         var owned:    String     // Keeps a name the command composes alive until it is read.
@@ -818,6 +826,11 @@ impl ViewerWindow
             name   = exploring ? texts.cmd_FilterFiles : texts.cmd_Find
             icon   = .commandGlyph(.Search)
             hidden = not search and not exploring
+
+        case ViewerCommands.GoToLine:
+            name   = texts.cmd_GoToLine
+            icon   = .commandGlyph(.GoTo)
+            hidden = not .canGoToLine()
 
         case ViewerCommands.FindNext:
             name     = texts.cmd_FindNext
@@ -1176,6 +1189,15 @@ impl ViewerWindow
     // Returns `icon` at the size of a glyph leading a row of the lens or a menu.
     private mtd commandGlyph(icon: ThemeIcons)->Icon => .theme().icon(icon, .themeMetrics().menuPopup_IconSize)
 
+    mtd canGoToLine()->bool
+    {
+        if .lineComparison() do
+            return true
+        if .isExploring() or not .currentView or .activeChoiceIndex >= .choices.count do
+            return false
+        return Slice.contains(["text", "code", "markdown", "table", "subtitle", "xlsx", "ods"], .choices[.activeChoiceIndex].key.toString())
+    }
+
     // Runs a window command. A path supplied by a context menu takes precedence over the selection.
     mtd runCommand(id: WndId, contextPath: string? = null)->bool
     {
@@ -1272,6 +1294,11 @@ impl ViewerWindow
 
         case ViewerCommands.Find:
             .showSearch()
+
+        case ViewerCommands.GoToLine:
+            if not .canGoToLine() do
+                return false
+            .lens.open(":")
 
         case ViewerCommands.FindNext:
             .findNext()

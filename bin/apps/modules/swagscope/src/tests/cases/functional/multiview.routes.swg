@@ -145,12 +145,14 @@ using Core, Gui, Audio
     Swag.require(workspace.vacantCell == 8 and scene.views.count == 2)
     let image = host.renderSettled(&host.surfaceWnd)
     let cell  = workspace.vacancy.surfaceRect()
-    let probes: [4] Math.Point = [{cell.x + 1, cell.vertCenter()}, {cell.right() - 1, cell.vertCenter()},
-                  {cell.horzCenter(), cell.y + 1}, {cell.horzCenter(), cell.bottom() - 1}]
-    for point in probes do
-        Swag.require(image.pixelColor(cast(s32, point.x), cast(s32, point.y)) == workspace.themeColors().arc)
+    let metrics = workspace.themeMetrics()
+    let mark = Math.Point{metrics.floating_Inset + 1, ViewerWorkspace.ViewTitleHeight * 0.5}
+    let arc = workspace.themeColors().arc
+    Swag.require(image.pixelColor(cast(s32, cell.x + mark.x), cast(s32, cell.y + mark.y)) == arc)
+    Swag.require(image.pixelColor(cast(s32, cell.x + 1), cast(s32, cell.vertCenter())) != arc)
+    Swag.require(image.pixelColor(cast(s32, cell.horzCenter()), cast(s32, cell.bottom() - 1)) != arc)
     let previous = original.surfaceRect()
-    Swag.require(image.pixelColor(cast(s32, previous.x + 1), cast(s32, previous.vertCenter())) != workspace.themeColors().arc)
+    Swag.require(image.pixelColor(cast(s32, previous.x + mark.x), cast(s32, previous.y + mark.y)) != arc)
     let seam = Math.Point{previous.right(), previous.bottom()}
     let line = workspace.themeColors().line
     Swag.require(image.pixelColor(cast(s32, seam.x), cast(s32, previous.y + 10)) == line)

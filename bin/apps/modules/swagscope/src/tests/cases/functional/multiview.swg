@@ -60,9 +60,13 @@ using Core, Gui, Pixel, Audio
     openViews(&host, workspace)
     Swag.require(workspace.scenes.count == 2 and workspace.tabs.isLocallyVisible())
     Swag.require(workspace.scenes[0]!.views[1].document == null)
+    let tabStrip = workspace.tabs.surfaceRect()
+    Swag.require(tabStrip.y >= host.surfaceWnd.stripInset())
     workspace.selectScene(0)
     openViews(&host, workspace)
     host.fireTimer(workspace.activeDocument().fileWatchTimer)
+    Swag.require(workspace.tabs.surfaceRect() == tabStrip)
+    Swag.require(workspace.activeDocument().surfaceRect().y >= tabStrip.bottom())
     let resumed = assume cast(*Viewers.PlainText.Panel, workspace.activeDocument().currentView)
     Swag.require(resumed.zoomPercent == 145)
 

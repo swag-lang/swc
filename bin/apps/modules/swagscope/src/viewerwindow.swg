@@ -222,7 +222,8 @@ struct ViewerWindow
     lensLineStarts:  Array'u64     // Offset in `lensBytes` of the start of each line.
     viewerBarTimer:  *Timer?
     pointerPosition: Math.Point
-    searchShown:     bool
+    searchShown:      bool
+    searchComparison: *SceneComparison?
     smokeDirectory:  String
     smokeSpecIndex:  u64
     smokeWaitSteps:  u32
@@ -1173,18 +1174,26 @@ impl ViewerWindow
             return
         }
 
+        let comparison = .searchShown ? .lineComparison() : null
+        let parent     = comparison ? cast(*Wnd, comparison) : cast(*Wnd, me)
+        if .searchBar.parent != parent
+        {
+            .searchBar.setParent(parent)
+            .searchBar.owner = parent == me ? null : me
+        }
+
         .searchGroup.setParent(.searchBar)
         .searchCloseButton.show()
 
         let metrics = .themeMetrics()
         let inset   = metrics.floating_Inset
         let height  = themeActionButtonSize(metrics)
-        var area    = .documentArea()
+        var area      = comparison ? comparison.captionArea(.workspace!.scene()!.active) : sheetArea
         let pad       = .searchBar.padding
         let fullWidth = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
         let compact   = fullWidth - pad.x - pad.z < 400 and .searchNavigation.isLocallyVisible()
         var sheetBelowSearch = false
-        if .infoSheet.isLocallyVisible()
+        if not comparison and .infoSheet.isLocallyVisible()
         {
             let beside = Math.max(Math.min(area.right(), .infoSheet.position.x - inset) - area.x, 0)
             sheetBelowSearch = beside < 320
@@ -1194,7 +1203,7 @@ impl ViewerWindow
 
         let width         = Math.min(720'f32, Math.max(area.width - 2 * inset, 0))
         let innerWidth    = Math.max(width - pad.x - pad.z, 0)
-        let top           = strip + inset * 0.5
+        let top           = (comparison ? area.bottom() : strip) + inset * 0.5
         let rowY          = compact ? height + SearchGroupSpacing : 0
         let contentHeight = height + rowY
         let totalHeight   = contentHeight + pad.y + pad.w

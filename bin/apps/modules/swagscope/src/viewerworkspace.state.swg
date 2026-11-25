@@ -272,10 +272,11 @@ impl ViewerWorkspace
         let rect   = .surfaceRect()
         let scale  = .deviceScale()
         let room   = surface.rt.colorBuffer
+        let inset  = .gridBody().y
         let x      = Math.clamp(cast(s32, rect.x * scale), 0, room.width - 1)
-        let y      = Math.clamp(cast(s32, (rect.y + .stripInset()) * scale), 0, room.height - 1)
+        let y      = Math.clamp(cast(s32, (rect.y + inset) * scale), 0, room.height - 1)
         let width  = Math.min(cast(s32, rect.width * scale), room.width - x)
-        let height = Math.min(cast(s32, (rect.height - .stripInset()) * scale), room.height - y)
+        let height = Math.min(cast(s32, (rect.height - inset) * scale), room.height - y)
         if width < 64 or height < 40 do
             return
 

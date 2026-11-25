@@ -729,6 +729,8 @@ impl ViewerWorkspace
         if .isHoveredDocument(document) do
             .hoveredDocument = null
         document.lens.close()
+        if document.searchBar.parent != document do
+            document.hideSearch()
         if document != .primary do
             document.lens.destroy()
         document.closeInformation()
@@ -802,7 +804,7 @@ impl ViewerWorkspace
     {
         if .mediaTransport == null do
             return
-        let area         = .clientRect()
+        let area         = .sceneArea()
         let scene        = .scene()
         if not .isTiled() do
             .focusOnGrid = false
@@ -868,10 +870,14 @@ impl ViewerWorkspace
     mtd viewRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
         => .gridCellRect(scene, index < scene.views.count ? scene.cellOf(index) : index)
 
+    mtd tabStripHeight()->f32 => .scenes.count >= 2 and .stripInset() > 0 ? .themeMetrics().control_DialogHeight : 0
+
+    mtd sceneArea()->Math.Rectangle => .tabStripHeight() > 0 ? .gridBody() : .clientRect()
+
     mtd gridBody()->Math.Rectangle
     {
         var body = .clientRect()
-        let strip = .stripInset()
+        let strip = .stripInset() + .tabStripHeight()
         body.y      += strip
         body.height = Math.max(body.height - strip, 0)
         return body
@@ -882,7 +888,7 @@ impl ViewerWorkspace
     mtd gridCellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
         if scene.cellCount() == 1 and scene.views.count <= 1 do
-            return .clientRect()
+            return .sceneArea()
 
         let body = .gridBody()
         if scene.maximized or scene.layout == .Single do

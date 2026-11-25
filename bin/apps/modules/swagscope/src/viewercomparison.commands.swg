@@ -200,8 +200,21 @@ impl ViewerWorkspace
         let comparison = .comparison
         if not comparison or
            not comparison.isLocallyVisible() or
-           source is EditBox or
            .activeDocument().lens.isOpen() do
+            return false
+
+        let document = .activeDocument()
+        if comparison.hasLineNumbers() and document.acceptsViewCommands()
+        {
+            let command = document.keyShortcut(evt.modifiers, evt.key) orelse ""
+            switch command
+            {
+            case ViewerCommands.Find, ViewerCommands.FindNext, ViewerCommands.FindPrevious, ViewerCommands.GoToLine:
+                return document.runCommand(command)
+            }
+        }
+
+        if source is EditBox do
             return false
         if evt.key == .F7 and (evt.modifiers == .None or evt.modifiers == .Shift)
         {

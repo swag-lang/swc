@@ -150,6 +150,18 @@ private struct FrameEntry
     isSync: bool     // Whether the frame starts a decode that depends on nothing before it.
 }
 
+// One on-disk record of the idx1 table. RIFF only aligns chunks to two bytes.
+#[Swag.Pack(1)]
+private struct IndexRecord
+{
+    id:     u32
+    flags:  u32
+    offset: u32
+    size:   u32
+}
+
+#assert(#sizeof(IndexRecord) == IndexEntrySize)
+
 // Index flag a frame carries when it depends on nothing before it.
 private const IndexKeyFrameFlag = 0x0000_0010'u32
 
@@ -710,29 +722,40 @@ private impl Decoder
         if layout.indexSize % IndexEntrySize do
             fail InvalidFormatError{"AVI index ends with a partial entry"}
 
-        var base = Swag.U64.Max
-        for entry in layout.indexSize / IndexEntrySize
+        let indexEnd   = layout.indexStart + layout.indexSize
+        let sourceSize = source.size()
+        var position   = layout.indexStart
+        var base       = Swag.U64.Max
+        while position < indexEnd
         {
-            try source.seek(layout.indexStart + entry * IndexEntrySize)
-            let id = try source.readLittleEndian'u32()
-            if id != dataId and id != compressedId
+            try source.seek(position)
+            let bytes   = try source.peek(IndexEntrySize)
+            let records = cast(const [*] IndexRecord, bytes.buffer)
+            let count   = Math.min(indexEnd - position, bytes.count) / IndexEntrySize
+            for index in count
             {
-                // Interleaved audio, and the lists an OpenDML file wraps its frames in, are
-                // indexed beside the pictures and say nothing about them.
-                continue
+                let record = records[index]
+                let id     = Math.littleEndianToNative(record.id)
+                position += IndexEntrySize
+                if id != dataId and id != compressedId do
+                    continue
+
+                let flags      = Math.littleEndianToNative(record.flags)
+                let offset     = cast(u64, Math.littleEndianToNative(record.offset))
+                let size       = cast(u64, Math.littleEndianToNative(record.size))
+                let needsProbe = base == Swag.U64.Max
+                if needsProbe do
+                    base = try probeIndexBase(source, layout, id, offset)
+
+                let start = base + offset + ChunkHeaderSize
+                if start > sourceSize or size > sourceSize - start do
+                    fail InvalidFormatError{"AVI index points past the end of the stream"}
+                .frames.add(FrameEntry{start, size, (flags & IndexKeyFrameFlag) != 0})
+
+                // The probe moves the cursor and can replace the borrowed window.
+                if needsProbe do
+                    break
             }
-
-            let flags  = try source.readLittleEndian'u32()
-            let offset = cast(u64, (try source.readLittleEndian'u32()))
-            let size   = cast(u64, (try source.readLittleEndian'u32()))
-            if base == Swag.U64.Max do
-                base = try probeIndexBase(source, layout, id, offset)
-
-            let start = base + offset + ChunkHeaderSize
-            if start > source.size() or size > source.size() - start do
-                fail InvalidFormatError{"AVI index points past the end of the stream"}
-
-            .frames.add(FrameEntry{start, size, (flags & IndexKeyFrameFlag) != 0})
         }
 
         if layout.stream.length and .frames.count != cast(u64, layout.stream.length) do

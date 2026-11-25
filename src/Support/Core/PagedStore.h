@@ -228,9 +228,7 @@ private:
         SWC_ASSERT(pageIndex < pages->size());
         Page* page = (*pages)[pageIndex];
         SWC_ASSERT(page != nullptr);
-        const uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
-        SWC_ASSERT(offset <= pageUsed);
-        SWC_ASSERT(offset + sizeof(T) <= pageUsed);
+        SWC_ASSERT(offset + sizeof(T) <= page->used.load(std::memory_order_relaxed));
         SWC_ASSERT(offset + sizeof(T) <= pageMask + 1);
 
         return reinterpret_cast<T*>(page->bytes() + offset);

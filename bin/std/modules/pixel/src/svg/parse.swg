@@ -5,6 +5,7 @@ using Core, Core.Math
 
 private const RasterSampleTileSide = 1024's32
 private const PaintBlockSize       = 64'u64
+private const PaintBinCount        = 128'u64
 
 // Controls resources that SVG parsing may resolve outside the document text.
 //
@@ -102,6 +103,7 @@ struct Drawing
     images:          Array'SvgImage                 // Raster placements referenced by the paint-order list.
     rasterImages:    Array'Image                    // Decoded bitmaps shared by their placements.
     items:           Array'DrawingItem              // Visible elements in paint order.
+    paintBins:       Array'PaintBin                 // Spatial buckets of paint item indices.
     paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
     gradientBrushes: Array'Brush                    // Resolved fill and stroke gradient brushes.
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
@@ -178,6 +180,12 @@ private impl PaintBlock
                upper.y + yMargin < visible.y or
                lower.y - yMargin > visible.bottom()
     }
+}
+
+private struct PaintBin
+{
+    bounds:  PaintBlock
+    indices: Array'u64
 }
 
 private enum TextAnchor
@@ -4117,6 +4125,7 @@ impl Drawing
 
         result.measureItems()
         result.measurePaintBlocks()
+        result.measurePaintBins()
         return result
     }
 
@@ -4202,6 +4211,88 @@ impl Drawing
             .paintBlocks.add(block)
             first = end
         }
+    }
+
+    // Bucket items by their centre along the wider axis when authored runs do not cull well.
+    private mtd measurePaintBins()
+    {
+        if .items.count < PaintBlockSize * 64 do
+            return
+
+        var minimum = Vector2.Max
+        var maximum = Vector2.Min
+        var spanX, spanY: f64
+        for &block in .paintBlocks
+        {
+            if not block.bounded do
+                return
+            minimum = Vector2.min(minimum, block.minimum)
+            maximum = Vector2.max(maximum, block.maximum)
+            spanX   += cast(f64, block.maximum.x) - block.minimum.x
+            spanY   += cast(f64, block.maximum.y) - block.minimum.y
+        }
+
+        let width  = cast(f64, maximum.x) - minimum.x
+        let height = cast(f64, maximum.y) - minimum.y
+        let useY   = height > width
+        let origin = cast(f64, useY ? minimum.y : minimum.x)
+        let extent = useY ? height : width
+        let span   = useY ? spanY : spanX
+        if extent <= 0 or span < extent * cast(f64, .paintBlocks.count) * 0.25 do
+            return
+
+        .paintBins.resize(PaintBinCount)
+        let density  = cast(f64, PaintBinCount) / extent
+        var occupied = 0
+        for &item, index in .items
+        {
+            let first  = Vector2{item.bounds.x, item.bounds.y}
+            let last   = Vector2{item.bounds.right(), item.bounds.bottom()}
+            let centre = useY ? (cast(f64, first.y) + last.y) * 0.5 : (cast(f64, first.x) + last.x) * 0.5
+            let bucket = cast(u64, Math.clamp((centre - origin) * density, 0.0'f64, cast(f64, PaintBinCount - 1)))
+            let bin    = &.paintBins[bucket]
+            let lower  = Vector2.min(first, last)
+            let upper  = Vector2.max(first, last)
+            if bin.indices.isEmpty()
+            {
+                bin.bounds = PaintBlock{minimum: lower, maximum: upper, bounded: true}
+                occupied   += 1
+            }
+            else
+            {
+                bin.bounds.minimum = Vector2.min(bin.bounds.minimum, lower)
+                bin.bounds.maximum = Vector2.max(bin.bounds.maximum, upper)
+            }
+
+            bin.indices.add(index)
+        }
+
+        if occupied <= 1 do
+            .paintBins.free()
+    }
+
+    // Collect the spatial candidates in authored order when only a small portion is visible.
+    private mtd const collectPaintCandidates(transform: Transform2, visible: Rectangle, candidates: *Array'u64)->bool
+    {
+        if .paintBins.isEmpty() do
+            return false
+
+        var selected: StaticArray'(u64, PaintBinCount)
+        var count = 0'u64
+        for &bin, index in .paintBins where bin.indices.count and not bin.bounds.misses(transform, visible)
+        {
+            count += bin.indices.count
+            if count > .items.count / 4 do
+                return false
+            selected.add(index)
+        }
+
+        candidates.reserve(count)
+        for index in selected do
+            candidates.add(.paintBins[index].indices.toSlice())
+        if selected.count > 1 do
+            candidates.sort()
+        return true
     }
 
     // Returns the rectangle a clip range can keep, which is the union of its shapes.
@@ -4551,11 +4642,14 @@ impl Drawing
         let visible = painter.clippingRect()
 
         let useBlocks = .paintBlocks.count and painter.hasClippingRect() and tr.m12 == 0 and tr.m21 == 0
-        for blockIndex in (useBlocks ? .paintBlocks.count : 1'u64)
+        var candidates: Array'u64
+        let useBins   = useBlocks and .collectPaintCandidates(tr, visible, &candidates)
+        let useRuns   = useBlocks and not useBins
+        for blockIndex in (useRuns ? .paintBlocks.count : 1'u64)
         {
             var first = 0'u64
-            var end   = .items.count
-            if useBlocks
+            var end   = useBins ? candidates.count : .items.count
+            if useRuns
             {
                 if .paintBlocks[blockIndex].misses(tr, visible) do
                     continue
@@ -4565,7 +4659,8 @@ impl Drawing
 
             for i in first until end
             {
-                let item = &.items[i]
+                let itemIndex = useBins ? candidates[i] : i
+                let item      = &.items[itemIndex]
                 if item.hasBounds
                 {
                     var painted = useBlocks ? transformAxisAlignedBounds(tr, item.bounds) : tr.transformBounds(item.bounds)

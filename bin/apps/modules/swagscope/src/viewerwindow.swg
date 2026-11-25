@@ -1078,7 +1078,7 @@ impl ViewerWindow
         let popup = .app().isInModalLoop() and
                     (.viewerBar.isOwnerOf(captured) or (.currentView?.isOwnerOf(captured) orelse false))
         let held    = hovering or keyboard or .viewerBar.isAncestorOf(captured) or
-                      .cellCaption.isAncestorOf(captured) or
+                      .readingLine.close == captured or
                       popup or .lens.isOpen()
         if held and .viewerBarShown and .isVisible()
         {

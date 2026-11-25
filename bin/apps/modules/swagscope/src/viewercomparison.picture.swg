@@ -197,11 +197,15 @@ impl SceneComparison
         let first  = probePixel(a, bounds[0], pointA)
         let second = probePixel(b, bounds[1], pointB)
         let font   = .theme().createDefaultFontFs(12)
-        painter.drawString(footer.x + .themeMetrics().floating_Inset,
+        let inset  = .themeMetrics().floating_Inset
+        let leftX  = footer.x + inset
+        painter.pushClippingRect({leftX, footer.y, Math.max(0, .modeButton.position.x - inset - leftX), footer.height})
+        painter.drawString(leftX,
                            font.opticalLineTop(footer.vertCenter()),
                            Format.toString("A % % % · B % % %", first.r, first.g, first.b, second.r, second.g, second.b),
                            font,
                            .themeColors().softText)
+        painter.popClippingRect()
     }
 
     private mtd pictureDifference(sources: [2] Texture)->Texture

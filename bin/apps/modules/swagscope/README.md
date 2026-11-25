@@ -122,9 +122,10 @@ the numbering follows the reader to the next file.
 Binary content directs the reader to the hexadecimal alternative instead of guessing an encoding.
 
 Subtle dividers separate grid cells below the title bar. A thin outline marks the cell receiving
-keyboard commands, including an empty cell. Each file has a name and close button in the cell's
-reading line. A folder uses its breadcrumb for the same purpose. Closing the penultimate file
-moves the remaining name and close button into the window title. With several scenes open, each
+keyboard commands, including an empty cell. The close button is at the far right of the reading
+line at the foot of the cell, including in Explorer and in comparisons. Files in the grid have
+their name in the reading line. Explorer shows its location in the breadcrumb. Closing the
+penultimate file moves the remaining name into the window title. With several scenes open, each
 scene has its own tab.
 
 ## Shipped viewers

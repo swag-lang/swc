@@ -1,11 +1,10 @@
 using Core, Pixel, Gui
 
-// A file and its close action share one hit-tested group in the title or the cell's reading line.
+// The name of the file in the window title or the cell's reading line.
 struct ViewerFileCaption
 {
     using wnd: Wnd
     late title: *Label
-    late close: *IconButton
 }
 
 impl ViewerFileCaption
@@ -22,21 +21,14 @@ impl ViewerFileCaption
             .style.setFont(parent.theme().createDefaultFont(metrics.wnd_TitleFontSize), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
-        with result.close = IconButton.create(result, parent.theme().icon(.WndClose, metrics.chevron_Size),
-                                             flags: .Overlay | .CenterContent)
-        {
-            .focusPolicy = .None
-            .setForm(.RoundedRectangle)
-        }
         return result
     }
 
-    mtd setFile(path, name, action, shortcut: string)
+    mtd setFile(path, name: string)
     {
         if .title.text() != name do
             .title.setText(name)
         .title.toolTip = path
-        .close.toolTip = shortcut.count ? Format.toString("% · % (%)", name, action, shortcut) : Format.toString("% · %", name, action)
     }
 
     mtd widthFor(room: f32)->f32
@@ -44,31 +36,54 @@ impl ViewerFileCaption
         let text = .title.text()
         let font = .title.font().regular orelse .theme().createDefaultFont(.themeMetrics().wnd_TitleFontSize)
         let width = Painter.measureStringSnapped(text, font, deviceScale: .deviceScale())
-        return Math.min(Math.max(room, 0), Math.ceil(width) + .themeMetrics().btnIcon_SpacingArrowH + ViewerWorkspace.ViewTitleHeight)
+        return Math.min(Math.max(room, 0), Math.ceil(width))
     }
 
     mtd place(x, centerY, width: f32)
     {
         let size = ViewerWorkspace.ViewTitleHeight
         .setPosition({Math.round(x), Math.round(centerY - size * 0.5), width, size}, computeLayout: false)
-        let edge = Math.max(0, width - size)
-        .title.setPosition({0, 0, Math.max(0, edge - .themeMetrics().btnIcon_SpacingArrowH), size}, computeLayout: false)
-        .close.setPosition({edge, 0, Math.min(width, size), size}, computeLayout: false)
+        .title.setPosition({0, 0, width, size}, computeLayout: false)
     }
+}
+
+func createViewCloseButton(parent: *Wnd)->*IconButton
+{
+    let icon = parent.theme().icon(.WndClose, parent.themeMetrics().chevron_Size)
+    with let button = IconButton.create(parent, icon, id: "scope.view.close", flags: .Overlay | .CenterContent)
+    {
+        .focusPolicy = .None
+        .setForm(.RoundedRectangle)
+        .hide()
+    }
+    return button
+}
+
+func placeViewCloseButton(button: *IconButton, lane: Math.Rectangle)
+{
+    let size  = ViewerWorkspace.ViewTitleHeight
+    let width = Math.min(lane.width, size)
+    button.setPosition({lane.right() - width, Math.round(lane.vertCenter() - size * 0.5), width, size}, computeLayout: false)
+}
+
+func viewCloseHint(name, action, shortcut: string)->String
+{
+    return shortcut.count ? Format.toString("% · % (%)", name, action, shortcut) : Format.toString("% · %", name, action)
 }
 
 // The faint line of readings at the foot of the document.
 //
 // What the window knows about the open file — its encoding, its lines, the selection a viewer
 // reports — reads from the left; what the viewer adds of its own, a zoom or a reading time, packs
-// against the right. It is text on the ground, not a bar: no fill and no rule, every word in the
-// faint ink. The viewer contributions are measured first, because they say exactly what they
-// need, and the details take what remains before they end in an ellipsis.
+// before the close action at the right edge. The viewer contributions are measured first,
+// because they say exactly what they need, and the details take what remains before they
+// end in an ellipsis.
 struct ViewerReadingLine
 {
     using wnd: Wnd
 
     late details: *Label
+    late close:   *IconButton
     caption: *ViewerFileCaption?
 }
 
@@ -76,7 +91,7 @@ impl IWnd for ViewerReadingLine
 {
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
-        if .details != null do
+        if .close != null do
             .computeLayout()
     }
 }
@@ -101,6 +116,7 @@ impl ViewerReadingLine
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
+        result.close = createViewCloseButton(result)
         return result
     }
 
@@ -108,7 +124,8 @@ impl ViewerReadingLine
     mtd contributions()->Array'(*Wnd)
     {
         var result: #returntype
-        for child in .children where child != cast(*Wnd, .details) and child != cast(*Wnd?, .caption) and child.isLocallyVisible() do
+        for child in .children where child != cast(*Wnd, .details) and child != cast(*Wnd, .close) and
+                                     child != cast(*Wnd?, .caption) and child.isLocallyVisible() do
             result.add(child)
         return result
     }
@@ -123,9 +140,14 @@ impl ViewerReadingLine
         let viewers = .contributions()
 
         let named = .caption and .caption.parent == me and .caption.isLocallyVisible()
-        let reserved = named ? .caption!.widthFor(Math.max(ViewerWorkspace.ViewTitleHeight, client.width * 0.45)) : 0.0
         let spacing = named and client.width < 8 * ViewerWorkspace.ViewTitleHeight ? GroupSpacing * 0.5 : GroupSpacing
         var right = client.right()
+        if .close.isLocallyVisible()
+        {
+            placeViewCloseButton(.close, client)
+            right = Math.max(client.x, .close.position.x - spacing)
+        }
+        let reserved = named ? .caption!.widthFor((right - client.x) * 0.45) : 0.0
         for i in reversed(viewers.count)
         {
             // The room a viewer reserved is its preferred size, never the width the last pass gave

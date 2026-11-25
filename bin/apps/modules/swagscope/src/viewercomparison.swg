@@ -40,6 +40,7 @@ struct SceneComparison
     diffFrames:      [2] u64
     diffAligned:     bool
     captions:        Array'(*ViewerFileCaption)
+    closeButtons:    Array'(*IconButton)
     vectors:         [2] ComparedDrawing
 }
 
@@ -60,9 +61,12 @@ impl SceneComparison
         result.zoomButton.sigPressed += func|comparison = result|(button) { comparison.showZoomMenu(button) }
         for side in 2
         {
-            let caption = ViewerFileCaption.create(result)
-            caption.close.sigPressed += func|workspace, side|(_) { workspace.closeView(side) }
-            result.captions.add(caption)
+            result.captions.add(ViewerFileCaption.create(result))
+            with let close = createViewCloseButton(result)
+            {
+                .sigPressed += func|workspace, side|(_) { workspace.closeView(side) }
+            }
+            result.closeButtons.add(close)
         }
         result.hide()
         return result
@@ -161,19 +165,11 @@ impl SceneComparison
         let activeDocument = .workspace.activeDocument()
         if activeDocument.searchBar.parent == me do
             activeDocument.layoutSearchBar()
-        .modeButton.show(.isPicture())
-        .zoomButton.show(.isPicture())
-        if .isPicture()
-        {
-            .modeButton.setQuietText(pictureModeTitle(.mode))
-            .zoomButton.setQuietText(Viewer.zoomText(cast(u32, Math.round(.pictureZoom(.workspace.scene()!.active) * 100))))
-            let inset = .themeMetrics().floating_Inset
-            .modeButton.setPosition({area.horzCenter() - 70, area.height - FooterHeight, 140, FooterHeight}, computeLayout: false)
-            .zoomButton.setPosition({area.right() - inset - 88, area.height - FooterHeight, 88, FooterHeight}, computeLayout: false)
-        }
-
-        if .isPicture() and .mode == .Flip do
+        let flip = .isPicture() and .mode == .Flip
+        if flip do
             .shownRight = .workspace.scene()!.active == 1
+        let inset = .themeMetrics().floating_Inset
+        let body  = .clientRect()
         for caption, side in .captions
         {
             let path: string = .paths[side]
@@ -182,10 +178,34 @@ impl SceneComparison
             let document = unwrap .workspace.scene()!.views[side].document
             let label = .kind == .Media ? .workspace.mediaCaption(document, name) : String.from(name)
             let shortcut = document.acceptsViewCommands() and document.isWorkspaceActive() ? document.keyShortcutName(ViewerCommands.Close) : String{}
-            caption.setFile(path, label, appStrings().scene_CloseView, shortcut)
-            let width = caption.widthFor(Math.max(0, room.width - 2 * .themeMetrics().floating_Inset))
+            caption.setFile(path, label)
+            let width = caption.widthFor(room.width - 2 * inset)
             caption.place(room.horzCenter() - width * 0.5, room.vertCenter(), width)
-            caption.show(not .isPicture() or .mode != .Flip or (side != 0) == .shownRight)
+            let shown = not flip or (side != 0) == .shownRight
+            caption.show(shown)
+
+            let close = .closeButtons[side]
+            placeViewCloseButton(close, {room.x + inset, body.bottom() - FooterHeight, Math.max(0, room.width - 2 * inset), FooterHeight})
+            close.toolTip = viewCloseHint(label, appStrings().scene_CloseView, shortcut)
+            close.show(shown)
+        }
+
+        .modeButton.show(.isPicture())
+        .zoomButton.show(.isPicture())
+        if .isPicture()
+        {
+            .modeButton.setQuietText(pictureModeTitle(.mode))
+            .zoomButton.setQuietText(Viewer.zoomText(cast(u32, Math.round(.pictureZoom(.workspace.scene()!.active) * 100))))
+            let y         = body.bottom() - FooterHeight
+            let zoomRight = .closeButtons[flip and not .shownRight ? 0 : 1].position.x - inset
+            let zoomWidth = Math.clamp(zoomRight - (body.horzCenter() + inset), 0, 88)
+            .zoomButton.setPosition({zoomRight - zoomWidth, y, zoomWidth, FooterHeight}, computeLayout: false)
+
+            let modeLeft  = body.x + inset
+            let modeRight = (flip ? .zoomButton.position.x : .closeButtons[0].position.x) - inset
+            let modeWidth = Math.clamp(modeRight - modeLeft, 0, 140)
+            let modeX     = Math.max(modeLeft, Math.min(body.horzCenter() - modeWidth * 0.5, modeRight - modeWidth))
+            .modeButton.setPosition({modeX, y, modeWidth, FooterHeight}, computeLayout: false)
         }
         .invalidate()
     }
@@ -336,12 +356,23 @@ impl SceneComparison
 
         let readout = .text.changes.isEmpty() ? String.from(app.scene_Identical) :
                       Format.toString(app.scene_ChangeCount, .selectedChange + 1, .text.changes.count)
-        painter.drawStringCenter(area.horzCenter(), bottom + FooterHeight / 2, readout, mono, colors.softText)
         let first = Format.toString(app.scene_LineCount, .text.left.count)
         let last  = Format.toString(app.scene_LineCount, .text.right.count)
         let y     = mono.opticalLineTop(bottom + FooterHeight / 2)
-        painter.drawString(inset, y, first, mono, colors.faintText)
-        painter.drawString(area.right() - inset - Painter.measureString(last, mono).width, y, last, mono, colors.faintText)
+        let leftX = area.x + inset
+        painter.pushClippingRect({leftX, bottom, Math.max(0, .closeButtons[0].position.x - inset - leftX), FooterHeight})
+        painter.drawString(leftX, y, first, mono, colors.faintText)
+        painter.popClippingRect()
+
+        let rightX = area.horzCenter() + inset
+        let endX   = .closeButtons[1].position.x - inset
+        let lastX  = Math.max(rightX, endX - Painter.measureString(last, mono).width)
+        painter.pushClippingRect({rightX, bottom, Math.max(0, lastX - inset - rightX), FooterHeight})
+        painter.drawString(rightX, y, readout, mono, colors.softText)
+        painter.popClippingRect()
+        painter.pushClippingRect({lastX, bottom, Math.max(0, endX - lastX), FooterHeight})
+        painter.drawString(lastX, y, last, mono, colors.faintText)
+        painter.popClippingRect()
     }
 
     private mtd paintUnified(painter: *Painter, area: Math.Rectangle, font: *Font, visible: u64)

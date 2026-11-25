@@ -565,11 +565,9 @@ impl Explorer
         var room = frame.captionRoomRect()
         room.x     += metrics.wnd_CaptionPathGap
         room.width = Math.max(room.width - metrics.wnd_CaptionPathGap, 0)
-        let hasClose = .window.hasSoloCaption() or (.window.workspace?.usesCellCaptions() orelse false)
-        let closeWidth = hasClose ? ViewerWorkspace.ViewTitleHeight : 0.0
         // Below this width the ancestor menu alone would consume the title strip.
         let inCaption = .window.stripInset() > 0 and (.window.workspace?.scenes.count orelse 0) < 2 and
-                        room.width >= closeWidth + ToolHeight * 4
+                        room.width >= ToolHeight * 4
         let rowY      = inCaption ? 0 : ToolHeight + HeaderGap
         .header.position.height = rowY + ToolHeight + HeaderGap
         .applyLayout()
@@ -636,23 +634,15 @@ impl Explorer
         {
             let height = Math.min(ToolHeight, room.height)
             let origin = .window.surfaceToLocal(frame.localToSurface(Math.Point{room.x, room.vertCenter() - height * 0.5}))
-            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width - closeWidth), height})
+            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, room.width), height})
         }
         else
         {
             let origin = .window.surfaceToLocal(line.localToSurface(Math.Point{}))
-            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, Math.max(0, space - closeWidth)), ToolHeight})
+            .address.setPosition({origin.x, origin.y, Math.min(metrics.wnd_CaptionPathWidth, space), ToolHeight})
         }
         .address.refreshPath()
-        if hasClose and not .address.edit.isLocallyVisible() and not .address.breadcrumb.items.isEmpty()
-        {
-            let leaf = .address.breadcrumb.items.backPtr()
-            let width = Math.ceil(Math.max(leaf.bodyRect.right(), leaf.arrowRect.right()))
-            if width > 0 do
-                .address.resize(Math.min(width, .address.position.width), .address.position.height)
-        }
         .address.show(.isVisible() and (not inCaption or .window.isWorkspaceActive()))
-        .window.layoutCellCaption()
     }
 
     // Shows the listing presentation and its thumbnail options in one compact sheet.

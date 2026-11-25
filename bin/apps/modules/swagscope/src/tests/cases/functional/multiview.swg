@@ -182,7 +182,7 @@ using Core, Gui, Pixel, Audio
     Swag.require(workspace.documentCount() == 1 and workspace.activeDocument().currentFile == second)
 }
 
-// A single scene keeps the standalone reader's document layout below its workspace caption.
+// A single scene keeps the standalone reader's document layout between the title and reading line.
 #test
 {
     let path = scopeTestDataPath("sample.cpp")
@@ -206,8 +206,9 @@ using Core, Gui, Pixel, Audio
     host.surface.clearFocus()
     var actual = host.renderSettled(&host.surfaceWnd)
     let strip  = cast(s32, workspace.stripInset())
-    expected.crop(0, strip, expected.width, expected.height - strip)
-    actual.crop(0, strip, actual.width, actual.height - strip)
+    let height = cast(s32, workspace.primary.readingLine.surfaceRect().y) - strip
+    expected.crop(0, strip, expected.width, height)
+    actual.crop(0, strip, actual.width, height)
     Pixel.Testing.assertImagesNear(&expected, &actual, "scene.single")
 }
 
@@ -423,7 +424,7 @@ using Core, Gui, Pixel, Audio
     Swag.require(scene.layout == .Single and workspace.activeDocument() == document)
     Swag.require(not film.bottomVeil.compact and not film.sceneManaged and film.sceneViewport == {})
     Swag.require(document.readingLine.isLocallyVisible() and document.viewerBar.isVisible())
-    Swag.require(not workspace.mediaLinks.isLocallyVisible() and document.cellCaption.close.isVisible())
+    Swag.require(not workspace.mediaLinks.isLocallyVisible() and document.readingLine.close.isVisible())
 }
 
 // Switching tabs keeps the last complete caption until the incoming document can publish its own.

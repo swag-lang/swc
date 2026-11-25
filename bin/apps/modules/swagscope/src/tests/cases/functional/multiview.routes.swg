@@ -180,6 +180,7 @@ using Core, Gui, Audio
     openViews(&host, workspace)
     Swag.require(workspace.scenes.count == 3 and workspace.activeDocument().currentFile == replacement)
     Swag.require(not workspace.activeDocument().cellCaption.isVisible())
+    Swag.require(not workspace.activeDocument().readingLine.close.isVisible())
     let tabs = workspace.tabs
     let button = tabs.closeRect(tabs.items[workspace.active])
     var close = tabs.localToSurface(button.center())
@@ -312,7 +313,7 @@ using Core, Gui, Audio
     Swag.require(scene.views[0].path == replacement and scene.views[1].path == right)
 }
 
-// The close control belongs to its visible cell. The caption takes over for the last file.
+// The close control stays at the right of each cell's reading line, including the last file.
 #test
 {
     var host: Testing.HeadlessHost
@@ -324,30 +325,35 @@ using Core, Gui, Audio
     let scene = unwrap workspace.scene()
     let original = workspace.activeDocument()
     let last = unwrap scene.views[2].document
-    let closeFile = original.cellCaption.close
+    let closeFile = original.readingLine.close
     let middle = unwrap scene.views[1].document
     Swag.require(middle.cellCaption.isVisible() and middle.cellCaption.parent == middle.readingLine)
     var pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
     host.surface.surfaceToScreen(&pointer)
     host.moveMouse(pointer)
     Swag.require(middle.cellCaption.isLocallyVisible())
-    let closePoint = middle.cellCaption.close.surfaceRect().center()
+    let closeMiddle = middle.readingLine.close
+    let closePoint  = closeMiddle.surfaceRect().center()
     let target = host.surfaceWnd.windowAt(closePoint.x, closePoint.y)
-    Swag.require(target == middle.cellCaption.close, Format.toString("hit '%' at % in %", target?.id orelse "", closePoint, middle.cellCaption.position))
-    host.clickWnd(middle.cellCaption.close)
+    Swag.require(target == closeMiddle, Format.toString("hit '%' at % in %", target?.id orelse "", closePoint, middle.readingLine.position))
+    Swag.require(closeMiddle.position.right() == middle.readingLine.clientRect().right())
+    for contribution in middle.readingLine.contributions() do
+        Swag.require(contribution.position.right() <= closeMiddle.position.x)
+    host.clickWnd(closeMiddle)
     Swag.require(scene.views.count == 2 and scene.views[1].document == last)
     Swag.require(workspace.activeDocument() == original)
     pointer = workspace.localToSurface(workspace.viewRect(scene, 1).center())
     host.surface.surfaceToScreen(&pointer)
     host.moveMouse(pointer)
-    host.clickWnd(last.cellCaption.close)
+    host.clickWnd(last.readingLine.close)
     Swag.require(scene.views.count == 1 and workspace.activeDocument() == original)
     Swag.require(scene.layout == .Single and not scene.linked and not scene.compared)
     Swag.require(original.position == workspace.clientRect())
     Swag.require(closeFile.isVisible() and original.cellCaption.parent == original)
     let filename = original.cellCaption.title.surfaceRect()
     let close = closeFile.surfaceRect()
-    Swag.require(filename.width > 0 and filename.right() <= close.x)
+    Swag.require(filename.width > 0 and filename.bottom() <= close.y)
+    Swag.require(close.right() == original.readingLine.surfaceRect().right())
     Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == closeFile)
     host.clickWnd(closeFile)
     Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isLocallyVisible())
@@ -603,7 +609,7 @@ using Core, Gui, Audio
     Swag.require(workspace.vacancy and workspace.vacantCell == 3)
     host.click(title)
     Swag.require(workspace.focusOnGrid and not workspace.vacancy)
-    host.clickWnd(code.cellCaption.close)
+    host.clickWnd(code.readingLine.close)
     Swag.require(workspace.documentCount() == 1 and not workspace.focusOnGrid)
     Swag.require(listing.hintLine.isVisible() and listing.informationCaptionButton.isEnabled())
     host.click(title)

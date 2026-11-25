@@ -1099,7 +1099,7 @@ impl ViewerWorkspace
         for view, index in scene.views where view.document and (view.document == child or view.document.isOwnerOf(child))
         {
             let document = view.document
-            if child == document.cellCaption.close do
+            if child == document.readingLine.close do
                 return false
             .selectView(index)
             if evt.kind != .DoubleClick do

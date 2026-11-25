@@ -56,7 +56,14 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     finishComparison(&host, comparison)
     Swag.require(workspace.comparisonVisible() and comparison.text.changes.count == 2)
     let survivor = comparison.paths[0]
-    host.clickWnd(comparison.captions[1].close)
+    let body     = comparison.clientRect()
+    let inset    = comparison.themeMetrics().floating_Inset
+    for button, side in comparison.closeButtons
+    {
+        Swag.require(button.isVisible() and button.position.y >= body.bottom() - SceneComparison.FooterHeight)
+        Swag.require(button.position.right() == comparison.captionArea(side).right() - inset)
+    }
+    host.clickWnd(comparison.closeButtons[1])
     Swag.require(workspace.documentCount() == 1 and workspace.activeDocument().currentFile == survivor)
     Swag.require(not workspace.comparisonVisible())
 }
@@ -197,8 +204,12 @@ func finishComparison(host: *Testing.HeadlessHost, comparison: *SceneComparison)
     Swag.require(comparison.shownRight != shownRight)
     let visible = comparison.shownRight ? 1'u64 : 0'u64
     let scene = unwrap workspace.scene()
-    Swag.require(scene.active == visible and comparison.captions[visible].close.isVisible())
-    Swag.require(not comparison.captions[1 - visible].close.isVisible())
+    let button = comparison.closeButtons[visible]
+    Swag.require(scene.active == visible and button.isVisible())
+    Swag.require(not comparison.closeButtons[1 - visible].isVisible())
+    Swag.require(button.position.right() == comparison.clientRect().right() - comparison.themeMetrics().floating_Inset)
+    Swag.require(comparison.modeButton.position.right() <= comparison.zoomButton.position.x)
+    Swag.require(comparison.zoomButton.position.right() <= button.position.x)
     Swag.require(workspace.dropRect(scene, visible).width == workspace.clientRect().width)
     Swag.require(workspace.dropRect(scene, 1 - visible).isEmpty())
     Swag.require(comparison.captions[visible].title.isVisible())

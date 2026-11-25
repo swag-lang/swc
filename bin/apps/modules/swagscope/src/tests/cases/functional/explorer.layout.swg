@@ -107,11 +107,13 @@ using Core, Gui, Pixel
     host.surface.surfaceToScreen(&pointer)
     host.moveMouse(pointer)
     host.finishAnimations()
-    Swag.require(document.cellCaption.close.isVisible() and not document.cellCaption.title.isVisible())
-    let close = document.cellCaption.close.surfaceRect()
-    Swag.require(close.x >= address.surfaceRect().right())
-    Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == document.cellCaption.close)
-    host.clickWnd(document.cellCaption.close)
+    let button = document.readingLine.close
+    Swag.require(button.isVisible() and not document.cellCaption.isVisible())
+    let close = button.surfaceRect()
+    Swag.require(close.right() == document.readingLine.surfaceRect().right())
+    Swag.require(close.y >= explorer.grid.surfaceRect().bottom())
+    Swag.require(host.surfaceWnd.windowAt(close.horzCenter(), close.vertCenter()) == button)
+    host.clickWnd(button)
     Swag.require(workspace.documentCount() == 1 and Path.equals(workspace.activeDocument().currentFile, expect Path.absolute(left)))
 }
 
@@ -132,8 +134,8 @@ using Core, Gui, Pixel
     Swag.require(document.searchBox.hasFocus())
     workspace.closeView(1)
     Swag.require(workspace.activeDocument() == document and document.searchBox.hasFocus())
-    Swag.require(explorer.address.isVisible() and document.cellCaption.close.isVisible())
-    host.clickWnd(document.cellCaption.close)
+    Swag.require(explorer.address.isVisible() and document.readingLine.close.isVisible())
+    host.clickWnd(document.readingLine.close)
     Swag.require(workspace.scenes.isEmpty() and workspace.primary.home.isVisible())
 }
 
@@ -159,6 +161,9 @@ using Core, Gui, Pixel
     Swag.require(document.documentHost.position.width == document.clientRect().width)
     let field = document.searchBox.surfaceRect()
     Swag.require(field.right() <= explorer.modeMenu.surfaceRect().x)
+    let reading = document.readingLine
+    Swag.require(reading.close.isVisible() and reading.close.position.right() == reading.clientRect().right())
+    Swag.require(reading.details.position.right() <= reading.close.position.x)
     explorer.setMode(.Details)
     explorer.list.setColumnWidth(0, 284)
     explorer.setMode(.Names)

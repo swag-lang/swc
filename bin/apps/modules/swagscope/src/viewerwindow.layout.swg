@@ -144,49 +144,47 @@ impl ViewerWindow
                                  .workspace.documentCount() == 1 and not .workspace.isTiled() and
                                  .isWorkspaceActive() and not .fullScreen
 
-    mtd hasCellFooter()->bool => .workspace and .workspace.usesCellCaptions() and .workspace.vacancy != me and not .isExploring() and
-                                 (not .fullScreen or .workspace.isTiled()) and (not .currentFile.isEmpty() or not .pendingFile.isEmpty())
+    mtd hasCellFooter()->bool => .workspace and .workspace.vacancy != me and (.hasSoloCaption() or .workspace.usesCellCaptions()) and
+                                 (not .fullScreen or .workspace.isTiled()) and
+                                 (.isExploring() or not .currentFile.isEmpty() or not .pendingFile.isEmpty())
 
     mtd layoutCellCaption()
     {
         if .cellCaption == null do
             return
-        let solo = .hasSoloCaption()
-        let footer = .hasCellFooter()
+        let showClose = .hasCellFooter()
         let exploring = .isExploring()
-        let folder = exploring and (solo or (.workspace?.usesCellCaptions() orelse false))
         let path: string = exploring ? .explorer!.requested : (.pendingFile.isEmpty() ? .currentFile : .pendingFile)
         let name = Path.fileName(path) orelse path
-        if not folder and (not name.count or not (solo or footer))
+        let close = .readingLine.close
+        close.show(showClose)
+        if showClose
         {
-            .cellCaption.hide()
-            return
+            let action   = .hasSoloCaption() and not exploring ? appStrings().ui_CloseFile : appStrings().scene_CloseView
+            let shortcut = .acceptsViewCommands() and .isWorkspaceActive() ? .keyShortcutName(ViewerCommands.Close) : String{}
+            close.toolTip = viewCloseHint(name, action, shortcut)
         }
 
         let caption = .cellCaption
-        let parent = footer ? cast(*Wnd, .readingLine) : cast(*Wnd, me)
-        if caption.parent != parent do
-            caption.setParent(parent)
-        let action = solo and not exploring ? appStrings().ui_CloseFile : appStrings().scene_CloseView
-        let label = footer ? .workspace!.mediaCaption(me, name) : String.from(name)
-        let shortcut = .acceptsViewCommands() and .isWorkspaceActive() ? .keyShortcutName(ViewerCommands.Close) : String{}
-        caption.setFile(path, label, action, shortcut)
-        caption.title.show(not folder)
-        caption.show()
-        if footer
+        if not showClose or exploring
         {
+            caption.hide()
             .readingLine.computeLayout()
             return
         }
 
-        let frame = .surface!.wnd
-        if folder
-        {
-            let address = .explorer!.address.position
-            caption.place(address.right(), address.vertCenter(), ViewerWorkspace.ViewTitleHeight)
+        let footer = .workspace!.usesCellCaptions()
+        let parent = footer ? cast(*Wnd, .readingLine) : cast(*Wnd, me)
+        if caption.parent != parent do
+            caption.setParent(parent)
+        let label = footer ? .workspace.mediaCaption(me, name) : String.from(name)
+        caption.setFile(path, label)
+        caption.show()
+        .readingLine.computeLayout()
+        if footer do
             return
-        }
 
+        let frame = .surface!.wnd
         let room = frame.captionContentRect()
         let width = caption.widthFor(room.width)
         let x = Math.clamp(frame.clientRect().horzCenter() - width * 0.5, room.x, Math.max(room.x, room.right() - width))
@@ -197,7 +195,7 @@ impl ViewerWindow
     private mtd createCellCaption()
     {
         .cellCaption = ViewerFileCaption.create(me)
-        .cellCaption.close.sigPressed += func|document = me|(_) { document.workspace?.closeDocument(document) }
+        .readingLine.close.sigPressed += func|document = me|(_) { document.workspace?.closeDocument(document) }
         .readingLine.caption = .cellCaption
     }
 

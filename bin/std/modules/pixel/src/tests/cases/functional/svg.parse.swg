@@ -69,26 +69,30 @@ using Swag, Core
     Swag.require(sizeError != null)
 }
 
-// A symbol keeps its viewport, and an omitted attribute stays omitted on the next element.
+// A symbol keeps its viewport. An empty href overrides its fallback; an omitted href uses it.
 #test
 {
     func parseDrawing()->Svg.Drawing
     {
         let source = String.from("""\
-            <svg width='30' height='10'>\
+            <svg width='50' height='10' xmlns:xlink='http://www.w3.org/1999/xlink'>\
             <defs><symbol id='tile' viewBox='0 0 5 5'>\
             <rect width='5' height='5' fill='red'/></symbol></defs>\
             <use href='#tile' width='10' height='10'/><use x='10'/>\
-            <rect x='20' width='10' height='10' fill="blue" data-note='a > "b"'/>\
+            <use x='20' href='' xlink:href='#tile' width='10' height='10'/>\
+            <use x='30' xlink:href='#tile' width='10' height='10'/>\
+            <rect x='40' width='10' height='10' fill="blue" data-note='a > "b"'/>\
             <rect y='5' height='5' fill='green'/></svg>""")
         return expect Svg.Drawing.parse(source.toString())
     }
 
     let drawing = parseDrawing()
-    let image   = drawing.rasterize(30, 10, 1)
+    let image   = drawing.rasterize(50, 10, 1)
     Swag.require(image.pixelColor(8, 8).r == 255)
     Swag.require(image.pixelColor(15, 8).a == 0)
-    Swag.require(image.pixelColor(25, 8).b == 255)
+    Swag.require(image.pixelColor(25, 8).a == 0)
+    Swag.require(image.pixelColor(35, 8).r == 255)
+    Swag.require(image.pixelColor(45, 8).b == 255)
 }
 
 // Image dimensions and drawing coordinates are separate, including offset view boxes.

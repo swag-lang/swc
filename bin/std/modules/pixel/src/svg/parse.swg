@@ -342,8 +342,150 @@ private struct Parser
     dimensionsOnly: bool
 }
 
-// The parser borrows these slices from the document for the duration of parsing.
-private alias AttributeMap = HashTable'(string, string)
+private enum AttributeKind
+{
+    Unknown
+    D
+    X
+    Y
+    Dx
+    Dy
+    Width
+    Height
+    Rx
+    Ry
+    Cx
+    Cy
+    R
+    Fx
+    Fy
+    Fr
+    Points
+    PathLength
+    X1
+    Y1
+    X2
+    Y2
+    ViewBox
+    Id
+    Class
+    Href
+    XlinkHref
+    GradientUnits
+    GradientTransform
+    SpreadMethod
+    PatternUnits
+    PatternContentUnits
+    StdDeviation
+    Offset
+    StopColor
+    StopOpacity
+    FloodColor
+    FloodOpacity
+    MarkerWidth
+    MarkerHeight
+    RefX
+    RefY
+    Orient
+    MarkerUnits
+    Style
+}
+
+#assert(AttributeKind.count <= 64)
+
+private struct AttributeValue
+{
+    value: string = ""
+}
+
+// Uses fixed slots for the attributes that consumers look up after scanning.
+// A bit records presence separately from the borrowed source value, which may be empty.
+private struct AttributeMap
+{
+    values:  Array'AttributeValue
+    present: u64
+}
+
+private impl AttributeMap
+{
+    #[Swag.Inline]
+    mtd clear()
+    {
+        .present = 0
+    }
+
+    #[Swag.Inline]
+    mtd add(kind: AttributeKind, value: string)
+    {
+        if .values.isEmpty() do
+            .values.resize(AttributeKind.count)
+
+        let index = cast(u64, kind)
+        .values[index].value = value
+        .present |= 1'u64 << index
+    }
+
+    #[Swag.Inline]
+    mtd const tryFind(kind: AttributeKind)->const *AttributeValue?
+    {
+        let index = cast(u64, kind)
+        if not (.present & (1'u64 << index)) do
+            return null
+        return &.values[index]
+    }
+}
+
+private func attributeKind(name: string)->AttributeKind
+{
+    switch name
+    {
+    case "d":                   return .D
+    case "x":                   return .X
+    case "y":                   return .Y
+    case "dx":                  return .Dx
+    case "dy":                  return .Dy
+    case "width":               return .Width
+    case "height":              return .Height
+    case "rx":                  return .Rx
+    case "ry":                  return .Ry
+    case "cx":                  return .Cx
+    case "cy":                  return .Cy
+    case "r":                   return .R
+    case "fx":                  return .Fx
+    case "fy":                  return .Fy
+    case "fr":                  return .Fr
+    case "points":              return .Points
+    case "pathLength":          return .PathLength
+    case "x1":                  return .X1
+    case "y1":                  return .Y1
+    case "x2":                  return .X2
+    case "y2":                  return .Y2
+    case "viewBox":             return .ViewBox
+    case "id":                  return .Id
+    case "class":               return .Class
+    case "href":                return .Href
+    case "xlink:href":          return .XlinkHref
+    case "gradientUnits":       return .GradientUnits
+    case "gradientTransform":   return .GradientTransform
+    case "spreadMethod":        return .SpreadMethod
+    case "patternUnits":        return .PatternUnits
+    case "patternContentUnits": return .PatternContentUnits
+    case "stdDeviation":        return .StdDeviation
+    case "offset":              return .Offset
+    case "stop-color":          return .StopColor
+    case "stop-opacity":        return .StopOpacity
+    case "flood-color":         return .FloodColor
+    case "flood-opacity":       return .FloodOpacity
+    case "markerWidth":         return .MarkerWidth
+    case "markerHeight":        return .MarkerHeight
+    case "refX":                return .RefX
+    case "refY":                return .RefY
+    case "orient":              return .Orient
+    case "markerUnits":         return .MarkerUnits
+    case "style":               return .Style
+    default:                    return .Unknown
+    }
+}
 
 private struct StyleDeclaration
 {
@@ -2142,13 +2284,13 @@ private impl StyleSheet
 
         if .byClass.count
         {
-            if let classAttr = geo.tryFind("class") do
+            if let classAttr = geo.tryFind(.Class) do
                 .applyClassRules(classAttr.value, state)
         }
 
         if .byId.count
         {
-            if let idAttr = geo.tryFind("id")
+            if let idAttr = geo.tryFind(.Id)
             {
                 if let rules = .byId.tryFind(idAttr.value) do
                     .applyRules(&rules.value, state)
@@ -2225,7 +2367,7 @@ private impl Parser
     {
         if .styles.rules.count do
             .styles.apply(elementName, geo, state)
-        if let inlineStyle = geo.tryFind("style") do
+        if let inlineStyle = geo.tryFind(.Style) do
             applyAttribute(state, "style", inlineStyle.value)
     }
 
@@ -2283,40 +2425,36 @@ private impl Parser
             let value = .text[valueStart until .pos]
             .pos += 1
 
-            switch name
+            let kind = attributeKind(name)
+            switch kind
             {
-            case "d", "x", "y", "dx", "dy", "width", "height", "rx", "ry", "cx", "cy", "r",
-                 "fx", "fy", "fr", "points", "pathLength", "x1", "y1", "x2", "y2", "viewBox",
-                 "id", "class", "href", "xlink:href", "gradientUnits", "gradientTransform",
-                 "spreadMethod", "patternUnits", "patternContentUnits", "stdDeviation",
-                 "offset", "stop-color", "stop-opacity", "flood-color", "flood-opacity",
-                 "markerWidth", "markerHeight", "refX", "refY", "orient", "markerUnits":
-                geo.add(name, value)
+            case .Unknown:
+                applyAttribute(state, name, value)
 
-            case "style":
-                geo.add(name, value)
+            case .Style:
+                geo.add(kind, value)
                 applyAttribute(state, name, value)
 
             default:
-                applyAttribute(state, name, value)
+                geo.add(kind, value)
             }
         }
 
         return result
     }
 
-    mtd geoNumber(geo: *AttributeMap, name: string, defaultValue = 0.0'f32)->f32
+    mtd geoNumber(geo: *AttributeMap, kind: AttributeKind, defaultValue = 0.0'f32)->f32
     {
-        let here = geo.tryFind(name)
+        let here = geo.tryFind(kind)
         if not here do
             return defaultValue
         var pos = 0'u64
         return scanNumber(here.value, &pos)
     }
 
-    mtd geoLength(geo: *AttributeMap, name: string, defaultValue: SvgLength)->SvgLength
+    mtd geoLength(geo: *AttributeMap, kind: AttributeKind, defaultValue: SvgLength)->SvgLength
     {
-        let here = geo.tryFind(name)
+        let here = geo.tryFind(kind)
         if not here do
             return defaultValue
         return parseLength(here.value, defaultValue)
@@ -2397,16 +2535,16 @@ private impl Parser
             if name == "stop"
             {
                 var offset     = SvgLength{}
-                let offsetAttr = geo.tryFind("offset")
+                let offsetAttr = geo.tryFind(.Offset)
                 if offsetAttr do
                     offset = parseLength(offsetAttr.value)
 
                 var color      = Color.fromArgb(Argb.Black)
                 var colorValue = ""
-                let colorAttr  = geo.tryFind("stop-color")
+                let colorAttr  = geo.tryFind(.StopColor)
                 if colorAttr do
                     colorValue = colorAttr.value
-                let style = geo.tryFind("style")
+                let style = geo.tryFind(.Style)
                 if style
                 {
                     let styled = styleValue(style.value, "stop-color")
@@ -2418,7 +2556,7 @@ private impl Parser
                     color = parseColor(colorValue).color
 
                 var opacity     = 1.0'f32
-                let opacityAttr = geo.tryFind("stop-opacity")
+                let opacityAttr = geo.tryFind(.StopOpacity)
                 if opacityAttr
                 {
                     let parsed = parseLength(opacityAttr.value, {1, false})
@@ -2453,9 +2591,9 @@ private impl Parser
 
         // The reference is kept rather than followed: a document may name a gradient defined
         // further down, and only the finished document knows every identifier.
-        var href = geo.tryFind("href")
+        var href = geo.tryFind(.Href)
         if not href do
-            href = geo.tryFind("xlink:href")
+            href = geo.tryFind(.XlinkHref)
         if href
         {
             var baseId = href.value
@@ -2468,40 +2606,40 @@ private impl Parser
         switch kind
         {
         case .Linear:
-            gradient.x1 = .geoLength(geo, "x1", gradient.x1)
-            gradient.y1 = .geoLength(geo, "y1", gradient.y1)
-            gradient.x2 = .geoLength(geo, "x2", gradient.x2)
-            gradient.y2 = .geoLength(geo, "y2", gradient.y2)
+            gradient.x1 = .geoLength(geo, .X1, gradient.x1)
+            gradient.y1 = .geoLength(geo, .Y1, gradient.y1)
+            gradient.x2 = .geoLength(geo, .X2, gradient.x2)
+            gradient.y2 = .geoLength(geo, .Y2, gradient.y2)
 
-            gradient.specified.x1 = geo.tryFind("x1") != null
-            gradient.specified.y1 = geo.tryFind("y1") != null
-            gradient.specified.x2 = geo.tryFind("x2") != null
-            gradient.specified.y2 = geo.tryFind("y2") != null
+            gradient.specified.x1 = geo.tryFind(.X1) != null
+            gradient.specified.y1 = geo.tryFind(.Y1) != null
+            gradient.specified.x2 = geo.tryFind(.X2) != null
+            gradient.specified.y2 = geo.tryFind(.Y2) != null
 
         case .Radial:
-            gradient.cx = .geoLength(geo, "cx", gradient.cx)
-            gradient.cy = .geoLength(geo, "cy", gradient.cy)
-            gradient.r  = .geoLength(geo, "r", gradient.r)
-            gradient.fx = .geoLength(geo, "fx", gradient.cx)
-            gradient.fy = .geoLength(geo, "fy", gradient.cy)
-            gradient.fr = .geoLength(geo, "fr", gradient.fr)
+            gradient.cx = .geoLength(geo, .Cx, gradient.cx)
+            gradient.cy = .geoLength(geo, .Cy, gradient.cy)
+            gradient.r  = .geoLength(geo, .R, gradient.r)
+            gradient.fx = .geoLength(geo, .Fx, gradient.cx)
+            gradient.fy = .geoLength(geo, .Fy, gradient.cy)
+            gradient.fr = .geoLength(geo, .Fr, gradient.fr)
 
-            gradient.specified.cx = geo.tryFind("cx") != null
-            gradient.specified.cy = geo.tryFind("cy") != null
-            gradient.specified.r  = geo.tryFind("r") != null
-            gradient.specified.fx = geo.tryFind("fx") != null
-            gradient.specified.fy = geo.tryFind("fy") != null
-            gradient.specified.fr = geo.tryFind("fr") != null
+            gradient.specified.cx = geo.tryFind(.Cx) != null
+            gradient.specified.cy = geo.tryFind(.Cy) != null
+            gradient.specified.r  = geo.tryFind(.R) != null
+            gradient.specified.fx = geo.tryFind(.Fx) != null
+            gradient.specified.fy = geo.tryFind(.Fy) != null
+            gradient.specified.fr = geo.tryFind(.Fr) != null
         }
 
-        let units = geo.tryFind("gradientUnits")
+        let units = geo.tryFind(.GradientUnits)
         if units
         {
             gradient.userSpace       = units.value == "userSpaceOnUse"
             gradient.specified.units = true
         }
 
-        let spread = geo.tryFind("spreadMethod")
+        let spread = geo.tryFind(.SpreadMethod)
         if spread
         {
             switch spread.value
@@ -2514,7 +2652,7 @@ private impl Parser
             gradient.specified.spread = true
         }
 
-        let transform = geo.tryFind("gradientTransform")
+        let transform = geo.tryFind(.GradientTransform)
         if transform
         {
             gradient.transform = composeTransformList(transform.value, Math.Transform2.Identity)
@@ -2528,7 +2666,7 @@ private impl Parser
             gradient.specified.stops = not gradient.stops.isEmpty()
         }
 
-        let id = geo.tryFind("id")
+        let id = geo.tryFind(.Id)
         if id do
             .gradients.add(.sourceView(id.value), #move gradient)
     }
@@ -2574,14 +2712,14 @@ private impl Parser
         if not state.isDisplayed or not state.isVisible do
             return
 
-        var href = geo.tryFind("href")
+        var href = geo.tryFind(.Href)
         if not href do
-            href = geo.tryFind("xlink:href")
+            href = geo.tryFind(.XlinkHref)
         if not href do
             return
 
-        let width  = .geoNumber(geo, "width")
-        let height = .geoNumber(geo, "height")
+        let width  = .geoNumber(geo, .Width)
+        let height = .geoNumber(geo, .Height)
         if width <= 0 or height <= 0 do
             return
 
@@ -2592,7 +2730,7 @@ private impl Parser
         // The rectangle stays in user units and carries its transform, so a mirrored or turned
         // picture is painted through the same matrix as its siblings instead of being
         // flattened into an upright rectangle.
-        item.rect      = Rectangle{.geoNumber(geo, "x"), .geoNumber(geo, "y"), width, height}
+        item.rect      = Rectangle{.geoNumber(geo, .X), .geoNumber(geo, .Y), width, height}
         item.transform = state.transform
         item.opacity   = state.opacity
         if not state.inDefs do
@@ -2636,16 +2774,16 @@ private impl Parser
 
         let typeFace = try .typeFaceFor(state.fontFamily)
 
-        let x   = geo.tryFind("x")
-        let y   = geo.tryFind("y")
-        let dx  = .geoNumber(geo, "dx")
-        let dy  = .geoNumber(geo, "dy")
+        let x   = geo.tryFind(.X)
+        let y   = geo.tryFind(.Y)
+        let dx  = .geoNumber(geo, .Dx)
+        let dy  = .geoNumber(geo, .Dy)
         let run = block.runs.emplaceInitAddress()
         run.text     = #move normalized
         run.typeFace = typeFace
         run.hasX     = first or x != null
         run.hasY     = first or y != null
-        let anchor = mapPoint(state, x ? .geoNumber(geo, "x") : 0, y ? .geoNumber(geo, "y") : 0)
+        let anchor = mapPoint(state, x ? .geoNumber(geo, .X) : 0, y ? .geoNumber(geo, .Y) : 0)
         let offset = state.transform.transformVector(Vector2{dx, dy})
         run.x  = anchor.x
         run.y  = anchor.y
@@ -2739,18 +2877,18 @@ private impl Parser
         if not selfClosed do
             try .parseContent(contentState)
 
-        let id = geo.tryFind("id")
+        let id = geo.tryFind(.Id)
         if not id do
             return
 
         var pattern: Pattern
         pattern.first  = first
         pattern.count  = .drawing.shapes.count - first
-        pattern.x      = .geoLength(geo, "x", {})
-        pattern.y      = .geoLength(geo, "y", {})
-        pattern.width  = .geoLength(geo, "width", {})
-        pattern.height = .geoLength(geo, "height", {})
-        let units = geo.tryFind("patternUnits")
+        pattern.x      = .geoLength(geo, .X, {})
+        pattern.y      = .geoLength(geo, .Y, {})
+        pattern.width  = .geoLength(geo, .Width, {})
+        pattern.height = .geoLength(geo, .Height, {})
+        let units = geo.tryFind(.PatternUnits)
         pattern.userSpace = units != null and units.value == "userSpaceOnUse"
         .patterns.add(id.value, #move pattern)
     }
@@ -2794,22 +2932,22 @@ private impl Parser
                 {
                 case "feGaussianBlur":
                     primitive.kind   = .GaussianBlur
-                    primitive.radius = Math.max(.geoNumber(&attrs, "stdDeviation"), 0)
+                    primitive.radius = Math.max(.geoNumber(&attrs, .StdDeviation), 0)
 
                 case "feOffset":
                     primitive.kind = .Offset
-                    primitive.x    = .geoNumber(&attrs, "dx")
-                    primitive.y    = .geoNumber(&attrs, "dy")
+                    primitive.x    = .geoNumber(&attrs, .Dx)
+                    primitive.y    = .geoNumber(&attrs, .Dy)
 
                 case "feDropShadow":
                     primitive.kind   = .DropShadow
-                    primitive.x      = .geoNumber(&attrs, "dx")
-                    primitive.y      = .geoNumber(&attrs, "dy")
-                    primitive.radius = Math.max(.geoNumber(&attrs, "stdDeviation"), 0)
-                    let flood = attrs.tryFind("flood-color")
+                    primitive.x      = .geoNumber(&attrs, .Dx)
+                    primitive.y      = .geoNumber(&attrs, .Dy)
+                    primitive.radius = Math.max(.geoNumber(&attrs, .StdDeviation), 0)
+                    let flood = attrs.tryFind(.FloodColor)
                     if flood do
                         primitive.color = parseColor(flood.value).color
-                    let opacity = attrs.tryFind("flood-opacity")
+                    let opacity = attrs.tryFind(.FloodOpacity)
                     if opacity do
                         primitive.color = primitive.color.withAlphaF32(Math.saturate(parseLength(opacity.value).value))
 
@@ -2824,7 +2962,7 @@ private impl Parser
             }
         }
 
-        let id = geo.tryFind("id")
+        let id = geo.tryFind(.Id)
         if id do
             .filters.add(id.value, #move filter)
     }
@@ -2894,11 +3032,11 @@ private impl Parser
                 .svgDepth += 1
                 if isRoot
                 {
-                    if let width = geo.tryFind("width") do
+                    if let width = geo.tryFind(.Width) do
                         .drawing.imageSize.x = parseImageLength(width.value)
-                    if let height = geo.tryFind("height") do
+                    if let height = geo.tryFind(.Height) do
                         .drawing.imageSize.y = parseImageLength(height.value)
-                    let vb = geo.tryFind("viewBox")
+                    let vb = geo.tryFind(.ViewBox)
                     if vb
                     {
                         var pos   = 0'u64
@@ -2910,8 +3048,8 @@ private impl Parser
                     }
                     else
                     {
-                        .drawing.width  = .geoNumber(&geo, "width", 0)
-                        .drawing.height = .geoNumber(&geo, "height", 0)
+                        .drawing.width  = .geoNumber(&geo, .Width, 0)
+                        .drawing.height = .geoNumber(&geo, .Height, 0)
                     }
 
                     if .dimensionsOnly do
@@ -2919,7 +3057,7 @@ private impl Parser
                 }
                 else
                 {
-                    state.transform = prependTranslation(state.transform, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"))
+                    state.transform = prependTranslation(state.transform, .geoNumber(&geo, .X), .geoNumber(&geo, .Y))
                 }
 
                 if not selfClosed do
@@ -2931,7 +3069,7 @@ private impl Parser
                     try .parseContent(state)
 
             case "path":
-                let d = geo.tryFind("d")
+                let d = geo.tryFind(.D)
                 if d
                 {
                     var list:     LinePathList
@@ -2945,46 +3083,46 @@ private impl Parser
                     try .parseContent(state)
 
             case "rect":
-                var rx = .geoNumber(&geo, "rx", -1)
-                var ry = .geoNumber(&geo, "ry", -1)
+                var rx = .geoNumber(&geo, .Rx, -1)
+                var ry = .geoNumber(&geo, .Ry, -1)
                 if rx < 0 do
                     rx = ry
                 if ry < 0 do
                     ry = rx
                 emitRect(.drawing,
                          &state,
-                         .geoNumber(&geo, "x"),
-                         .geoNumber(&geo, "y"),
-                         .geoNumber(&geo, "width"),
-                         .geoNumber(&geo, "height"),
+                         .geoNumber(&geo, .X),
+                         .geoNumber(&geo, .Y),
+                         .geoNumber(&geo, .Width),
+                         .geoNumber(&geo, .Height),
                          Math.max(rx, 0),
                          Math.max(ry, 0))
                 if not selfClosed do
                     try .parseContent(state)
 
             case "circle":
-                let r = .geoNumber(&geo, "r")
-                emitEllipse(.drawing, &state, .geoNumber(&geo, "cx"), .geoNumber(&geo, "cy"), r, r)
+                let r = .geoNumber(&geo, .R)
+                emitEllipse(.drawing, &state, .geoNumber(&geo, .Cx), .geoNumber(&geo, .Cy), r, r)
                 if not selfClosed do
                     try .parseContent(state)
 
             case "ellipse":
                 emitEllipse(.drawing,
                             &state,
-                            .geoNumber(&geo, "cx"),
-                            .geoNumber(&geo, "cy"),
-                            .geoNumber(&geo, "rx"),
-                            .geoNumber(&geo, "ry"))
+                            .geoNumber(&geo, .Cx),
+                            .geoNumber(&geo, .Cy),
+                            .geoNumber(&geo, .Rx),
+                            .geoNumber(&geo, .Ry))
                 if not selfClosed do
                     try .parseContent(state)
 
             case "line":
                 var list: LinePathList
                 let path   = list.newPath()
-                let x1     = .geoNumber(&geo, "x1")
-                let y1     = .geoNumber(&geo, "y1")
-                let x2     = .geoNumber(&geo, "x2")
-                let y2     = .geoNumber(&geo, "y2")
+                let x1     = .geoNumber(&geo, .X1)
+                let y1     = .geoNumber(&geo, .Y1)
+                let x2     = .geoNumber(&geo, .X2)
+                let y2     = .geoNumber(&geo, .Y2)
                 let from   = mapPoint(&state, x1, y1)
                 let target = mapPoint(&state, x2, y2)
                 path.start(from.x, from.y)
@@ -3025,7 +3163,7 @@ private impl Parser
                 if not selfClosed do
                     try .parseContent(clipState)
 
-                let clipId = geo.tryFind("id")
+                let clipId = geo.tryFind(.Id)
                 if clipId and .drawing.shapes.count > clipFirst do
                     .clipPaths.add(.sourceView(clipId.value), {first: clipFirst, count: .drawing.shapes.count - clipFirst})
 
@@ -3040,14 +3178,14 @@ private impl Parser
                 if not selfClosed do
                     try .parseContent(symbolState)
 
-                let symbolId = geo.tryFind("id")
+                let symbolId = geo.tryFind(.Id)
                 if symbolId and .drawing.shapes.count > symbolFirst
                 {
                     let id = .sourceView(symbolId.value)
                     .defs.add(id, {first: symbolFirst, count: .drawing.shapes.count - symbolFirst})
 
                     var viewport: SymbolViewport
-                    let box = geo.tryFind("viewBox")
+                    let box = geo.tryFind(.ViewBox)
                     if box
                     {
                         var boxPos = 0'u64
@@ -3072,7 +3210,7 @@ private impl Parser
                 if not selfClosed do
                     try .parseContent(markerState)
 
-                let markerId = geo.tryFind("id")
+                let markerId = geo.tryFind(.Id)
                 if markerId and .drawing.shapes.count > markerFirst do
                     .markers.add(.sourceView(markerId.value), .readMarkerDefinition(&geo, markerFirst, .drawing.shapes.count - markerFirst))
 
@@ -3101,9 +3239,9 @@ private impl Parser
                     try .parseContent(state)
 
             case "use":
-                var href = geo.tryFind("href")
+                var href = geo.tryFind(.Href)
                 if not href do
-                    href = geo.tryFind("xlink:href")
+                    href = geo.tryFind(.XlinkHref)
                 if href
                 {
                     var target = href.value
@@ -3113,7 +3251,7 @@ private impl Parser
                     if here
                     {
                         var useState = state
-                        useState.transform = prependTranslation(state.transform, .geoNumber(&geo, "x"), .geoNumber(&geo, "y"))
+                        useState.transform = prependTranslation(state.transform, .geoNumber(&geo, .X), .geoNumber(&geo, .Y))
 
                         // A referenced `symbol` brings its own viewport: its view box is fitted
                         // into the width and height the instance states, which is what makes one
@@ -3121,8 +3259,8 @@ private impl Parser
                         let symbol = .symbols.tryFind(target)
                         if symbol and symbol.value.hasViewBox
                         {
-                            let width  = .geoNumber(&geo, "width", symbol.value.viewWidth)
-                            let height = .geoNumber(&geo, "height", symbol.value.viewHeight)
+                            let width  = .geoNumber(&geo, .Width, symbol.value.viewWidth)
+                            let height = .geoNumber(&geo, .Height, symbol.value.viewHeight)
                             if symbol.value.viewWidth > 0 and
                                symbol.value.viewHeight > 0 and
                                width > 0 and
@@ -3143,7 +3281,7 @@ private impl Parser
                     try .parseContent(state)
 
             case "polygon":
-                let pts = geo.tryFind("points")
+                let pts = geo.tryFind(.Points)
                 if pts
                 {
                     emitPoly(.drawing, &state, pts.value, true)
@@ -3155,7 +3293,7 @@ private impl Parser
                     try .parseContent(state)
 
             case "polyline":
-                let pts = geo.tryFind("points")
+                let pts = geo.tryFind(.Points)
                 if pts
                 {
                     var strokeOnly = state
@@ -3175,14 +3313,14 @@ private impl Parser
                     try .parseContent(state)
             }
 
-            let authoredPathLength = .geoNumber(&geo, "pathLength", -1)
+            let authoredPathLength = .geoNumber(&geo, .PathLength, -1)
             if authoredPathLength > 0 and .drawing.shapes.count > firstShape do
                 .applyPathLength(firstShape, .drawing.shapes.count - firstShape, authoredPathLength, transformScale(state.transform))
 
             // Register the shapes a defs child emitted under its id.
             if state.inDefs and .drawing.shapes.count > firstShape
             {
-                let idAttr = geo.tryFind("id")
+                let idAttr = geo.tryFind(.Id)
                 if idAttr do
                     .defs.add(.sourceView(idAttr.value), {first: firstShape, count: .drawing.shapes.count - firstShape})
             }
@@ -3197,16 +3335,16 @@ private impl Parser
         var result: #returntype
         result.first  = first
         result.count  = count
-        result.refX   = .geoNumber(geo, "refX")
-        result.refY   = .geoNumber(geo, "refY")
-        result.width  = .geoNumber(geo, "markerWidth", 3)
-        result.height = .geoNumber(geo, "markerHeight", 3)
+        result.refX   = .geoNumber(geo, .RefX)
+        result.refY   = .geoNumber(geo, .RefY)
+        result.width  = .geoNumber(geo, .MarkerWidth, 3)
+        result.height = .geoNumber(geo, .MarkerHeight, 3)
 
-        let units = geo.tryFind("markerUnits")
+        let units = geo.tryFind(.MarkerUnits)
         if units do
             result.scaleWithWidth = units.value != "userSpaceOnUse"
 
-        let box = geo.tryFind("viewBox")
+        let box = geo.tryFind(.ViewBox)
         if box
         {
             var boxPos = 0'u64
@@ -3217,7 +3355,7 @@ private impl Parser
             result.hasViewBox = true
         }
 
-        let orient = geo.tryFind("orient")
+        let orient = geo.tryFind(.Orient)
         if orient
         {
             let text = Latin1.trim(orient.value)

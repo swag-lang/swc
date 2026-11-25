@@ -78,11 +78,9 @@ internal impl Properties
                     .dockStyle = .CenterKeepSizeVert
                 else do
                     .preferredSize.x = editWidth
-                if me.kind == .Condensed do
-                    .updateFlags(.Flat)
             }
 
-            me.adaptCondensedControl(ed)
+            me.adaptCondensedCombo(item, ed)
             item.assignComboBox(ed)
         }
 

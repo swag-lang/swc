@@ -520,8 +520,8 @@ impl IPropertyEditor for RatingEditor
         let rating = cast(*Rating?, data)
         let prop   = list
 
-        let line = Wnd.create'Wnd(item.line,
-                                  Math.Rectangle{0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
+        let height = Math.min(item.line.position.height, list.themeMetrics().editBox_Height)
+        let line   = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, RatingMax * RatingPipSize, height})
         line.maxSize.x = RatingMax * RatingPipSize
         if list.isGridLike() do
             line.dockStyle = .CenterKeepSizeVert

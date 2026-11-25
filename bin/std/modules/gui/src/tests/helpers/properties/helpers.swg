@@ -69,6 +69,33 @@ struct PropGoldenData
     caption: String
 }
 
+// The built-in editor families that share the compact value cell.
+struct PropCondensedEditorData
+{
+    checked = true
+    rate    = PropGoldenChoice.Manual
+    count   = 42
+    title: String
+
+    #[MultiLine]
+    notes: String
+
+    #[SliderMinMax(1, 100)]
+    level: s32 = 25
+
+    #[BoolCombo("Off", "On")]
+    choice = true
+
+    #[FontName]
+    family: String
+
+    style = Pixel.FontFamilyStyle.Regular
+    tint:   Pixel.Color      = 0xFF38BDF8
+    offset: Math.Point       = {12, 8}
+    guides: PropGoldenGuides = .Centers
+    values: Array's32
+}
+
 impl Gui.IPropertyNotify for PropGoldenData
 {
     mtd impl validateItem(_: *Gui.Properties, item: *Gui.PropertiesItem)->Gui.PropValidationResult

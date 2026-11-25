@@ -56,10 +56,16 @@ impl IWnd for SliderCtrl
 
         es = Math.min(es, available)
 
-        let w = available - es
-        .slider.setPosition(.label.position.right() + .spacing, rect.vertCenter() - metrics.slider_Height / 2, w, metrics.slider_Height)
-
-        .edit.setPosition(.slider.position.right() + .spacing, rect.vertCenter() - metrics.editBox_Height / 2, es, metrics.editBox_Height)
+        let trackHeight = Math.min(metrics.slider_Height, rect.height)
+        let valueHeight = Math.min(metrics.editBox_Height, rect.height)
+        .slider.setPosition(.label.position.right() + .spacing,
+                            rect.vertCenter() - trackHeight * 0.5,
+                            available - es,
+                            trackHeight)
+        .edit.setPosition(.slider.position.right() + .spacing,
+                          rect.vertCenter() - valueHeight * 0.5,
+                          es,
+                          valueHeight)
     }
 }
 

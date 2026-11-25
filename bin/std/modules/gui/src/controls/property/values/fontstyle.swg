@@ -44,6 +44,7 @@ internal impl IPropertyEditor for FontStyleEditor
 
         let combon: *ComboBox = combo
         combon.updateFlags(.Segmented)
+        list.adaptCondensedCombo(item, combon)
         item.assignComboBox(combon)
         for s in [FontFamilyStyle.Regular, FontFamilyStyle.Bold, FontFamilyStyle.Italic, FontFamilyStyle.BoldItalic] do
             combon.addItem(FontStyleSample).fontStyle = s

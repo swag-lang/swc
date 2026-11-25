@@ -31,6 +31,37 @@ impl Properties
         wnd.maxSize.x = 0
     }
 
+    // The closed value follows the condensed pitch. Opening it gives the standard-height
+    // field and its keyboard focus outline room before the drop-down is anchored.
+    internal mtd adaptCondensedCombo(item: *PropertiesItem, combo: *ComboBox)
+    {
+        if .kind != .Condensed do
+            return
+
+        combo.dockStyle = .Center
+        if not combo.flags.has(.Segmented) do
+            combo.maxSize.x = 0
+        combo.minSize.y = 0
+        combo.quietCell = true
+        let restingHeight = item.valueCellHeight
+        combo.popupLayout = func|prop = me, item, restingHeight|(field, open)
+        {
+            if item.line.isPendingDestroy do
+                return
+
+            let metrics = field.themeMetrics()
+            let inset   = open ? Math.ceil(metrics.focusRing_Offset + metrics.focusRing_Size) : 0
+            let height  = open ? Math.max(restingHeight, metrics.comboBox_Height + 2 * inset) : restingHeight
+            field.margin.y, field.margin.w = inset
+            item.valueCellHeight           = height
+            item.line.position.height      = height + item.line.padding.w
+            item.line.preferredSize.y      = item.line.position.height
+            prop.edView.sendResizeEvent()
+            if open do
+                prop.ensureItemVisible(item)
+        }
+    }
+
     // Flatten an edit box for the condensed cell look: no background/border at
     // rest (only when invalid), with a small horizontal padding so the text does
     // not touch the column separator.
@@ -39,7 +70,8 @@ impl Properties
         if .kind != .Condensed do
             return
         ed.setForm(.Transparent)
-        ed.setAllPaddings({8, 0, 8, 0})
+        let inset = ed.themeMetrics().property_FieldGap
+        ed.setAllPaddings({inset, 0, inset, 0})
     }
 
     // Sets the requested label-column width in grid layouts; other presentations ignore it.
@@ -141,9 +173,13 @@ internal impl Properties
 
     mtd captionWidth(label: *Label)->f32
     {
-        if let font = label.font().regular do
-            return Math.ceil(Painter.measureString(label.text(), font).width)
-        return 0
+        if not label.font().regular do
+            return 0
+
+        // Measure the same glyphs, including fallback and device snapping, as the label paints.
+        let width = label.itf.measureContent({}).x
+        let inset = label.textPadding.x + label.textPadding.z + label.padding.x + label.padding.z
+        return Math.ceil(Math.max(width - inset, 0))
     }
 
     mtd nameMarkSpace()->f32 => .themeMetrics().property_FieldGap + 2 * .themeMetrics().property_ModifiedMarkSize

@@ -105,11 +105,9 @@ internal impl Properties
                     .dockStyle = .CenterKeepSizeVert
                 else do
                     .preferredSize.x = editWidth
-                if me.kind == .Condensed do
-                    .updateFlags(.Flat)
             }
 
-            me.adaptCondensedControl(combo)
+            me.adaptCondensedCombo(item, combo)
         }
 
         let combon: *ComboBox = combo

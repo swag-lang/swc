@@ -799,6 +799,70 @@ struct MultiTile
     Swag.require(optionLabel.textVerticalAlignment == .OpticalCenter)
 }
 
+// A compact row owns the complete bounds of its controls, including nested editors and
+// action buttons. Opening a choice fits its standard-height editor, then restores the pitch.
+#test
+{
+    var data: PropCondensedEditorData
+    data.values.add(12)
+
+    var host: Testing.HeadlessHost
+    host.setup(520, 520, dpiScale: 1.5)
+    let prop = Properties.create(&host.root, {0, 0, 500, 500}, .Condensed)
+    prop.addStruct(data, "Settings")
+    let title = unwrap findFieldItem(prop, #nameof(PropCondensedEditorData.title))
+    title.label.setText("Confirm Linked Overwrite")
+    prop.edView.sendResizeEvent()
+    host.root.applyLayout()
+    host.pump()
+    Swag.require(title.label.itf.measureContent({}).x <= title.label.position.width)
+
+    func assertEditorsFit(row: *Wnd, parent: *Wnd)
+    {
+        for child in parent.children where child.isLocallyVisible()
+        {
+            if child is EditBox or
+               child is ComboBox or
+               child is Slider or
+               child is IconButton or
+               child is CheckButton
+            {
+                let rect = child.rectRelativeTo(row)
+                Swag.require(rect.y >= 0 and rect.bottom() <= row.position.height)
+            }
+
+            assertEditorsFit(row, child)
+        }
+    }
+
+    for item in prop.items where item!.line.isVisible() do
+        assertEditorsFit(item.line, item.line)
+
+    let rate   = unwrap findFieldItem(prop, #nameof(PropCondensedEditorData.rate))
+    let combo  = rate.comboBox
+    let bounds = combo.position
+    prop.setSelItem(rate)
+    prop.focusNavigation()
+    host.keyPress(Input.Key.Return)
+    let popup = unwrap combo.popup
+    Swag.require(combo.position.height >= combo.themeMetrics().comboBox_Height)
+    Swag.require(popup.surfaceRect().y == combo.surfaceRect().bottom())
+    Swag.require(popup.position.width < combo.position.width)
+    assertEditorsFit(rate.line, rate.line)
+    host.keyPress(Input.Key.Down)
+    host.keyPress(Input.Key.Return)
+    Swag.require(data.rate == .Disabled and combo.popup == null)
+    Swag.require(combo.position == bounds)
+    assertEditorsFit(rate.line, rate.line)
+
+    let level = unwrap findFieldItem(prop, #nameof(PropCondensedEditorData.level))
+    prop.setSelItem(level)
+    prop.focusNavigation()
+    host.keyPress(Input.Key.Return)
+    Swag.require(level.sliderBox.edit.hasFocus())
+    assertEditorsFit(level.line, level.line)
+}
+
 // Edits applied through the grid write into every selected instance.
 #test
 {

@@ -82,6 +82,9 @@ struct ComboBox
     segmentWidths:        Array'f32                      // Optional content widths for a hosted segmented choice.
     sigSegmentReselected: SigArray'func||(*Wnd, u32)     // A pressed segment that was already selected.
 
+    internal quietCell:    bool                           // Reads as an inline value while the list is closed.
+    internal popupLayout:  (func||(*ComboBox, bool))?     // Lays out the field before anchoring its popup and after dismissal.
+
     aniBk:     BlendColor     // Color animation of the background.
     aniBorder: BlendColor     // Color animation of the border.
     aniText:   BlendColor     // Color animation of the label.
@@ -179,25 +182,29 @@ impl IWnd for ComboBox
         .aniBorder.apply(me, colorBorder)
         .aniText.apply(me, colorText)
 
-        let clientRect = .clientRect()
+        var fieldRect = .clientRect()
+        if .quietCell and .popup do
+            fieldRect.width = Math.min(fieldRect.width, .popup.position.width)
 
-        // In flat (cell) mode the field is only painted while active. A transparent field keeps
-        // the ground it sits on while retaining the border that identifies it as a control.
-        if not .flags.has(.Flat) or .isHot or .popup
+        // An inline value uses its parent's hover ground. When editing, the field uses the
+        // width of the opened list instead of filling the whole cell with a frame.
+        let framed = .popup != null or (not .quietCell and (not .flags.has(.Flat) or .isHot))
+        if framed
         {
             if not .flags.has(.TransparentBackground) do
-                theme.drawSubRect(painter, clientRect, subRectBk, .aniBk.cur())
-            theme.drawSubRect(painter, clientRect, subRectBorder, .aniBorder.cur())
+                theme.drawSubRect(painter, fieldRect, subRectBk, .aniBk.cur())
+            theme.drawSubRect(painter, fieldRect, subRectBorder, .aniBorder.cur())
         }
 
-        // Item
+        let textInset = .quietCell ? metrics.property_FieldGap : metrics.comboBox_Padding
+        var valueEnd  = fieldRect.x + textInset
         if not .editBox and .selectedIndex < .items.count
         {
             var format: RichStringFormat
             let item     = unwrap .items[.selectedIndex]
-            var itemRect = clientRect
+            var itemRect = fieldRect
             itemRect.width -= metrics.comboBox_RightMargin
-            itemRect.moveLeft(metrics.comboBox_Padding)
+            itemRect.moveLeft(textInset)
 
             // Plainly centered, like the field's own marker below: the entry beside it is
             // centered on its capitals, so both sit on the middle of the field whatever face
@@ -213,9 +220,10 @@ impl IWnd for ComboBox
             theme.setTextColors(&format, .aniText.cur())
             format.horzAlignment = .textHorizontalAlignment
             format.vertAlignment = .OpticalCenter
-            format.flags         = .Clip
+            format.flags         = .quietCell ? .Clip | .Ellipsis : .Clip
             format.font          = .font()
             painter.drawRichString(itemRect, &item.name, format)
+            valueEnd = Math.max(itemRect.x, item.name.boundRect.right())
         }
 
         // The right margin is the band the field reserves for its marker, so the marker is
@@ -223,10 +231,12 @@ impl IWnd for ComboBox
         // the same air on both sides whatever size the theme gives it.
         // The marker only says a list opens: faint at rest, in the ink of the words once the
         // pointer or the open list engages the field.
-        let icon      = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
-        let iconX     = clientRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
+        let icon  = theme.icon(ThemeIcons.ChevronDown, metrics.chevron_Size)
+        var iconX = fieldRect.right() - (metrics.comboBox_RightMargin + icon.sizeX) * 0.5
+        if .quietCell and not .popup do
+            iconX = Math.min(iconX, valueEnd + metrics.quiet_ChevronGap)
         let iconColor = bc.isDisabled or .isHot or .popup ? colorText : colors.faintText
-        icon.paint(painter, iconX, clientRect.vertCenter() - icon.sizeY * 0.5, iconColor)
+        icon.paint(painter, iconX, fieldRect.vertCenter() - icon.sizeY * 0.5, iconColor)
     }
 
     // Reports the room the widest item needs beside the icon column and the drop-down arrow.
@@ -624,8 +634,10 @@ private impl ComboBox
             combo.hidePopup()
         }
 
+        if .popupLayout do
+            .popupLayout(me, true)
         let rect = .surfaceRect()
-        popup.show(rect.x, rect.bottom(), rect.width)
+        popup.show(rect.x, rect.bottom(), .quietCell ? 0 : rect.width)
         .sigPopupChanged.call(me, popup, true)
     }
 
@@ -643,8 +655,12 @@ private impl ComboBox
         .popup = null
         .sigPopupChanged.call(me, popup, false)
         popup.destroy()
-        if not .popup do
+        if not .popup
+        {
+            if .popupLayout do
+                .popupLayout(me, false)
             .pointerFocusReturn = null
+        }
 
         // Pointer-opened command lists are temporary overlays. Once dismissed they return the
         // keyboard to its previous owner instead of leaving an invisible focus on the field.

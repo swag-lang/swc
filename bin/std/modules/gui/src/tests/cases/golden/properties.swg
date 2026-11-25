@@ -138,6 +138,42 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string, light:
 #[Swag.TestTag("golden")]
 #test { assertPropertyPresentationGolden(.Panel, "properties.panel", true) }
 
+// At 150%, the hovered choice reads inline and the focused slider value has room for
+// its entire frame. The surrounding controls make any overlap visible.
+#[Swag.TestTag("golden")]
+#test
+{
+    var data: PropCondensedEditorData
+    data.title = "Capture"
+    data.notes = "An editable caption"
+    data.values.add(12)
+
+    var host: Testing.HeadlessHost
+    host.setup(520, 460, dpiScale: 1.5)
+    host.theme.setLight()
+    host.notify(.ThemeChanged)
+
+    let prop = Properties.create(&host.root, {12, 12, 496, 436}, .Condensed)
+    prop.addStruct(data, "Settings")
+    host.root.applyLayout()
+    host.pump()
+
+    let level = unwrap findFieldItem(prop, #nameof(PropCondensedEditorData.level))
+    prop.setSelItem(level)
+    prop.focusNavigation()
+    host.keyPress(Input.Key.Return)
+    host.app.setFocusVisible(true)
+    Swag.require(level.sliderBox.edit.hasVisibleFocus())
+
+    let rate  = unwrap findFieldItem(prop, #nameof(PropCondensedEditorData.rate))
+    let combo = rate.comboBox
+    host.moveMouse(combo.surfaceRect().center() * combo.deviceScale())
+    Swag.require(combo.isHot)
+
+    let image = host.renderSettled()
+    Pixel.Testing.assertImageGolden(&image, "properties.condensed.editing.paper")
+}
+
 // The section list with its counts, the search and the presentation menu open over the grid,
 // in Papier.
 func assertPropertiesCtrlGolden(light: bool)

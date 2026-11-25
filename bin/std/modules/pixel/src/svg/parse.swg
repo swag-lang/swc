@@ -695,6 +695,23 @@ private func scanCssComponent(value: string, pos: *u64, scale: f32)->f32
     return Math.clamp(result, 0, scale)
 }
 
+// The named-color search uses the alphabetical order of the reflected ARGB names.
+private const ArgbNamesSorted = #run
+{
+    var previous = ""
+    for entry in #typeof(Argb).values
+    {
+        let name = entry.name orelse ""
+        if Latin1.compare(previous, name, ignoreCase: true) >= 0 do
+            return false
+        previous = name
+    }
+
+    return true
+}
+
+#assert(ArgbNamesSorted)
+
 // Parses a solid paint value. Returns the color and whether painting is enabled.
 private func parseColor(value: string)->{ color: Color, enabled: bool }
 {
@@ -771,15 +788,26 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
         return result
     }
 
-    // SVG uses the CSS named-color table. The enum preserves its canonical
-    // UpperCamelCase spellings, while authored values are compared case-insensitively.
-    let type = #typeof(Argb)
-    for it in type.values
+    let entries = #typeof(Argb).values
+    var first   = 0'u64
+    var end     = cast(u64, entries.count)
+    while first < end
     {
-        if it.name and not Latin1.compare(it.name, text, ignoreCase: true)
+        let middle = first + (end - first) / 2
+        let entry  = &entries[middle]
+        let order  = Latin1.compare(unwrap entry.name, text, ignoreCase: true)
+        if order < 0
         {
-            result.color = Color.fromArgb(cast(const *Argb, unwrap it.value)[])
-            return result
+            first = middle + 1
+        }
+        elif order > 0
+        {
+            end = middle
+        }
+        else
+        {
+            result.color = Color.fromArgb(cast(const *Argb, unwrap entry.value)[])
+            break
         }
     }
 

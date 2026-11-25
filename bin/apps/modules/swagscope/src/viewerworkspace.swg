@@ -21,6 +21,7 @@ struct SceneView
     readState: bool
     explorerState: ExplorerFolderState
     explorerHistory: NavigationHistory
+    explorerArchive: bool
     playMode:  Viewer.PlayMode
     offset:    f64
     behind:    bool
@@ -501,6 +502,7 @@ impl ViewerWorkspace
         view.readState = false
         view.explorerState = {}
         view.explorerHistory.clear()
+        view.explorerArchive = false
         view.offset    = 0
         view.behind    = false
         if scene.links.leader == index do
@@ -601,11 +603,13 @@ impl ViewerWorkspace
             else do
                 view.explorerState = {path: explorer.requested, folder: explorer.requestedFolder}
             view.explorerHistory = explorer.history
+            view.explorerArchive = explorer.listing.isArchive and Path.equals(explorer.listing.path, explorer.requested)
             return
         }
 
         view.explorerState = {}
         view.explorerHistory.clear()
+        view.explorerArchive = false
         if document.currentFile != view.path or
            document.activeChoiceIndex >= document.instances.count do
             return

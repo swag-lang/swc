@@ -663,6 +663,7 @@ func createViewer(host: Viewer.Host)
     with var lifecycle: Viewer.LifecycleApi
     {
         .isLoading = func|view|()->bool => view.isLoading()
+        .needsLoadingOverlay = func|view|()->bool => view.isLoading() and view.readingOffset() == Swag.U64.Max
         .retire    = func|view|()->bool => cast(*ZoomButton, unwrap view.userData).retire()
     }
 

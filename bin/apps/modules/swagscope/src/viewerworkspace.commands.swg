@@ -8,6 +8,7 @@ namespace TabCommands
     const NewGrid     = "scope.scene.tab.newGrid"
     const OpenFile    = "scope.scene.tab.openFile"
     const OpenFolder  = "scope.scene.tab.openFolder"
+    const OpenItem    = "scope.scene.tab.openItem"
     const Close       = "scope.scene.tab.close"
     const CloseOthers = "scope.scene.tab.closeOthers"
     const CloseAll    = "scope.scene.tab.closeAll"
@@ -170,14 +171,18 @@ impl ViewerWindow
 
         case TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll:
             hidden = not scene
-            icon   = .theme().icon(.WndClose, size)
             switch evt.id
             {
-            case TabCommands.Close:       name = text.tab_Close
+            case TabCommands.Close:
+                name = text.tab_Close
+                icon = .theme().icon(.WndClose, size)
             case TabCommands.CloseOthers:
                 name     = text.tab_CloseOthers
+                icon     = .theme().icon(.Remove, size)
                 disabled = workspace.scenes.count < 2
-            case TabCommands.CloseAll:    name = text.tab_CloseAll
+            case TabCommands.CloseAll:
+                name = text.tab_CloseAll
+                icon = .theme().icon(.RemoveAll, size)
             }
 
         case SceneCommands.Beside:
@@ -263,7 +268,7 @@ impl ViewerWindow
         return true
     }
 
-    mtd runSceneCommand(id: WndId, contextPath: string? = null)->bool
+    mtd runSceneCommand(id: WndId)->bool
     {
         let workspace = .workspace
         if not workspace do
@@ -279,9 +284,7 @@ impl ViewerWindow
         case TabCommands.OpenFile, TabCommands.OpenFolder:
             if workspace.scenes.count >= ViewerWorkspace.MaxScenes do
                 return true
-            if let path = contextPath do
-                workspace.openDocument(path, newTab: true)
-            elif id == TabCommands.OpenFile do
+            if id == TabCommands.OpenFile do
                 .chooseFile(newTab: true)
             else
             {

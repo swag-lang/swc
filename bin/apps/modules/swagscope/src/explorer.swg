@@ -1505,38 +1505,14 @@ impl Explorer
     private mtd showLocationMenu(path: string, position: Math.Point, directory = false, archive: string = "")
     {
         let stableArchive = String.from(archive)
-        let texts         = appStrings()
-        let size          = themeRowIconSize(.themeMetrics())
         let menu          = MenuCtrl.createPopup(me, owner: me)
-
-        // The pointer supplies this menu's target. The lens computes state for the current location.
-        menu.hookOnEvent = func(_, evt)
-        {
-            if evt is CommandStateEvent as command where command.kind == .Compute
-            {
-                command.accepted = true
-                return true
-            }
-
-            return false
-        }
-
-        if directory
-        {
-            if let workspace = .window.workspace do
-                menu.addItem(texts.tab_OpenItem, TabCommands.OpenFolder, .theme().icon(.Plus, size),
-                             disabled: workspace.scenes.count >= ViewerWorkspace.MaxScenes)
-            menu.addItem(texts.explore_OpenSystemFolder, ViewerCommands.OpenSystemFolder, .theme().icon(.OpenExternal, size))
-        }
-        elif not stableArchive.isEmpty() do
-            menu.addItem(texts.explore_RevealArchive, ViewerCommands.RevealArchive, .theme().icon(.Folder, size))
-        menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyLocation, .theme().icon(.Copy, size))
+        .window.addLocationActions(menu, directory, not stableArchive.isEmpty())
         let location = String.from(path)
         let chosen   = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
         if chosen
         {
             let target = chosen == ViewerCommands.RevealArchive ? stableArchive.toString() : location.toString()
-            discard .window.runCommand(chosen, contextPath: target)
+            .window.runFileAction(chosen, target)
         }
     }
 

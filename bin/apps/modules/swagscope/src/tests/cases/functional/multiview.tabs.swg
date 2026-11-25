@@ -182,6 +182,75 @@ using Core, Gui, Pixel
     Swag.require(opened and host.autoHandled and workspace.scene()!.layout == .SideBySide)
 }
 
+// File and directory commands in an inactive tab's menu still target the clicked tab.
+#test
+{
+    let folder = Testing.tempFilePath("scope-tab-location-", "")
+    expect Directory.create(folder)
+    defer discard catch Directory.delete(folder, recurse: true)
+    let file = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openDocument(file, newTab: true)
+    openViews(&host, workspace)
+    workspace.openDocument(folder, newTab: true)
+    openViews(&host, workspace)
+    completeExplorer(&host, unwrap workspace.activeDocument().explorer)
+
+    let fileMenu = workspace.activeDocument().createFileActionsMenu()
+    var checked: bool
+    host.app.sigFrame += func|host = &host, fileMenu, &checked|(_)
+    {
+        if checked do
+            return
+        let menu = host.capturedPopupMenu()
+        if not menu do
+            return
+        for item, index in menu.items where item and not item.separator and not item.hidden
+        {
+            Swag.require(item.icon.isValid(), item.id)
+            for peer, next in menu.items where next > index and peer and not peer.separator and not peer.hidden do
+                Swag.require(item.icon.index != peer.icon.index, item.id)
+        }
+
+        for item in fileMenu.items where item and not item.separator
+        {
+            var found = false
+            for row in menu.items where row and row.id == item.id and not row.hidden
+            {
+                found = row.icon.index == item.icon.index
+                break
+            }
+            Swag.require(found, item.id)
+        }
+        checked = true
+        Swag.require(host.clickPopupMenuItem(ViewerCommands.CopyPath))
+    }
+
+    let tabs = workspace.tabs
+    var point = tabs.localToSurface(tabs.items[0].center())
+    host.surface.surfaceToScreen(&point)
+    host.click(point, .Right)
+    host.app.sigFrame.clear()
+    fileMenu.destroy()
+    Swag.require(checked and Path.equals(Clipboard.getString(), file) and workspace.active == 1)
+
+    workspace.selectScene(0)
+    openViews(&host, workspace)
+    point = tabs.localToSurface(tabs.items[1].center())
+    host.surface.surfaceToScreen(&point)
+    host.clickPopupMenuItemWhenShown(ViewerCommands.CopyLocation)
+    host.click(point, .Right)
+    Swag.require(host.autoHandled and Path.equals(Clipboard.getString(), folder) and workspace.active == 0)
+
+    host.clickPopupMenuItemWhenShown(TabCommands.OpenItem)
+    host.click(point, .Right)
+    openViews(&host, workspace)
+    Swag.require(host.autoHandled and workspace.scenes.count == 3 and workspace.active == 2)
+    Swag.require(Path.equals(workspace.scene()!.views[0].path, folder) and workspace.activeDocument().isExploring())
+}
+
 // The title bar rearranges from what is on screen, even when a click interrupts it.
 #test
 {

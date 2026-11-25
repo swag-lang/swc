@@ -945,6 +945,8 @@ private impl View
         // Publish one complete batch. Updating the scroll extent for every block repeats resize
         // notifications and exposes intermediate height estimates to an active wheel glide.
         .updateDocumentSize()
+        if blockCount do
+            .invalidate()
 
         // A byte-estimated target may finish once enough layout surrounds it. A search target may
         // not: its exact rendered occurrence is the completion signal. Stopping on the estimate

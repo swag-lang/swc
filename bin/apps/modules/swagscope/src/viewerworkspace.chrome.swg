@@ -84,16 +84,44 @@ impl SceneTabs
     {
         let owner = .workspace.activeDocument()
         let menu = MenuCtrl.createPopup(me, owner: owner)
+        let scene = unwrap .workspace.scenes[index]
+        var path, location: String
+        if scene.views.count == 1 and not scene.views[0].path.isEmpty()
+        {
+            let view = &scene.views[0]
+            path = view.path
+            location = path
+            let document = view.document
+            let explorer = document?.explorer
+            let folderTab = document ? document.isExploring() and not document.explorerTransition :
+                                       not view.explorerState.path.isEmpty()
+            if folderTab
+            {
+                let member = explorer ? explorer.requestedFolder.toString() : view.explorerState.folder.toString()
+                let archive = (explorer?.listing.isArchive orelse view.explorerArchive) or member.count != 0
+                if member.count do
+                    location = Format.toString("%/%", path, member)
+                owner.addLocationActions(menu, directory: not archive, archive: archive)
+            }
+            else do
+                owner.addFileActions(menu)
+            menu.addSeparator()
+        }
+
         menu.addItems([TabCommands.New, TabCommands.NewGrid, TabCommands.OpenFile, TabCommands.OpenFolder])
         menu.addSeparator()
         menu.addItems([TabCommands.Close, TabCommands.CloseOthers, TabCommands.CloseAll])
-        let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
-        switch chosen orelse ""
+        let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false) orelse ""
+        switch chosen
         {
         case TabCommands.Close:       .workspace.closeScene(index)
         case TabCommands.CloseOthers: .workspace.closeTabs(keep: index)
         case "":                     return
-        default:                      discard owner.runCommand(unwrap chosen)
+        default:
+            if isPathMenuAction(chosen) do
+                owner.runFileAction(chosen, chosen == ViewerCommands.CopyLocation ? location : path)
+            else do
+                discard owner.runCommand(chosen)
         }
     }
 

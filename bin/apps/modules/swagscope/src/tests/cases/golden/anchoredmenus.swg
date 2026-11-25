@@ -22,6 +22,47 @@ func captureScopeContextMenu(host: *Testing.HeadlessHost, golden: string)
 #test
 {
     var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, width: 900, height: 565)
+    defer host.shutdown()
+    workspace.openDocument(scopeTestDataPath("sample.cpp"), newTab: true)
+    openViews(&host, workspace)
+    workspace.openDocument(scopeTestDataPath("comprehensive.txt"), newTab: true)
+    openViews(&host, workspace)
+    let tabs = workspace.tabs
+    var point = tabs.localToSurface(tabs.items[0].center())
+    host.surface.surfaceToScreen(&point)
+    captureScopeContextMenu(&host, "menus.tab.file.encre")
+    host.click(point, .Right)
+    host.app.sigFrame.clear()
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    let root   = Testing.tempFilePath("scope-folder-tab-menu-", "")
+    let folder = Path.combine(root, "Projects")
+    expect Directory.create(folder, recurse: true)
+    defer discard catch Directory.delete(root, recurse: true)
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host, light: true, width: 900, height: 520)
+    defer host.shutdown()
+    workspace.openDocument(folder, newTab: true)
+    openViews(&host, workspace)
+    completeExplorer(&host, unwrap workspace.activeDocument().explorer)
+    workspace.openDocument(scopeTestDataPath("viewer.txt"), newTab: true)
+    openViews(&host, workspace)
+    let tabs = workspace.tabs
+    var point = tabs.localToSurface(tabs.items[0].center())
+    host.surface.surfaceToScreen(&point)
+    captureScopeContextMenu(&host, "menus.tab.folder.paper")
+    host.click(point, .Right)
+    host.app.sigFrame.clear()
+}
+
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
     let window = framedViewerWindow(&host, scopeTestDataPath("viewer.console.exe"), true)
     let view   = assume cast(*Binary.Panel, window.currentView)
     captureScopeContextMenu(&host, "menus.binary.context.paper")

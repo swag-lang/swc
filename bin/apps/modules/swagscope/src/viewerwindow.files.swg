@@ -254,43 +254,74 @@ impl ViewerWindow
     // Builds what one file offers, wherever the reader pointed at it.
     internal mtd createFileActionsMenu()->*MenuCtrl
     {
-        let texts = appStrings()
-        let menu  = MenuCtrl.createPopup(me, owner: me)
-        if .workspace
-        {
-            menu.addItem(texts.tab_OpenItem, TabCommands.OpenFile, .theme().icon(.Plus, themeRowIconSize(.themeMetrics())))
-            menu.addSeparator()
-        }
-        menu.addItem(texts.ui_MenuLocate, ViewerCommands.Locate, .theme().icon(.OpenFile, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuOpenDefault, ViewerCommands.OpenDefault, .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuOpenWith, ViewerCommands.OpenWith, .theme().icon(.OpenExternal, themeRowIconSize(.themeMetrics())))
-        menu.addSeparator()
-        menu.addItem(texts.ui_MenuCopyPath, ViewerCommands.CopyPath, .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
-        menu.addItem(texts.ui_MenuCopyName, ViewerCommands.CopyName, .theme().icon(.Copy, themeRowIconSize(.themeMetrics())))
-
+        let menu = MenuCtrl.createPopup(me, owner: me)
+        .addFileActions(menu)
         return menu
+    }
+
+    internal mtd addFileActions(menu: *MenuCtrl)
+    {
+        bindPathMenu(menu)
+        let texts = appStrings()
+        .addOpenItemAction(menu)
+        .addPathAction(menu, texts.ui_MenuOpenDefault, ViewerCommands.OpenDefault)
+        .addPathAction(menu, texts.ui_MenuOpenWith, ViewerCommands.OpenWith)
+        .addPathAction(menu, texts.ui_MenuLocate, ViewerCommands.Locate)
+        menu.addSeparator()
+        .addPathAction(menu, texts.ui_MenuCopyPath, ViewerCommands.CopyPath)
+        .addPathAction(menu, texts.ui_MenuCopyName, ViewerCommands.CopyName)
+    }
+
+    internal mtd addLocationActions(menu: *MenuCtrl, directory, archive: bool)
+    {
+        bindPathMenu(menu)
+        let texts = appStrings()
+        if directory
+        {
+            .addOpenItemAction(menu)
+            .addPathAction(menu, texts.explore_OpenSystemFolder, ViewerCommands.OpenSystemFolder)
+        }
+        elif archive do
+            .addPathAction(menu, texts.explore_RevealArchive, ViewerCommands.RevealArchive)
+        .addPathAction(menu, texts.ui_MenuCopyPath, ViewerCommands.CopyLocation)
+    }
+
+    private mtd addOpenItemAction(menu: *MenuCtrl)
+    {
+        if let workspace = .workspace do
+            .addPathAction(menu, appStrings().tab_OpenItem, TabCommands.OpenItem,
+                           disabled: workspace.scenes.count >= ViewerWorkspace.MaxScenes)
+    }
+
+    private mtd addPathAction(menu: *MenuCtrl, name: string, id: WndId, disabled = false)
+    {
+        menu.addItem(name, id, .commandGlyph(pathActionGlyph(id)), disabled: disabled)
     }
 
     // Shows what one file offers, wherever the reader pointed at it.
     internal mtd showFileActions(fileName: string, position: Math.Point)
     {
+        let path = String.from(fileName)
         let menu = .createFileActionsMenu()
 
         let chosen = menu.doModal(position, autoDestroy: true, dispatchCommand: false)
         if not chosen do
             return
 
-        discard .runCommand(chosen, contextPath: fileName)
+        .runFileAction(chosen, path)
     }
 
     internal mtd runFileAction(chosen: WndId, fileName: string)
     {
+        if fileName.count == 0 do
+            return
         switch chosen
         {
-        case ViewerCommands.Locate:      Env.showInFileExplorer(fileName)
-        case ViewerCommands.OpenDefault: Env.openFile(fileName)
+        case TabCommands.OpenItem: .workspace?.openDocument(fileName, newTab: true)
+        case ViewerCommands.Locate, ViewerCommands.RevealArchive: Env.showInFileExplorer(fileName)
+        case ViewerCommands.OpenDefault, ViewerCommands.OpenSystemFolder: Env.openFile(fileName)
         case ViewerCommands.OpenWith:    Env.openFileWith(fileName)
-        case ViewerCommands.CopyPath:    Clipboard.setString(fileName)
+        case ViewerCommands.CopyPath, ViewerCommands.CopyLocation: Clipboard.setString(fileName)
         case ViewerCommands.CopyName:    Clipboard.setString(Path.fileName(fileName) orelse fileName)
         }
     }
@@ -491,5 +522,42 @@ impl ViewerWindow
         }
 
         return result
+    }
+}
+
+internal func pathActionGlyph(id: WndId)->ThemeIcons
+{
+    switch id
+    {
+    case TabCommands.OpenItem: return .Duplicate
+    case ViewerCommands.Locate: return .ParentFolder
+    case ViewerCommands.OpenDefault, ViewerCommands.OpenSystemFolder: return .OpenExternal
+    case ViewerCommands.OpenWith: return .Options
+    case ViewerCommands.CopyPath, ViewerCommands.CopyLocation: return .Link
+    case ViewerCommands.CopyName: return .Copy
+    case ViewerCommands.RevealArchive: return .FileArchive
+    default: return .File
+    }
+}
+
+internal func isPathMenuAction(id: WndId)->bool
+{
+    return Slice.contains([TabCommands.OpenItem, ViewerCommands.Locate, ViewerCommands.OpenDefault,
+                           ViewerCommands.OpenWith, ViewerCommands.CopyPath, ViewerCommands.CopyName,
+                           ViewerCommands.CopyLocation, ViewerCommands.OpenSystemFolder,
+                           ViewerCommands.RevealArchive], id)
+}
+
+private func bindPathMenu(menu: *MenuCtrl)
+{
+    // The selected path belongs to the menu, which can point at an inactive tab.
+    menu.hookOnEvent = func(_, evt)
+    {
+        if evt is CommandStateEvent as command where command.kind == .Compute and isPathMenuAction(command.id)
+        {
+            command.accepted = true
+            return true
+        }
+        return false
     }
 }

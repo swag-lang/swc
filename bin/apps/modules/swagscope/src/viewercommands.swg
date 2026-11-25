@@ -790,27 +790,27 @@ impl ViewerWindow
 
         case ViewerCommands.OpenDefault:
             name   = texts.ui_MenuOpenDefault
-            icon   = .commandGlyph(.OpenExternal)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = .fileActionPath().count == 0
 
         case ViewerCommands.OpenWith:
             name   = texts.ui_MenuOpenWith
-            icon   = .commandGlyph(.OpenExternal)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = .fileActionPath().count == 0
 
         case ViewerCommands.Locate:
             name   = texts.ui_MenuLocate
-            icon   = .commandGlyph(.Folder)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = .fileActionPath().count == 0
 
         case ViewerCommands.CopyPath:
             name   = texts.ui_MenuCopyPath
-            icon   = .commandGlyph(.Copy)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = .fileActionPath().count == 0
 
         case ViewerCommands.CopyName:
             name   = texts.ui_MenuCopyName
-            icon   = .commandGlyph(.Copy)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = .fileActionPath().count == 0
 
         case ViewerCommands.Forget:
@@ -981,17 +981,17 @@ impl ViewerWindow
 
         case ViewerCommands.CopyLocation:
             name   = texts.explore_CopyLocation
-            icon   = .commandGlyph(.Copy)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = not exploring or .explorer!.listing.path.isEmpty()
 
         case ViewerCommands.OpenSystemFolder:
             name   = texts.explore_OpenSystemFolder
-            icon   = .commandGlyph(.OpenExternal)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = not exploring or .explorer!.listing.isArchive or .explorer!.listing.path.isEmpty()
 
         case ViewerCommands.RevealArchive:
             name   = texts.explore_RevealArchive
-            icon   = .commandGlyph(.Folder)
+            icon   = .commandGlyph(pathActionGlyph(evt.id))
             hidden = not exploring or .explorer!.nativeArchivePath().count == 0
 
         case ViewerCommands.SortName, ViewerCommands.SortType,
@@ -1206,12 +1206,12 @@ impl ViewerWindow
         return Slice.contains(["text", "code", "markdown", "table", "subtitle", "xlsx", "ods"], .choices[.activeChoiceIndex].key.toString())
     }
 
-    // Runs a window command. A path supplied by a context menu takes precedence over the selection.
-    mtd runCommand(id: WndId, contextPath: string? = null)->bool
+    // Runs a window command against the current selection.
+    mtd runCommand(id: WndId)->bool
     {
         if not .acceptsViewCommands() and .needsSelectedCell(id) do
             return true
-        if .runSceneCommand(id, contextPath) or .runComparisonCommand(id) or .runMediaCommand(id) do
+        if .runSceneCommand(id) or .runComparisonCommand(id) or .runMediaCommand(id) do
             return true
 
         let hasFile = not .currentFile.isEmpty()
@@ -1290,9 +1290,7 @@ impl ViewerWindow
 
         case ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
              ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName:
-            let path = contextPath orelse .fileActionPath()
-            if path.count do
-                .runFileAction(id, path)
+            .runFileAction(id, .fileActionPath())
 
         case ViewerCommands.Forget where hasFile:
             .forgetRecent(.currentFile.toString())
@@ -1363,7 +1361,7 @@ impl ViewerWindow
             .setPlayMode(.Shuffle)
 
         default:
-            return .runExplorerCommand(id, contextPath)
+            return .runExplorerCommand(id)
         }
 
         return true
@@ -1379,7 +1377,7 @@ impl ViewerWindow
     }
 
     // Runs one command of the explored folder, and reports whether it was one.
-    private mtd runExplorerCommand(id: WndId, contextPath: string?)->bool
+    private mtd runExplorerCommand(id: WndId)->bool
     {
         if not .explorer do
             return false
@@ -1408,19 +1406,14 @@ impl ViewerWindow
             explorer.chooseFolder()
 
         case ViewerCommands.CopyLocation:
-            let path = contextPath ? String.from(contextPath) : explorer.locationText()
-            if not path.isEmpty() do
-                Clipboard.setString(path)
+            .runFileAction(id, explorer.locationText())
 
         case ViewerCommands.OpenSystemFolder:
-            let path = contextPath orelse (explorer.listing.isArchive ? "" : explorer.listing.path.toString())
-            if path.count do
-                Env.openFile(path)
+            if not explorer.listing.isArchive do
+                .runFileAction(id, explorer.listing.path)
 
         case ViewerCommands.RevealArchive:
-            let path = contextPath orelse explorer.nativeArchivePath()
-            if path.count do
-                Env.showInFileExplorer(path)
+            .runFileAction(id, explorer.nativeArchivePath())
 
         case ViewerCommands.FilterAll, ViewerCommands.FilterVideos,
              ViewerCommands.FilterImages, ViewerCommands.FilterAudio,

@@ -65,6 +65,37 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 internal func markdownFixturePath()->String       => scopeTestDataPath("comprehensive.md")
 internal func markdownWhiteyFixturePath()->String => scopeTestDataPath("whitey.md")
 
+// Changing files keeps the old page until a manuscript's first streamed block can paint.
+#test
+{
+    let path = Testing.tempFilePath("scope-markdown-first-page-", ".md")
+    defer discard catch File.delete(path)
+    var source = String.from("```text\n")
+    for 420 do
+        source += "A long opening block must finish loading before it replaces the previous page.\n"
+    source += "```\n\n# The next chapter\n"
+    expect File.writeAllText(path, source)
+
+    var host: HeadlessHost
+    let window = framedViewerWindow(&host, scopeTestDataPath("viewer.txt"), false)
+    defer host.shutdown()
+    let previous = window.currentView
+    window.queueFile(path)
+    completeViewerWindowClassification(&host, window)
+    Swag.require(window.activeChoiceIndex < window.instances.count)
+    let instance = &window.instances[window.activeChoiceIndex]
+    let markdown = assume cast(*Markdown.View, instance.view)
+    Swag.require(markdown.readingOffset() == Swag.U64.Max)
+    Swag.require(window.currentView == previous and window.outgoingView == previous)
+    host.fireTimers()
+    Swag.require(window.currentView == previous)
+    completeQueuedViewerFile(&host, window)
+    Swag.require(markdown.readingOffset() != Swag.U64.Max)
+    if window.loadingTimer do
+        host.fireTimer(window.loadingTimer)
+    Swag.require(window.currentView == markdown and window.outgoingView == null and markdown.isVisible())
+}
+
 // Theme and line width are viewer preferences, not properties of one Markdown file.
 #test
 {

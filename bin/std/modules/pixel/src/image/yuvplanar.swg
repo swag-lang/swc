@@ -170,7 +170,7 @@ private func convertRowFullChroma(destination: [*] u8, luma, cb, cr: const [*] u
     var remaining = width
     while remaining >= 16
     {
-        convertYuvRgb16Full(out, y, cb + at, cr + at, factors)
+        convertYuvRgb16Colors(out, y, Simd.load(cb + at), Simd.load(cr + at), factors)
         out       += 48
         y         += 16
         at        += 16
@@ -193,6 +193,35 @@ private func convertRowFullChroma(destination: [*] u8, luma, cb, cr: const [*] u
     }
 }
 
+// Keeps the quarter-sample vertical interpolation unrounded for the horizontal pass.
+#[Swag.Inline]
+private func weightChromaRows(row, adjacent: const [*] u8)->Simd.U16x8
+{
+    let a      = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, row)[0]))
+    let b      = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, adjacent)[0]))
+    let middle = Simd.widenLow(a)
+    return (middle << 1) + middle + Simd.widenLow(b)
+}
+
+// For even 4:2:0 dimensions, the sample centers lie one quarter of a chroma texel off
+// the nearest center on both axes. Combine the two passes before rounding once.
+#[Swag.Inline]
+private func quarterChroma(row, adjacent: const [*] u8, first, last: bool)->Simd.U8x16
+{
+    const RepeatLeft  = cast(Simd.U8x16, [0'u8, 1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    const RepeatRight = cast(Simd.U8x16, [2'u8, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 14, 15])
+    let middle = weightChromaRows(row, adjacent)
+    let bytes  = cast #bit(Simd.U8x16, middle)
+    let left   = first ? cast #bit(Simd.U16x8, Simd.shuffle(bytes, RepeatLeft)) : weightChromaRows(row - 1, adjacent - 1)
+    let right  = last ? cast #bit(Simd.U16x8, Simd.shuffle(bytes, RepeatRight)) : weightChromaRows(row + 1, adjacent + 1)
+    let base   = (middle << 1) + middle + 8'u16
+    let even   = (base + left) >> 4
+    let odd    = (base + right) >> 4
+    let low    = cast #bit(Simd.S16x8, Simd.interleaveLow(even, odd))
+    let high   = cast #bit(Simd.S16x8, Simd.interleaveHigh(even, odd))
+    return Simd.packUnsigned(low, high)
+}
+
 // Converts one row whose chroma planes carry a sample per pair of pixels.
 private func convertRowHalfChroma(destination: [*] u8,
                                   luma,
@@ -206,24 +235,42 @@ private func convertRowHalfChroma(destination: [*] u8,
                                   y: s32,
                                   factors: const *YuvConversionFactors)
 {
-    var chromaB: [16] u8
-    var chromaR: [16] u8
     var x = 0's32
-    while width - x >= 16
+    if not (width & 1) and not (height & 1)
     {
-        for lane in 16
+        let row        = y / 2
+        let adjacent   = Math.clamp(row + ((y & 1) ? 1 : -1), 0, chromaHeight - 1)
+        let rowAt      = cast(u64, row) * chromaStride
+        let adjacentAt = cast(u64, adjacent) * chromaStride
+        while width - x >= 16
         {
-            let pixelX = x + cast(s32, lane)
-            chromaB[lane] = sampleLinearChroma(cb, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
-            chromaR[lane] = sampleLinearChroma(cr, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
+            let column         = cast(u64, x / 2)
+            let rowOffset      = rowAt + column
+            let adjacentOffset = adjacentAt + column
+            let first          = x == 0
+            let last           = x + 16 == width
+            let blue           = quarterChroma(cb + rowOffset, cb + adjacentOffset, first, last)
+            let red            = quarterChroma(cr + rowOffset, cr + adjacentOffset, first, last)
+            convertYuvRgb16Colors(destination + cast(u64, x * 3), luma + cast(u64, x), blue, red, factors)
+            x += 16
         }
+    }
+    else
+    {
+        var chromaB: [16] u8
+        var chromaR: [16] u8
+        while width - x >= 16
+        {
+            for lane in 16
+            {
+                let pixelX = x + cast(s32, lane)
+                chromaB[lane] = sampleLinearChroma(cb, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
+                chromaR[lane] = sampleLinearChroma(cr, chromaStride, chromaWidth, chromaHeight, width, height, pixelX, y)
+            }
 
-        convertYuvRgb16Full(destination + cast(u64, x * 3),
-                            luma + cast(u64, x),
-                            &chromaB[0],
-                            &chromaR[0],
-                            factors)
-        x += 16
+            convertYuvRgb16Colors(destination + cast(u64, x * 3), luma + cast(u64, x), Simd.load(&chromaB[0]), Simd.load(&chromaR[0]), factors)
+            x += 16
+        }
     }
 
     while x < width
@@ -391,11 +438,10 @@ private func storeYuvRgb48(destination: [*] u8, r8, g8, b8: Simd.U8x16)
     Simd.store(destination + 32, Simd.shuffle(r8, PermR2) | Simd.shuffle(g8, PermG2) | Simd.shuffle(b8, PermB2))
 }
 
-// Converts sixteen luma samples against sixteen chroma samples of their own, with the exact
-// fixed-point arithmetic of the scalar path. It is [[convertYuvRgb16]] without the duplication
-// that makes one chroma byte serve two pixels.
+// Converts sixteen luma samples and their per-pixel chroma values with the same
+// fixed-point arithmetic and clamping as the scalar path.
 #[Swag.Inline]
-private func convertYuvRgb16Full(destination: [*] u8, luma, cb, cr: const [*] u8, factors: const *YuvConversionFactors)
+private func convertYuvRgb16Colors(destination: [*] u8, luma: const [*] u8, dBytes, eBytes: Simd.U8x16, factors: const *YuvConversionFactors)
 {
     let y16 = Simd.subSaturating(Simd.load(luma), Simd.splat(cast(u8, factors.lumaOffset)))
     let yLo = Simd.widenLow(y16)
@@ -405,12 +451,10 @@ private func convertYuvRgb16Full(destination: [*] u8, luma, cb, cr: const [*] u8
     let y2  = cast #bit(Simd.S32x4, Simd.widenLow(yHi)) * factors.lumaScale
     let y3  = cast #bit(Simd.S32x4, Simd.widenHigh(yHi)) * factors.lumaScale
 
-    let dBytes = Simd.load(cb)
-    let eBytes = Simd.load(cr)
-    let dSLo   = cast #bit(Simd.S16x8, Simd.widenLow(dBytes)) - 128
-    let dSHi   = cast #bit(Simd.S16x8, Simd.widenHigh(dBytes)) - 128
-    let eSLo   = cast #bit(Simd.S16x8, Simd.widenLow(eBytes)) - 128
-    let eSHi   = cast #bit(Simd.S16x8, Simd.widenHigh(eBytes)) - 128
+    let dSLo = cast #bit(Simd.S16x8, Simd.widenLow(dBytes)) - 128
+    let dSHi = cast #bit(Simd.S16x8, Simd.widenHigh(dBytes)) - 128
+    let eSLo = cast #bit(Simd.S16x8, Simd.widenLow(eBytes)) - 128
+    let eSHi = cast #bit(Simd.S16x8, Simd.widenHigh(eBytes)) - 128
 
     let d0 = Simd.widenLow(dSLo)
     let d1 = Simd.widenHigh(dSLo)

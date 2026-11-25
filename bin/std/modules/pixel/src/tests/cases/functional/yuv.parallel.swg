@@ -57,3 +57,49 @@ using Core
         }
     }
 }
+
+// Even subsampled planes use quarter-texel weights and round only the final sample.
+#test
+{
+    const Widths:   [4] s32       = [16, 34, 48, 66]
+    const Heights:  [2] s32       = [2, 10]
+    const Matrices: [3] YuvMatrix = [.Bt601, .Bt709, .Bt2020]
+    var storage: Array'u8
+    var result:  Image
+    for width in Widths
+    {
+        for height in Heights
+        {
+            let lumaStride   = cast(u64, width + 3)
+            let chromaStride = cast(u64, width / 2 + 5)
+            let lumaSize     = lumaStride * cast(u64, height)
+            let chromaSize   = chromaStride * cast(u64, height / 2)
+            storage.resize(lumaSize + chromaSize * 2)
+            for index in storage.count do
+                storage[index] = cast(u8, ((index * 67 + index / 47) & 255))
+
+            var view = YuvPlanarView{luma: storage.storage(), chromaB: storage.storage() + lumaSize,
+                                     chromaR: storage.storage() + lumaSize + chromaSize, lumaStride: lumaStride,
+                                     chromaStride: chromaStride, width: width, height: height}
+            for matrix in Matrices
+            {
+                view.matrix = matrix
+                for range in 2
+                {
+                    view.studioRange = range == 0
+                    view.convertToRgb(&result)
+                    for y in height
+                    {
+                        for x in width
+                        {
+                            let cb    = expectedChromaSample(view.chromaB, chromaStride, width / 2, height / 2, width, height, x, y)
+                            let cr    = expectedChromaSample(view.chromaR, chromaStride, width / 2, height / 2, width, height, x, y)
+                            let value = view.luma[cast(u64, y) * lumaStride + cast(u64, x)]
+                            Swag.require(result.pixelColor(x, y) == expectedPlanarColor(value, cb, cr, matrix, view.studioRange))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

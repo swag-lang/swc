@@ -34,6 +34,16 @@ namespace
         return containsLargeBlockRange(block, ref, size) ? block.storage.get() + (ref - block.offset) : nullptr;
     }
 
+    struct EmptyRelocationRange
+    {
+        uint64_t segmentId = 0;
+        uint64_t version   = 0;
+        uint64_t end       = 0;
+        uint32_t start     = 0;
+    };
+
+    thread_local std::array<EmptyRelocationRange, 256> emptyRelocationRanges;
+
     struct RelocationOffsetProjection
     {
         const std::vector<DataSegmentRelocation>* relocations = nullptr;
@@ -350,32 +360,47 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
     outRelocations.clear();
     if (!size)
         return;
-    // The version starts at zero and never resets, so an untouched segment has no index to query.
-    if (!relocationVersion_.load(std::memory_order_acquire))
+    const uint64_t version = relocationVersion_.load(std::memory_order_acquire);
+    if (!version)
         return;
 
-    // Readers only ever take a shared lock: the query walks the sorted prefix plus the unsorted tail, so
-    // no exclusive index rebuild is needed. This keeps concurrent readers off the writer's critical path.
-    const std::shared_lock lock(relocationsMutex_);
+    // Nearby allocations often share a gap between two relocations. Group query offsets
+    // in 256-byte buckets and reuse a gap only at the version that proved it empty.
+    const uint64_t        key    = (id_ << 32) | (offset / 256);
+    EmptyRelocationRange& cached = emptyRelocationRanges[FlatTable::slotIndex(key, emptyRelocationRanges.size() - 1)];
+    const uint64_t        end    = static_cast<uint64_t>(offset) + size;
+    if (cached.segmentId == id_ && cached.version == version && cached.start <= offset && end <= cached.end)
+        return;
 
+    const std::shared_lock           lock(relocationsMutex_);
     const RelocationOffsetProjection projection{.relocations = &relocations_};
-    const auto                       appendRange = [&](const std::vector<uint32_t>& index, auto it) {
-        for (; it != index.end() && relocations_[*it].offset - offset < size; ++it)
-            outRelocations.push_back(relocations_[*it]);
-    };
-
-    if (relocationsTailByOffset_.empty())
+    auto                             indexed       = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
+    auto                             tail          = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
+    const uint64_t                   indexedOffset = indexed == relocationsByOffset_.end() ? UINT64_MAX : relocations_[*indexed].offset;
+    const uint64_t                   tailOffset    = tail == relocationsTailByOffset_.end() ? UINT64_MAX : relocations_[*tail].offset;
+    const uint64_t                   nextOffset    = std::min(indexedOffset, tailOffset);
+    if (end <= nextOffset)
     {
-        appendRange(relocationsByOffset_, std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection));
+        uint32_t gapStart = 0;
+        if (indexed != relocationsByOffset_.begin())
+            gapStart = relocations_[*std::prev(indexed)].offset + 1;
+        if (tail != relocationsTailByOffset_.begin())
+            gapStart = std::max(gapStart, relocations_[*std::prev(tail)].offset + 1);
+        cached = {
+            .segmentId = id_,
+            .version   = relocationVersion_.load(std::memory_order_relaxed),
+            .end       = nextOffset,
+            .start     = gapStart,
+        };
         return;
     }
 
-    auto       indexed              = std::ranges::lower_bound(relocationsByOffset_, offset, {}, projection);
-    auto       tail                 = std::ranges::lower_bound(relocationsTailByOffset_, offset, {}, projection);
-    const bool tailRangeEmpty       = tail == relocationsTailByOffset_.end() || relocations_[*tail].offset - offset >= size;
-    const bool rangesAlreadyOrdered = indexed == relocationsByOffset_.end() || tailRangeEmpty ||
-                                      relocations_[relocationsByOffset_.back()].offset <= relocations_[*tail].offset;
-    if (rangesAlreadyOrdered)
+    const auto appendRange = [&](const std::vector<uint32_t>& index, auto it) {
+        for (; it != index.end() && relocations_[*it].offset < end; ++it)
+            outRelocations.push_back(relocations_[*it]);
+    };
+
+    if (indexedOffset >= end || tailOffset >= end || relocations_[relocationsByOffset_.back()].offset <= tailOffset)
     {
         appendRange(relocationsByOffset_, indexed);
         appendRange(relocationsTailByOffset_, tail);
@@ -388,14 +413,8 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
     {
         const DataSegmentRelocation& indexedRelocation = relocations_[*indexed];
         const DataSegmentRelocation& tailRelocation    = relocations_[*tail];
-        if (indexedRelocation.offset - offset >= size)
+        if (indexedRelocation.offset >= end || tailRelocation.offset >= end)
             break;
-        if (tailRelocation.offset - offset >= size)
-        {
-            outRelocations.push_back(indexedRelocation);
-            ++indexed;
-            continue;
-        }
 
         if (indexedRelocation.offset <= tailRelocation.offset)
         {
@@ -408,10 +427,8 @@ void DataSegment::copyRelocationsImpl(T& outRelocations, const uint32_t offset, 
             ++tail;
         }
     }
-    for (; indexed != relocationsByOffset_.end() && relocations_[*indexed].offset - offset < size; ++indexed)
-        outRelocations.push_back(relocations_[*indexed]);
-    for (; tail != relocationsTailByOffset_.end() && relocations_[*tail].offset - offset < size; ++tail)
-        outRelocations.push_back(relocations_[*tail]);
+    appendRange(relocationsByOffset_, indexed);
+    appendRange(relocationsTailByOffset_, tail);
 }
 
 bool DataSegment::findRelocationLocked(DataSegmentRelocation& outRelocation, const uint32_t offset, const DataSegmentRelocationKind kind) const

@@ -188,6 +188,38 @@ SWC_TEST_BEGIN(DataSegment_CopyRelocationsEmptySegmentClearsOutput)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_CopyRelocationsRechecksEmptyRangesAfterAnAdd)
+{
+    DataSegment segment;
+    segment.addRelocation(64, 1);
+    segment.addRelocation(32, 2);
+
+    SmallVector<DataSegmentRelocation, 4> relocations;
+    segment.copyRelocations(relocations, 40, 8);
+    if (!relocations.empty())
+        return Result::Error;
+
+    // Both neighbors share the cache bucket with the gap between them.
+    segment.copyRelocations(relocations, 32, 8);
+    if (relocations.size() != 1 || relocations[0].targetOffset != 2)
+        return Result::Error;
+    segment.copyRelocations(relocations, 56, 16);
+    if (relocations.size() != 1 || relocations[0].targetOffset != 1)
+        return Result::Error;
+    segment.copyRelocations(relocations, 48, 16);
+    if (!relocations.empty())
+        return Result::Error;
+
+    std::jthread writer([&] { segment.addRelocation(44, 3); });
+    writer.join();
+
+    std::vector<DataSegmentRelocation> updated;
+    segment.copyRelocations(updated, 40, 8);
+    if (updated.size() != 1 || updated[0].targetOffset != 3)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_RelocationIndexHandlesInterleavedMonotonicAdds)
 {
     DataSegment segment;

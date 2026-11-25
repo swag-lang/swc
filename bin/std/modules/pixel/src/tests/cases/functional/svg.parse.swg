@@ -21,6 +21,28 @@ using Swag, Core
     }
 }
 
+// A compound fill with stroke keeps the nesting and placement of spatially separated contours.
+#test
+{
+    var path = String.from("M2 2h16v16H2z M5 5v10h10V5z M8 8h4v4H8z ")
+    for i in 64
+    {
+        let island = Format.toString("M% 20h2v2h-2z ", 24 + i * 4)
+        path += island.toString()
+    }
+
+    let source  = Format.toString("""\
+        <svg width='300' height='24'><path fill='red' stroke='blue' \
+        stroke-width='0.25' fill-rule='evenodd' d='%'/></svg>""", path)
+    let drawing = expect Svg.Drawing.parse(source.toString())
+    Swag.require(drawing.shapeCount() == 66)
+    let image = drawing.rasterize(300, 24, 1)
+    Swag.require(image.pixelColor(3, 3) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(6, 6).a == 0)
+    Swag.require(image.pixelColor(9, 9) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(277, 21).r > 200)
+}
+
 // Layout can reserve the final image box without parsing paths or decoding embedded images.
 #test
 {

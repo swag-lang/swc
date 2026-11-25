@@ -1741,6 +1741,33 @@ private func usesScanFill(list: const *LinePathList, state: const *GroupState)->
     return false
 }
 
+#[Swag.Inline]
+private func(Candidates) containerCount(paths: const *LinePathList, probe: Vector2, excluded: u64, candidates: Candidates)->s32
+{
+    var depth = 0
+    for j in candidates where j != excluded
+    {
+        if paths.paths[j].polygon.contains(probe) do
+            depth += 1
+    }
+
+    return depth
+}
+
+#[Swag.Inline]
+private func(Candidates) appendHoles(group: *LinePathList, paths: const *LinePathList,
+                             depth: const [..] s32, root: u64, candidates: Candidates)
+{
+    let outer     = &paths.paths[root].polygon
+    let holeDepth = depth[root] + 1
+    for j in candidates where depth[j] == holeDepth
+    {
+        let path = paths.paths[j]
+        if path.polygon.points.count and outer.contains(path.polygon.points[0]) do
+            group.paths.add(path)
+    }
+}
+
 private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *GroupState)
 {
     if list.paths.isEmpty() do
@@ -1748,67 +1775,58 @@ private func emitShape(drawing: *Drawing, list: #move LinePathList, state: *Grou
     if not state.isDisplayed or not state.isVisible or (not state.hasFill and not state.hasStroke) do
         return
 
-    // The triangulated fill treats every extra contour of a list as a hole cut into
-    // the first, so a path whose contours are DISJOINT unions (an arrow above a bar)
-    // would lose all but one region. Decompose by containment depth: every even-depth
-    // contour roots its own shape and odd-depth contours join their root as holes.
+    // A triangulated fill needs one outer contour followed by its holes. Split separate islands
+    // by containment depth, keeping the source order of both islands and holes.
     if state.hasFill and list.paths.count > 1 and not usesScanFill(&list, state)
     {
-        var work = #move list
-        let n    = work.paths.count
-        for p in work.paths do
-            p.flatten(.Normal)
+        var work  = #move list
+        let count = work.paths.count
+        for path in work.paths do
+            path.flatten(.Normal)
+
+        let indexed = count >= MinIndexedContours
+        var index: ContourIndex
+        if indexed do
+            index.build(&work)
 
         var depth: Array's32
-        depth.resize(n)
-        for i in n
+        depth.resize(count)
+        for i in count
         {
-            let pi = work.paths[i]
-            if pi.polygon.points.isEmpty() do
+            let points = &work.paths[i].polygon.points
+            if points.isEmpty() do
                 continue
-            let probe = pi.polygon.points[0]
-            for j in n where j != i
-            {
-                if work.paths[j].polygon.contains(probe) do
-                    depth[i] += 1
-            }
+
+            let probe = points[0]
+            if indexed do
+                depth[i] = containerCount(&work, probe, i, index.candidateContainers(probe))
+            else do
+                depth[i] = containerCount(&work, probe, i, count)
         }
 
         var roots = 0
-        for i in n where depth[i] % 2 == 0 do
+        for i in count where depth[i] % 2 == 0 do
             roots += 1
 
-        if roots > 1
+        if roots <= 1
         {
-            for i in n
-            {
-                if depth[i] % 2 != 0 do
-                    continue
-
-                var group: LinePathList
-                group.paths.add(work.paths[i])
-                let rootPoly = &work.paths[i].polygon
-
-                // Attach this root's immediate holes.
-                for j in n
-                {
-                    if depth[j] != depth[i] + 1 do
-                        continue
-                    let pj = work.paths[j]
-                    if pj.polygon.points.count and rootPoly.contains(pj.polygon.points[0]) do
-                        group.paths.add(pj)
-                }
-
-                emitShape(drawing, #move group, state)
-            }
-
-            // Every path pointer now belongs to a group list; forget them here.
-            work.paths.clear()
+            emitShapeOne(drawing, #move work, state)
             return
         }
 
-        // Single root: emit as one shape below.
-        emitShapeOne(drawing, #move work, state)
+        for i in count where depth[i] % 2 == 0
+        {
+            var group: LinePathList
+            group.paths.add(work.paths[i])
+            if indexed do
+                appendHoles(&group, &work, depth.toSlice(), i, index.candidateHoles(i))
+            else do
+                appendHoles(&group, &work, depth.toSlice(), i, count)
+            emitShape(drawing, #move group, state)
+        }
+
+        // The group lists now own the path pointers.
+        work.paths.clear()
         return
     }
 

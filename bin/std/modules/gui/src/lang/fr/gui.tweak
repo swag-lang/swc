@@ -11,6 +11,43 @@ dlg_ErrorTitle   Erreur
 dlg_InfoTitle    Information
 dlg_MultiLineHint Appuyez sur Maj+Entrée pour ajouter une nouvelle ligne
 
+print_Command              Imprimer…
+print_Title                Imprimer
+print_Print                Imprimer
+print_SavePdf              Enregistrer en PDF
+print_Preview              Aperçu avant impression
+print_Settings             Réglages…
+print_Destination          Destination
+print_Paper                Papier
+print_A4                   A4
+print_Letter               Lettre
+print_Legal                Légal
+print_Orientation          Orientation
+print_Portrait             Portrait
+print_Landscape            Paysage
+print_Margins              Marges
+print_Placement            Placement
+print_Fit                  Ajuster à la page
+print_Center               Centrer
+print_Actual               Taille réelle
+print_Copies               Exemplaires
+print_PreviewPage          Page à afficher (1–%)
+print_Range                Pages à imprimer
+print_AllPages             Toutes les pages
+print_RangeHelp            Saisissez un numéro de page ou une plage, par exemple 2-5.
+print_Clipping             Une partie du contenu dépasse de la zone imprimable.
+print_FindingPrinters      Recherche des imprimantes
+print_Preparing            Préparation des pages
+print_Sending              Envoi à l’imprimante
+print_SavingPdf            Enregistrement du PDF
+print_Failed               L’opération d’impression a échoué.
+print_InvalidPage          La page n’a pas pu être préparée.
+print_InvalidRange         La plage dépasse les pages du document.
+print_UnsupportedPaper     Le papier ou les marges choisis sont indisponibles.
+print_PrinterUnavailable   L’imprimante est indisponible.
+print_PrinterFailed        L’imprimante n’a pas accepté le travail d’impression.
+print_SameFile             Choisissez un autre fichier pour conserver le document source.
+
 appearance_ToolTip        Apparence et informations sur l'application
 appearance_Theme          Thème
 appearance_Language       Langue

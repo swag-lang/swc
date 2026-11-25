@@ -193,18 +193,16 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   nothing claims, and every viewer a probe offers can open the file it claimed.
 - Related: app.scope.image.001
 
-### app.scope.viewers.002 — A document cannot be printed
+### app.scope.viewers.002 — Paginate additional Scope formats
 
-- Intent: a viewer that renders a document should be able to put it on paper through the same
-  pagination contract as the rest of the GUI rather than through application-local paths.
-- Evidence: [File Viewer Plus](https://fileviewerplus.com/support/pdf_files) prints a page range
-  through the system print dialog. Its [spreadsheet preview](https://fileviewerplus.com/support/spreadsheet_files)
-  shows the page layout before printing.
-- Next: use PDF as the first consumer of the GUI pagination and preview contract. Share the
-  existing page-range selection with printing, then extend the adapter to other paginated formats.
-- Done when: PDFs can preview and print a selected range, and Office, text, code, Markdown, HTML,
-  image and hexadecimal dump views use the shared contract with actual-size or fit-to-page choices.
-- Related: std.gui.030, platform.portability.086, std.gui.034
+- Evidence: the common Print command prints full PDF and source text documents and the
+  current content of other viewers. Office, Markdown, HTML, and hexadecimal views can
+  present content beyond the visible region.
+- Next: use the application-defined page source to paginate those viewers with their own
+  layout rules and offer their page ranges in the shared dialog.
+- Done when: each of those viewers can preview and print a range spanning content beyond
+  its current position, with the applicable actual-size and fit-to-page choices.
+- Related: std.gui.030, platform.portability.086
 
 ### app.scope.viewers.004 — Long viewer operations have no common progress and cancellation contract
 

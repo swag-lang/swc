@@ -1932,6 +1932,7 @@ impl MainWnd
         .registerKeyShortcut(.Control, .N, ActionFile.NewImage)
         .registerKeyShortcut(.CtrlShift, .N, ActionFile.NewFromClipboard)
         .registerKeyShortcut(.CtrlShift, .S, ActionFile.SaveAsImage)
+        .registerKeyShortcut(.Control, .P, ActionFile.Print)
         .registerKeyShortcut(.Control, .S, ActionFile.UpdateLinkedImage)
         .registerKeyShortcut(.Control, .O, ActionFile.OpenImage)
         .registerKeyShortcut(.None, .F2, ActionEdit.EditText)
@@ -2546,6 +2547,7 @@ impl MainWnd
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureDelayIds, menuGroup: func()->string => appStrings().act_DelayBefore)
             .addCommands(func()->string => appStrings().ui_MenuCapture, CaptureOptionIds, menuGroup: func()->string => appStrings().ui_MenuCaptureSetup)
             .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.SaveAsImage, func()->string => appStrings().search_Export)
+            .addCommand(func()->string => appStrings().ui_MenuFile, ActionFile.Print)
             .addCommands(func()->string => appStrings().ui_MenuFile, FileStartIds)
             .addCommands(func()->string => appStrings().ui_MenuFile, FileLinkedIds, menuGroup: func()->string => appStrings().ui_MenuLinkedImage)
             .addCommands(func()->string => appStrings().ui_MenuFile, FileCaptureIds, menuGroup: func()->string => appStrings().ui_MenuCaptureFile)
@@ -2600,7 +2602,7 @@ impl MainWnd
                         edited and edited.media == .Animation ? appStrings().ui_MediaAnimation :
                         appStrings().ui_MenuImage
         let image = results.addSection(mediaName)
-        .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionCopyPaste.CopyAsImage])
+        .lens.addCommandRows(image, [ActionFile.SaveAsImage, ActionFile.Print, ActionCopyPaste.CopyAsImage])
 
         // A recording offers playback and the time span of the selected forms.
         if edited and edited.isTimed()

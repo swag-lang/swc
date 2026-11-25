@@ -518,15 +518,16 @@ by portable modules and products. The earlier entries prepare and enforce the sa
 - Related: platform.portability.049
 - Done when: A Windows input-language change updates layout-dependent keyboard state before the next key event, keeps key identity distinct from produced text, and is covered by a layout-switch integration test.
 
-### platform.portability.086 — No printer discovery or native print-job backend
+### platform.portability.086 — Validate native printing with installed drivers
 
 - Owner: std/gui
-- Evidence: `bin/std/modules/gui/src` has no printer enumeration or print-job backend; the portable pagination contract remains std.gui.030.
-- Next: enumerate printers and capabilities, open a native job, spool every page from std.gui.030,
-  and report failure at each stage. Keep one optional virtual-PDF integration test; correctness must
-  not depend on an installed driver.
-- Related: std.gui.030, std.gui.033, std.gui.032
-- Done when: Printer discovery and capability reporting drive a native job that spools all pages from the portable pagination model; tests cover unavailable printers, start/page/end failures, and cancellation without requiring a permanently installed driver.
+- Evidence: the Windows GDI and optional Linux CUPS adapters discover queues and obtain the
+  imageable bounds. The shared functional tests run without an installed printer.
+- Next: exercise Windows and CUPS queues with differing media, landscape margins, copies,
+  an unavailable queue and a rejected submission.
+- Done when: a driver-backed fixture checks the submitted page dimensions and order and
+  reports failure and cancellation through the shared dialog.
+- Related: std.gui.030, std.gui.032
 
 ### platform.portability.089 — Allocator stress is not run under Windows heap instrumentation
 

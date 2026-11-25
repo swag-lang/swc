@@ -7,6 +7,7 @@ struct ActionFile {}
 impl ActionFile
 {
     newCmdId("SaveAsImage")
+    newCmdId("Print")
     newCmdId("SaveAsLinkedImage")
     newCmdId("OpenImage")
     newCmdId("UpdateLinkedImage")
@@ -101,6 +102,12 @@ impl IActionUI for ActionFile
                                 not main.exportSource.isEmpty() or
                                 main.imageWriteJob != null
             evt.icon = main.theme().icon(.SaveAs)
+
+        case .Print:
+            evt.updatedFields |= .Name | .Disabled | .Icon
+            evt.name = Gui.strings().print_Command
+            evt.disabled = not capture or capture.isTimed() or main.libraryMode
+            evt.icon = main.theme().icon(.File)
 
         case .SaveAsLinkedImage:
             evt.updatedFields |= .Name | .Disabled | .Icon
@@ -218,6 +225,14 @@ impl IActionUI for ActionFile
         {
         case .SaveAsImage:
             main.saveAsImage()
+
+        case .Print:
+            if not main.libraryMode and not capture.isTimed()
+            {
+                let image = capture.toImage()
+                let title = capture.displayName()
+                PrintDlg.printImage(unwrap main.surface, image, title)
+            }
 
         case .SaveAsLinkedImage:
             main.saveAsImage(linked: true)

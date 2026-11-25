@@ -102,13 +102,16 @@ whole recording loaded at once.
   and reload, and is edited through the property panel.
 - Related: app.capture.003, app.capture.005, app.capture.007, app.capture.008, std.pixel.012
 
-### app.capture.001 — Print the current capture
+### app.capture.001 — Preserve vector annotations in print output
 
-- Next: once the GUI pagination/preview contract exists, add actual-size, fit-to-page and
-  centered printing through it and Pixel vector output, not an application-only print path.
-- Done when: each mode prints the capture with its annotations, and a page that would clip the
-  capture warns before printing.
-- Related: std.gui.030, std.pixel.005, std.gui.034
+- Evidence: the shared print dialog receives a composed image from the Capture editor. At
+  print resolution, the source capture is still a raster image, and its annotations are already
+  flattened into the same pixels.
+- Next: pass annotation drawing through the painter-backed page source once it can preserve
+  vectors and text.
+- Done when: capture pixels and annotations hold the same placement in preview and output,
+  and paths and text stay sharp at higher output resolutions.
+- Related: std.gui.030, std.pixel.005
 
 ### app.capture.004 — No capture drop-shadow effect
 

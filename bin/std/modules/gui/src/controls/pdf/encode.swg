@@ -2,6 +2,10 @@
 
 using Core, Core.Errors, Core.Math, Pixel
 
+private const CatalogObject = 1'u32
+private const PagesObject   = 2'u32
+private const InfoObject    = 3'u32
+
 private struct PageObjects
 {
     page:    u32
@@ -22,6 +26,7 @@ private struct Writer
 {
     bytes:   Array'u8
     offsets: Array'u64
+    flushed: u64
 }
 
 private impl Writer
@@ -31,9 +36,20 @@ private impl Writer
         .bytes.add(cast(const [..] u8, text))
     }
 
+    mtd const position()->u64 => .flushed + .bytes.count
+
+    mtd flush(file: *File.FileStream) fail
+    {
+        try file.writeAll(.bytes.toSlice())
+        .flushed += .bytes.count
+        .bytes.clear()
+    }
+
     mtd beginObject(number: u32)
     {
-        .offsets[number] = .bytes.count
+        if number >= .offsets.count do
+            .offsets.resize(cast(u64, number) + 1)
+        .offsets[number] = .position()
         .append(Format.toString("% 0 obj\n", number).toString())
     }
 
@@ -398,14 +414,160 @@ private func infoDictionary(metadata: const *Metadata)->String fail
     return result
 }
 
+private func allocatePageObjects(page: const *Page, nextObject: *u32)->PageObjects fail
+{
+    if page.width <= 0 or
+       page.height <= 0 or
+       not Math.isFinite(page.width) or
+       not Math.isFinite(page.height) do
+        fail BadParameterError{}
+    var objects: #returntype
+    objects.page    = nextObject[]
+    nextObject[]    += 1
+    objects.content = nextObject[]
+    nextObject[]    += 1
+    for item in page.items where item.kind == .Image
+    {
+        objects.images.add(nextObject[])
+        nextObject[] += 1
+        if item.image.pixelFormat == .BGRA8 or item.image.pixelFormat == .RGBA8
+        {
+            objects.masks.add(nextObject[])
+            nextObject[] += 1
+        }
+        else
+        {
+            objects.masks.add(0)
+        }
+    }
+    return objects
+}
+
+private impl Writer
+{
+    mtd writeHeader()
+    {
+        .append("%PDF-1.7\n")
+        .bytes.add([0x25'u8, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A])
+        .beginObject(CatalogObject)
+        .append("<< /Type /Catalog /Pages 2 0 R >>\n")
+        .endObject()
+    }
+
+    mtd writeTrailer(nextObject: u32)
+    {
+        let xref = .position()
+        .append(Format.toString("xref\n0 %\n", nextObject).toString())
+        .append("0000000000 65535 f \n")
+        for number in 1'u32 until nextObject do
+            .append(Format.toString("%{D010} 00000 n \n", .offsets[number]).toString())
+        .append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n%%EOF\n", nextObject, CatalogObject, InfoObject, xref).toString())
+    }
+
+    mtd writePage(page: const *Page, objects: const *PageObjects, fonts: const [..] StandardFont, fontObjects: const [..] u32) fail
+    {
+        .beginObject(objects.page)
+        .append(Format.toString("<< /Type /Page /Parent % 0 R /MediaBox [0 0 % %] /Resources <<", PagesObject, pdfNumber(page.width), pdfNumber(page.height)).toString())
+        if fontObjects.count
+        {
+            .append(" /Font <<")
+            for fontObject, fontIndex in fontObjects do
+                .append(Format.toString(" /F% % 0 R", fontIndex, fontObject).toString())
+            .append(" >>")
+        }
+
+        if objects.images.count
+        {
+            .append(" /XObject <<")
+            for imageObject, imageIndex in objects.images do
+                .append(Format.toString(" /Im% % 0 R", imageIndex, imageObject).toString())
+            .append(" >>")
+        }
+
+        .append(Format.toString(" >> /Contents % 0 R >>\n", objects.content).toString())
+        .endObject()
+
+        let content    = #move try pageContent(page, fonts)
+        var zlib: Compress.ZLib
+        let compressed = #move try zlib.compress(cast(const [..] u8, content))
+        .streamObject(objects.content, compressed.toSlice(), "/Filter /FlateDecode")
+
+        var imageIndex = 0'u64
+        for item in page.items where item.kind == .Image
+        {
+            let encoded    = encodeImagePixels(&item.image)
+            var samplesZlib: Compress.ZLib
+            let samples    = #move try samplesZlib.compress(encoded.samples.toSlice())
+            let maskObject = objects.masks[imageIndex]
+            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB")
+            if maskObject and encoded.alpha.count do
+                dictionary.appendFormat(" /SMask % 0 R", maskObject)
+            .streamObject(objects.images[imageIndex], samples.toSlice(), dictionary.toString())
+
+            if maskObject
+            {
+                // An opaque channel still needs an object when one was reserved, so the
+                // cross-reference table keeps one entry per reserved number.
+                var alpha = encoded.alpha
+                if not alpha.count
+                {
+                    alpha.resize(cast(u64, item.image.width) * cast(u64, item.image.height))
+                    for i in alpha.count do
+                        alpha[i] = 0xFF
+                }
+
+                var maskZlib: Compress.ZLib
+                let maskData = #move try maskZlib.compress(alpha.toSlice())
+                let maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
+                .streamObject(maskObject, maskData.toSlice(), maskDict.toString())
+            }
+
+            imageIndex += 1
+        }
+    }
+}
+
+// Streams generated pages through the same object encoder. Only the current page, its encoded
+// bytes, and the cross-reference and page-tree indexes need to be retained.
+internal func writeGeneratedDocument(file: *File.FileStream, count: u64, source: func||(u64)->Page fail) fail
+{
+    if not count or count > cast(u64, Swag.U32.Max - 4) / 4 do
+        fail BadParameterError{}
+
+    var writer: Writer
+    writer.writeHeader()
+    writer.beginObject(InfoObject)
+    writer.append("<< >>\n")
+    writer.endObject()
+
+    var nextObject = 4'u32
+    var pages: Array'u32
+    let noFonts: Array'StandardFont
+    let noFontObjects: Array'u32
+    for i in count
+    {
+        let page = #move try source(i)
+        let objects = #move try allocatePageObjects(&page, &nextObject)
+        try writer.writePage(&page, &objects, noFonts.toSlice(), noFontObjects.toSlice())
+        try writer.flush(file)
+        pages.add(objects.page)
+    }
+
+    writer.beginObject(PagesObject)
+    writer.append(Format.toString("<< /Type /Pages /Count % /Kids [", count).toString())
+    for number in pages do
+        writer.append(Format.toString(" % 0 R", number).toString())
+    writer.append(" ] >>\n")
+    writer.endObject()
+    writer.writeTrailer(nextObject)
+    try writer.flush(file)
+}
+
 func encodeDocument(document: const *Document)->Array'u8 fail
 {
     if not document.pages.count do
         fail BadParameterError{}
 
-    const CatalogObject = 1'u32
-    const PagesObject   = 2'u32
-    const InfoObject    = 3'u32
     var nextObject = 4'u32
 
     let fonts = documentFonts(document)
@@ -419,42 +581,13 @@ func encodeDocument(document: const *Document)->Array'u8 fail
     var layout: Array'PageObjects
     for page in document.pages
     {
-        if page.width <= 0 or
-           page.height <= 0 or
-           not Math.isFinite(page.width) or
-           not Math.isFinite(page.height) do
-            fail BadParameterError{}
-        var objects: PageObjects
-        objects.page    = nextObject
-        nextObject      += 1
-        objects.content = nextObject
-        nextObject      += 1
-        for item in page.items where item.kind == .Image
-        {
-            objects.images.add(nextObject)
-            nextObject += 1
-            if item.image.pixelFormat == .BGRA8 or item.image.pixelFormat == .RGBA8
-            {
-                objects.masks.add(nextObject)
-                nextObject += 1
-            }
-            else
-            {
-                objects.masks.add(0)
-            }
-        }
-
+        let objects = #move try allocatePageObjects(page, &nextObject)
         layout.add(#move objects)
     }
 
     var writer: Writer
     writer.offsets.resize(nextObject)
-    writer.append("%PDF-1.7\n")
-    writer.bytes.add([0x25'u8, 0xE2, 0xE3, 0xCF, 0xD3, 0x0A])
-
-    writer.beginObject(CatalogObject)
-    writer.append("<< /Type /Catalog /Pages 2 0 R >>\n")
-    writer.endObject()
+    writer.writeHeader()
 
     writer.beginObject(PagesObject)
     writer.append(Format.toString("<< /Type /Pages /Count % /Kids [", document.pages.count).toString())
@@ -477,71 +610,9 @@ func encodeDocument(document: const *Document)->Array'u8 fail
     for page, pageIndex in document.pages
     {
         let objects = &layout[pageIndex]
-        writer.beginObject(objects.page)
-        writer.append(Format.toString("<< /Type /Page /Parent % 0 R /MediaBox [0 0 % %] /Resources <<", PagesObject, pdfNumber(page.width), pdfNumber(page.height)).toString())
-        if fontObjects.count
-        {
-            writer.append(" /Font <<")
-            for fontObject, fontIndex in fontObjects do
-                writer.append(Format.toString(" /F% % 0 R", fontIndex, fontObject).toString())
-            writer.append(" >>")
-        }
-
-        if objects.images.count
-        {
-            writer.append(" /XObject <<")
-            for imageObject, imageIndex in objects.images do
-                writer.append(Format.toString(" /Im% % 0 R", imageIndex, imageObject).toString())
-            writer.append(" >>")
-        }
-
-        writer.append(Format.toString(" >> /Contents % 0 R >>\n", objects.content).toString())
-        writer.endObject()
-
-        let content    = #move try pageContent(page, fonts.toSlice())
-        var zlib: Compress.ZLib
-        let compressed = #move try zlib.compress(cast(const [..] u8, content))
-        writer.streamObject(objects.content, compressed.toSlice(), "/Filter /FlateDecode")
-
-        var imageIndex = 0'u64
-        for item in page.items where item.kind == .Image
-        {
-            let encoded    = encodeImagePixels(&item.image)
-            var samplesZlib: Compress.ZLib
-            let samples    = #move try samplesZlib.compress(encoded.samples.toSlice())
-            let maskObject = objects.masks[imageIndex]
-            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB")
-            if maskObject and encoded.alpha.count do
-                dictionary.appendFormat(" /SMask % 0 R", maskObject)
-            writer.streamObject(objects.images[imageIndex], samples.toSlice(), dictionary.toString())
-
-            if maskObject
-            {
-                // An opaque channel still needs an object when one was reserved, so the
-                // cross-reference table keeps one entry per reserved number.
-                var alpha = encoded.alpha
-                if not alpha.count
-                {
-                    alpha.resize(cast(u64, item.image.width) * cast(u64, item.image.height))
-                    for i in alpha.count do
-                        alpha[i] = 0xFF
-                }
-
-                var maskZlib: Compress.ZLib
-                let maskData = #move try maskZlib.compress(alpha.toSlice())
-                let maskDict = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height)
-                writer.streamObject(maskObject, maskData.toSlice(), maskDict.toString())
-            }
-
-            imageIndex += 1
-        }
+        try writer.writePage(page, objects, fonts.toSlice(), fontObjects.toSlice())
     }
 
-    let xref = writer.bytes.count
-    writer.append(Format.toString("xref\n0 %\n", nextObject).toString())
-    writer.append("0000000000 65535 f \n")
-    for number in 1'u32 until nextObject do
-        writer.append(Format.toString("%{D010} 00000 n \n", writer.offsets[number]).toString())
-    writer.append(Format.toString("trailer\n<< /Size % /Root % 0 R /Info % 0 R >>\nstartxref\n%\n%%EOF\n", nextObject, CatalogObject, InfoObject, xref).toString())
+    writer.writeTrailer(nextObject)
     return #move writer.bytes
 }

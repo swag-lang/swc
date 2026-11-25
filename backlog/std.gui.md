@@ -281,17 +281,6 @@ first consumer; Swag Vault does not need this merely as a demonstration.
   command routing, using Capture as the first consumer.
 - Done when: DocumentHost tracks active and dirty documents, close veto/save, close-others, reorder, and command routing, while tests cover lazy pages and focus independently of docking.
 
-### std.gui.034 — No print preview
-
-
-Render through exactly std.gui.030's page callback into a zoomable on-screen view; do not create a second
-pagination path that can disagree with paper.
-
-- Related: std.gui.030, std.gui.033, app.capture.001
-
-- Next: render a zoomable preview through the same page-count and paint callback used for printing.
-- Done when: Preview uses the same page count and paint callback as printing, zooms through representative pages, and matches fake-backend output without a separate pagination path.
-
 ### std.gui.035 — Data-driven UI resource for `std/gui`
 
 - Evidence: a UI described by a data string pays off only if callers never need the controls
@@ -380,42 +369,26 @@ missing-monitor rectangles and ignores panes the application no longer registers
   restore and missing-pane handling.
 - Done when: A dock layout round-trips stable pane IDs, splits, active tabs, and floating rectangles, and restore ignores missing panes while constraining rectangles to available monitors in tests.
 
-### std.gui.030 — No printable-document pagination contract
+### std.gui.030 — Accept application-defined print layouts
 
+- Evidence: shared printing paginates text, PDF files, and still images through the internal
+  `Gui.Print.Layout`. A viewer that already owns its own document model needs a way to supply
+  pages without extending the GUI module's list of input formats.
+- Next: expose a page source that can paginate for a physical printable area and paint a
+  requested page through the same preview, PDF export, and printer paths.
+- Done when: an application-defined page source can render and print a selected range with
+  the same bounds, order, and errors as the built-in sources.
+- Related: std.pixel.005, platform.portability.086, app.scope.viewers.002
 
-Let a document answer page count and paint page `n` into a page-sized `Pixel.Painter` using
-physical units. Define imageable bounds, multi-page failures, and vector-versus-raster behavior
-without coupling the document to one printer backend. A fake backend records commands for CI.
+### std.gui.032 — Cancellation waits for a blocking spooler call
 
-- Related: std.pixel.005, platform.portability.086, std.gui.033, std.gui.034
-
-- Next: define a printer-independent page-count and physical-unit paint callback and exercise it
-  through a fake backend.
-- Done when: One document page callback reports count and paints in physical units into Pixel.Painter; a fake backend verifies imageable bounds, page order, multi-page failure, and vector/raster fallback.
-
-### std.gui.032 — Print jobs cannot be cancelled
-
-
-Propagate cancellation from the GUI through pagination and the platform spooler, with a distinct
-cancelled result and cleanup tests in the fake backend.
-
-- Related: std.gui.030, platform.portability.086
-
-- Next: propagate GUI cancellation through pagination and spooling with a distinct result and
-  fake-backend cleanup tests.
-- Done when: Cancellation from the GUI stops pagination and spooling, returns a distinct cancelled result, and leaves no open page or job handle in fake-backend failure tests.
-
-### std.gui.033 — No page-setup model
-
-
-Model paper, orientation, margins, scale/fit, and copies independently of printer discovery and
-preview. Validate requested settings against the capabilities supplied by platform.portability.086.
-
-- Related: std.gui.030, platform.portability.086, std.gui.034
-
-- Next: model paper, orientation, margins, scale/fit, and copies independently and validate them
-  against declared printer capabilities.
-- Done when: Paper, orientation, margins, scale or fit, and copies form a printer-independent value that validates against declared device capabilities, with tests for unsupported combinations.
+- Evidence: the print dialog cancels between pages. A Windows spooler call or CUPS upload can
+  still keep the cancelled dialog open while the operating system finishes the call.
+- Next: exercise cancellation during blocked native submission and propagate the stop request
+  into the Windows driver callback or the CUPS job while it is being written.
+- Done when: cancelling during a blocked job returns a cancelled result and releases the job
+  without leaving a partial submission.
+- Related: platform.portability.086
 
 ### std.gui.040 — A check box does not line up with the fields of the form it stands in
 

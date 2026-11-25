@@ -14,6 +14,7 @@ namespace ViewerCommands
     const Close             = "scope.close"
     const Dismiss           = "scope.dismiss"
     const Reload            = "scope.reload"
+    const Print             = "scope.print"
     const PreviousFile      = "scope.previousFile"
     const NextFile          = "scope.nextFile"
     const OpenDefault       = "scope.file.openDefault"
@@ -140,7 +141,7 @@ impl ViewerWindow
                 }
 
                 window.lens.addCommandRows(section,
-                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.ReturnToExplorer, ViewerCommands.Close],
+                                           [ViewerCommands.Open, ViewerCommands.Explore, ViewerCommands.ReturnToExplorer, ViewerCommands.Print, ViewerCommands.Close],
                                            enabledOnly: true)
             })
             .addRestSource(func|window = me|(results)
@@ -158,7 +159,7 @@ impl ViewerWindow
             .addSource(.Line, func|window = me|(results) { window.describeFileLines(results) })
             .addCommand(func()->string => appStrings().lens_File, ViewerCommands.Open, func()->string => appStrings().search_Open)
             .addCommand(func()->string => appStrings().lens_File, ViewerCommands.Explore, func()->string => appStrings().search_Browse)
-            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Close, ViewerCommands.ReturnToExplorer, ViewerCommands.Reload,
+            .addCommands(func()->string => appStrings().lens_File, [ViewerCommands.Close, ViewerCommands.ReturnToExplorer, ViewerCommands.Reload, ViewerCommands.Print,
                                                                     ViewerCommands.PreviousFile, ViewerCommands.NextFile, ViewerCommands.OpenDefault, ViewerCommands.OpenWith,
                                                                     ViewerCommands.Locate, ViewerCommands.CopyPath, ViewerCommands.CopyName, ViewerCommands.Forget,
                                                                     ViewerCommands.SameKind, ViewerCommands.ClearHistory])
@@ -200,6 +201,7 @@ impl ViewerWindow
         .registerKeyShortcut(.Control, .O, ViewerCommands.Open)
         .registerKeyShortcut(.Control, .E, ViewerCommands.Explore)
         .registerKeyShortcut(.None, .F5, ViewerCommands.Reload)
+        .registerKeyShortcut(.Control, .P, ViewerCommands.Print)
         .registerKeyShortcut(.Control, .F, ViewerCommands.Find)
         .registerKeyShortcut(.Control, .G, ViewerCommands.GoToLine)
         .registerKeyShortcut(.None, .F3, ViewerCommands.FindNext)
@@ -770,6 +772,12 @@ impl ViewerWindow
             icon   = .commandGlyph(.Update)
             hidden = not hasFile or exploring
 
+        case ViewerCommands.Print:
+            name     = Gui.strings().print_Command
+            icon     = .commandGlyph(.File)
+            hidden   = not hasFile or exploring
+            disabled = .printView() == null
+
         case ViewerCommands.PreviousFile:
             name   = texts.cmd_PreviousFile
             icon   = .commandGlyph(.ChevronLeft)
@@ -1270,6 +1278,9 @@ impl ViewerWindow
 
         case ViewerCommands.Reload:
             .reloadCurrentFile()
+
+        case ViewerCommands.Print:
+            .printCurrentView()
 
         case ViewerCommands.PreviousFile:
             .navigate(-1)

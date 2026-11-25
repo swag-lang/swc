@@ -336,7 +336,9 @@ impl Dialog
     // unless the caller already placed it, so a dialog can be answered and dismissed without the
     // pointer.
     // Tab enters keyboard navigation and shows its focus ring.
-    mtd doModal()->WndId
+    mtd doModal()->WndId => .runModal()
+
+    internal mtd runModal(cb: FrameCallback? = null)->WndId
     {
         let surface = unwrap .surface
         .placeLeadingControl()
@@ -345,7 +347,7 @@ impl Dialog
         surface.show()
         if .parentSurface and .parentSurface.isTopMost() do
             surface.setTopMost()
-        return surface.app.doModalLoop(surface, restoreTo: .parentSurface)
+        return surface.app.doModalLoop(surface, cb, restoreTo: .parentSurface)
     }
 
     // Adds an action button and optionally makes it the default keyboard action.

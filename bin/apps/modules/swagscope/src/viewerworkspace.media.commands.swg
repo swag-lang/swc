@@ -14,6 +14,8 @@ namespace MediaCommands
     const Playback   = "scope.scene.link.playback"
     const Framing    = "scope.scene.link.framing"
     const Scroll     = "scope.scene.link.scroll"
+    const Explorer   = "scope.scene.link.explorer"
+    const ExplorerSingleClick = "scope.scene.link.explorerSingleClick"
     const AlignHere  = "scope.scene.alignHere"
     const AlignSound = "scope.scene.alignSound"
     const Solo       = "scope.scene.solo"
@@ -22,7 +24,7 @@ namespace MediaCommands
     const TimeValues = [SceneTimeMode.Absolute, .Relative, .Leader]
     const EndValues  = [SceneEndMode.Shortest, .Independent, .LoopLeader]
     const PlayModes  = ["scope.scene.playOnce", "scope.scene.repeat", "scope.scene.playFolder", "scope.scene.shuffle"]
-    const Axes       = [Linked, Time, Playback, Framing, Scroll]
+    const Axes       = [Linked, Time, Playback, Framing, Scroll, Explorer, ExplorerSingleClick]
 }
 
 func sceneTimeTitle(mode: SceneTimeMode)->string
@@ -70,6 +72,11 @@ impl ViewerWorkspace
         case MediaCommands.Playback: scene.links.playback = on
         case MediaCommands.Framing:  scene.links.framing = on
         case MediaCommands.Scroll:   scene.links.scroll = on
+        case MediaCommands.Explorer:
+            scene.links.explorer = on
+            if on do
+                scene.linked = true
+        case MediaCommands.ExplorerSingleClick: scene.links.explorerSingleClick = on
         default: return
         }
 
@@ -119,7 +126,7 @@ impl ViewerWorkspace
     mtd routeSceneMediaKey(evt: *KeyEvent, source: *Wnd)->bool
     {
         let scene = .scene()
-        if not scene or scene.views.count < 2 or source is EditBox or .activeDocument().lens.isOpen() do
+        if not scene or (scene.views.count < 2 and not .isTiled()) or source is EditBox or .activeDocument().lens.isOpen() do
             return false
         if evt.modifiers == .None and evt.key == .L and .hasViewLinks()
         {
@@ -217,7 +224,7 @@ impl ViewerWindow
         case MediaCommands.Transport:
             name      = text.scene_Controls
             icon      = .Grid
-            hidden    = not scene or scene.views.count < 2
+            hidden    = not workspace.isTiled() and workspace.documentCount() < 2
             checkable = false
 
         case MediaCommands.Links:
@@ -259,6 +266,16 @@ impl ViewerWindow
             name    = text.scene_LinkScroll
             checked = scene and scene.links.scroll
             hidden  = not scene or scene.views.count < 2 or not workspace.canLinkScroll()
+
+        case MediaCommands.Explorer:
+            name    = text.scene_LinkExplorer
+            checked = scene and scene.links.explorer
+            hidden  = not workspace.canLinkExplorer()
+
+        case MediaCommands.ExplorerSingleClick:
+            name    = text.scene_LinkExplorerSingleClick
+            checked = scene and scene.links.explorerSingleClick
+            hidden  = not scene or not workspace.canLinkExplorer() or not scene.links.explorer
 
         case MediaCommands.AlignHere:
             icon      = .GoTo
@@ -321,7 +338,7 @@ impl ViewerWindow
     {
         let workspace = .workspace
         let scene     = workspace?.scene()
-        if not workspace or not scene or scene.views.count < 2 do
+        if not workspace or not scene or (scene.views.count < 2 and not workspace.isTiled()) do
             return false
         switch id
         {
@@ -354,6 +371,12 @@ impl ViewerWindow
 
         case MediaCommands.Scroll:
             workspace.setSceneLink(id, not scene.links.scroll)
+
+        case MediaCommands.Explorer:
+            workspace.setSceneLink(id, not scene.links.explorer)
+
+        case MediaCommands.ExplorerSingleClick:
+            workspace.setSceneLink(id, not scene.links.explorerSingleClick)
 
         case MediaCommands.AlignHere:
             workspace.alignSceneHere()

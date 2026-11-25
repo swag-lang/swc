@@ -169,6 +169,7 @@ struct ListView
 
     // Set when a press was consumed by something else, so the matching release is ignored.
     discardMouseRelease: bool
+    keyRangeAnchor       = Swag.U32.Max
 }
 
 impl ListLine
@@ -258,14 +259,14 @@ impl IWnd for ListView
         if .list.focusIndex < .list.lines.count do
             focusLine = .list.lines[.list.focusIndex]
 
-        var shift = evt.modifiers.has(.Shift)
+        let shift = evt.modifiers.has(.Shift)
         let ctrl  = evt.modifiers.has(.Control)
 
         if .list.focusIndex == Swag.U32.Max and evt.key != .Down do
             return
 
         var selChanged = false
-        var startSelIdx, endSelIdx: u32
+        var endSelIdx: u32
 
         switch evt.key
         {
@@ -329,39 +330,29 @@ impl IWnd for ListView
                 .list.toggleExpand(focusLine)
             }
 
-        case .A:
-            if not ctrl or .list.selectionMode == .Single do
-                break
-            shift = true
+        case .A where ctrl and .list.selectionMode != .Single:
+            .keyRangeAnchor  = Swag.U32.Max
+            .list.focusIndex = 0
             .list.selModel.clear()
-            endSelIdx   = 0
-            startSelIdx = .list.lineCount() - 1
-            selChanged  = true
+            .list.selectLines(0, lineCount - 1)
+            .list.ensureVisibleLine(0)
+            evt.accepted = true
+            return
 
         case .Home:
-            startSelIdx = .list.focusIndex
-            endSelIdx   = 0
-            selChanged  = true
+            endSelIdx  = 0
+            selChanged = true
 
         case .End:
-            startSelIdx = .list.focusIndex
-            endSelIdx   = lineCount - 1
-            selChanged  = true
+            endSelIdx  = lineCount - 1
+            selChanged = true
 
         case .Up:
-            if .list.focusIndex == 0 do
-                startSelIdx, endSelIdx = 0
-            else do
-                startSelIdx, endSelIdx = .list.focusIndex - 1
+            endSelIdx  = .list.focusIndex == 0 ? 0 : .list.focusIndex - 1
             selChanged = true
 
         case .Down:
-            if .list.focusIndex == lineCount - 1 do
-                startSelIdx, endSelIdx = lineCount - 1
-            elif .list.focusIndex == Swag.U32.Max do
-                .list.focusIndex = 0
-            else do
-                startSelIdx, endSelIdx = .list.focusIndex + 1
+            endSelIdx  = .list.focusIndex == Swag.U32.Max ? 0 : Math.min(.list.focusIndex + 1, lineCount - 1)
             selChanged = true
 
         case .Left where focusLine:
@@ -375,19 +366,14 @@ impl IWnd for ListView
         case .PageDown:
             let first = .list.firstVisibleLineIndex()
             let last  = .list.lastVisibleLineIndex()
-            startSelIdx, endSelIdx = .list.focusIndex + (last - first)
-            startSelIdx = Math.min(startSelIdx, lineCount - 1)
-            endSelIdx   = Math.min(endSelIdx, lineCount - 1)
+            endSelIdx   = Math.min(.list.focusIndex + (last - first), lineCount - 1)
             selChanged  = true
 
         case .PageUp:
             let first  = .list.firstVisibleLineIndex()
             let last   = .list.lastVisibleLineIndex()
             let offset = last - first
-            if offset > .list.focusIndex do
-                startSelIdx, endSelIdx = 0
-            else do
-                startSelIdx, endSelIdx = .list.focusIndex - offset
+            endSelIdx = offset > .list.focusIndex ? 0 : .list.focusIndex - offset
             selChanged = true
 
         default:
@@ -397,14 +383,21 @@ impl IWnd for ListView
         if selChanged
         {
             evt.accepted = true
-            if not shift or .list.selectionMode == .Single
+            var first = endSelIdx
+            if shift and .list.selectionMode == .Multi
             {
-                .list.selModel.clear()
-                startSelIdx = endSelIdx
+                if .keyRangeAnchor >= lineCount do
+                    .keyRangeAnchor = .list.focusIndex < lineCount ? .list.focusIndex : endSelIdx
+                first = .keyRangeAnchor
+            }
+            else
+            {
+                .keyRangeAnchor = Swag.U32.Max
             }
 
-            .list.selectLines(startSelIdx, endSelIdx)
+            .list.selModel.clear()
             .list.focusIndex = endSelIdx
+            .list.selectLines(first, endSelIdx)
             .list.ensureVisibleLine(.list.focusIndex)
         }
     }
@@ -428,6 +421,8 @@ impl IWnd for ListView
             return
         }
 
+        if evt.kind == .Pressed do
+            .keyRangeAnchor = Swag.U32.Max
         let metrics = .themeMetrics()
 
         let ctrl  = evt.modifiers.has(.Control)
@@ -1612,6 +1607,8 @@ impl ListCtrl
         .focusIndex    = Swag.U32.Max
         .selModel.clear()
         .checkModel.clear()
+        if .listView != null do
+            .listView.keyRangeAnchor = Swag.U32.Max
         if .scrollWnd != null do
             .computeLayout()
     }
@@ -1718,6 +1715,7 @@ impl ListCtrl
             return
         if .focusIndex == index do
             return
+        .listView.keyRangeAnchor = Swag.U32.Max
         .focusIndex = index
         if ensureVisible do
             .ensureVisibleLine(index)
@@ -1729,6 +1727,7 @@ impl ListCtrl
     {
         if .focusIndex == Swag.U32.Max do
             return
+        .listView.keyRangeAnchor = Swag.U32.Max
         .focusIndex = Swag.U32.Max
         .invalidate()
     }

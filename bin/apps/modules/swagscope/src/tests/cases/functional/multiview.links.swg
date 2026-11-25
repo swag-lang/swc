@@ -295,3 +295,53 @@ func scopedAlignmentWave(path: string, delay: u32)
     Swag.require(not first.compactTransport and first.playModeButton.isLocallyVisible())
     Swag.require(first.timeline.position.bottom() <= first.playButton.position.y)
 }
+
+// A solo Explorer can become a grid whose content cell follows file activation.
+#test
+{
+    let folder = Testing.tempFilePath("scope-linked-explorer-", "")
+    let first  = Path.combine(folder, "Alpha.txt")
+    let second = Path.combine(folder, "Beta.txt")
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    discard expect File.writeAllText(first, "Alpha")
+    discard expect File.writeAllText(second, "Beta")
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.primary.openExplorer(folder)
+    let explorer = unwrap workspace.primary.explorer
+    completeExplorer(&host, explorer)
+    var rows: Lens.Results
+    workspace.primary.describeScenes(&rows, atRest: true)
+    Swag.require(rows.sections.count == 1 and rows.sections[0]!.label == appStrings().scene_Layout)
+    let grid   = SceneCommands.Layouts[3]
+    var layout = CommandStateEvent{id: grid}
+    Swag.require(workspace.primary.computeSceneCommand(&layout) and not layout.hidden and not layout.disabled)
+    Swag.require(workspace.primary.runCommand(grid))
+    let scene = unwrap workspace.scene()
+    Swag.require(workspace.isTiled() and scene.cellCount() == 4 and scene.views.count == 1)
+    Swag.require(workspace.viewRect(scene, 0).width < workspace.clientRect().width)
+
+    Swag.require(workspace.primary.runCommand(MediaCommands.Explorer))
+    Swag.require(scene.linked and scene.links.explorer and not scene.links.explorerSingleClick)
+    explorer.setMode(.Names)
+    var point = explorer.list.listView.localToSurface(Math.Point{30, explorer.list.lineHeight() * 0.5})
+    host.surface.surfaceToScreen(&point)
+    host.click(point)
+    Swag.require(scene.views.count == 1)
+    host.doubleClick(point)
+    let content = unwrap scene.views[1].document
+    completeQueuedViewerFile(&host, content)
+    Swag.require(content.currentFile == first and workspace.activeDocument() == workspace.primary)
+    Swag.require(workspace.scenes.count == 1 and workspace.primary.isExploring())
+
+    Swag.require(workspace.primary.runCommand(MediaCommands.ExplorerSingleClick))
+    point = explorer.list.listView.localToSurface(Math.Point{30, explorer.list.lineHeight() * 1.5})
+    host.surface.surfaceToScreen(&point)
+    host.click(point)
+    completeQueuedViewerFile(&host, content)
+    Swag.require(content.currentFile == second and scene.views[1].document == content)
+    Swag.require(scene.views.count == 2 and workspace.scenes.count == 1 and workspace.activeDocument() == workspace.primary)
+}

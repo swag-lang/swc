@@ -275,15 +275,16 @@ impl Surface
     // with `WindowFromPoint`, which answers about whatever window is topmost at that point — and
     // during a drag the topmost window there is the shell's drag image, not this one.
     //
-    // A position outside the surface answers the sizing border, or `null`, exactly as a pointer
-    // over the same spot would.
+    // The sizing border and the trailing ground of a caption path target the frame.
+    // A position outside the surface and its sizing border answers `null`.
     internal mtd windowAt(screenPos: Math.Point)->*Wnd?
     {
         var surfacePos = screenPos
         .screenToSurface(&surfacePos)
         if not .isMaximized and .wnd.hitTestBorders(surfacePos) != SizingBorder.None do
             return .wnd
-        return .wnd.windowAt(surfacePos.x, surfacePos.y)
+        let target = .wnd.windowAt(surfacePos.x, surfacePos.y)
+        return .wnd.captionPathAt(surfacePos, target) ? .wnd : target
     }
 
     // Returns the logical client size of the surface.

@@ -244,9 +244,9 @@ explore_File Fichier
 explore_FilterByType Filtrer par type
 explore_Sort Trier les fichiers
 explore_ListingOptions Options du dossier
-explore_View Choisir la vue
+explore_View Vue
 explore_Organization Organiser les vignettes
-explore_ShowTileCaption Afficher les légendes des vignettes
+explore_ShowTileCaption Légendes des vignettes
 explore_FilterAll Tous les éléments
 explore_FilterVideos Vidéos
 explore_FilterImages Images
@@ -277,7 +277,7 @@ board_Grid Grille
 board_Covers Pochettes
 board_Posters Affiches
 explore_ThumbnailFraming Cadrage
-crop_Attention Recadrer selon le contenu
+crop_Attention Selon le contenu
 crop_Entropy Recadrer par entropie
 crop_Center Centrer le recadrage
 crop_None Afficher l’image entière
@@ -352,6 +352,8 @@ scene_ZoomOut        Réduire
 scene_LoadingComparison Comparaison en cours…
 scene_Links         Liens de lecture
 scene_Linked        Liées
+scene_LinkExplorer  Relier l’explorateur au contenu
+scene_LinkExplorerSingleClick Afficher le fichier d’un simple clic
 scene_LinkTime      Temps
 scene_LinkPlayback  Lecture
 scene_LinkFraming   Cadrage

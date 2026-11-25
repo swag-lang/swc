@@ -35,8 +35,80 @@ impl ViewerWorkspace
         return pages >= 2 or editors >= 2 or others > 0 and scrolls >= 2
     }
 
+    mtd canLinkExplorer()->bool
+    {
+        if not .isTiled() do
+            return false
+        let scene = unwrap .scene()
+        if scene.compared do
+            return false
+        for view, index in scene.views
+        {
+            if let document = view.document where document.isExploring() and not document.explorer!.listing.isArchive and
+               .explorerContentCell(scene, index) != Swag.U64.Max do
+                return true
+        }
+
+        return false
+    }
+
     mtd hasViewLinks()->bool =>
-        .documentCount() > 1 and (.isMediaScene() or .canLinkFraming() or .canLinkScroll())
+        .canLinkExplorer() or (.documentCount() > 1 and (.isMediaScene() or .canLinkFraming() or .canLinkScroll()))
+
+    // Prefer an existing content panel after the Explorer in grid order, then a vacant cell.
+    private mtd explorerContentCell(scene: const *ViewerScene, source: u64)->u64
+    {
+        let cells = scene.cellCount()
+        let first = scene.cellOf(source)
+        var vacancy = Swag.U64.Max
+        for distance in 1 until cells
+        {
+            let cell  = (first + distance) % cells
+            let index = scene.viewInCell(cell)
+            if index == Swag.U64.Max
+            {
+                if vacancy == Swag.U64.Max do
+                    vacancy = cell
+            }
+            elif let document = scene.views[index].document where not document.isExploring() do
+                return cell
+        }
+
+        return vacancy
+    }
+
+    mtd openLinkedExplorerFile(source: *ViewerWindow, path: string, singleClick = false)->bool
+    {
+        let scene = .scene()
+        if not scene or not .isTiled() or scene.compared or not scene.linked or
+           not scene.links.explorer or (singleClick and not scene.links.explorerSingleClick) do
+            return false
+
+        for view, index in scene.views where view.document == source
+        {
+            let cell = .explorerContentCell(scene, index)
+            if cell == Swag.U64.Max do
+                return false
+            let target = scene.viewInCell(cell)
+            if target == Swag.U64.Max
+            {
+                scene.views.add({path: String.from(path), cellPlusOne: cell + 1})
+                ViewerWorkspace.attachDocument(me, scene.views.backPtr(), remember: true)
+                .layoutScene()
+            }
+            else
+            {
+                let document = unwrap scene.views[target].document
+                if not Path.equals(document.pendingFile, path) and
+                   (not document.pendingFile.isEmpty() or not Path.equals(document.currentFile, path)) do
+                    .replaceDocument(target, path, select: false)
+            }
+
+            return true
+        }
+
+        return false
+    }
 
     mtd registerReadingLinks(document: *ViewerWindow)
     {

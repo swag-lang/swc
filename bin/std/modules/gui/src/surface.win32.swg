@@ -353,6 +353,17 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             surface.app.notifyPressedElsewhere()
             break
 
+        case WM_NCLBUTTONDBLCLK:
+            if wParam == HTCAPTION
+            {
+                var pt = Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}
+                surface.screenToSurface(&pt)
+                if surface.wnd.editCaptionPath(pt) do
+                    return 0
+            }
+
+            break
+
         case WM_NCLBUTTONDOWN:
 
             // The system takes this press for itself, so no window hears it as a click.

@@ -15,6 +15,8 @@ struct SceneLinks
     playback: bool = true
     framing:  bool = true
     scroll:   bool
+    explorer: bool
+    explorerSingleClick: bool
     mode:     SceneTimeMode
     end:      SceneEndMode = .Independent
     leader:   u64  = Swag.U64.Max
@@ -343,7 +345,7 @@ impl ViewerWorkspace
         .mediaLinks.toolTip = appStrings().scene_Links
         .mediaLinks.show(media)
         .mediaTransport.toolTip = appStrings().scene_Controls
-        .mediaTransport.show(.documentCount() > 1)
+        .mediaTransport.show(.isTiled() or .documentCount() > 1)
         .updateMediaTransport()
         if transport and not .mediaTimer do
             .mediaTimer = .addTimer(16'ms)
@@ -512,9 +514,10 @@ impl ViewerWorkspace
                              layouts.addChoice(sceneLayoutTitle(layout), current.visibleLayout() == layout, func|workspace, layout|() { workspace.setLayout(layout) }, disabled: workspace.focusOnGrid and layout == .Single, icon: workspace.activeDocument().sceneLayoutGlyph(layout))
                      },
                      icon: .activeDocument().sceneLayoutGlyph(scene.visibleLayout()))
-        page.addAction(scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize,
-                       func|workspace|() { workspace.toggleMaximized() }, disabled: .focusOnGrid,
-                       icon: .theme().icon(scene.maximized ? .ExitFullScreen : .FullScreen, size))
+        if scene.views.count > 1 do
+            page.addAction(scene.maximized ? text.scene_RestoreLayout : text.scene_Maximize,
+                           func|workspace|() { workspace.toggleMaximized() }, disabled: .focusOnGrid,
+                           icon: .theme().icon(scene.maximized ? .ExitFullScreen : .FullScreen, size))
         if not .isMediaScene() and .hasViewLinks() do
             page.addLink(text.scene_ViewLinks, "",
                          func|workspace|(links) { workspace.describeLinks(links) },
@@ -829,6 +832,14 @@ impl ViewerWorkspace
             page.addToggle(text.scene_LinkFraming, scene.links.framing, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Framing, value) })
         if .canLinkScroll() do
             page.addToggle(text.scene_LinkScroll, scene.links.scroll, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Scroll, value) })
+        if .canLinkExplorer()
+        {
+            page.addToggle(text.scene_LinkExplorer, scene.links.explorer, func|workspace|(value) { workspace.setSceneLink(MediaCommands.Explorer, value) })
+            if scene.links.explorer do
+                page.addToggle(text.scene_LinkExplorerSingleClick, scene.links.explorerSingleClick,
+                               func|workspace|(value) { workspace.setSceneLink(MediaCommands.ExplorerSingleClick, value) })
+        }
+
         if not media do
             return
         page.addHeading(text.scene_LinkTime)

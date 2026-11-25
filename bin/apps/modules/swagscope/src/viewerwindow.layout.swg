@@ -140,7 +140,9 @@ impl ViewerWindow
             discard .app().animator.leave(panel, duration, .EaseInOut)
     }
 
-    mtd hasSoloCaption()->bool => .workspace and .workspace.scenes.count == 1 and .workspace.documentCount() == 1 and .isWorkspaceActive() and not .fullScreen
+    mtd hasSoloCaption()->bool => .workspace and .workspace.scenes.count == 1 and
+                                 .workspace.documentCount() == 1 and not .workspace.isTiled() and
+                                 .isWorkspaceActive() and not .fullScreen
 
     mtd hasCellFooter()->bool => .workspace and .workspace.usesCellCaptions() and .workspace.vacancy != me and not .isExploring() and
                                  (not .fullScreen or .workspace.isTiled()) and (not .currentFile.isEmpty() or not .pendingFile.isEmpty())

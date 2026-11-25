@@ -620,7 +620,8 @@ impl IWnd for ViewerWindow
             .rememberTextBookmarkSessions()
             .textTabWidth = Viewers.PlainText.defaultTabWidth()
             .codeTabWidth = Viewers.Code.defaultTabWidth()
-            .explorer?.rememberView()
+            if .explorer and .explorer.isLocallyVisible() do
+                .explorer.rememberView()
             .privacy.sanitize()
             .captureResume()
         }

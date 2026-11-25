@@ -297,6 +297,13 @@ impl ViewerPrivacy
     // Private locations remain navigable in this window without entering serialized state.
     mtd rememberFolderView(state: ExplorerFolderState, transient = false)
     {
+        let primary = .window.workspace?.primary
+        if primary and primary != .window
+        {
+            primary.privacy.rememberFolderView(state, transient)
+            return
+        }
+
         let retain = .mayRemember(state.path) and not transient
         let views  = retain ? &.window.folderViews : &.folderViews
         let other  = retain ? &.folderViews : &.window.folderViews
@@ -320,6 +327,10 @@ impl ViewerPrivacy
 
     mtd folderView(path, folder: string)->const *ExplorerFolderState?
     {
+        let primary = .window.workspace?.primary
+        if primary and primary != .window do
+            return primary.privacy.folderView(path, folder)
+
         .track(path)
         discard .refresh()
         for &state in .folderViews where state.matches(path, folder) do

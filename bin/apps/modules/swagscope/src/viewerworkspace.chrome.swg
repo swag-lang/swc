@@ -321,7 +321,7 @@ impl ViewerWorkspace
             return
 
         let colors  = .themeColors()
-        if scene.views.count > 1 and not .comparisonVisible()
+        if .usesCellCaptions()
         {
             let metrics  = .themeMetrics()
             let inset    = metrics.floating_Inset

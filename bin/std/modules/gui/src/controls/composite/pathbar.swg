@@ -5,8 +5,11 @@ using Core, Pixel
 // Shows a location as clickable breadcrumb levels or as an editable full path.
 //
 // The host owns navigation and fills child menus through [[Gui.BreadcrumbCtrl.sigFillMenu]].
-// Clicking the current level or the empty area edits the path; Enter submits it and Escape
-// restores the breadcrumbs. A click outside the editor or loss of focus cancels without submitting.
+// Clicking the current level edits the path. In a window's title strip, the space after the
+// last level drags the window and opens the editor on a double-click. Elsewhere a single click
+// on the empty area edits the path.
+// Enter submits the path and Escape restores the breadcrumbs. A click outside the editor or loss
+// of focus cancels without submitting.
 struct PathBar
 {
     public

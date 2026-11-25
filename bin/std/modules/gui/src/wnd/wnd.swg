@@ -601,6 +601,15 @@ impl Wnd
     // Borders, focus rings and shadows all sit in this margin.
     private const PaintExtentMargin = 32'f32
 
+    // Popups belong above any chrome painted after the content view's children.
+    internal mtd popupParent()->*Wnd
+    {
+        let view = .topView()
+        if (me == view or view.isAncestorOf(me)) and not view.wndFlags.has(.AfterChildrenPaint) do
+            return view
+        return .topWindow()
+    }
+
     // Setup
 
     #[Swag.Inline]

@@ -86,6 +86,10 @@ impl IWnd for SurfaceWnd
                 .movingSurface = true
             }
 
+        case .DoubleClick:
+            if evt.button == .Left do
+                discard .editCaptionPath(evt.surfacePos)
+
         case .Leave:
             .sizingBorder = .None
 
@@ -619,14 +623,46 @@ impl SurfaceWnd
             .sigCaptionPressed.call(me)
     }
 
+    // The empty tail of a path in the title strip belongs to the caption. The path still
+    // owns its levels, chevrons, overflow menu, and editor.
+    internal mtd captionPathAt(surfacePos: Math.Point, target: *Wnd?)->*PathBar?
+    {
+        if target is BreadcrumbCtrl as breadcrumb
+        {
+            let strip = .stripHeight()
+            let pos   = .surfaceToLocal(surfacePos)
+            if pos.y < 0 or pos.y >= strip or .hitTestCaptionButton(surfacePos) do
+                return null
+            if breadcrumb.parent?.parent is PathBar as path where
+                path.breadcrumb == breadcrumb and
+                path.surfaceRect().bottom() <= .surfaceRect().y + strip and
+                breadcrumb.isTrailingGround(surfacePos) do
+                return path
+        }
+
+        return null
+    }
+
+    internal mtd editCaptionPath(surfacePos: Math.Point)->bool
+    {
+        let target = .windowAt(surfacePos.x, surfacePos.y)
+        if let path = .captionPathAt(surfacePos, target)
+        {
+            path.beginEdit()
+            return true
+        }
+
+        return false
+    }
+
     // Reports whether the surface position `surfacePos` drags the window.
     //
     // The strip drags the window wherever no control sits: over its own ground, the glyph and
     // the title, and over the content passing under it. A control placed in the strip — a window
     // that can hold the keyboard focus or is a button, lying within the strip, or an entry of a
     // menu bar — keeps its clicks. Content that only reaches up into the strip, such as a
-    // document or a list continuing below it, drags the window there. The window buttons never
-    // drag.
+    // document or a list continuing below it, drags the window there. The space after a caption
+    // path's last level is also draggable. The window buttons keep their clicks.
     //
     // A [[Gui.SurfaceFlags.Sheet]] has no strip: its body's own ground — the title, the inset
     // around the content and the air beside the actions — drags it instead.
@@ -674,7 +710,7 @@ impl SurfaceWnd
         // A window finds its children from a point in its parent's coordinates, the surface's
         // here: the local point would count the margin the shadow is cast into twice.
         let target = .windowAt(surfacePos.x, surfacePos.y, true)
-        if not target or target == me do
+        if not target or target == me or .captionPathAt(surfacePos, target) do
             return true
         if target is MenuCtrl as menu where menu.bar do
             return menu.hitTestBar(surfacePos) == Swag.U32.Max

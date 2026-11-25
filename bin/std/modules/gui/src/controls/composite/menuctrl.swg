@@ -1503,17 +1503,13 @@ public impl MenuCtrl
 
     // Creates a hidden popup menu in the presentation layer containing `parent`.
     //
-    // Client controls place their menus in the root content view. Surface chrome and existing
-    // surface overlays place them in the root surface window, so the complete menu tree can cross
-    // the content inset without being clipped. `owner`, or `parent` when omitted, remains the
-    // logical owner for command routing.
+    // The menu opens in the root content view or, when it needs to cover the chrome, in the
+    // root surface window. `owner`, or `parent` when omitted, routes its commands.
     #[Swag.Discardable]
     func createPopup(parent: *Wnd, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Swag.assert(parent != null)
-        let topView     = parent.topView()
-        let popupParent = parent == topView or topView.isAncestorOf(parent) ? topView : parent.topWindow()
-        with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
+        with let res = Wnd.create'MenuCtrl(parent.popupParent(), null, {}, id)
         {
             .focusPolicy = .Click
             .wndFlags    |= .NoPointerFocus

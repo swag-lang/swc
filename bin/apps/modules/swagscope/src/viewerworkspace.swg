@@ -148,19 +148,21 @@ impl ViewerScene
 
     mtd const dimensions(useMaximized = true)->Math.Point
     {
-        if .views.count <= 1 or useMaximized and (.layout == .Single or .maximized) do
+        if .views.isEmpty() or useMaximized and (.layout == .Single or .maximized) do
             return {1, 1}
         switch .layout
         {
-        case .SideBySide where .views.count == 2: return {2, 1}
-        case .Stacked where .views.count == 2:    return {1, 2}
+        case .SideBySide where .views.count <= 2: return {2, 1}
+        case .Stacked where .views.count <= 2:    return {1, 2}
         case .Grid4:                              return {4, 4}
         case .Grid3 where .views.count <= 9:      return {3, 3}
         case .Grid2 where .views.count <= 4:      return {2, 2}
         default:                                  break
         }
 
-        if .views.count <= 2 do
+        if .views.count == 1 do
+            return {1, 1}
+        if .views.count == 2 do
             return {2, 1}
         if .views.count <= 4 do
             return {2, 2}
@@ -173,7 +175,7 @@ impl ViewerScene
     {
         switch #complete layout
         {
-        case .SideBySide, .Stacked:  return .views.count == 2
+        case .SideBySide, .Stacked:  return .views.count <= 2
         case .Grid2:                 return .views.count <= 4
         case .Grid3:                 return .views.count <= 9
         case .Single, .Grid4, .Auto: return true
@@ -337,13 +339,15 @@ impl ViewerWorkspace
 
     mtd documentCount()->u64 => .scene()?.views.count orelse 0
 
+    mtd canSetLayout()->bool => .scene() != null or .primary.isExploring()
+
     mtd isTiled()->bool
     {
         let scene = .scene()
-        return scene and scene.views.count > 1 and not scene.maximized and scene.layout != .Single
+        return scene and scene.cellCount() > 1
     }
 
-    mtd usesCellCaptions()->bool => .documentCount() > 1 and not .comparisonVisible()
+    mtd usesCellCaptions()->bool => (.isTiled() or .documentCount() > 1) and not .comparisonVisible()
 
     func attachDocument(workspace: *ViewerWorkspace, view: *SceneView, remember: bool)
     {
@@ -416,7 +420,7 @@ impl ViewerWorkspace
         .resumeScene(remember)
     }
 
-    mtd replaceDocument(index: u64, path: string)
+    mtd replaceDocument(index: u64, path: string, select = true)
     {
         let scene = .scene()
         if not scene or index >= scene.views.count do
@@ -436,7 +440,9 @@ impl ViewerWorkspace
         if scene.links.solo == index do
             scene.links.solo = Swag.U64.Max
         document.queueFile(path)
-        if scene.active == index and not .focusOnGrid do
+        if not select do
+            .layoutScene()
+        elif scene.active == index and not .focusOnGrid do
             .showScene()
         else do
             .selectView(index)
@@ -684,7 +690,7 @@ impl ViewerWorkspace
         scene.active       = scene.active == closing ? Math.min(closing, scene.views.count - 1) : remapClosedView(scene.active, closing)
         scene.compared     = false
         scene.maximized    = false
-        if scene.views.count == 1
+        if scene.views.count == 1 and not (scene.links.explorer and (scene.views[0].document?.isExploring() orelse false))
         {
             scene.layout = .Single
             scene.linked = false
@@ -736,6 +742,8 @@ impl ViewerWorkspace
 
     mtd setLayout(layout: SceneLayout)
     {
+        if not .scene() and .primary.isExploring() and layout != .Single and layout != .Auto do
+            .adoptPrimary(.primary.explorer!.requested)
         let scene = .scene()
         if not scene or not scene.supportsLayout(layout) do
             return
@@ -873,7 +881,7 @@ impl ViewerWorkspace
 
     mtd gridCellRect(scene: const *ViewerScene, index: u64)->Math.Rectangle
     {
-        if scene.views.count <= 1 do
+        if scene.cellCount() == 1 and scene.views.count <= 1 do
             return .clientRect()
 
         let body = .gridBody()
@@ -906,7 +914,7 @@ impl ViewerWorkspace
     mtd activateFromPointer(child: *Wnd, evt: *MouseEvent)->bool
     {
         let scene = .scene()
-        if not scene or scene.views.count < 2 or evt.button != .Left do
+        if not scene or (scene.views.count < 2 and not .isTiled()) or evt.button != .Left do
             return false
         if .vacancy and evt.kind == .DoubleClick and (child == .vacancy or .vacancy.isOwnerOf(child))
         {
@@ -937,7 +945,7 @@ impl ViewerWorkspace
     mtd neighbourCell(key: Input.Key)->u64
     {
         let scene = .scene()
-        if not scene or scene.views.count < 2 do
+        if not scene or (scene.views.count < 2 and not .isTiled()) do
             return Swag.U64.Max
         let single = scene.maximized or scene.layout == .Single
         let cols   = cast(s64, scene.dimensions().x)
@@ -960,7 +968,7 @@ impl ViewerWorkspace
     {
         let scene = .scene()
         if not scene or
-           scene.views.count < 2 or
+           (scene.views.count < 2 and not .isTiled()) or
            (key != .Left and key != .Right and key != .Up and key != .Down) do
             return false
         if .focusOnGrid

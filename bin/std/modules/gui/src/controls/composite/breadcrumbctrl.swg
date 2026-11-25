@@ -219,6 +219,23 @@ impl BreadcrumbCtrl
         }
     }
 
+    internal mtd isTrailingGround(surfacePos: Math.Point)->bool
+    {
+        let pos = .surfaceToLocal(surfacePos)
+        if not .clientRect().contains(pos) do
+            return false
+
+        .layout()
+        var end = .overflowRect.right()
+        if not .items.isEmpty()
+        {
+            let leaf = .items.backPtr()
+            end = Math.max(end, leaf.bodyRect.right(), leaf.arrowRect.right())
+        }
+
+        return pos.x + .scrollPos.x >= end
+    }
+
     // Returns the width of the body of `item`: its icon, its name, and their padding.
     private mtd bodyWidth(item: const *BreadcrumbItem)->f32
     {

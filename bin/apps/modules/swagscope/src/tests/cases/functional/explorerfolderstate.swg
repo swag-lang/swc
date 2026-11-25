@@ -123,3 +123,32 @@ using Core, Gui
     publisher.close()
     Swag.require(window.privacy.folderView(root, "")!.query == "private-filter")
 }
+
+// An Explorer panel can be retired and reopened in another scene with its own folder mode.
+#test
+{
+    let folder = Testing.tempFilePath("scope-workspace-folder-mode-", "")
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    let fileName = Path.combine(folder, "File.txt")
+    discard expect File.writeAllText(fileName, "text")
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openDocument(fileName)
+    openViews(&host, workspace)
+    workspace.openDocument(folder)
+    openViews(&host, workspace)
+    let second = workspace.activeDocument()
+    Swag.require(second != workspace.primary and second.isExploring())
+    let explorer = unwrap second.explorer
+    completeExplorer(&host, explorer)
+    explorer.setMode(.Details)
+
+    workspace.closeScene(workspace.active)
+    workspace.activeDocument().openExplorer(folder)
+    let returned = unwrap workspace.activeDocument().explorer
+    completeExplorer(&host, returned)
+    Swag.require(returned.mode == .Details)
+}

@@ -299,16 +299,13 @@ impl View
 {
     // Creates a hidden sheet whose first page `build` fills.
     //
-    // The sheet joins the presentation layer of `parent`, the way a popup menu does, so a sheet
-    // opened from the title bar is not clipped by the content of the window. `owner`, or `parent`
-    // when omitted, routes the commands of the sheet.
+    // The sheet joins the presentation layer of `parent`, above any chrome drawn over the
+    // content. `owner`, or `parent` when omitted, routes its commands.
     #[Swag.Discardable]
     func create(parent: *Wnd, build: Builder, owner: *Wnd? = null)->*View
     {
         Swag.assert(parent != null)
-        let topView     = parent.topView()
-        let sheetParent = parent == topView or topView.isAncestorOf(parent) ? topView : parent.topWindow()
-        with let result = Wnd.create'View(sheetParent, null, {})
+        with let result = Wnd.create'View(parent.popupParent(), null, {})
         {
             .focusPolicy = .Click
             .owner       = owner orelse parent

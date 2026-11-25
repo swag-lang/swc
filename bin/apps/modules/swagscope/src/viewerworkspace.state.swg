@@ -139,7 +139,7 @@ impl ViewerWorkspace
             }
             scene.recent          = record.recent
             scene.compared        = record.compared and scene.views.count == 2
-            scene.linked          = record.linked and scene.views.count > 1
+            scene.linked          = record.linked and (scene.views.count > 1 or record.links.explorer and scene.cellCount() > 1)
             scene.links           = record.links
             // Older sessions stored Stop with Shortest as their default.
             if not record.savedEndMode and scene.links.end == .Shortest do

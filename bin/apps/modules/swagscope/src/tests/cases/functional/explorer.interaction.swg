@@ -355,3 +355,52 @@ func assertExplorerRenderStable(host: *Testing.HeadlessHost, window: *ViewerWind
         Swag.require(changed > 0)
     }
 }
+
+// Shift extends and retracts the range from one anchor in the list and thumbnail views.
+#test
+{
+    let folder = Gui.Testing.tempFilePath("scope-shift-selection-", "")
+    expect Directory.create(folder)
+    defer catch Directory.delete(folder, recurse: true)
+    for name in ["Alpha.txt", "Beta.txt", "Gamma.txt", "Omega.txt"] do
+        discard expect File.writeAllText(Path.combine(folder, name), name)
+
+    var host: Gui.Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.primary.openExplorer(folder)
+    let explorer = unwrap workspace.primary.explorer
+    completeExplorer(&host, explorer)
+
+    explorer.setMode(.Names)
+    explorer.list.setFocusedIndex(0)
+    explorer.list.selectLine(0)
+    explorer.focusContent()
+    for 2 do
+        host.keyPress(.Down, .Shift)
+    Swag.require(explorer.selectionPaths().count == 3 and explorer.selected == explorer.shown[2])
+    host.keyPress(.Up, .Shift)
+    Swag.require(explorer.selectionPaths().count == 2 and explorer.selected == explorer.shown[1])
+
+    explorer.setMode(.Medium)
+    explorer.grid.select(0)
+    explorer.focusContent()
+    for 2 do
+        host.keyPress(.Right, .Shift)
+    Swag.require(explorer.selectionPaths().count == 3 and explorer.selected == explorer.shown[2])
+    host.keyPress(.Left, .Shift)
+    Swag.require(explorer.selectionPaths().count == 2 and explorer.selected == explorer.shown[1])
+}
+
+// Popups from a grid cell belong above the workspace's focus outline.
+#test
+{
+    var host: Gui.Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let button = IconButton.createQuiet(workspace.primary)
+    let sheet = OptionSheet.View.create(button, func(_) {}, owner: workspace.primary)
+    let menu = MenuCtrl.createPopup(button)
+    Swag.require(sheet.parent == &host.surfaceWnd and sheet.owner == workspace.primary)
+    Swag.require(menu.parent == &host.surfaceWnd and menu.owner == button)
+}

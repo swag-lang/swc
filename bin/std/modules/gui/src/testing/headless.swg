@@ -1341,7 +1341,15 @@ impl HeadlessHost
 
         // A viewer's drop overlay is disabled precisely so it never takes the pointer: walking
         // up to the enabled ancestor is what stops it from swallowing the gesture.
-        return Application.skipDisabled(.wndAt(pt))
+        let target = Application.skipDisabled(.wndAt(pt))
+        if target
+        {
+            let frame = target.surface!.wnd
+            if frame.captionPathAt(target.screenToSurface(pt), target) do
+                return frame
+        }
+
+        return target
     }
 
     // Sends one simulated mouse event of `kind` to `target`, at a physical screen position.

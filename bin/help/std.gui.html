@@ -11953,7 +11953,7 @@ bar.<span class="SFct">showNear</span>(selectionRect)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-struct"><span id="Gui_PathBar" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Gui.PathBar</span> <a class="api-item-permalink" href="#Gui_PathBar" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/pathbar.swg#L10">src</a></div>
 <p>Shows a location as clickable breadcrumb levels or as an editable full path.</p>
-<p>The host owns navigation and fills child menus through <a href="#Gui_BreadcrumbCtrl_sigFillMenu">Gui.BreadcrumbCtrl.sigFillMenu</a>. Clicking the current level or the empty area edits the path; Enter submits it and Escape restores the breadcrumbs. A click outside the editor or loss of focus cancels without submitting.</p>
+<p>The host owns navigation and fills child menus through <a href="#Gui_BreadcrumbCtrl_sigFillMenu">Gui.BreadcrumbCtrl.sigFillMenu</a>. Clicking the current level edits the path. In a window's title strip, the space after the last level drags the window and opens the editor on a double-click. Elsewhere a single click on the empty area edits the path. Enter submits the path and Escape restores the breadcrumbs. A click outside the editor or loss of focus cancels without submitting.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">PathBar</span></span></div>
 </section>
 <h3>Fields</h3>
@@ -25448,7 +25448,7 @@ view.<span class="SFct">updateVideoFrame</span>(&amp;planes)</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_MenuCtrl_createPopup" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">MenuCtrl.createPopup</span> <a class="api-item-permalink" href="#Gui_MenuCtrl_createPopup" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/composite/menuctrl.swg#L1511">src</a></div>
 <p>Creates a hidden popup menu in the presentation layer containing <span class="code-inline">parent</span>.</p>
-<p>Client controls place their menus in the root content view. Surface chrome and existing surface overlays place them in the root surface window, so the complete menu tree can cross the content inset without being clipped. <span class="code-inline">owner</span>, or <span class="code-inline">parent</span> when omitted, remains the logical owner for command routing.</p>
+<p>The menu opens in the root content view or, when it needs to cover the chrome, in the root surface window. <span class="code-inline">owner</span>, or <span class="code-inline">parent</span> when omitted, routes its commands.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Discardable">Discardable</a>]</span>
 <span class="SKwd">func</span> <span class="SFct">createPopup</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, id: <span class="SCst"><a href="#Gui_WndId">WndId</a></span>? = <span class="SKwd">null</span>, owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_MenuCtrl">MenuCtrl</a></span></span></div>
 </section>
@@ -28867,7 +28867,7 @@ btnPush_Hot      $btnPush_Normal</span></div>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Gui_OptionSheet_View_create" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">View.create</span> <a class="api-item-permalink" href="#Gui_OptionSheet_View_create" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/gui/src/controls/optionsheet/view.swg#L306">src</a></div>
 <p>Creates a hidden sheet whose first page <span class="code-inline">build</span> fills.</p>
-<p>The sheet joins the presentation layer of <span class="code-inline">parent</span>, the way a popup menu does, so a sheet opened from the title bar is not clipped by the content of the window. <span class="code-inline">owner</span>, or <span class="code-inline">parent</span> when omitted, routes the commands of the sheet.</p>
+<p>The sheet joins the presentation layer of <span class="code-inline">parent</span>, above any chrome drawn over the content. <span class="code-inline">owner</span>, or <span class="code-inline">parent</span> when omitted, routes its commands.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr"><a href="swag.runtime.html#Swag_Discardable">Discardable</a>]</span>
 <span class="SKwd">func</span> <span class="SFct">create</span>(parent: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>, build: <span class="SCst"><a href="#Gui_OptionSheet_Builder">Builder</a></span>, owner: *<span class="SCst"><a href="#Gui_Wnd">Wnd</a></span>? = <span class="SKwd">null</span>)-&gt;*<span class="SCst"><a href="#Gui_OptionSheet_View">View</a></span></span></div>
 </section>

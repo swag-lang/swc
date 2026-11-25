@@ -1226,7 +1226,8 @@ impl Explorer
 
     mtd rememberView()
     {
-        if .listing.path.isEmpty() or .load.started or .failure.isLocallyVisible() do
+        if .load.started or .listing.path.isEmpty() or not Path.equals(.listing.path, .requested) or
+           .folder != .requestedFolder or .failure.isLocallyVisible() do
             return
         if not .window.privacy.mayRemember(.listing.path) do
             .privateView = true
@@ -1682,6 +1683,7 @@ impl Explorer
         .shown.clear()
         .selected = Swag.U64.Max
         .selectedFiles.clear()
+        .grid.selectionAnchor = Swag.U64.Max
         .showMediaInfo()
         .updateBreadcrumb()
 
@@ -1978,8 +1980,13 @@ impl Explorer
 
     mtd setMode(mode: ExplorerMode)
     {
-        if mode != .mode do
+        let changed = mode != .mode
+        if changed
+        {
             .clearFileDrag()
+            .grid.selectionAnchor = Swag.U64.Max
+        }
+
         .mode = mode
         let namesOnly = .list.scrollWnd.flags.has(.DisableHorizontal)
         if mode == .Names and not namesOnly
@@ -2004,6 +2011,8 @@ impl Explorer
         .scroll.show(not rows)
         .applyLayout()
         .fill()
+        if changed do
+            .rememberView()
     }
 
     mtd isThumbnailView()->bool => .mode != .Names and .mode != .Details
@@ -2048,8 +2057,16 @@ impl Explorer
 
         if evt.kind == .Released and evt.button == .Left
         {
+            let inside = source.surfaceRect().contains(evt.surfacePos)
+            if inside and evt.modifiers == .None
+            {
+                let row = source == .grid ? .grid.rowAt(source.surfaceToLocal(evt.surfacePos)) : cast(u64, .list.rowAt(evt.surfacePos))
+                if row < .shown.count and .entries[.shown[row]].path == .dragPath do
+                    discard .window.workspace?.openLinkedExplorerFile(.window, .dragPath, singleClick: true) orelse false
+            }
+
             .clearFileDrag()
-            return not source.surfaceRect().contains(evt.surfacePos)
+            return not inside
         }
 
         if evt.kind != .Move do
@@ -2090,6 +2107,8 @@ impl Explorer
 
     mtd leave()
     {
+        if .isLocallyVisible() do
+            .rememberView()
         .suspend()
         .generation  += 1
         .pendingOpen = Swag.U64.Max
@@ -2210,7 +2229,7 @@ impl Explorer
             .pendingOpen = index
             .requestPreview()
         }
-        else
+        elif not (.window.workspace?.openLinkedExplorerFile(.window, entry.path) orelse false)
         {
             .window.resumeFile(entry.path, fromHistory: false)
         }
@@ -2694,6 +2713,7 @@ struct ExplorerGrid
     columns:       u64        = 1
     cell:          Math.Point = {160, 152}
     hovered:       u64        = Swag.U64.Max
+    selectionAnchor: u64     = Swag.U64.Max
     spinners:      Array'(*Spinner)
     busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
     spinnerUse:    u64
@@ -3520,41 +3540,48 @@ impl ExplorerGrid
             return
         let explorer = .explorer
         let entry = explorer.shown[row]
-        if explorer.window.workspace and not explorer.listing.isArchive and not explorer.entries[entry].directory and
-           (modifiers.has(.Control) or modifiers.has(.Shift))
+        let multi = explorer.window.workspace and not explorer.listing.isArchive
+        if multi and modifiers.has(.Shift)
+        {
+            let anchorEntry = .selectionAnchor == Swag.U64.Max ? explorer.selected : .selectionAnchor
+            var anchor = row
+            for index, slot in explorer.shown where index == anchorEntry
+            {
+                anchor = slot
+                break
+            }
+
+            .selectionAnchor = explorer.shown[anchor]
+            explorer.selectedFiles.clear()
+            for slot in Math.min(row, anchor) to Math.max(row, anchor)
+            {
+                let index = explorer.shown[slot]
+                if not explorer.entries[index].directory do
+                    explorer.selectedFiles.add(index)
+            }
+
+            explorer.selected = entry
+        }
+        elif multi and modifiers.has(.Control) and not explorer.entries[entry].directory
         {
             let before = explorer.selected
             if explorer.selectedFiles.isEmpty() and before < explorer.entries.count and not explorer.entries[before].directory do
                 explorer.selectedFiles.add(before)
-            if modifiers.has(.Shift)
-            {
-                var anchor = row
-                for index, slot in explorer.shown where index == before do
-                    anchor = slot
-                explorer.selectedFiles.clear()
-                for slot in Math.min(row, anchor) to Math.max(row, anchor)
-                {
-                    let index = explorer.shown[slot]
-                    if not explorer.entries[index].directory do
-                        explorer.selectedFiles.add(index)
-                }
-            }
-            elif explorer.selectedFiles.contains(entry)
-            {
+            if explorer.selectedFiles.contains(entry) do
                 explorer.selectedFiles.remove(entry)
-            }
-            else
-            {
+            else do
                 explorer.selectedFiles.add(entry)
-            }
 
             explorer.selected = explorer.selectedFiles.isEmpty() ? Swag.U64.Max : explorer.selectedFiles.back()
+            .selectionAnchor  = explorer.selected
         }
         else
         {
             explorer.selectedFiles.clear()
             explorer.selected = entry
+            .selectionAnchor  = entry
         }
+
         .explorer.showMediaInfo()
         if .rows do
             .explorer.requestPreview()
@@ -3761,13 +3788,14 @@ impl IWnd for ExplorerGrid
 
         for index, at in .explorer.shown where index == .explorer.selected do
             row = at
+        let rangeModifiers = evt.modifiers & .Shift
         switch evt.key
         {
         case .Return: .explorer.openSelection()
-        case .Left:   .select(row > 0 ? row - 1 : 0)
-        case .Right:  .select(row + 1)
-        case .Up:     .select(row >= .columns ? row - .columns : 0)
-        case .Down:   .select(row + .columns)
+        case .Left:   .select(row > 0 ? row - 1 : 0, rangeModifiers)
+        case .Right:  .select(row + 1, rangeModifiers)
+        case .Up:     .select(row >= .columns ? row - .columns : 0, rangeModifiers)
+        case .Down:   .select(row + .columns, rangeModifiers)
         case .Home:   .select(0)
         case .End where not .explorer.shown.isEmpty(): .select(.explorer.shown.count - 1)
         case .Back:   .explorer.goUp()

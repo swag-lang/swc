@@ -68,8 +68,7 @@ impl ViewerWindow
     mtd describeScenes(results: *Lens.Results, atRest: bool)
     {
         let workspace = unwrap .workspace
-        let scene     = workspace.scene()
-        if scene and scene.views.count > 1
+        if workspace.canSetLayout()
         {
             let label   = appStrings().scene_Layout
             var matches = atRest or Lens.match(results.folded, label).matched
@@ -82,7 +81,7 @@ impl ViewerWindow
                 .lens.addCommandRows(layouts, SceneCommands.Layouts[0 until 6])
             }
 
-            if atRest
+            if atRest and workspace.documentCount() > 1
             {
                 let actions = results.addSection("")
                 .lens.addCommandRows(actions, [SceneCommands.Layouts[6], SceneCommands.OpenGrid, SceneCommands.Maximize, SceneCommands.Compare])
@@ -194,10 +193,10 @@ impl ViewerWindow
                 let layout = SceneCommands.LayoutValues[index]
                 icon      = .sceneLayoutGlyph(layout)
                 name      = sceneLayoutTitle(layout)
-                hidden    = not scene or scene.views.count < 2
+                hidden    = not workspace.canSetLayout()
                 disabled  = scene and not scene.supportsLayout(layout)
                 checkable = true
-                checked   = scene and scene.visibleLayout() == layout
+                checked   = (scene?.visibleLayout() orelse SceneLayout.Single) == layout
                 break
             }
         }

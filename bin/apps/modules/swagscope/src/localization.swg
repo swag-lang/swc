@@ -55,6 +55,8 @@ struct AppStrings
     scene_LoadingComparison: string = "Comparing files…"
     scene_Links:              string = "Playback Links"
     scene_Linked:       string = "Linked"
+    scene_LinkExplorer: string = "Link Explorer to Content"
+    scene_LinkExplorerSingleClick: string = "Open in Linked Pane with a Single Click"
     scene_LinkTime:     string = "Time"
     scene_LinkPlayback: string = "Playback"
     scene_LinkFraming:  string = "Framing"

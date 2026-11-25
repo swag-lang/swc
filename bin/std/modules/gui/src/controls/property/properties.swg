@@ -128,7 +128,7 @@ struct Properties
     gridLineHeight:    f32 = 32
     gridLineMargin:    s32 = 4
     gridColumnSize:    s32 = 150
-    gridColumnSizeReq: s32 = 150     // Requested width, re-clamped on resize.
+    gridColumnSizeReq: s32     // Explicit width, or zero to fit the captions.
     gridMarginColumn:  s32 = 16
     gridIndentSize:    s32 = 14
 
@@ -324,9 +324,10 @@ internal impl Properties
         .gridLineMargin       = 4
         if .kind == .List
         {
-            .fontName.regular = .fontName.bold
-            .leftMargin       = 15
-            .rightMargin      = 15
+            .fontName.regular         = .fontName.semiBold
+            .leftMargin               = 15
+            .rightMargin              = 15
+            .listContentPaddingBottom = cast(s32, theme.metrics.property_FieldGap)
         }
         else
         {
@@ -334,8 +335,7 @@ internal impl Properties
             .rightMargin = 8
         }
 
-        // Condensed: a dense table of rows, values as text, one hairline between rows.
-        // Inherits the grid-family fonts/layout set just above.
+        // Condensed keeps the two columns and uses compact rows with flat value editors.
         if .kind == .Condensed
         {
             .gridLineHeight = theme.metrics.property_CondensedRowHeight

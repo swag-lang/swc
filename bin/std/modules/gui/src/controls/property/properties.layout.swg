@@ -48,9 +48,8 @@ impl Properties
         if not .isGridLike() do
             return
 
-        .gridColumnSizeReq = width
-        .gridColumnSize    = .clampColumnSize(width)
-        .syncColumnLabels()
+        .gridColumnSizeReq = Math.max(width, .gridMarginColumn)
+        .refreshGridColumnLayout()
         .applyLayout()
         .invalidate()
     }
@@ -61,7 +60,10 @@ impl Properties
         if not .isGridLike() do
             return
 
-        .gridColumnSize = .clampColumnSize(.gridColumnSizeReq)
+        var width = .gridColumnSizeReq
+        if width == 0 do
+            width = cast(s32, .automaticGridColumnWidth())
+        .gridColumnSize = .clampColumnSize(width)
         .syncColumnLabels()
     }
 }
@@ -112,6 +114,104 @@ internal impl Properties
 
         btn.position.x = Math.round(.listActionRight() - btn.position.width)
         btn.position.y = Math.round((item.label.position.height - btn.position.height) * 0.5)
+    }
+
+    // Keep the column stable across search and section filters. At narrow widths, protect
+    // the value column and let the captions end in an ellipsis.
+    mtd automaticGridColumnWidth()->f32
+    {
+        const DefaultWidth = 150'f32
+        let available = .edView.position.width
+        if available <= 0 do
+            return DefaultWidth
+
+        let markSpace = .nameMarkSpace()
+        var width     = DefaultWidth
+        for entry in .items
+        {
+            let item = unwrap entry
+            if item.label == null or .isGridHeader(item) or item.flags.has(.Note) do
+                continue
+            let caption = .captionWidth(item.label) + .itemIndent(item) + .itemLabelGutter(item)
+            width = Math.max(width, caption + markSpace)
+        }
+
+        return Math.min(width, Math.floor(available * 0.5))
+    }
+
+    mtd captionWidth(label: *Label)->f32
+    {
+        if let font = label.font().regular do
+            return Math.ceil(Painter.measureString(label.text(), font).width)
+        return 0
+    }
+
+    mtd nameMarkSpace()->f32 => .themeMetrics().property_FieldGap + 2 * .themeMetrics().property_ModifiedMarkSize
+
+    // The panel's single-line composites own their visible captions. The hidden field label
+    // still carries the reflected name, but it has no place in the rendered row.
+    mtd panelCaption(item: *PropertiesItem)->*Label?
+    {
+        if item.sliderBox != null do
+            return item.sliderBox.label
+        if item.editBox != null
+        {
+            if item.editBox.parent is EditCtrl as edit do
+                return edit.label
+        }
+
+        if item.comboBox != null
+        {
+            if item.comboBox.parent is ComboCtrl as combo do
+                return combo.label
+        }
+
+        return null
+    }
+
+    mtd resizePanelCaptions(contentWidth: f32)
+    {
+        if .kind != .Panel do
+            return
+
+        let markSpace = .nameMarkSpace()
+        var width     = 60'f32
+        for entry in .items
+        {
+            let item = unwrap entry
+            if let label = .panelCaption(item) do
+                width = Math.max(width, .captionWidth(label) + markSpace)
+        }
+
+        width = Math.min(width, Math.floor(contentWidth * 0.45))
+        for entry in .items
+        {
+            let item  = unwrap entry
+            let label = .panelCaption(item)
+            if not label do
+                continue
+
+            label.updateFlags(.Ellipsis)
+            label.setTextPadding({0, 0, markSpace, 0})
+            if .captionWidth(label) + markSpace > width do
+                label.toolTip = label.text()
+            else do
+                label.toolTip = item.description
+
+            if item.sliderBox != null
+            {
+                let slider = item.sliderBox
+                slider.setLayoutMetrics(width, slider.valueWidth, slider.spacing)
+            }
+            elif label.parent is EditCtrl as edit
+            {
+                edit.setLayoutMetrics(width, edit.editWidth, edit.spacing)
+            }
+            elif label.parent is ComboCtrl as combo
+            {
+                combo.setLayoutMetrics(width, combo.comboWidth, combo.spacing)
+            }
+        }
     }
 
     mtd clampColumnSize(size: s32)->s32
@@ -165,7 +265,7 @@ internal impl Properties
     // group of pure-leaf fields tucks in closer under its parent instead of leaving an empty slot.
     mtd itemLabelGutter(item: *PropertiesItem)->f32
     {
-        if not .isGridLike() or .isGridHeader(item) do
+        if not .isGridLike() or item.flags.has(.Category | .Header) do
             return cast(f32, .leftMargin)
         return .levelReservesMark(.itemDepth(item)) ? cast(f32, .leftMargin) : cast(f32, .leftMargin) * 0.5
     }
@@ -202,7 +302,7 @@ internal impl Properties
         if .isGridHeader(item)
         {
             var textPadding = item.label.textPadding
-            textPadding.x = cast(f32, .leftMargin) + .itemIndent(item)
+            textPadding.x = .itemLabelGutter(item) + .itemIndent(item)
             item.label.setTextPadding(textPadding)
             item.label.margin.z       = 0
             item.label.position.width = .gridHeaderLabelWidth(item)
@@ -211,6 +311,7 @@ internal impl Properties
         {
             var textPadding = item.label.textPadding
             textPadding.x = .itemIndent(item) + .itemLabelGutter(item)
+            textPadding.z = .nameMarkSpace()
             item.label.setTextPadding(textPadding)
             item.label.position.width = .gridColumnSize
         }

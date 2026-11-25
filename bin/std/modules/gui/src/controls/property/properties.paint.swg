@@ -37,23 +37,8 @@ internal impl Properties
 
         item.aniFocusBk.apply(wndItem, colBk)
 
-        var r = wndItem.clientRect()
-
-        // Row chrome stays inside the row window. Painting through the surrounding layout
-        // margins lets two independently animated rows overwrite each other at their shared edge.
-        let rowRect = r
-        if .isGridLike()
-        {
-            r.x     = 0
-            r.width = .edView.position.width - 1
-        }
-        else
-        {
-            // The line is the list row's useful rectangle. Children carry the internal content
-            // margins, so paint, hit-test, wrapping and action placement share one width.
-            r.x     = 0
-            r.width = .listUsefulWidth() - 1
-        }
+        // Use the same bounds as the row's controls and hit test, leaving its margins clear.
+        let r = wndItem.clientRect()
 
         // HelpBox note decorator: a soft info bar spanning the row. The styled label (built with the
         // info icon + text color) paints on top; no grid border, separator or disclosure.
@@ -101,15 +86,11 @@ internal impl Properties
             painter.fillRect(rect, .aniBar.cur())
         }
 
-        // A field whose value differs from its declared default carries a small Arc dot right
-        // after its name, in every kind: it says "changed" where the eye reads the name, and the
-        // faint revert glyph at the end of the row (or the context menu) restores it.
-        if item.isModified and .revertButtonsVisible do
-            .paintNameMark(painter, item, modified: true)
-
-        // A read-only value is shown, not offered: a faint padlock after its name says so.
-        if item.label != null and item.data and .isItemReadOnly(item) do
+        // Read-only fields show a lock; editable fields changed from their default show a dot.
+        if item.data and .isItemReadOnly(item) do
             .paintNameMark(painter, item, modified: false)
+        elif item.isModified and .revertButtonsVisible do
+            .paintNameMark(painter, item, modified: true)
 
         // A section label in a panel is followed by one hairline to the end of the row: the
         // label and the line already say where a group starts, so no band stands behind it.
@@ -122,15 +103,9 @@ internal impl Properties
             let width    = Painter.measureString(label.text(), font).width + tracking + label.textPadding.x
             let left     = label.position.x + width + metrics.dialog_BtnPadding
             let y        = Math.round(label.position.vertCenter())
-            if left < r.right() do
-                painter.fillRect(Math.Rectangle{left, y, r.right() - left, metrics.separator_HairlineSize}, colors.line)
-        }
-
-        // Condensed rows read as a table: one hairline under each field row.
-        if .kind == .Condensed and not item.flags.has(.Section | .Category | .Header | .Note | .Spacer)
-        {
-            let y = rowRect.bottom() + wndItem.margin.w - metrics.separator_HairlineSize
-            painter.fillRect(Math.Rectangle{r.x, y, r.width, metrics.separator_HairlineSize}, colors.line)
+            let right    = wndItem.paddedClientRect().right()
+            if left < right do
+                painter.fillRect(Math.Rectangle{left, y, right - left, metrics.separator_HairlineSize}, colors.line)
         }
 
         // Validation feedback: a dot in the tone and the message in the tone under the value
@@ -183,9 +158,10 @@ internal impl Properties
         default:   break
         }
 
-        if before >= label.position.width do
+        let textRight = label.position.right() - label.textPadding.z
+        if left + before >= textRight do
             return
-        let right = Math.min(left + after, label.position.right())
+        let right = Math.min(left + after, textRight)
         painter.fillRect(Math.Rectangle{Math.round(left + before), Math.round(top), Math.round(right - left - before), font.height}, .themeColors().highlight)
     }
 
@@ -194,7 +170,7 @@ internal impl Properties
     mtd paintNameMark(painter: *Painter, item: *PropertiesItem, modified: bool)
     {
         // A self-labelled control of a panel carries its own words: the mark follows them.
-        if .kind == .Panel and modified and .paintSelfLabelMark(painter, item) do
+        if .kind == .Panel and .paintSelfLabelMark(painter, item, modified) do
             return
 
         // A row with no name at all, such as one flag of an enumeration, never assigned the label:
@@ -214,47 +190,23 @@ internal impl Properties
         let metrics = .themeMetrics()
         let size    = metrics.property_ModifiedMarkSize
         let width   = Painter.measureString(label.text(), font).width
-        let x       = label.position.x + label.textPadding.x + Math.min(width, label.position.width) + size
+        let right   = label.position.right() - label.textPadding.z
+        let left    = label.position.x + label.textPadding.x
+        if right <= left do
+            return
+        let x       = Math.min(left + width, right) + size
         var centerY = label.position.vertCenter()
         if not .isGridLike() do
             centerY = label.position.y + label.textPadding.y + font.height * 0.5 + font.opticalOffset()
 
-        if modified
-        {
-            painter.setParams(.Antialiased)
-            painter.fillCircle(x + size * 0.5, centerY, size * 0.5, .themeColors().arc)
-            return
-        }
-
-        let lock = .theme().icon(.Lock, metrics.iconText_Margin + size)
-        lock.paint(painter, x, centerY - lock.sizeY * 0.5, .themeColors().faintText)
+        .paintPropertyMark(painter, x, centerY, modified)
     }
 
-    // Paints the changed mark after the words of the self-labelled control of a panel row: the
-    // name of a slider or of a field, or the caption of a check button. Reports false when the
-    // row has no such control.
-    mtd paintSelfLabelMark(painter: *Painter, item: *PropertiesItem)->bool
+    // A panel's mark belongs beside the caption of its editor or checkbox.
+    mtd paintSelfLabelMark(painter: *Painter, item: *PropertiesItem, modified: bool)->bool
     {
-        var words: *Label?
-        if item.sliderBox != null
-        {
-            words = item.sliderBox.label
-        }
-        elif item.editBox != null and item.editBox.parent
-        {
-            let parent = item.editBox.parent
-            if parent is EditCtrl as ctrl do
-                words = ctrl.label
-        }
-        elif item.comboBox != null and item.comboBox.parent
-        {
-            let parent = item.comboBox.parent
-            if parent is ComboCtrl as ctrl do
-                words = ctrl.label
-        }
-
-        let metrics = .themeMetrics()
-        let size    = metrics.property_ModifiedMarkSize
+        let words = .panelCaption(item)
+        let size  = .themeMetrics().property_ModifiedMarkSize
         var right, centerY: f32
         if words
         {
@@ -263,7 +215,10 @@ internal impl Properties
                 return false
             let rect  = words.rectRelativeTo(item.line)
             let width = Painter.measureString(words.text(), font).width
-            right   = rect.x + words.textPadding.x + Math.min(width, rect.width)
+            let room  = rect.width - words.textPadding.x - words.textPadding.z
+            if room <= 0 do
+                return true
+            right   = rect.x + words.textPadding.x + Math.min(width, room)
             centerY = rect.vertCenter()
         }
         elif item.checkBox != null
@@ -276,14 +231,30 @@ internal impl Properties
             let width = Painter.measureString(check.name.text, font).width
             right   = rect.x + check.captionInset() + width
             centerY = rect.vertCenter() + font.opticalOffset()
+            if right + .nameMarkSpace() > rect.right() do
+                return true
         }
         else
         {
             return false
         }
 
-        painter.setParams(.Antialiased)
-        painter.fillCircle(right + size * 1.5, centerY, size * 0.5, .themeColors().arc)
+        .paintPropertyMark(painter, right + size, centerY, modified)
         return true
+    }
+
+    mtd paintPropertyMark(painter: *Painter, x, centerY: f32, modified: bool)
+    {
+        let metrics = .themeMetrics()
+        let size    = metrics.property_ModifiedMarkSize
+        if modified
+        {
+            painter.setParams(.Antialiased)
+            painter.fillCircle(x + size * 0.5, centerY, size * 0.5, .themeColors().arc)
+            return
+        }
+
+        let lock = .theme().icon(.Lock, metrics.iconText_Margin + size)
+        lock.paint(painter, x, centerY - lock.sizeY * 0.5, .themeColors().faintText)
     }
 }

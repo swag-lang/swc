@@ -544,14 +544,19 @@ its failure tone; the status words remain in body ink. Both follow the current p
 
 ## Property grid
 
-![The four layouts](imgs/gui.properties.kinds.png)
+Swag Capture shows the four layouts in its options dialog.
+[List](../../../bin/apps/modules/swagcapture/src/tests/goldens/options.capture.encre.png)
+· [Grid](../../../bin/apps/modules/swagcapture/src/tests/goldens/options.grid.editor.paper.png)
+· [Condensed](../../../bin/apps/modules/swagcapture/src/tests/goldens/options.condensed.capture.encre.png)
+· [Panel](../../../bin/apps/modules/swagcapture/src/tests/goldens/options.panel.recording.paper.png)
 
 ![Search, sections, states](imgs/gui.properties.ctrl.paper.png)
 
-Each `PropertiesKind` keeps its purpose: **List** stacks label (13/600), help (12 faint) and
-editor; **Grid** has a name column (150) and a value column; **Condensed** uses 26 px rows with
-values as text and the editor opening on click, a hairline between rows; **Panel** uses
-self-labelled controls and section labels followed by a hairline. In every kind:
+**List** stacks a semibold label, quieter 12 px help and the editor. **Grid** has a name column
+that fits the captions and a value column. **Condensed** keeps the two columns and 26 px rows,
+with flat value editors and space between groups. **Panel** aligns the captions of its
+self-labelled controls and uses a hairline after each category label. The same state cues apply
+in all four layouts.
 
 - section labels are uppercase faint, collapsible with a small faint chevron, no band behind;
 - a changed value carries a 6 px Arc dot after its name and a faint `↺` that restores it;

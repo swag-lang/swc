@@ -108,6 +108,7 @@ internal impl Properties
                     if me.isGridLike()
                     {
                         .setTextAlignment(.Left, .OpticalCenter)
+                        .updateFlags(.Ellipsis)
                         .setTextPadding(Math.Vector4{me.leftMargin, 0, 0, 0})
                         .dockStyle = .Left
                         .margin.z  = me.gridMarginColumn
@@ -143,6 +144,8 @@ internal impl Properties
             item.filter += " "
             item.filter += descText
             item.assignDescription(descText)
+            if .kind == .Panel and item.label != null do
+                item.label.toolTip = descText
 
             if flags.has(.Description)
             {
@@ -154,6 +157,7 @@ internal impl Properties
                         .setTextAlignment(.Left, .Top)
                         .margin.w = me.listDescMarginAfter
                         .setText(descText)
+                        me.styleListDescription(labelDesc)
                         item.assignDescriptionLabel(labelDesc)
                     }
                 }
@@ -161,6 +165,13 @@ internal impl Properties
         }
 
         return item
+    }
+
+    mtd styleListDescription(label: *Label)
+    {
+        let theme = .theme()
+        label.style.setFont(theme.createDefaultFontFamily(Math.max(theme.metrics.defaultFontSize, 2) - 1))
+        label.style.addStyleSheetColors("label_Text $softText")
     }
 
     mtd addValue(value: Swag.TypeValue, data: [*] u8?, parentItem: *PropertiesItem?)
@@ -434,6 +445,8 @@ internal impl Properties
         item.label.style.addStyleSheetColors("label_Text $faintText")
         item.label.setLetterSpacing(.themeMetrics().sectionLabel_LetterSpacing)
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
+        if .kind == .Condensed do
+            item.line.margin.y = .themeMetrics().property_ControlInset
         if not parentForCateg!.flags.has(.Category) do
             item.level = 0
         .sections.add({item, lvl: 1})

@@ -112,6 +112,7 @@ internal impl Properties
             with let ed = CheckButton.create(itemP.line, itemDisplayName(value).toString())
             {
                 .anchorStyle = .Right
+                .toolTip     = itemP.description
             }
 
             itemP.assignCheckBox(ed)
@@ -163,6 +164,7 @@ internal impl Properties
                 .updateFlags(.WordWrap | .AutoHeight)
                 .setTextAlignment(.Left, .OpticalCenter)
                 .setText(item.description.toString())
+                me.styleListDescription(label)
             }
 
             item.sigResize += func|label, line, lineHeight|(_)

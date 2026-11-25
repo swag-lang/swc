@@ -697,6 +697,8 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.require(it0.line.position.width > 0)
 
     let countItem = it1
+    Swag.require(countItem.label.position == {0, 0, ctrl.properties.gridColumnSize, 32})
+    ctrl.properties.setNameColumnWidth(150)
     Swag.require(countItem.label.position == {0, 0, 150, 32})
     Swag.require(countItem.editBox.position.height == ctrl.properties.themeMetrics().editBox_Height)
     Swag.require(countItem.editBox.position.y == Math.round((countItem.line.position.height - countItem.editBox.position.height) * 0.5))
@@ -1749,10 +1751,10 @@ struct PropHeadlessFontStyleData
 
 struct PropHeadlessPanelStringData
 {
-    #[Properties.Name("Dynamic text")]
+    #[Properties.Name("A longer dynamic field name")]
     dynamic: String
 
-    #[Properties.Name("Fixed text")]
+    #[Properties.Name("Fixed text"), Properties.EditSize(420)]
     fixed: string = "Read only"
 }
 
@@ -1775,11 +1777,25 @@ struct PropHeadlessPanelStringData
     let dynamicCtrl = assume cast (*EditCtrl, dynamic.line.children[1])
     let fixedCtrl   = assume cast (*EditCtrl, fixed.line.children[1])
     Swag.require(not dynamic.label.isVisible() and not fixed.label.isVisible())
-    Swag.require(dynamicCtrl.label.text() == "Dynamic text" and fixedCtrl.label.text() == "Fixed text")
+    Swag.require(dynamicCtrl.label.text() == "A longer dynamic field name" and
+                 fixedCtrl.label.text() == "Fixed text")
+    Swag.require(dynamicCtrl.label.flags.has(.Ellipsis) and
+                 dynamicCtrl.label.toolTip == dynamicCtrl.label.text())
     Swag.require(dynamicCtrl.label.position.width == fixedCtrl.label.position.width)
     Swag.require(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
     Swag.require(dynamicCtrl.edit.text() == "Editable" and fixedCtrl.edit.text() == "Read only")
     Swag.require(fixedCtrl.edit.flags.has(.ReadOnly))
+    Swag.require(fixedCtrl.edit.position.right() <= fixedCtrl.position.width)
+
+    prop.setPosition({0, 0, 520, 240})
+    Swag.require(prop.captionWidth(dynamicCtrl.label) <= dynamicCtrl.label.position.width -
+                 dynamicCtrl.label.textPadding.z)
+    Swag.require(dynamicCtrl.label.toolTip.isEmpty())
+    Swag.require(dynamicCtrl.edit.position.x == fixedCtrl.edit.position.x)
+    Swag.require(dynamicCtrl.edit.position.right() <= dynamicCtrl.position.width)
+    Swag.require(fixedCtrl.edit.position.right() <= fixedCtrl.position.width)
+    prop.setPosition({0, 0, 700, 240})
+    Swag.require(fixedCtrl.edit.position.width == 420)
 }
 
 // The FontFamilyStyle editor is one row of four segments, each lettered "Aa" in the style it

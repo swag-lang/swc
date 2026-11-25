@@ -49,6 +49,8 @@ internal impl IWnd for PropertiesView
                 if item.labelDesc != null do
                     item.labelDesc.position.width = contentW
             }
+
+            .ed.resizePanelCaptions(contentW)
         }
 
         .computeLayout()

@@ -386,6 +386,11 @@ public impl IWnd for MenuCtrl
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        // The child takes mouse capture when it opens. Keep the parent's hover if
+        // the resulting Leave event still points at the same row.
+        if evt.kind == .Leave and .subVisible and .hotIdx < .items.count and .hitTest(evt.surfacePos) == .hotIdx do
+            return
+
         // The pointer can have entered a hosted child before the menu receives Leave.
         // That event ends the menu's hover and must not be sent to the new target.
         let widgetItem = evt.kind == .Leave ? null : .widgetItemAt(evt.surfacePos)

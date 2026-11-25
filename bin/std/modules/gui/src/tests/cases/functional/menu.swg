@@ -614,6 +614,11 @@ func menuCommandSelected(_: *MenuCtrl, id: WndId)
             let submenuOpened = host.openPopupSubMenu("More")
             Swag.require(submenuOpened)
             Swag.require(sub.position.x >= popup.position.right() - 2 * popup.themeMetrics().menuPopup_ShadowSize)
+
+            // Capture moved to the child, but the pointer is still on the parent row.
+            host.moveMouse(host.mousePos)
+            host.fireTimer(popup.timer)
+            Swag.require(popup.subVisible == sub)
             opened[] = true
         }
         elif not clicked[]

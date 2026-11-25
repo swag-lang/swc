@@ -686,12 +686,12 @@ impl Decoder
             let target = .current.lumaOrigin() + cast(u64, cast(s64, (cast(s64, by) * cast(s64, .current.strideLuma) + cast(s64, bx))))
             if average
             {
-                compensate(&.blend[0], 8, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
-                blendInto(.current.luma.storage() + target, .current.strideLuma, &.blend[0], 8, 8, 8)
+                compensate(&.blend[0], 8, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], rounding, anchor.width, anchor.height)
+                blendInto(.current.luma.storage() + target, .current.strideLuma, &.blend[0], 8)
             }
             else
             {
-                compensate(.current.luma.storage() + target, .current.strideLuma, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], 8, 8, rounding, anchor.width, anchor.height)
+                compensate(.current.luma.storage() + target, .current.strideLuma, anchor.luma.storage(), lumaAt, anchor.strideLuma, bx, by, vectors[block], rounding, anchor.width, anchor.height)
             }
         }
 
@@ -705,12 +705,12 @@ impl Decoder
             let into = plane == 0 ? .current.chromaB.storage() : .current.chromaR.storage()
             if average
             {
-                compensate(&.blend[0], 8, from, chromaAt, anchor.strideChroma, cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
-                blendInto(into + target, .current.strideChroma, &.blend[0], 8, 8, 8)
+                compensate(&.blend[0], 8, from, chromaAt, anchor.strideChroma, cx, cy, chroma, rounding, anchor.width / 2, anchor.height / 2)
+                blendInto(into + target, .current.strideChroma, &.blend[0], 8)
             }
             else
             {
-                compensate(into + target, .current.strideChroma, from, chromaAt, anchor.strideChroma, cx, cy, chroma, 8, 8, rounding, anchor.width / 2, anchor.height / 2)
+                compensate(into + target, .current.strideChroma, from, chromaAt, anchor.strideChroma, cx, cy, chroma, rounding, anchor.width / 2, anchor.height / 2)
             }
         }
     }
@@ -867,7 +867,7 @@ impl Decoder
             let bx     = x + cast(s32, (block & 1)) * 8
             let by     = y + cast(s32, (block >> 1)) * 8
             let target = .current.lumaOrigin() + cast(u64, cast(s64, (cast(s64, by) * cast(s64, .current.strideLuma) + cast(s64, bx))))
-            compensate(.current.luma.storage() + target, .current.strideLuma, .anchorNew.luma.storage(), lumaAt, .anchorNew.strideLuma, bx, by, state.vectors[block], 8, 8, rounding, .anchorNew.width, .anchorNew.height)
+            compensate(.current.luma.storage() + target, .current.strideLuma, .anchorNew.luma.storage(), lumaAt, .anchorNew.strideLuma, bx, by, state.vectors[block], rounding, .anchorNew.width, .anchorNew.height)
         }
 
         var vectors: [4] Vector = state.vectors
@@ -875,8 +875,8 @@ impl Decoder
         let cx     = mbX * 8
         let cy     = mbY * 8
         let target = .current.chromaOrigin() + cast(u64, cast(s64, (cast(s64, cy) * cast(s64, .current.strideChroma) + cast(s64, cx))))
-        compensate(.current.chromaB.storage() + target, .current.strideChroma, .anchorNew.chromaB.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
-        compensate(.current.chromaR.storage() + target, .current.strideChroma, .anchorNew.chromaR.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, 8, 8, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
+        compensate(.current.chromaB.storage() + target, .current.strideChroma, .anchorNew.chromaB.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
+        compensate(.current.chromaR.storage() + target, .current.strideChroma, .anchorNew.chromaR.storage(), chromaAt, .anchorNew.strideChroma, cx, cy, chroma, rounding, .anchorNew.width / 2, .anchorNew.height / 2)
     }
 
     // Decodes one block and writes its samples, clause 6.3.7.3.

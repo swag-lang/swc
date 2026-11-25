@@ -156,3 +156,42 @@ func assertAvi4kFrame(path: string, reference: const *Image)
     writeAvi4kFrame(path, jpeg.toSlice(), 24, false, Avi.MotionJpegIds[0])
     assertAvi4kFrame(path, &decoded)
 }
+
+// A moving box crosses the probes at different display ranks, including bidirectional frames.
+#[Swag.TestTag("stress")]
+#test
+{
+    struct Probe
+    {
+        x, y: s32
+        firstRed, lastRed: u64
+    }
+
+    const Probes: [7] Probe = [
+        {115,       240,        0, 1},
+        {128,       240,        0, 3},
+        {144,       240,        0, 5},
+        {200,       244,        1, 5},
+        {217,       248,        3, 5},
+        {233,       250,        5, 5},
+        {Width - 1, Height - 1, 6, 6}]
+    const Ranks = [0'u64, 1, 2, 3, 4, 5, 3, 1, 5, 0]
+
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-motion-4k.avi"))
+    Swag.require(reader.frameCount() == 6 and reader.hasPlanarFrames())
+    var frame: PlanarFrame
+    for rank in Ranks
+    {
+        expect reader.decodeFramePlanesInto(&frame, rank)
+        Swag.require(frame.width == Width and frame.height == Height)
+        for probe in Probes
+        {
+            let red    = rank >= probe.firstRed and rank <= probe.lastRed
+            let luma   = probe.y * frame.strideLuma + probe.x
+            let chroma = (probe.y / 2) * frame.strideChroma + probe.x / 2
+            Swag.require(Math.abs(cast(s32, frame.luma[luma]) - (red ? 81 : 126)) <= 3)
+            Swag.require(Math.abs(cast(s32, frame.chromaB[chroma]) - (red ? 90 : 128)) <= 3)
+            Swag.require(Math.abs(cast(s32, frame.chromaR[chroma]) - (red ? 240 : 128)) <= 3)
+        }
+    }
+}

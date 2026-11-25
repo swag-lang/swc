@@ -58,6 +58,24 @@ compressed variants and 32x24 for the uncompressed ones; the `.y4m` clips are 32
 | `ffmpeg-mono.y4m` | `-pix_fmt gray` | Luma alone, with the `XCOLORRANGE=FULL` tag |
 | `ffmpeg-ntsc-c420.y4m` | `-pix_fmt yuv420p -r 30000/1001` | 4:2:0 planes at a broadcast rate |
 
+`ffmpeg-mpeg4-motion-4k.avi` contains six synthetic MPEG-4 Part 2 frames at 3840x2160,
+including bidirectional frames. FFmpeg 7.1.5 produced it with these arguments:
+
+```sh
+ffmpeg -f lavfi -i color=c=gray:size=3840x2160:rate=12 \
+  -f lavfi -i color=c=red:size=96x96:rate=12 \
+  -filter_complex "[0:v][1:v]overlay=x=100+t*109:y=201+t*57" \
+  -frames:v 6 -an -c:v mpeg4 -vtag XVID -g 6 -bf 1 -q:v 4 -threads 1 \
+  ffmpeg-mpeg4-motion-4k.avi
+```
+
+The luma and chroma probes come from FFmpeg's planar decode of the file.
+
+- Size: 110,536 bytes.
+- SHA-256: `5f4bb5cdb27a012a42b1656e596132aa487648601a879b625a316f73464ac0dc`.
+- License: same as this repository.
+
+
 ## Written by ffmpeg, then edited
 
 `edited-two-pcm-record-group.avi` uses two frames of synthetic grey video and two synthetic tones.

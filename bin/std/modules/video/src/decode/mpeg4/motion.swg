@@ -113,87 +113,84 @@ private func reduceChroma(sum, span: s32, table: const [..] u8)->s32
     return 2 * whole + cast(s32, table[cast(u64, residue)])
 }
 
+// A prediction covers one 8x8 block of the padded reference plane.
+private const BlockSize = 8'u64
+
+#[Swag.Inline]
+private func loadPixels(source: const [*] u8)->Math.Simd.U8x16
+{
+    return cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, source)[0]))
+}
+
+#[Swag.Inline]
+private func interpolatePair(a, b: Math.Simd.U8x16, rounding: u32)->Math.Simd.U8x16
+{
+    let average = Math.Simd.average(a, b)
+
+    // The hardware rounds up. Rounding control removes that increment from odd sums.
+    return rounding ? average - ((a ^ b) & Math.Simd.splat(1'u8)) : average
+}
+
 // Copies one block out of a reference plane, interpolating where the vector points between
 // samples, clause 7.6.2.
 //
-// The plane is padded far enough that a vector pointing outside the picture still reads inside
-// the buffer, so no coordinate is tested here. Rounding control shifts every average by half a
-// level, which is what keeps a long chain of predicted pictures from drifting.
-func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceOrigin, sourceStride: u64, x, y: s32, vector: Vector, width, height, rounding: u32, planeWidth, planeHeight: u32)
+// Rounding control shifts every average by half a level, which is what keeps a long chain of
+// predicted pictures from drifting.
+func compensate(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceOrigin, sourceStride: u64, x, y: s32, vector: Vector, rounding, planeWidth, planeHeight: u32)
 {
-    // A vector may point outside the picture. The padding holds what the edge holds, so reading
-    // from the padding is what the format's unrestricted vectors mean; a vector that points
-    // further than the padding reaches reads the same samples the padding would have repeated,
-    // which is what clamping the position to it produces.
-    let full  = 1 - cast(s32, rounding)
-    let limit = cast(s32, FramePadding) - cast(s32, height) - 2
-    var fullX = x + (vector.x >> 1)
-    var fullY = y + (vector.y >> 1)
-    fullX = Math.clamp(fullX, -cast(s32, FramePadding), cast(s32, planeWidth) + limit)
-    fullY = Math.clamp(fullY, -cast(s32, FramePadding), cast(s32, planeHeight) + limit)
+    // A vector may point outside the picture. Clamp to where the replicated edge still
+    // supplies a whole block and the extra sample needed for half-sample interpolation.
+    let limit = cast(s32, FramePadding) - cast(s32, BlockSize) - 2
+    let fullX = Math.clamp(x + (vector.x >> 1), -cast(s32, FramePadding), cast(s32, planeWidth) + limit)
+    let fullY = Math.clamp(y + (vector.y >> 1), -cast(s32, FramePadding), cast(s32, planeHeight) + limit)
     let halfX = (vector.x & 1) != 0
     let halfY = (vector.y & 1) != 0
     let at    = cast(u64, (cast(s64, sourceOrigin) + cast(s64, fullY) * cast(s64, sourceStride) + cast(s64, fullX)))
+    let first = source + at
 
     if not halfX and not halfY
     {
-        for row in cast(u64, height) do
-            Memory.copy(destination + row * destinationStride, source + at + row * sourceStride, cast(u64, width))
+        for row in BlockSize do
+            cast([*] u64, destination + row * destinationStride)[0] = cast(const [*] u64, first + row * sourceStride)[0]
         return
     }
 
-    if halfX and not halfY
+    if halfX != halfY
     {
-        for row in cast(u64, height)
+        let step = halfX ? 1'u64 : sourceStride
+        for row in BlockSize
         {
-            let line = at + row * sourceStride
-            for column in cast(u64, width) do
-                destination[row * destinationStride + column] =
-                    cast(u8, ((cast(s32, source[line + column]) + cast(s32, source[line + column + 1]) + full) >> 1))
+            let line   = first + row * sourceStride
+            let pixels = interpolatePair(loadPixels(line), loadPixels(line + step), rounding)
+            Math.Simd.storeLow8(destination + row * destinationStride, pixels)
         }
 
         return
     }
 
-    if not halfX and halfY
+    let bias = Math.Simd.splat(cast(u16, 2 - rounding))
+    for row in BlockSize
     {
-        for row in cast(u64, height)
-        {
-            let line = at + row * sourceStride
-            for column in cast(u64, width) do
-                destination[row * destinationStride + column] =
-                    cast(u8, ((cast(s32, source[line + column]) + cast(s32, source[line + sourceStride + column]) + full) >> 1))
-        }
-
-        return
-    }
-
-    for row in cast(u64, height)
-    {
-        let line = at + row * sourceStride
-        for column in cast(u64, width)
-        {
-            let a = cast(s32, source[line + column])
-            let b = cast(s32, source[line + column + 1])
-            let c = cast(s32, source[line + sourceStride + column])
-            let d = cast(s32, source[line + sourceStride + column + 1])
-            destination[row * destinationStride + column] = cast(u8, ((a + b + c + d + 2 - cast(s32, rounding)) >> 2))
-        }
+        let top     = first + row * sourceStride
+        let bottom  = top + sourceStride
+        let a       = Math.Simd.widenLow(loadPixels(top))
+        let b       = Math.Simd.widenLow(loadPixels(top + 1))
+        let c       = Math.Simd.widenLow(loadPixels(bottom))
+        let d       = Math.Simd.widenLow(loadPixels(bottom + 1))
+        let samples = cast #bit(Math.Simd.S16x8, ((a + b + c + d + bias) >> 2))
+        Math.Simd.storeLow8(destination + row * destinationStride, Math.Simd.packUnsigned(samples, samples))
     }
 }
 
 // Averages a second prediction into a block that already holds the first.
 //
 // A bidirectional block is the mean of what its two references say, rounded up, clause 7.6.7.
-func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceStride: u64, width, height: u32)
+func blendInto(destination: [*] u8, destinationStride: u64, source: const [*] u8, sourceStride: u64)
 {
-    for row in cast(u64, height)
+    for row in BlockSize
     {
-        for column in cast(u64, width)
-        {
-            let a = cast(u32, destination[row * destinationStride + column])
-            let b = cast(u32, source[row * sourceStride + column])
-            destination[row * destinationStride + column] = cast(u8, ((a + b + 1) >> 1))
-        }
+        let into = destination + row * destinationStride
+        let from = source + row * sourceStride
+        Math.Simd.storeLow8(into, Math.Simd.average(loadPixels(into), loadPixels(from)))
     }
 }

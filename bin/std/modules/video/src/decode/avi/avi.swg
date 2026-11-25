@@ -172,6 +172,13 @@ private struct AudioTrack
     streamIndex: u32
 }
 
+// Packet locations for a playable audio stream, gathered in movie-chunk order.
+private struct AudioPackets
+{
+    format:  AudioFormat
+    packets: Array'SoundPacket
+}
+
 // What walking the container found, before it is turned into a stream description.
 private struct Layout
 {
@@ -548,39 +555,61 @@ private impl Decoder
     mtd buildSoundTracks(source: *ByteSource, layout: const *Layout) fail
     {
         let path = source.path()
-        if not path.count do
+        if not path.count or layout.audioTracks.isEmpty() do
             return
 
-        .soundTracks.reserve(layout.audioTracks.count)
-        for track in layout.audioTracks
+        // A zero slot means the file did not declare a supported stream at this ordinal.
+        var trackForStream: [MaxStreamIndex + 1] u8
+        var tracks:         Array'AudioPackets
+        for track in layout.audioTracks where track.streamIndex <= MaxStreamIndex
         {
-            if track.streamIndex > MaxStreamIndex do
-                continue
+            tracks.add(AudioPackets{format: track.format})
+            trackForStream[track.streamIndex] = cast(u8, tracks.count)
+        }
 
-            var packets: Array'SoundPacket
-            try .walkSoundPackets(source, layout, track, &packets)
-            if not packets.count do
-                continue
+        if tracks.isEmpty() do
+            return
 
+        try .walkSoundPackets(source, layout, trackForStream, &tracks)
+        .soundTracks.reserve(tracks.count)
+        for &track in tracks where not track.packets.isEmpty()
+        {
+            let packets = track.packets.toSlice()
             if track.format.formatTag == Mp3FormatTag
             {
                 var frames = 0'u64
                 for packet in packets do
                     frames += packet.sampleFrameCount
-                let sound = try SoundFile.openPacketStream(path, .Mp3, track.format.sampleRate, track.format.channels, frames, packets.toSlice(), [])
+                let sound = try SoundFile.openPacketStream(path, .Mp3, track.format.sampleRate, track.format.channels, frames, packets, [])
                 .soundTracks.add(#move sound)
             }
             else
             {
-                let sound = try SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets.toSlice())
+                let sound = try SoundFile.openPcmPacketStream(path, track.format.encoding(), track.format.sampleRate, track.format.channels, packets)
                 .soundTracks.add(#move sound)
             }
+
+            track.packets.free()
         }
     }
 
-    // Records the packets of one audio stream in playback order.
-    mtd walkSoundPackets(source: *ByteSource, layout: const *Layout, track: const *AudioTrack, packets: *Array'SoundPacket) fail
+    // Walks the movie list once and routes each packet to its declared audio stream.
+    mtd walkSoundPackets(source: *ByteSource, layout: const *Layout, trackForStream: const [..] u8, tracks: *Array'AudioPackets) fail
     {
+        #[Swag.Inline]
+        func trackIndex(id: u32, trackForStream: const [..] u8)->u8
+        {
+            if id >> 16 != ('w'u32 | ('b'u32 << 8)) do
+                return 0
+
+            let tens = id & 0xFF
+            let ones = (id >> 8) & 0xFF
+            if tens < '0' or tens > '9' or ones < '0' or ones > '9' do
+                return 0
+
+            return trackForStream[(tens - '0'u32) * 10 + (ones - '0'u32)]
+        }
+
         func addChunk(source: *ByteSource, chunk: const *Chunk, format: const *AudioFormat, packets: *Array'SoundPacket) fail
         {
             if not chunk.size do
@@ -610,45 +639,42 @@ private impl Decoder
             }
         }
 
-        let audioId  = frameChunkId(track.streamIndex, 'w'u32, 'b'u32)
         var position = layout.frameList + FourCcSize
         while position + ChunkHeaderSize <= layout.frameEnd
         {
             try source.seek(position)
             let chunk = try readChunk(source, layout.frameEnd)
-            if chunk.id == audioId
+            let index = trackIndex(chunk.id, trackForStream)
+            if index
             {
-                try addChunk(source, &chunk, &track.format, packets)
-
-                position = chunk.next
-                continue
+                let track = &tracks[index - 1]
+                try addChunk(source, &chunk, &track.format, &track.packets)
             }
-
-            let isGroup = chunk.id == ListId and
-                          chunk.size >= FourCcSize and
-                          (try source.readLittleEndian'u32()) == RecordListId
-            if isGroup
+            elif chunk.id == ListId and
+                 chunk.size >= FourCcSize and
+                 (try source.readLittleEndian'u32()) == RecordListId
             {
                 let groupEnd       = chunk.data + chunk.size
                 var nestedPosition = chunk.data + FourCcSize
                 while nestedPosition <= groupEnd and ChunkHeaderSize <= groupEnd - nestedPosition
                 {
                     try source.seek(nestedPosition)
-                    let nested = try readChunk(source, groupEnd)
-                    if nested.id == audioId do
-                        try addChunk(source, &nested, &track.format, packets)
+                    let nested      = try readChunk(source, groupEnd)
+                    let nestedIndex = trackIndex(nested.id, trackForStream)
+                    if nestedIndex
+                    {
+                        let track = &tracks[nestedIndex - 1]
+                        try addChunk(source, &nested, &track.format, &track.packets)
+                    }
 
                     nestedPosition = nested.next
                 }
 
                 if nestedPosition != groupEnd do
                     fail InvalidFormatError{"AVI record list ends with a partial chunk"}
-                position = chunk.next
             }
-            else
-            {
-                position = chunk.next
-            }
+
+            position = chunk.next
         }
     }
 

@@ -60,6 +60,26 @@ compressed variants and 32x24 for the uncompressed ones; the `.y4m` clips are 32
 
 ## Written by ffmpeg, then edited
 
+`edited-two-pcm-record-group.avi` uses two frames of synthetic grey video and two synthetic tones.
+FFmpeg 7.1.5 produced the source with these arguments:
+
+```sh
+ffmpeg -f lavfi -i color=c=gray:size=8x8:rate=10:duration=0.2 \
+  -f lavfi -i sine=frequency=400:sample_rate=8000:duration=0.2 \
+  -f lavfi -i sine=frequency=1000:sample_rate=16000:duration=0.2 \
+  -map 0:v -map 1:a -map 2:a -c:v rawvideo -pix_fmt bgr24 \
+  -c:a pcm_s16le -threads 1 two-pcm.avi
+```
+
+The chunks in `movi` were wrapped in a single `LIST rec ` group. The optional `idx1` table
+was removed, its main-header flag cleared, and the RIFF and movie-list sizes updated. Each track
+is checked against the PCM bytes FFmpeg reads from the grouped file.
+
+- Size: 24,270 bytes.
+- SHA-256: `06ae0b09fc689c71eee6139e94bf4a0b8f24c049daa0a9557bd4b50b01bab3cf`.
+- License: same as this repository.
+
+
 `ffmpeg-h264-baseline.packets` extracts the AVC decoder configuration and the first three
 length-prefixed access units of `ffmpeg-h264-baseline.mp4` with `ffprobe -show_data`. Each item
 is preceded by its 32-bit big-endian byte length. It exercises packet submission to the

@@ -59,6 +59,26 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     aviAssertProbes("cogliati-turning-pages.avi", Probes, tolerance: 6)
 }
 
+// Both PCM tracks are interleaved with the video inside a record group.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-two-pcm-record-group.avi"))
+    Swag.require(reader.frameCount() == 2 and reader.width() == 8 and reader.height() == 8)
+    Swag.require(reader.audioTrackCount() == 2)
+
+    let first  = unwrap reader.audioTrack(0)
+    let second = unwrap reader.audioTrack(1)
+    Swag.require(first.sampleEncoding() == .Pcm16 and first.numChannels() == 1)
+    Swag.require(second.sampleEncoding() == .Pcm16 and second.numChannels() == 1)
+    Swag.require(first.sampleRateHz() == 8_000 and first.sampleFrameCount() == 1_600)
+    Swag.require(second.sampleRateHz() == 16_000 and second.sampleFrameCount() == 3_200)
+
+    let firstPcm  = expect first.readPayload(0, first.payloadSize())
+    let secondPcm = expect second.readPayload(0, second.payloadSize())
+    Swag.require(Hash.Crc32.compute(firstPcm.toSlice()) == 0xD25725E9)
+    Swag.require(Hash.Crc32.compute(secondPcm.toSlice()) == 0xBE5487FF)
+}
+
 // The same recording read backwards gives the same pictures as reading it forwards, because the
 // container index says where every frame lies rather than the decoder remembering.
 #test

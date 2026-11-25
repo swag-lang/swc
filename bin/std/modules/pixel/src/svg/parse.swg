@@ -2173,7 +2173,7 @@ private impl Parser
             appendRectContour(path, state, x, y, w, h, crx, cry)
         }
 
-        .emitShape(#move list, state)
+        .emitShapeOne(#move list, state)
     }
 
     mtd emitEllipse(state: *GroupState, cx, cy, rx, ry: f32)
@@ -2184,7 +2184,7 @@ private impl Parser
         var list: LinePathList
         let path = list.newPath()
         appendEllipse(path, state, cx, cy, rx, ry)
-        .emitShape(#move list, state)
+        .emitShapeOne(#move list, state)
     }
 
     mtd emitPoly(state: *GroupState, points: string, closeIt: bool)
@@ -3243,30 +3243,39 @@ private impl Parser
                 }
 
             case "rect":
-                var rx = .geoNumber(&geo, .Rx, -1)
-                var ry = .geoNumber(&geo, .Ry, -1)
-                if rx < 0 do
-                    rx = ry
-                if ry < 0 do
-                    ry = rx
-                .emitRect(&state,
-                          .geoNumber(&geo, .X),
-                          .geoNumber(&geo, .Y),
-                          .geoNumber(&geo, .Width),
-                          .geoNumber(&geo, .Height),
-                          Math.max(rx, 0),
-                          Math.max(ry, 0))
+                if state.drawsShape()
+                {
+                    var rx = .geoNumber(&geo, .Rx, -1)
+                    var ry = .geoNumber(&geo, .Ry, -1)
+                    if rx < 0 do
+                        rx = ry
+                    if ry < 0 do
+                        ry = rx
+                    .emitRect(&state,
+                              .geoNumber(&geo, .X),
+                              .geoNumber(&geo, .Y),
+                              .geoNumber(&geo, .Width),
+                              .geoNumber(&geo, .Height),
+                              Math.max(rx, 0),
+                              Math.max(ry, 0))
+                }
 
             case "circle":
-                let r = .geoNumber(&geo, .R)
-                .emitEllipse(&state, .geoNumber(&geo, .Cx), .geoNumber(&geo, .Cy), r, r)
+                if state.drawsShape()
+                {
+                    let r = .geoNumber(&geo, .R)
+                    .emitEllipse(&state, .geoNumber(&geo, .Cx), .geoNumber(&geo, .Cy), r, r)
+                }
 
             case "ellipse":
-                .emitEllipse(&state,
-                             .geoNumber(&geo, .Cx),
-                             .geoNumber(&geo, .Cy),
-                             .geoNumber(&geo, .Rx),
-                             .geoNumber(&geo, .Ry))
+                if state.drawsShape()
+                {
+                    .emitEllipse(&state,
+                                 .geoNumber(&geo, .Cx),
+                                 .geoNumber(&geo, .Cy),
+                                 .geoNumber(&geo, .Rx),
+                                 .geoNumber(&geo, .Ry))
+                }
 
             case "line":
                 let drawsLine  = state.drawsShape(strokeOnly: true)

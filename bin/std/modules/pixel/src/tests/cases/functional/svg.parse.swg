@@ -276,6 +276,24 @@ private const ManyStopSvg = """\
     Swag.require(image.pixelColor(35, 5) == Color.fromRgb(255, 0, 0))
 }
 
+// Hidden primitives are skipped while a visible descendant still emits its geometry.
+#test
+{
+    const Source = """\
+        <svg width='48' height='16'><g visibility='hidden'>\
+        <rect x='1' y='2' width='8' height='10'/>\
+        <circle cx='14' cy='7' r='4'/><ellipse cx='23' cy='7' rx='4' ry='3'/>\
+        <rect x='29' y='2' width='8' height='10' visibility='visible' fill='red'/>\
+        </g><ellipse cx='42' cy='8' rx='3' ry='5' fill='none' stroke='blue'/></svg>"""
+    let drawing = expect Svg.Drawing.parse(Source)
+    let image   = drawing.rasterize(48, 16, 1)
+    Swag.require(drawing.shapeCount() == 2)
+    Swag.require(image.pixelColor(5, 7).a == 0 and
+                 image.pixelColor(14, 7).a == 0 and
+                 image.pixelColor(23, 7).a == 0)
+    Swag.require(image.pixelColor(33, 7) == Color.fromRgb(255, 0, 0))
+}
+
 // A radial paint server carries its inner radius, stop opacity and repeat policy.
 #test
 {

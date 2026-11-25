@@ -119,6 +119,15 @@ private func buildCosines()->[8, 8] f32
 
 private var g_Cosines: [8, 8] f32 = #run buildCosines()
 
+// A block with only DC runs the DC lane of both transform passes, with their original rounding.
+func dcSample(coefficient: s32)->u8
+{
+    let basis = g_Cosines[0, 0]
+    let row   = cast(f32, coefficient) * basis * 0.5'f32
+    let value = cast(s32, Math.round(row * basis * 0.5'f32))
+    return cast(u8, Math.clamp(value, 0's32, 255's32))
+}
+
 // The inverse transform of one block, clause 7.4.5.
 //
 // Each SIMD lane evaluates an independent output column, keeping the coefficient sum in

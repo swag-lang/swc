@@ -111,6 +111,26 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     return bodyOffset * 8 + reader.bitPos
 }
 
+// A constant intra block must match both passes of the transform and the final byte clamp.
+#test
+{
+    func check(dc: s32)
+    {
+        var block:   [64] s32
+        var samples: [64] s16
+        block[0] = dc
+        Mpeg4.inverseTransform(&block, &samples)
+        let actual = Mpeg4.dcSample(dc)
+        for value in samples do
+            Swag.require(actual == cast(u8, Math.clamp(cast(s32, value), 0's32, 255's32)))
+    }
+
+    for coefficient in Mpeg4.CoefficientFloor to Mpeg4.CoefficientCeil do
+        check(coefficient)
+    check(-94_208)
+    check(94_162)
+}
+
 // Simple Profile: intra and predicted planes, the H.263 quantiser, half-sample motion, and four
 // motion vectors where the encoder chose them.
 #test

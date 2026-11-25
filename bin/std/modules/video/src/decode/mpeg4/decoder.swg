@@ -884,12 +884,18 @@ impl Decoder
     {
         let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let isLuma  = block < 4
-        var levels: [64] s32
-        for index in 64'u64 do
-            levels[index] = 0
+        let state   = &.blocks[mbIndex * 6 + block]
+        let quant   = cast(u8, .quant)
+        if not intra and not coded
+        {
+            state[] = BlockState{dc: DefaultNeighbourDc, quant: quant}
+            return
+        }
 
-        var fromAbove = false
-        var scaler    = 1'u32
+        let separateDc = intra and usesDcCode(header.intraDcThreshold, .quant)
+        var dcDelta    = 0's32
+        var fromAbove  = false
+        var scaler     = 1'u32
         var left:  BlockState
         var above: BlockState
 
@@ -930,7 +936,7 @@ impl Decoder
 
             // The direct current has its own code while the quantiser stays under the threshold
             // the plane states, clause 6.3.5.
-            if usesDcCode(header.intraDcThreshold, .quant)
+            if separateDc
             {
                 let tree:  const [..] s16 = isLuma ? DcLumaTree : DcChromaTree
                 let sizes: const [..] u8  = isLuma ? DcLumaSize : DcChromaSize
@@ -945,16 +951,34 @@ impl Decoder
                         value -= (1's32 << size) - 1
                     if size > 8 do
                         try reader.marker()
-                    levels[0] = value
+                    dcDelta = value
                 }
             }
         }
+
+        let predictor = fromAbove ? above.dc : left.dc
+        if intra and not coded and not acPred
+        {
+            let level = Math.clamp(dcDelta + divideRound(predictor, cast(s32, scaler)), CoefficientFloor, CoefficientCeil)
+            let dc    = level * cast(s32, scaler)
+            state[] = BlockState{dc: dc, quant: quant, intra: true}
+
+            let coefficient = .layer.quantType ? Math.clamp(dc, CoefficientFloor, CoefficientCeil) : dc
+            let samples     = Math.Simd.splat(dcSample(coefficient))
+            let destination = .blockDestination(mbX, mbY, block)
+            for row in 8'u64 do
+                Math.Simd.storeLow8(destination.pixels + row * destination.stride, samples)
+            return
+        }
+
+        var levels: [64] s32
+        levels[0] = dcDelta
 
         if coded
         {
             let scan: const [..] u8 = not intra or not acPred ? ScanZigzag
                                       : (fromAbove ? ScanAlternateHorizontal : ScanAlternateVertical)
-            var at = intra and usesDcCode(header.intraDcThreshold, .quant) ? 1'u64 : 0'u64
+            var at = separateDc ? 1'u64 : 0'u64
             for 64'u32
             {
                 var event: Coefficient
@@ -974,7 +998,6 @@ impl Decoder
         {
             // The direct current is predicted from a neighbour scaled to this block's step, and
             // the first row or column may be predicted too, clause 7.4.3.
-            let predictor = fromAbove ? above.dc : left.dc
             levels[0] += divideRound(predictor, cast(s32, scaler))
             if acPred
             {
@@ -995,12 +1018,11 @@ impl Decoder
         }
 
         // What this block leaves for the ones that predict from it.
-        let state = &.blocks[mbIndex * 6 + block]
-        state.intra = intra
-        state.quant = cast(u8, .quant)
         if intra
         {
-            state.dc = levels[0] * cast(s32, scaler)
+            state.intra = true
+            state.quant = quant
+            state.dc    = levels[0] * cast(s32, scaler)
             for index in 7'u64
             {
                 state.row[index] = cast(s16, levels[index + 1])
@@ -1009,16 +1031,8 @@ impl Decoder
         }
         else
         {
-            state.dc = DefaultNeighbourDc
-            for index in 7'u64
-            {
-                state.row[index] = 0
-                state.col[index] = 0
-            }
+            state[] = BlockState{dc: DefaultNeighbourDc, quant: quant}
         }
-
-        if not coded and not intra do
-            return
 
         if intra do
             levels[0] *= cast(s32, scaler)
@@ -1029,28 +1043,34 @@ impl Decoder
         .writeBlock(mbX, mbY, block, &samples, intra)
     }
 
+    #[Swag.Inline]
+    private mtd blockDestination(mbX, mbY: s32, block: u64)->{pixels: [*] u8, stride: u64}
+    {
+        if block < 4
+        {
+            let x      = cast(u64, mbX) * 16 + (block & 1) * 8
+            let y      = cast(u64, mbY) * 16 + (block >> 1) * 8
+            let stride = .current.strideLuma
+            let at     = .current.lumaOrigin() + y * stride + x
+            return {.current.luma.storage() + at, stride}
+        }
+
+        let x      = cast(u64, mbX) * 8
+        let y      = cast(u64, mbY) * 8
+        let stride = .current.strideChroma
+        let plane  = block == 4 ? .current.chromaB.storage() : .current.chromaR.storage()
+        let at     = .current.chromaOrigin() + y * stride + x
+        return {plane + at, stride}
+    }
+
     // Writes one reconstructed block, either outright or on top of what motion left.
     mtd writeBlock(mbX, mbY: s32, block: u64, samples: const *[64] s16, intra: bool)
     {
-        var plane  = .current.luma.storage()
-        var stride = .current.strideLuma
-        var at     = .current.lumaOrigin()
-        var x      = mbX * 16 + cast(s32, (block & 1)) * 8
-        var y      = mbY * 16 + cast(s32, (block >> 1)) * 8
-
-        if block >= 4
-        {
-            plane  = block == 4 ? .current.chromaB.storage() : .current.chromaR.storage()
-            stride = .current.strideChroma
-            at     = .current.chromaOrigin()
-            x      = mbX * 8
-            y      = mbY * 8
-        }
-
-        let origin = at + cast(u64, cast(s64, (cast(s64, y) * cast(s64, stride) + cast(s64, x))))
+        let destination = .blockDestination(mbX, mbY, block)
+        let plane       = destination.pixels
         for row in 8'u64
         {
-            let line = origin + row * stride
+            let line = row * destination.stride
             for column in 8'u64
             {
                 // Part 2 transforms the sample values themselves, with no level shift: what

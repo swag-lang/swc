@@ -141,6 +141,34 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.require(Slice.equals(decoded.toSlice(), expected.toSlice()))
 }
 
+// Picture-only opening can use the video index even when walking the sound chunks would fail.
+#test
+{
+    let original = videoFixturePath("ffmpeg-mjpeg-mp3.avi")
+    var bytes    = expect File.readAllBytes(original)
+    let movie    = Slice.findSubslice(bytes.toSlice(), "movi")
+    Swag.require(movie + 12 <= bytes.count and aviHasId(bytes.toSlice(), movie + 4, "00dc"))
+    let firstSize = cast(u64, aviReadU32(bytes.toSlice(), movie + 8))
+    let audio     = movie + 12 + firstSize + (firstSize & 1)
+    Swag.require(audio + 8 <= bytes.count and aviHasId(bytes.toSlice(), audio, "01wb"))
+    aviWriteU32(bytes.toSlice(), audio + 4, Swag.U32.Max)
+
+    let path = videoTempPath("avi-picture-only", "avi")
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, bytes.toSlice())
+
+    var rejected: Swag.Error
+    discard catch Reader.open(path) as rejected
+    Swag.require(rejected.value() is InvalidFormatError)
+
+    var reader    = expect Reader.open(path, pictureOnly: true)
+    var reference = expect Reader.open(original)
+    Swag.require(reader.audioTrackCount() == 0 and reader.frameCount() == reference.frameCount())
+    let actual   = expect reader.decodeFrame(9)
+    let expected = expect reference.decodeFrame(9)
+    Swag.require(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
+}
+
 // ffmpeg codes 4:2:2 and 4:4:4 Motion JPEG with chroma grids that differ from the usual 4:2:0
 // layout. Decode all three through the same public path and compare them with independent output.
 #test

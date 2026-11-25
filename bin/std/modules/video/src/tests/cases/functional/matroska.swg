@@ -402,9 +402,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv").toString())
     var decoder:  Matroska.Decoder
-    let deferred: IDeferredDecoder = &decoder
-    let idecoder: IDecoder         = &decoder
-    deferred.skipSound()
+    let pictures: IPictureOnlyDecoder = &decoder
+    let idecoder: IDecoder = &decoder
+    pictures.skipOtherTracks()
     discard expect idecoder.open(&source)
 
     var reference = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))

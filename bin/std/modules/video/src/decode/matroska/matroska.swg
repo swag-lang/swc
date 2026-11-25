@@ -2861,8 +2861,11 @@ impl IDeferredDecoder for Decoder
         if .fileIndex do
             Atomic.exchange(&.fileIndex.cancel, 1)
     }
+}
 
-    mtd impl skipSound()
+impl IPictureOnlyDecoder for Decoder
+{
+    mtd impl skipOtherTracks()
     {
         .pictureOnly = true
     }

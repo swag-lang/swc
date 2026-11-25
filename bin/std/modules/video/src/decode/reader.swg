@@ -68,9 +68,13 @@ internal interface IDeferredDecoder
     mtd frameRate()->FrameRate
     mtd durationInSeconds()->f64
     mtd requestCancel()
+}
 
-    // Called before open when the reader exposes no sound or subtitle track.
-    mtd skipSound()
+// Internal capability for containers that can leave other tracks unindexed.
+internal interface IPictureOnlyDecoder
+{
+    // Called before opening a reader that exposes no sound or subtitle tracks.
+    mtd skipOtherTracks()
 }
 
 // Optional decoder capability exposing sound tracks carried by a video container.
@@ -272,8 +276,8 @@ impl Reader
         .deferred          = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
         if pictureOnly
         {
-            // Told before opening, which is where a deferred container starts reading its sound.
-            .deferred?.skipSound()
+            let pictures = Swag.makeInterface(instance, selected.type, IPictureOnlyDecoder)
+            pictures?.skipOtherTracks()
         }
         else
         {

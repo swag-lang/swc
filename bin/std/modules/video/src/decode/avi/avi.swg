@@ -428,6 +428,7 @@ struct Decoder
         isTopDown:     bool                 // Whether uncompressed rows start with the top one.
         isJpeg:        bool                 // Whether frames are complete JPEG images.
         isCoded:       bool                 // Whether frames are planes of a coded picture stream.
+        pictureOnly:   bool                 // Whether the reader opens without sound tracks.
     }
 }
 
@@ -455,7 +456,8 @@ impl IDecoder for Decoder
         .nextIndex       = 0
         if .isCoded do
             try .openPictures(source)
-        try .buildSoundTracks(source, &layout)
+        if not .pictureOnly do
+            try .buildSoundTracks(source, &layout)
         return .info
     }
 
@@ -534,6 +536,14 @@ impl IPlanarDecoder for Decoder
         .pictures.seekTo(current)
         try .pictures.decodeNextPlanes(source, target)
         .nextIndex = current + 1
+    }
+}
+
+impl IPictureOnlyDecoder for Decoder
+{
+    mtd impl skipOtherTracks()
+    {
+        .pictureOnly = true
     }
 }
 

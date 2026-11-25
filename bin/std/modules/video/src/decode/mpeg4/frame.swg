@@ -107,14 +107,9 @@ impl Frame
         let chromaWidth  = cast(u64, ((width + 1) / 2))
         let chromaHeight = cast(u64, ((height + 1) / 2))
 
-        target.width        = width
-        target.height       = height
-        target.strideLuma   = cast(u32, width)
-        target.strideChroma = cast(u32, chromaWidth)
-        target.studioRange  = true
-        target.luma.resize(cast(u64, width) * cast(u64, height))
-        target.chromaB.resize(chromaWidth * chromaHeight)
-        target.chromaR.resize(chromaWidth * chromaHeight)
+        target.resize(width, height)
+        target.studioRange = true
+        target.matrix      = .Bt601
 
         let lumaAt = .lumaOrigin()
         for y in cast(u64, height) do

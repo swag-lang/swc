@@ -11,8 +11,7 @@ using Core, Core.Errors, Pixel
 // One picture decoded and waiting for its turn to be shown.
 private struct Picture
 {
-    time:   s64     // Stream time, which is the order pictures are shown in.
-    kind:   u32
+    order:  s64     // Stream time for reordered pictures, decode rank for low-delay pictures.
     planes: PlanarFrame
 }
 
@@ -25,10 +24,8 @@ private const HeldPictures = 4'u64
 
 // Drives an indexed MPEG-4 Part 2 track independently of its container.
 //
-// The order a container hands samples over is not the order they are shown in, and a container
-// muxed from a format that states no decoding order does not even state the display times: it
-// numbers its samples as they are stored. The stream states its own clock, so that is what the
-// display order is taken from, and pictures are held back only until their turn is known.
+// Low-delay pictures are ready in decode order. When a stream can reference future pictures,
+// its VOP clock gives their display order even if the container only supplies slot numbers.
 #[Swag.NoCopy]
 struct Mpeg4Stream
 {
@@ -44,6 +41,7 @@ struct Mpeg4Stream
     nextRank:     u64     // Display rank the next call returns.
     nextDecode:   u64     // Decoding-order sample the decoder is about to read.
     started:      bool
+    lowDelay:     bool
     width:        s32
     height:       s32
 }
@@ -59,8 +57,9 @@ impl Mpeg4Stream
         .config.clear()
         .config.add(config)
         try .decoder.configure(.config.toSlice())
-        .width  = cast(s32, .decoder.layer.width)
-        .height = cast(s32, .decoder.layer.height)
+        .width    = cast(s32, .decoder.layer.width)
+        .height   = cast(s32, .decoder.layer.height)
+        .lowDelay = .decoder.layer.lowDelay
         .installFrames(#move frames)
     }
 
@@ -79,7 +78,7 @@ impl Mpeg4Stream
         for index in .frames.count
         {
             var at = .sampleAtRank.count
-            while at > 0 and .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime do
+            while not .lowDelay and at > 0 and .frames[cast(u64, .sampleAtRank[at - 1])].presentationTime > .frames[index].presentationTime do
                 at -= 1
             .sampleAtRank.insertAt(at, cast(u32, index))
         }
@@ -164,30 +163,45 @@ impl Mpeg4Stream
     // Reads samples until enough pictures are held to know which of them comes first.
     mtd fill(source: *ByteSource) fail
     {
-        while .queued < 2 and .nextDecode < .frames.count
+        let lookahead = .lowDelay ? 1'u64 : 2'u64
+        while .queued < lookahead and .nextDecode < .frames.count
         {
             let entry = .frames[.nextDecode]
+
+            // The last reference is also the last displayed picture in a low-delay stream.
+            if .lowDelay and entry.repeatPrevious
+            {
+                if not .decoder.anchors do
+                    break
+                .enqueuePicture()
+                .nextDecode += 1
+                continue
+            }
+
             try readStoredFrame(source, entry, .prefix.toSlice(), &.payload)
             .nextDecode += 1
-
-            .decoder.beginSample(entry.presentationTime)
+            .decoder.beginSample()
             while try .decoder.nextPicture(.payload.toSlice())
             {
                 if .queued >= HeldPictures do
                     break
-                .decoder.reference().writePlanar(&.queue[.queued].planes)
-                .queue[.queued].time = .decoder.pictureTime
-                .queue[.queued].kind = .decoder.pictureKind
-                .queued += 1
+                .enqueuePicture()
             }
         }
+    }
+
+    private mtd enqueuePicture()
+    {
+        .decoder.reference().writePlanar(&.queue[.queued].planes)
+        .queue[.queued].order = .lowDelay ? cast(s64, (.emitRank + .queued)) : .decoder.pictureTime
+        .queued += 1
     }
 
     // Which held picture is shown first.
     mtd const earliest()->u64
     {
         var at = 0'u64
-        for index in .queued where .queue[index].time < .queue[at].time do
+        for index in .queued where .queue[index].order < .queue[at].order do
             at = index
         return at
     }
@@ -195,11 +209,12 @@ impl Mpeg4Stream
     // Gives up one held picture, either to the caller or to the floor.
     mtd release(at: u64, target: *PlanarFrame?)
     {
+        // Keep the caller's old plane allocation available for the next queued picture.
         if let output = target do
-            output[] = #move .queue[at].planes
+            Core.swap(output, &.queue[at].planes)
         .queued -= 1
         if at != .queued do
-            .queue[at] = #move .queue[.queued]
+            Core.swap(&.queue[at], &.queue[.queued])
         .emitRank += 1
     }
 

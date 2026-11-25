@@ -6,7 +6,7 @@
 #global namespace Mpeg4
 #global internal
 
-using Core
+using Core, Core.Math
 
 // What a reconstructed coefficient may reach for eight-bit samples, clause 7.4.4.4.
 const CoefficientFloor = -2048's32
@@ -103,58 +103,79 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
 
 // The cosines of the eight-point transform, `cos((2 * x + 1) * u * pi / 16) * (u ? 1 : 1/sqrt 2)`.
 //
-// The format states the transform as a formula, not as an integer network, and requires only that
-// a decoder stay within the accuracy of clause A.1; this is the formula, evaluated once.
-var g_Cosines:      [8, 8] f32
-var g_CosinesReady: bool
-
-func prepareCosines()
+// Build the coefficients once at compile time, shared by every decoder.
+private func buildCosines()->[8, 8] f32
 {
-    if g_CosinesReady do
-        return
+    var cosines: [8, 8] f32
     for u in 8'u64
     {
         let scale = u == 0 ? cast(f32, (1.0'f64 / Math.sqrt(2.0'f64))) : 1.0'f32
         for x in 8'u64 do
-            g_Cosines[u, x] = scale * cast(f32, Math.cos(cast(f64, ((2 * x + 1) * u)) * Math.ConstF64.Pi / 16.0'f64))
+            cosines[u, x] = scale * cast(f32, Math.cos(cast(f64, ((2 * x + 1) * u)) * Math.ConstF64.Pi / 16.0'f64))
     }
 
-    g_CosinesReady = true
+    return cosines
 }
+
+private var g_Cosines: [8, 8] f32 = #run buildCosines()
 
 // The inverse transform of one block, clause 7.4.5.
 //
-// Rows first, then columns, which is the separable form of the two-dimensional transform and what
-// keeps it to a hundred and twenty-eight multiplications a sample rather than four thousand.
+// Each SIMD lane evaluates an independent output column, keeping the coefficient sum in
+// ascending frequency order in both passes.
 func inverseTransform(block: const *[64] s32, output: *[64] s16)
 {
-    prepareCosines()
-
-    var rows: [64] f32
+    var left, right: [8] Simd.F32x4
+    var frequencies: [8] u64
+    var activeRows = 0'u64
+    let half = Simd.splat(0.5'f32)
     for y in 8'u64
     {
-        for x in 8'u64
+        var lo, hi: Simd.F32x4
+        var active = false
+        for u in 8'u64
         {
-            var sum = 0'f32
-            for u in 8'u64
-            {
-                let value = block[][y * 8 + u]
-                if value do
-                    sum += cast(f32, value) * g_Cosines[u, x]
-            }
+            let value = block[][y * 8 + u]
+            if not value do
+                continue
+            active = true
+            let coefficient = Simd.splat(cast(f32, value))
+            lo += coefficient * Simd.load(&g_Cosines[u, 0])
+            hi += coefficient * Simd.load(&g_Cosines[u, 4])
+        }
 
-            rows[y * 8 + x] = sum * 0.5
+        if active
+        {
+            frequencies[activeRows] = y
+            left[activeRows]        = lo * half
+            right[activeRows]       = hi * half
+            activeRows += 1
         }
     }
 
-    for x in 8'u64
+    // Without vertical AC, each output row has the same samples.
+    let rows = activeRows == 0 or (activeRows == 1 and frequencies[0] == 0) ? 1'u64 : 8'u64
+    for y in rows
     {
-        for y in 8'u64
+        var lo, hi: Simd.F32x4
+        for v in activeRows
         {
-            var sum = 0'f32
-            for v in 8'u64 do
-                sum += rows[v * 8 + x] * g_Cosines[v, y]
-            output[][y * 8 + x] = cast(s16, Math.clamp(cast(s32, Math.round(sum * 0.5)), -512's32, 511's32))
+            let coefficient = Simd.splat(g_Cosines[frequencies[v], y])
+            lo += left[v] * coefficient
+            hi += right[v] * coefficient
         }
+
+        for x in 4'u64
+        {
+            output[][y * 8 + x]     = cast(s16, Math.clamp(cast(s32, Math.round(lo[x] * 0.5)), -512's32, 511's32))
+            output[][y * 8 + x + 4] = cast(s16, Math.clamp(cast(s32, Math.round(hi[x] * 0.5)), -512's32, 511's32))
+        }
+    }
+
+    if rows == 1
+    {
+        const RowBytes = 8 * #sizeof(s16)
+        for y in 1'u64 until 8'u64 do
+            Memory.copy(&output[][y * 8], &output[][0], RowBytes)
     }
 }

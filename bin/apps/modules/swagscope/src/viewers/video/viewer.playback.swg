@@ -225,6 +225,7 @@ impl Panel
 
         if not failure.isEmpty()
         {
+            .startupPaintClock.reset()
             .resumeAudioAfterSeek = false
             if .voice
             {
@@ -257,6 +258,12 @@ impl Panel
             .autoPlayPending      = false
             .playing              = true
             .resumeAudioAfterSeek = .voice != null
+            if .voice and not .sceneSilent and not .sceneManaged and .app().renderer.needsNativeWindow()
+            {
+                .startupPaintTick = 0
+                .startupSteadySince = 0
+                .startupPaintClock.restart()
+            }
         }
 
         if .anchorPending
@@ -324,6 +331,7 @@ impl Panel
             return
         let target      = count ? Math.min(index, count - 1) : index
         let resumeAudio = .playing and .voice != null and not .sceneSilent
+        .startupPaintClock.reset()
         .resumeAudioAfterSeek = resumeAudio
         if resumeAudio do
             catch .voice!.pause()
@@ -438,6 +446,7 @@ impl Panel
             return
         if .playing
         {
+            .startupPaintClock.reset()
             .resumeAudioAfterSeek = false
             .elapsed = .currentSeconds()
             if .voice do
@@ -472,6 +481,7 @@ impl Panel
     {
         if not .hasFrame do
             return
+        .startupPaintClock.reset()
         .playing              = false
         .resumeAudioAfterSeek = false
         .audioRangePending    = false
@@ -528,6 +538,19 @@ impl Panel
             .clock.restart()
     }
 
+    // Warm the native surface with the first picture while sound is still parked. A slow
+    // presentation restarts the settling interval. The deadline also lets slow hosts play.
+    mtd startupPaintReady(elapsedUs: u64)->bool
+    {
+        let interval = elapsedUs - .startupPaintTick
+        .startupPaintTick = elapsedUs
+        let rate = .video.frameRate().framesPerSecond() * .playbackRate
+        let budget = rate > 0 ? Math.max(1_000_000.0 / rate, 20_000.0) : 40_000.0
+        if cast(f64, interval) > budget do
+            .startupSteadySince = elapsedUs
+        return elapsedUs - .startupSteadySince >= StartupSteadyPaintUs or elapsedUs >= StartupPaintTimeoutUs
+    }
+
     // Advances presentation by at most one picture, and decides when to give up and skip.
     //
     // Presentation follows the run-ahead queue: a picture is shown once the clock reaches it,
@@ -568,6 +591,16 @@ impl Panel
             return
         }
 
+        if .startupPaintClock.isRunning()
+        {
+            if not .sceneManaged and not .startupPaintReady(.startupPaintClock.elapsedMicroseconds())
+            {
+                .imageView.invalidate()
+                return
+            }
+            .startupPaintClock.reset()
+        }
+
         // A jump left the sound waiting on the queue rather than on the first picture; see
         // `RebufferPictures`. Until it fills, the clock stands where the jump put it.
         if .resumeAudioAfterSeek and .voice and .hasFrame and not .sceneSilent
@@ -597,9 +630,11 @@ impl Panel
 
         var head  = 0'u64
         var empty = true
+        var failed: bool
         scope
         {
             Sync.scopedLock(&.queueLock)
+            failed = .hasFailure
             if not .ready.isEmpty()
             {
                 head  = .slots[cast(u64, .ready[0])].index
@@ -608,12 +643,30 @@ impl Panel
         }
 
         let clock = .clockFrame()
+        let synchronized = .voice != null or .sceneSeconds >= 0
         if not empty
         {
-            // While playback keeps up the clock only gates when the next picture is due; past
-            // that it also decides how many of the queued ones are already too late to show.
-            if .anchorPending or head <= clock do
-                discard .publishHead(clock, not .anchorPending)
+            // Sound and a linked scene own their clocks. With a local silent clock, timing
+            // follows the first ready picture after a delay and every picture gets its turn.
+            if .anchorPending or head <= clock
+            {
+                if not synchronized and not .anchorPending and (head < clock or not .clock.isRunning())
+                {
+                    .elapsed = .frameSeconds(head)
+                    .clock.restart()
+                }
+                // A brief audio lead can drain one picture at a time as the presentation
+                // loop recovers. A linked scene still presents the picture due on its clock.
+                let catchUp = .sceneSeconds >= 0 or
+                              (.voice != null and .currentSeconds() - .frameSeconds(head) > AudioCatchUpSeconds * .playbackRate)
+                discard .publishHead(clock, catchUp and not .anchorPending)
+            }
+            return
+        }
+
+        if failed
+        {
+            discard .publishHead()
             return
         }
 
@@ -646,8 +699,19 @@ impl Panel
         if .anchorPending or .sceneSeconds >= 0 do
             return
 
-        // The queue is empty: the decoder is behind. Past the resync bound, skip to the next
-        // sync frame instead of walking pictures the viewer will never catch up with.
+        if not synchronized
+        {
+            // Park at the first due picture until the decoder has it. The silent transport
+            // resumes from that picture, keeping both the displayed index and the clock in step.
+            if clock > .frameIndex
+            {
+                .elapsed = .frameSeconds(.frameIndex + 1)
+                .clock.reset()
+            }
+            return
+        }
+
+        // With a sound clock, resynchronize at a clean picture if the gap has grown too large.
         let rate      = .video.frameRate()
         let resyncLag = cast(u64, (rate.framesPerSecond() * ResyncSeconds))
         if clock < .frameIndex + resyncLag do

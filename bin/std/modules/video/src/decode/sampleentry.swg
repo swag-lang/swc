@@ -15,6 +15,7 @@ struct SampleEntry
     size:   u64      // Access unit size in bytes.
     presentationTime: s64     // Presentation timestamp, in the container's own units.
     isSync: bool     // Whether the unit starts a decode that needs nothing before it.
+    repeatPrevious: bool     // A container slot that holds the preceding picture.
 }
 
 // Reads one stored frame, putting back whatever the container took off its front.

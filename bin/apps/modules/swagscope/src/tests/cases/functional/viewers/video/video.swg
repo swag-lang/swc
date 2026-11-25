@@ -517,6 +517,9 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
     let fileName = expect videoPreviewFile(Format.toString("scope-video-clock-%.mp4", Guid64.random()), 12)
     defer discard catch File.delete(fileName)
 
+    Swag.require(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+    var sound = expect SoundFile.load(scopeTestDataPath("viewer.wav"))
     var host: Testing.HeadlessHost
     host.setup(640, 360)
 
@@ -548,10 +551,28 @@ func videoInformationText(view: *Film.Panel, parent: *Wnd)->String
 
     Swag.require(queued == 11)
 
-    // A late presentation drops every obsolete picture. Capping catch-up at four frames
-    // would publish frame 4 instead of the frame the stopped clock requests.
-    view.playing = true
+    // A local clock follows the oldest ready picture even after a long presentation delay.
     view.elapsed = view.frameSeconds(10)
+    view.updatePlayback()
+    Swag.require(view.frameIndex == 1 and view.elapsed == view.frameSeconds(1))
+
+    // A short audio lead can recover by presenting the oldest ready picture. A longer
+    // offset still catches up to the sound.
+    view.audio = &sound
+    view.voice = expect Voice.create(&sound)
+    view.audioClockLast = sound.timelineStartSeconds() + view.voice.playbackPositionSeconds()
+    view.clock.reset()
+    view.elapsed = view.frameSeconds(3)
+    view.updatePlayback()
+    Swag.require(view.frameIndex == 2)
+    view.elapsed = view.frameSeconds(8)
+    view.updatePlayback()
+    Swag.require(view.frameIndex == 8)
+
+    // The linked scene owns the clock. Capping catch-up at four frames would publish frame 4
+    // instead of the frame due on the scene clock.
+    view.playing = true
+    view.sceneSeconds = view.frameSeconds(10)
     view.clock.reset()
     view.updatePlayback()
     view.playing = false
@@ -1603,11 +1624,24 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     Swag.require(Film.rebufferPictureCount(8) == 4)
 }
 
-// Falling behind jumps to a clean sync picture. The wait overlay remains visible until that
-// picture is available, so a decoder below playback speed reports its actual state.
+// A delayed presentation interrupts preroll. The audio may start once the surface has had
+// a continuous stretch of steady turns, with a deadline for a host below the source cadence.
 #test
 {
-    let fileName = expect videoPreviewFile(Format.toString("scope-video-resync-%.mp4", Guid64.random()), 40)
+    var view: Film.Panel
+    Swag.require(not view.startupPaintReady(10_000))
+    Swag.require(not view.startupPaintReady(20_000))
+    Swag.require(not view.startupPaintReady(100_000))
+    for step in 6'u64 do
+        Swag.require(not view.startupPaintReady(140_000 + 40_000 * step))
+    Swag.require(view.startupPaintReady(360_000))
+    Swag.require(view.startupPaintReady(1_500_000))
+}
+
+// A silent film holds the next frame time while the decoder is late and then shows that frame.
+#test
+{
+    let fileName = expect videoPreviewFile(Format.toString("scope-video-buffer-%.mp4", Guid64.random()), 40)
     defer discard catch File.delete(fileName)
 
     var host: Testing.HeadlessHost
@@ -1626,11 +1660,24 @@ func captureVideoFailure(wnd: *Wnd, reason: string)
     view.clock.reset()
     view.updatePlayback()
 
-    Swag.require(view.awaitingFrame and result.isLoading())
-    Swag.require(result.needsLoadingOverlay())
+    Swag.require(view.frameIndex == 0 and not view.clock.isRunning())
+    Swag.require(view.currentSeconds() == view.frameSeconds(1))
+    Swag.require(not result.isLoading() and not result.needsLoadingOverlay())
+    // The test discarded any picture the worker had already reserved.
+    scope
+    {
+        Sync.scopedLock(&view.queueLock)
+        view.nextDecode = 1
+    }
     releaseVideoProducer(view)
-    waitForVideoFrame(view)
-    Swag.require(view.frameIndex == 12)
+    for 5_000
+    {
+        view.updatePlayback()
+        if view.frameIndex != 0 do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+    Swag.require(view.frameIndex == 1 and view.clock.isRunning())
 }
 
 // A colon and an instant in the lens move a film there, as Go to Time does, remembering the jump.

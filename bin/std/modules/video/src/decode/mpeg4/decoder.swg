@@ -57,7 +57,6 @@ struct Decoder
     quant:          u32
     packetStart:    u64     // The first macroblock of the packet being read.
     anchors:        u32     // How many anchors have been decoded, saturating at two.
-    planeTime:      s64     // Container timestamp of the plane being decoded.
     timeBase:       s64     // The stream clock, clause 6.3.5, in time-increment units.
     lastTimeBase:   s64
     anchorTime:     s64        // Stream time of the newer anchor.
@@ -69,7 +68,6 @@ struct Decoder
     sampleAt:       u64     // Where in the access unit the next plane is looked for.
     planesInSample: u32
     pictureTime:    s64     // Stream time of the picture just produced.
-    pictureKind:    u32
     paddingOwed:    u32      // Padding planes a sample that carried two pictures still owes.
     showsCurrent:   bool     // The last plane decoded is in `current` rather than in an anchor.
 }
@@ -119,11 +117,10 @@ impl Decoder
     }
 
     // Starts reading one access unit.
-    mtd beginSample(presentationTime: s64)
+    mtd beginSample()
     {
         .sampleAt       = 0
         .planesInSample = 0
-        .planeTime      = presentationTime
     }
 
     // Reads planes of the access unit until one produces a picture, and says whether one did.
@@ -162,7 +159,6 @@ impl Decoder
                 if not .anchors do
                     continue
                 .pictureTime  = time
-                .pictureKind  = 9
                 .showsCurrent = false
                 return true
             }
@@ -179,7 +175,6 @@ impl Decoder
             try .decodePlane(&reader, &header)
             .sampleAt    = (reader.bitPos + 7) / 8
             .pictureTime = time
-            .pictureKind = header.codingType
 
             // A sample that gives up more than one picture takes the place of a later one, which
             // the stream pads out.
@@ -203,9 +198,8 @@ impl Decoder
 
     // Advances the stream clock and answers the time of the plane about to be read, clause 6.3.5.
     //
-    // The direct mode divides by this clock, and the display order follows it: a container
-    // timestamp is close but does not divide the same way, and a container muxed from a format
-    // that states no decoding order does not order its samples by it at all.
+    // Direct prediction and reordered presentation use this clock. Container timestamps do
+    // not necessarily have the resolution or order needed for those operations.
     mtd readClock(header: const *PlaneHeader)->s64
     {
         let resolution = cast(s64, .layer.timeResolution)

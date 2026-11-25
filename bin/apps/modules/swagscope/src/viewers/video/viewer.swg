@@ -35,12 +35,10 @@ private
     const SeekSeconds = 10.0
     const NoSubtitle  = Swag.U32.Max
 
-    // How far behind the clock playback is allowed to fall before it gives up and jumps.
+    // How far the picture may fall behind the sound before playback jumps to a sync frame.
     //
-    // Showing every decoded picture keeps motion smooth, but on a stream the machine cannot sustain
-    // it also falls behind for as long as it plays. Past this much, playback skips to the next sync
-    // frame, which is the one place a jump costs a single decoded picture rather than the decode of
-    // every picture in between.
+    // Restarting at a sync frame needs only one decoded picture. A local silent clock can
+    // wait for the next picture instead.
     const ResyncSeconds = 2.0
 
     // How far the picture may drift from the sound before the timeline is pulled back onto it.
@@ -49,6 +47,8 @@ private
     // would jitter the presentation by the size of one output buffer. Playback therefore runs its own
     // clock and only re-anchors it when the two have actually separated.
     const AudioDriftSeconds = 0.1
+    // A short presentation stall can drain in order while the sound device keeps playing.
+    const AudioCatchUpSeconds = 0.75
     const BackdropColors    = "view_Bk 0xFF000000"
 
     // How many times the stillness of a resting scroll bar the veils wait before they leave: a
@@ -68,6 +68,10 @@ private
     // behind within the second and jumps again, which is a stutter that feeds itself. Waiting for a
     // few pictures costs a fraction of a second once and buys a queue to play out of.
     const RebufferPictures = 4'u64
+
+    // Let intermittent compositor stalls settle before starting the audio clock.
+    const StartupSteadyPaintUs  = 250_000'u64
+    const StartupPaintTimeoutUs = 1_500_000'u64
 
     // How much memory the decoded run-ahead may hold, and how many pictures it may hold at all.
     //
@@ -261,6 +265,9 @@ struct Panel
     playing:          bool
     thumbnail:        bool
     autoPlayPending:  bool = true
+    startupPaintClock: Time.Stopwatch
+    startupPaintTick:  u64
+    startupSteadySince: u64
     sceneViewport:     Math.Point
     sceneScratch:      PlanarFrame
     sceneSeconds:      f64 = -1
@@ -425,7 +432,7 @@ impl Panel
     {
         if .sceneSeconds >= 0 do
             return .sceneSeconds
-        if not .playing do
+        if not .playing or .startupPaintClock.isRunning() do
             return .elapsed
         return .elapsed + cast(f64, .clock.elapsedMicroseconds()) / 1_000_000.0 * .playbackRate
     }
@@ -484,6 +491,8 @@ impl Panel
     // or play.
     mtd resumeAudio()
     {
+        if .startupPaintClock.isRunning() do
+            return
         if .sceneSilent or not .voice or not .audio
         {
             .resumeAudioAfterSeek = false
@@ -689,6 +698,7 @@ impl Panel
         if .sceneSilent == silent do
             return
         .elapsed = .currentSeconds()
+        .startupPaintClock.reset()
         .clock.restart()
         .sceneSilent = silent
         if not .voice do

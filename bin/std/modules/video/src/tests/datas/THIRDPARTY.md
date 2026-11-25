@@ -377,6 +377,17 @@ same 96x64, 60-frame content as the H.264 and H.265 fixtures and a difference is
   `d099ba62af714cff4f93034a03a0ff8887853616091cccfe3182e3195d19b9e1`.
 - License: same as this repository.
 
+`edited-mpeg4-avi-clock.avi` contains ten synthetic 32x32 low-delay MPEG-4 Part 2 pictures at
+8 fps, encoded with FFmpeg through PyAV 17.1.0. Each picture has a distinct luma level. The fifth
+picture's VOP time increment was set to zero to reproduce an AVI whose codec clock steps back.
+SHA-256: `b023376d18bd5cae8b75386d40608218c5dea9f554fde695c7186c7ef2e5f9bd`.
+
+`ffmpeg-mpeg4-mp3-dropped.avi` muxes six synthetic 32x32 MPEG-4 Part 2 pictures and a 48 kHz
+mono MP3 tone with the same FFmpeg build. A gap in the input video timestamps makes the AVI
+muxer write three empty video slots immediately after the first picture.
+SHA-256: `74eb423c6b862b672f45d8e87684a93a1bd07d777de6b85332d182e0322446d4`.
+Both fixtures are licensed under the same terms as this repository.
+
 ## Expected values
 
 The colours the tests assert were read by decoding the same file with ffmpeg, not with this

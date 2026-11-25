@@ -819,10 +819,8 @@ private impl Decoder
 
     // Hands the frame table to the picture decoder the stream header named.
     //
-    // An AVI file states no timestamps: its frames are stored in decoding order and numbered as
-    // they come, so the times below are what the frame rate says and not what the pictures are
-    // shown at. A coded stream that reorders states its own clock, and the picture stream reads
-    // the display order from that rather than from these.
+    // AVI numbers slots at the declared frame rate, including empty slots that hold a picture.
+    // When the codec reorders pictures it supplies their display order independently.
     mtd openPictures(source: *ByteSource) fail
     {
         var samples: Array'SampleEntry
@@ -837,7 +835,12 @@ private impl Decoder
         for index in .frames.count
         {
             let entry = .frames[index]
-            samples.add(SampleEntry{entry.offset, entry.size, cast(s64, (index * step)), entry.isSync})
+            samples.add(SampleEntry{
+                offset: entry.offset,
+                size: entry.size,
+                presentationTime: cast(s64, (index * step)),
+                isSync: entry.isSync and entry.size != 0,
+                repeatPrevious: entry.size == 0})
         }
 
         // The setup headers of such a file live at the front of its first frame, never in the

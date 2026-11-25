@@ -51,6 +51,10 @@ prove it. Operating-system integrations live in
   comparisons check the settled result, and the Windows placement regression checks that the
   new bitmap is ready before the client calculation returns.
   Existing desktop captures at 12–30 fps cannot exclude a one-refresh artifact.
+- A Scope trace of the 3840x2160 FileSamples AVI recorded Win32 presentation turns over 100 ms
+  while recording and render-target submission generally took under 10 ms combined. Measure
+  the synchronous pixel readback and layered-window update separately against the 41.7 ms frame
+  budget of this source.
 - A GPU reset tripped by a test process's own work leaves its offscreen host on a lost context:
   it draws nothing and reads back stale bytes, which is how an offscreen Scope golden once came
   out mostly black and diagonally torn (`viewer.outline.markdown`). `HeadlessHost` never runs

@@ -347,6 +347,63 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     videoAssertFixtureFrame(expect reader.decodeFrame(5), 5, tolerance: 0)
 }
 
+// Low-delay MPEG-4 pictures keep their AVI order across a backward VOP timestamp.
+#test
+{
+    var reader = expect Reader.open(videoFixturePath("edited-mpeg4-avi-clock.avi"))
+    Swag.require(reader.frameCount() == 10)
+
+    // The timestamp steps backward at frame 4. Check both sequential decode and random access.
+    var frame: PlanarFrame
+    for index in reader.frameCount()
+    {
+        expect reader.decodeFramePlanesInto(&frame, index)
+        Swag.require(frame.luma[0] == cast(u8, (24 + index * 20)))
+    }
+
+    const Seeks: [4] u64 = [5, 3, 4, 9]
+    for index in Seeks
+    {
+        expect reader.decodeFramePlanesInto(&frame, index)
+        Swag.require(frame.luma[0] == cast(u8, (24 + index * 20)))
+    }
+}
+
+// AVI keeps the time of every video slot, including dropped pictures interleaved with sound.
+#test
+{
+    const Luma: [9] u8 = [24, 24, 24, 24, 44, 64, 84, 104, 124]
+    var reader = expect Reader.open(videoFixturePath("ffmpeg-mpeg4-mp3-dropped.avi"))
+    Swag.require(reader.frameCount() == Luma.count)
+    Swag.require(reader.frameRate() == expect FrameRate.create(8, 1))
+    Swag.require(reader.frameTimestamp(4) == 0.5)
+    Swag.require(reader.syncFrameAt(1) == 4)
+    Swag.require(reader.audioTrackCount() == 1)
+    let sound = unwrap reader.audioTrack(0)
+    Swag.require(sound.sampleEncoding() == .Mp3 and sound.sampleRateHz() == 48_000)
+    var audible: bool
+    expect sound.decodePcm16(0, 11_520, func|&audible|(samples)
+    {
+        for sample in samples where sample != 0 do
+            audible = true
+        return true
+    })
+    Swag.require(audible)
+
+    var frame: PlanarFrame
+    for index in Luma.count
+    {
+        expect reader.decodeFramePlanesInto(&frame, index)
+        Swag.require(frame.luma[0] == Luma[index])
+    }
+
+    // Seek into the run of empty chunks through the packed-colour entry point as well.
+    let first = expect reader.decodeFrame(0)
+    discard expect reader.decodeFrame(8)
+    let repeated = expect reader.decodeFrame(2)
+    Swag.require(Slice.equals(first.pixels.toSlice(), repeated.pixels.toSlice()))
+}
+
 // A clip encoded as Motion JPEG reads back as the picture it was built from.
 #test
 {

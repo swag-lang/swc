@@ -31,7 +31,9 @@ print_Fit                  Ajuster à la page
 print_Center               Centrer
 print_Actual               Taille réelle
 print_Copies               Exemplaires
-print_PreviewPage          Page à afficher (1–%)
+print_PreviewPage          Page % sur %
+print_PreviousPage         Page précédente
+print_NextPage             Page suivante
 print_Range                Pages à imprimer
 print_AllPages             Toutes les pages
 print_RangeHelp            Saisissez un numéro de page ou une plage, par exemple 2-5.

@@ -43,7 +43,9 @@ struct Strings
         print_Center:              string = "Center"    // Centers and shrinks oversized content to fit.
         print_Actual:              string = "Actual Size"    // Centers the content at its physical size.
         print_Copies:              string = "Copies"    // Number of printed copies.
-        print_PreviewPage:         string = "Preview Page (1–%)"    // Preview page field with the last page substituted.
+        print_PreviewPage:         string = "Page % of %"    // Current preview page and total page count.
+        print_PreviousPage:        string = "Previous Page"    // Tooltip for the previous preview page.
+        print_NextPage:            string = "Next Page"    // Tooltip for the next preview page.
         print_Range:               string = "Pages to Print"    // Range field in the preview.
         print_AllPages:            string = "All Pages"    // Placeholder for the complete document.
         print_RangeHelp:           string = "Enter a page number or a range such as 2-5."    // Explains the page-range syntax.

@@ -3,12 +3,12 @@
 
 using Core, Pixel, Gui.Print
 
-// A capture destined for a printer displays placement and copy controls on Papier.
+// A French printer dialog fits the paper and placement choices on Papier at 125 percent.
 #[Swag.TestTag("golden")]
 #test
 {
     var host: Testing.HeadlessHost
-    host.setup(960, 760)
+    host.setup(960, 760, 1.25)
     host.theme.setLight()
     host.notify(.ThemeChanged)
     expect host.app.setLanguage("fr")
@@ -25,6 +25,17 @@ using Core, Pixel, Gui.Print
         {
             Swag.require(dlg.title.text == strings().print_Title)
             captured = true
+
+            // The headless modal has no monitor to supply its native scale.
+            let size  = surface.size()
+            let scale = host.surface.dpiScale
+            surface.setDpiScaleRaw(scale)
+            var position = surface.position
+            position.width  = Math.ceil(size.x * scale)
+            position.height = Math.ceil(size.y * scale)
+            surface.setPosition(position)
+            surface.center(&host.surface)
+            dlg.applyLayout()
             var image = host.renderSurface(surface)
             Pixel.Testing.assertImageGolden(&image, "dialogs.print.settings.paper")
             Swag.require(host.clickModalButton(Dialog.BtnCancel))
@@ -51,9 +62,10 @@ using Core, Pixel, Gui.Print
 
     var confirmedSettings = false
     var captured = false
-    host.app.sigFrame += func|host = &host, &confirmedSettings, &captured|(app)
+    var returned = false
+    host.app.sigFrame += func|host = &host, &confirmedSettings, &captured, &returned|(app)
     {
-        if captured or app.modalSurfaces.isEmpty() do
+        if returned or app.modalSurfaces.isEmpty() do
             return
 
         let surface = app.modalSurfaces.back()
@@ -64,11 +76,27 @@ using Core, Pixel, Gui.Print
                 confirmedSettings = true
                 Swag.require(host.clickModalButton(Dialog.BtnOk))
             }
-            elif dlg.title.text == strings().print_Preview
+            elif not captured and dlg.title.text == strings().print_Preview
             {
                 captured = true
                 var image = host.renderSurface(surface)
                 Pixel.Testing.assertImageGolden(&image, "dialogs.print.preview.ink")
+
+                let previous = unwrap dlg.childById("gui.print.preview.previous")
+                let next     = unwrap dlg.childById("gui.print.preview.next")
+                let count    = assume cast(*Label, unwrap dlg.childById("gui.print.preview.count"))
+                Swag.require(previous.isDisabled() and next.isEnabled() and count.text() == "Page 1 of 2")
+                host.clickWnd(next)
+                Swag.require(previous.isEnabled() and next.isDisabled() and count.text() == "Page 2 of 2")
+                let navigation = unwrap next.parent
+                navigation.setFocus()
+                host.keyPress(.Home)
+                Swag.require(previous.isDisabled() and next.isEnabled() and count.text() == "Page 1 of 2")
+                host.clickWnd(unwrap dlg.leadingControl)
+            }
+            elif captured and dlg.title.text == strings().print_Title
+            {
+                returned = true
                 Swag.require(host.clickModalButton(Dialog.BtnCancel))
             }
         }
@@ -82,7 +110,7 @@ using Core, Pixel, Gui.Print
         document.text.appendFormat("Entry %{D02}    Sample collected and recorded.\n", i + 1)
     let printers: Array'Printer
     PrintDlg.showDocument(&host.surface, &document, "", printers.toSlice())
-    Swag.require(confirmedSettings and captured)
+    Swag.require(confirmedSettings and captured and returned)
 }
 
 // Submission keeps the activity track and its cancel action together on Papier.

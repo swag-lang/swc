@@ -6,8 +6,43 @@ using Core, Pixel, Gui.Print
 private const BackButton:   WndId = "gui.print.settings"
 private const WorkFinished: WndId = "gui.print.finished"
 private const PreviewDpi          = 96.0'f32
+private const PreviewHeight       = 336.0'f32
 private const Papers              = [Paper.A4, Paper.Letter, Paper.Legal]
 private const Placements          = [Placement.Fit, Placement.Center, Placement.Actual]
+
+private struct PreviewPages
+{
+    page: s64
+    last: s64
+
+    late
+    {
+        layout:   *Layout
+        view:     *ImageView
+        count:    *Label
+        previous: *IconButton
+        next:     *IconButton
+    }
+}
+
+impl PreviewPages
+{
+    mtd showPage(requested: s64)
+    {
+        let target = Math.clamp(requested, 0, .last)
+        if target == .page do
+            return
+        .page = target
+        .previous.enable(target > 0)
+        .next.enable(target < .last)
+        .count.setText(Format.toString(strings().print_PreviewPage, target + 1, .layout.pageCount))
+        catch .view.setImage(.layout.render(cast(u64, target), PreviewDpi))
+        {
+            .view.clear()
+            reportError(unwrap .view.surface, Swag.err)
+        }
+    }
+}
 
 func createWorkDialog(from: *Surface, title: string)->*Dialog
 {
@@ -174,10 +209,20 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
     paper.addItem(tr.print_Legal)
     paper.setSelectedIndex(cast(u32, options.setup.paper), notify: false)
 
-    let orientation = dlg.form.addChoiceField(tr.print_Orientation)
+    let orientation = dlg.form.addRowChoice()
+    orientation.toolTip = tr.print_Orientation
+    orientation.updateFlags(.Segmented)
     orientation.addItem(tr.print_Portrait)
     orientation.addItem(tr.print_Landscape)
     orientation.setSelectedIndex(options.setup.landscape ? 1 : 0, notify: false)
+
+    // The trailing choice is measured at its natural width, so each segment needs its own share.
+    let face = unwrap orientation.font().regular
+    let pad  = 2 * orientation.themeMetrics().comboBox_Padding
+    var widths: Array'f32
+    widths.add(Math.ceil(Painter.measureString(tr.print_Portrait, face).width + pad))
+    widths.add(Math.ceil(Painter.measureString(tr.print_Landscape, face).width + pad))
+    orientation.setSegmentWidths(widths)
 
     let margin = dlg.form.addTextField(tr.print_Margins, Format.toString("%", cast(u32, Math.round(options.setup.margin * MillimetersPerInch / PointsPerInch))))
     margin.setUnsignedIntegerRange(0, 75)
@@ -187,6 +232,7 @@ private func settings(from: *Surface, kind: ContentKind, devices: const [..] Pri
     if kind != .Text
     {
         let scale = dlg.form.addChoiceField(tr.print_Placement)
+        scale.updateFlags(.Segmented)
         scale.addItem(tr.print_Fit)
         scale.addItem(tr.print_Center)
         scale.addItem(tr.print_Actual)
@@ -251,28 +297,22 @@ private func preview(from: *Surface, layout: *Layout, options: *JobOptions, isPr
         return ""
     }
 
-    let dlg = FormDlg.create(from, {title: tr.print_Preview, confirmButtonText: isPrinter ? tr.print_Print : tr.print_SavePdf, showCancelButton: false})
-    dlg.addButton(tr.print_Settings, BackButton)
-    dlg.addButton(tr.dlg_Cancel, Dialog.BtnCancel)
-    let view = ImageView.create(dlg.form, {0, 0, 0, 272})
+    let dlg      = FormDlg.create(from, {title: tr.print_Preview, confirmButtonText: isPrinter ? tr.print_Print : tr.print_SavePdf})
+    let settings = IconButton.createQuiet(dlg, BackButton, menu: false)
+    settings.setQuietText(tr.print_Settings)
+    settings.sigPressed += func|dlg|(_) { dlg.closeWithResult(BackButton) }
+    dlg.setLeadingControl(settings)
+
+    let view  = ImageView.create(dlg.form, {0, 0, 0, PreviewHeight})
+    let inset = dlg.themeMetrics().dialog_BtnPadding * 2
+    view.padding = {inset, inset, inset, inset}
     view.setImage(image)
     dlg.form.addField("", view)
     var range: *EditBox?
+    var pages: PreviewPages
     if layout.pageCount > 1
     {
-        let navigation = Stepper.create(dlg.form)
-        navigation.setRange(1, cast(s64, layout.pageCount))
-        navigation.sigChanged += func|layout, view, dlg|(wnd)
-        {
-            let page = cast(u64, cast(*Stepper, wnd).value) - 1
-            catch view.setImage(layout.render(page, PreviewDpi))
-            {
-                view.clear()
-                reportError(unwrap dlg.surface, Swag.err)
-            }
-        }
-
-        dlg.form.addField(Format.toString(tr.print_PreviewPage, layout.pageCount), navigation)
+        addPageNavigation(dlg, view, layout, &pages)
         range = dlg.form.addTextField(tr.print_Range, placeholder: tr.print_AllPages, help: tr.print_RangeHelp)
     }
 
@@ -302,6 +342,69 @@ private func preview(from: *Surface, layout: *Layout, options: *JobOptions, isPr
     }
 
     return dlg.doModal()
+}
+
+private func addPageNavigation(dlg: *FormDlg, view: *ImageView, layout: *Layout, pages: *PreviewPages)
+{
+    let tr      = strings()
+    let metrics = dlg.themeMetrics()
+    let theme   = dlg.theme()
+    let nav     = StackLayoutCtrl.create(dlg.form, .Center)
+    nav.spacing     = metrics.dialog_BtnPadding
+    nav.focusPolicy = .Tab
+    nav.wndFlags    |= .FocusRing
+
+    let size     = Math.Rectangle{0, 0, metrics.control_DialogHeight, metrics.control_DialogHeight}
+    let previous = IconButton.create(nav, theme.icon(.ChevronLeft, metrics.chevron_Size), size, "gui.print.preview.previous", .CenterContent)
+    let count    = Label.create(nav, Format.toString(tr.print_PreviewPage, layout.pageCount, layout.pageCount), id: "gui.print.preview.count", flags: .SecondaryText)
+    let next     = IconButton.create(nav, theme.icon(.ChevronRight, metrics.chevron_Size), size, "gui.print.preview.next", .CenterContent)
+    previous.setForm(.RoundedRectangle)
+    next.setForm(.RoundedRectangle)
+    previous.focusPolicy = .None
+    next.focusPolicy     = .None
+    previous.toolTip     = tr.print_PreviousPage
+    next.toolTip         = tr.print_NextPage
+    previous.enable(false)
+    count.setTextAlignment(.Center, .Center)
+
+    // Keep the arrows in place as the counter grows from one digit to several.
+    count.preferredSize.x = count.measure({}).preferred.x
+    count.setText(Format.toString(tr.print_PreviewPage, 1, layout.pageCount))
+
+    pages[] = {last: cast(s64, layout.pageCount) - 1, layout: layout, view: view, count: count, previous: previous, next: next}
+    previous.sigPressed += func|pages|(_)
+    {
+        pages.showPage(pages.page - 1)
+    }
+
+    next.sigPressed += func|pages|(_)
+    {
+        pages.showPage(pages.page + 1)
+    }
+
+    nav.hookOnEvent = func|pages|(_, evt)
+    {
+        let key = catch cast(*KeyEvent?, evt) orelse null
+        if not key or key.kind != .Pressed or key.modifiers != .None do
+            return false
+
+        switch key.key
+        {
+        case .Left, .Down: pages.showPage(pages.page - 1)
+        case .Right, .Up:  pages.showPage(pages.page + 1)
+        case .PageDown:    pages.showPage(pages.page - 10)
+        case .PageUp:      pages.showPage(pages.page + 10)
+        case .Home:        pages.showPage(0)
+        case .End:         pages.showPage(pages.last)
+        default:           return false
+        }
+
+        key.accepted = true
+        return true
+    }
+
+    view.hookOnEvent = nav.hookOnEvent
+    dlg.form.addField("", nav)
 }
 
 private func choosePdf(from: *Surface, name, sourcePath: string)->String

@@ -1497,19 +1497,9 @@ impl Panel
         entries.add(strings.ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.text.numbers")
         entries.add(strings.ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.text.blanks")
 
-        // The tab stops and the encodings answer a query rather than fill the empty lens; the
-        // options list them too.
         for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
             entries.add(Viewer.tabWidthRowText(strings.ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width, bindId: Format.toString("scope.text.tabWidth.%", width))
-        for encoding in Encodings where entries.query.count or entries.results.collectingShortcuts
-        {
-            let name = Format.toString("% · %", strings.ui_Encoding, Viewer.encodingName(encoding))
-            entries.add(name,
-                        .FileCode,
-                        func|view = me, encoding|() { view.applyEncoding(encoding) },
-                        checked: encoding == .encoding,
-                        bindId: Format.toString("scope.text.encoding.%", encoding))
-        }
+        describeEncodingCommands(me, entries, "scope.text")
 
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
         entries.addZoom(.Out, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.Out, me.zoomPercent)|() { view.setZoom(percent) })
@@ -1526,32 +1516,7 @@ impl Panel
         sheet.doModal(.optionsButton, autoDestroy: true)
     }
 
-    mtd describeOptions(page: *OptionSheet.Page)
-    {
-        let strings = texts()
-        page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() }, icon: .theme().icon(.Wrap, themeRowIconSize(.themeMetrics())))
-        page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() }, icon: .theme().icon(.LineNumbers, themeRowIconSize(.themeMetrics())))
-        page.addToggle(strings.ui_Blanks, .blanks, func|view = me|(_) { view.toggleBlanks() }, icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
-        page.addLink(strings.ui_TabWidth,
-                     Format.toString("%", .tabWidth),
-                     func|view = me|(widths)
-                     {
-                         for width in Viewer.TabWidths do
-                             widths.addChoice(Format.toString("%", width), width == view.tabWidth, func|view, width|() { view.setTabWidth(width) })
-                     },
-                     icon: .theme().icon(.Whitespace, themeRowIconSize(.themeMetrics())))
-
-        // The detected encoding is shown rather than assumed: a file that reads as nonsense is
-        // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
-        page.addLink(strings.ui_Encoding,
-                     .encodingName(),
-                     func|view = me|(encodings)
-                     {
-                         for encoding in Encodings do
-                             encodings.addChoice(Viewer.encodingName(encoding), encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
-                     },
-                     icon: .theme().icon(.FileCode, themeRowIconSize(.themeMetrics())))
-    }
+    mtd describeOptions(page: *OptionSheet.Page) => describeReadingOptions(me, page)
 
     // Creates the options and the zoom of the text on the line of readings.
     private mtd createReadingControls(host: Viewer.Host)
@@ -1742,6 +1707,47 @@ impl Panel
             return false
         return .revealLensDestination(estimate, "", caret: true, estimatedLine: line)
     }
+}
+
+// Both readers list the same formats and mark the decoder currently in use.
+func(T) describeEncodingCommands(view: *T, entries: *Viewer.LensEntries, bindPrefix: string)
+{
+    for encoding in Encodings where entries.query.count or entries.results.collectingShortcuts
+    {
+        let name = Format.toString("% · %", texts().ui_Encoding, Viewer.encodingName(encoding))
+        entries.add(name,
+                    .FileCode,
+                    func|view, encoding|() { view.applyEncoding(encoding) },
+                    checked: encoding == view.encoding,
+                    bindId: Format.toString("%.encoding.%", bindPrefix, encoding))
+    }
+}
+
+// Builds the reading options shared by the basic text and source-code viewers.
+func(T) describeReadingOptions(view: *T, page: *OptionSheet.Page)
+{
+    let strings = texts()
+    let theme   = view.theme()
+    let size    = themeRowIconSize(view.themeMetrics())
+    page.addToggle(strings.ui_Wrap, view.wrapping, func|view|(_) { view.toggleWrap() }, icon: theme.icon(.Wrap, size))
+    page.addToggle(strings.ui_Numbers, view.lineNumbers, func|view|(_) { view.toggleLineNumbers() }, icon: theme.icon(.LineNumbers, size))
+    page.addToggle(strings.ui_Blanks, view.blanks, func|view|(_) { view.toggleBlanks() }, icon: theme.icon(.Whitespace, size))
+
+    let tabWidths = func|view|(widths: *OptionSheet.Page)
+    {
+        for width in Viewer.TabWidths do
+            widths.addChoice(Format.toString("%", width), width == view.tabWidth, func|view, width|() { view.setTabWidth(width) })
+    }
+
+    page.addLink(strings.ui_TabWidth, Format.toString("%", view.tabWidth), tabWidths, icon: theme.icon(.Whitespace, size))
+
+    let encodings = func|view|(choices: *OptionSheet.Page)
+    {
+        for encoding in Encodings do
+            choices.addChoice(Viewer.encodingName(encoding), encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
+    }
+
+    page.addLink(strings.ui_Encoding, Viewer.encodingName(view.encoding), encodings, icon: theme.icon(.FileCode, size))
 }
 
 func createViewer(host: Viewer.Host)

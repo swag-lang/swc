@@ -6,6 +6,7 @@ ui_PlainText Texte brut
 ui_Blanks   Afficher les espaces
 ui_Wrap     Retour à la ligne
 ui_Numbers  Numéros de ligne
+ui_EncodingUnavailable Impossible de lire ce fichier en %.
 ui_TabWidth Largeur des tabulations
 ui_MatchingDelimiter Aller au délimiteur correspondant
 ui_DelimiterUnavailable % · aucun délimiteur correspondant dans le texte chargé

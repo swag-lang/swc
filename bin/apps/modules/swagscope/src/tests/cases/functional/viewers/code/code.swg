@@ -26,6 +26,8 @@ func codeFixturePath(name: string)->String => Path.combine(scopeTestDataDirector
     view.toggleWrap()
     view.toggleLineNumbers()
     Swag.require(view.editor.flags.has(.WordWrap) and not view.editor.flags.has(.LineNumbers))
+    Swag.require(view.revealOffset(0, ""))
+    Swag.require(not view.editor.flags.has(.LineNumbers))
     view.destroy()
 
     view = Code.Panel.create(&host.root, codeFixturePath("sample.cpp"))
@@ -197,7 +199,8 @@ struct CodeLanguageSample
     host.setup(640, 420)
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     let view   = assume cast(*Code.Panel, result.view)
-    completeViewerBackgroundLoad(&host, &view.statisticsLoad)
+    view.statisticsTask.wait()
+    host.pump()
     Swag.require(view.hasStatistics and view.statistics.crlf == 3)
 
     let sheet = InfoSheet.create(&host.root)
@@ -223,7 +226,7 @@ struct CodeLanguageSample
     let zoom = view.zoomPercent
     defer view.setZoom(zoom)
     assertViewerInfoButton(unwrap view.zoomLabel)
-    Swag.require(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
+    Swag.require(result.info.preferredSize.x == Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth)
 
     view.setZoom(150)
     let editor = view.editor
@@ -231,10 +234,81 @@ struct CodeLanguageSample
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.require(view.zoomLabel.toolTip == Code.texts().ui_ZoomMenu)
+    Swag.require(PlainText.texts().ui_Encoding == "Encodage des caractères")
     Swag.require(view.zoomPercent == 150 and view.editor == editor)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
     Swag.require(view.zoomLabel.toolTip == oldTip)
+}
+
+// The reading options can change the decoder, and the lens, search and information use it.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-encoding-", ".cpp")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName, "int value; // café\r\n", .Utf8, includeBom: true)
+
+    var host: Testing.HeadlessHost
+    host.setup(800, 520)
+    var services: Viewer.HostServices
+    services.reportDetails = &reportCodeDetails
+    let session = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root, services: services)
+    let view    = assume cast(*Code.Panel, session.view)
+    Swag.require(view.encoding == .Utf8 and view.contentStart == 3)
+    Swag.require(Utf8.contains(view.editor.text(), "café"))
+
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    let strings = PlainText.texts()
+    Swag.require(options.rows.count == 5)
+    Swag.require(options.rows[0].label == strings.ui_Wrap and options.rows[0].checked == view.wrapping)
+    Swag.require(options.rows[1].label == strings.ui_Numbers and options.rows[1].checked == view.lineNumbers)
+    Swag.require(options.rows[2].label == strings.ui_Blanks and options.rows[2].checked == view.blanks)
+    Swag.require(options.rows[3].label == strings.ui_TabWidth and options.rows[3].value == "4")
+    Swag.require(options.rows[4].label == strings.ui_Encoding and options.rows[4].value == "UTF-8")
+
+    host.activateOptionRowWhenShown(strings.ui_Encoding)
+    host.thenActivateOptionRow("Windows-1252")
+    let button = unwrap view.optionsButton
+    button.sigPressed.call(cast(*Button, button))
+    Swag.require(host.autoHandled and session.fileEncoding!() == .Windows1252 and view.contentStart == 0)
+    Swag.require(Utf8.startsWith(view.editor.text(), "ï»¿int"))
+    Swag.require(Utf8.contains(view.editor.text(), "cafÃ©"))
+    Swag.require(g_CodeReportedDetails == view.languageDetails())
+
+    var results = Testing.lensResults("encoding")
+    var entries = Viewer.LensEntries.create(&results, "Code", host.theme)
+    view.describeLens(&entries)
+    var checked: String
+    var restore: (func||())?
+    for &entry in results.sections[0]!.entries where Utf8.startsWith(entry.title, strings.ui_Encoding)
+    {
+        if entry.checked do
+            checked = entry.title
+        if entry.title == Format.toString("% · UTF-8", strings.ui_Encoding) do
+            restore = entry.run
+    }
+
+    Swag.require(checked == Format.toString("% · Windows-1252", strings.ui_Encoding) and restore != null)
+    restore()
+    Swag.require(session.fileEncoding!() == .Utf8 and view.contentStart == 3)
+    Swag.require(Utf8.startsWith(view.editor.text(), "int value"))
+    Swag.require(view.languageName == "C++")
+    view.editor.lexAll()
+    Swag.require(view.editor.runeAt({0, 0}).style == Code.GenericLexer.Style.Keyword)
+
+    let sheet = InfoSheet.create(&host.root)
+    for 3
+    {
+        view.statisticsTask.wait()
+        host.pump()
+        if view.hasStatistics do
+            break
+    }
+
+    Swag.require(view.hasStatistics and view.statistics.crlf == 1)
+    view.describeInformation(sheet)
+    Swag.require(Utf8.contains(sheet.text(), "UTF-8"))
 }
 
 // End opens a bounded tail window instead of materializing every preceding byte.

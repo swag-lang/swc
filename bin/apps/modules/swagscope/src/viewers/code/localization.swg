@@ -17,6 +17,7 @@ struct Texts
     ui_Blanks:               string = "Show Whitespace"            // Lens command marking each space with a dot and each tabulation with an arrow.
     ui_MatchingDelimiter:    string = "Go to Matching Bracket"     // Lens command moving the caret to the bracket, parenthesis or brace pairing with the one at it.
     ui_DelimiterUnavailable: string = "% · no matching delimiter in loaded source"
+    ui_EncodingUnavailable:  string = "Cannot read this file as %."
     ui_TabWidth:             string = "Tab Width"     // Lens commands placing a tab stop every 2, 4 or 8 spaces; the number follows.
     // Language and encoding in the reading line.
     ui_Details:           string = "% · %"
@@ -43,6 +44,7 @@ func texts()->const *Texts => &g_Texts
 // the language of the application around it. Calling this again is a no-op.
 func registerTexts(app: *Application)
 {
+    PlainText.registerTexts(app)
     app.resources.addEmbedded(FrenchStringsName, FrenchStrings)
     Gui.registerStrings'Texts(&g_Texts, "scope.code")
 }

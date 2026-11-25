@@ -200,6 +200,7 @@ struct Panel
     lexed: bool
 
     info:              *Wnd?
+    optionsButton:     *IconButton?
     zoomLabel:         *IconButton?
     zoomPercent:       u32 = 100
     swagLexer:         RichEditLexerSwag
@@ -209,6 +210,7 @@ struct Panel
     stream:            File.FileStream
     fileName:          String
     fileSize:          u64
+    detectedText:      Viewer.TextProbe
     encoding:          Text.Encoding
     contentStart:      u64
     bytesRead:         u64
@@ -221,15 +223,22 @@ struct Panel
     pendingSeek:       bool
     pendingSeekOffset: u64
     repositioning:     bool
+    wrapping:          bool
+    lineNumbers:       bool
+    blanks:            bool
+    tabWidth:          s32
     lines:             Viewer.LineCounter
     services:          Viewer.HostServices
     failureReason:     String
 
     // The whole file counted in the background for the information sheet, apart from the window
     // the editor streams.
-    statisticsLoad: Viewer.BackgroundLoad'TextStatistics
-    statistics:     TextStatistics
-    hasStatistics:  bool
+    statisticsTask:     Swag.Task'TextStatistics
+    statisticsEncoding: Text.Encoding
+    statisticsStart:    u64
+    statistics:         TextStatistics
+    hasStatistics:      bool
+    retiring:           bool
 }
 
 impl Panel
@@ -353,43 +362,54 @@ impl Panel
     // highlight; without it, an empty `text` only loads the part of the file around `offset`.
     mtd revealOffset(offset: u64, text: string, caret = false, matchLength = Swag.U64.Max)->bool
     {
-        .stopLoading()
-        .pendingSeek   = false
-        .repositioning = true
-        defer .repositioning = false
-        let requested = Math.clamp(offset, .contentStart, .fileSize)
-        let unit = Text.unitSize(.encoding)
-        var start = requested - Math.min(requested - .contentStart, RevealContextSize)
-        start -= (start - .contentStart) % unit
+        .pendingSeek = false
+        return .reloadWindow(offset, .encoding, .contentStart, text, caret, matchLength)
+    }
+
+    // Read the replacement before dropping the current stream, so a failed seek or decoder
+    // leaves the visible source and its interpretation intact.
+    private mtd reloadWindow(offset: u64, encoding: Text.Encoding, contentStart: u64, text: string, caret = false, matchLength = Swag.U64.Max)->bool
+    {
+        var stream    = catch File.openReadLive(.fileName) { return false }
+        let requested = Math.clamp(offset, contentStart, .fileSize)
+        let unit      = Text.unitSize(encoding)
+        let aligned   = requested - (requested - contentStart) % unit
+        let context   = Math.min(aligned - contentStart, RevealContextSize)
+        let start     = aligned - (context - context % unit)
         for adjustment in 4
         {
-            .stream = catch File.openReadLive(.fileName) { return false }
-            let actual = Math.min(start + adjustment * unit, requested)
-            discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readTextChunk(Viewer.ResidentWindowSize, .encoding)
-            {
-                .stream.close()
-                continue
-            }
+            let actual = Math.min(start + adjustment * unit, aligned)
+            catch stream.seek(.Begin, actual) { return false }
+            let chunk = catch stream.readTextChunk(Viewer.ResidentWindowSize, encoding) { continue }
+            if Utf8.indexOf(chunk.toSlice(), 0'rune) != Swag.U64.Max do
+                return false
+            let position = catch stream.position() { return false }
+
+            .stopLoading()
+            .pendingSeek   = false
+            .repositioning = true
+            defer .repositioning = false
 
             let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
+            if encoding != .encoding do
+                .lines.reset()
+            .encoding      = encoding
+            .contentStart  = contentStart
             .residentStart = actual
-            .editor.setText(chunk)
-            .lexed = false
-            .numberWindow()
-            var positionErrorOutcome: Swag.Error
-            var position: #decltype(expect .stream.position())
-            catch { position = try .stream.position() } as positionErrorOutcome
-            let positionError = positionErrorOutcome.value()
-            .bytesRead     = positionError == null ? position : actual + chunk.length
+            .bytesRead     = position
+            .stream        = #move stream
             .hasText       = not chunk.isEmpty()
+            .lexed         = false
             .virtualHeight = previousHeight
+            .editor.setText(chunk)
+            .numberWindow()
             .updateEstimatedHeight()
             if text.count or caret
             {
-                let length = matchLength == Swag.U64.Max ? Viewer.sourceByteCount(text, .encoding) : matchLength
-                Viewer.highlightSourceMatch(.editor, chunk, requested - actual, length, .encoding)
+                let length = matchLength == Swag.U64.Max ? Viewer.sourceByteCount(text, encoding) : matchLength
+                Viewer.highlightSourceMatch(.editor, chunk, requested - actual, length, encoding)
             }
+
             .scheduleMore()
             return true
         }
@@ -397,21 +417,22 @@ impl Panel
         return false
     }
 
-    // Gives the line numbers of the resident window the count of the lines before it. A window too
-    // deep in the file to count without a visible pause is shown without numbers rather than wrong,
-    // and the numbers come back with the next window that can be counted, as the text viewer does.
+    // Uses whole-file numbering when the start can be counted within the scan budget.
     mtd numberWindow()
     {
-        let line = .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart)
+        let line = .lineNumbers ? .lines.lineAt(.fileName, .residentStart, .encoding, .contentStart) : 0
         if line do
             .editor.setFirstLineNumber(line)
-        if (line != 0) == .editor.flags.has(.LineNumbers) do
-            return
+
+        var flags = RichEditFlags.ReadOnly
         if line do
-            .editor.flags.add(.LineNumbers)
-        else do
-            .editor.flags.remove(.LineNumbers)
-        .editor.setFlags(.editor.flags)
+            flags.add(.LineNumbers)
+        if .wrapping do
+            flags.add(.WordWrap)
+        if .blanks do
+            flags.add(.DrawBlanks)
+        .editor.tabSize = .tabWidth
+        .editor.setFlags(flags)
     }
 
     mtd setZoom(percent: u32, remember = true)
@@ -436,57 +457,90 @@ impl Panel
         Viewer.centerColumn(.editor, Viewer.CodeColumn * scale)
     }
 
-    // Marks the spaces and tabulations of the source, or stops marking them.
     mtd toggleBlanks()
     {
-        g_Blanks = not .editor.flags.has(.DrawBlanks)
-        .applyBlanks()
+        .blanks  = not .blanks
+        g_Blanks = .blanks
+        .applyEditorFlag(.DrawBlanks, .blanks)
     }
 
-    // Toggles long-line wrapping in the source view and carries the choice to the next file.
     mtd toggleWrap()
     {
-        g_Wrapping = not .editor.flags.has(.WordWrap)
-        if g_Wrapping do
-            .editor.flags.add(.WordWrap)
-        else do
-            .editor.flags.remove(.WordWrap)
-        .editor.setFlags(.editor.flags)
+        .wrapping  = not .wrapping
+        g_Wrapping = .wrapping
+        .applyEditorFlag(.WordWrap, .wrapping)
     }
 
-    // Toggles logical line numbers and carries the choice to the next file.
     mtd toggleLineNumbers()
     {
-        g_LineNumbers = not .editor.flags.has(.LineNumbers)
-        if g_LineNumbers do
-            .editor.flags.add(.LineNumbers)
-        else do
-            .editor.flags.remove(.LineNumbers)
-        .editor.setFlags(.editor.flags)
+        .lineNumbers  = not .lineNumbers
+        g_LineNumbers = .lineNumbers
+        .numberWindow()
     }
 
-    mtd applyBlanks()
+    private mtd applyEditorFlag(flag: RichEditFlags, enabled: bool)
     {
-        if g_Blanks do
-            .editor.flags.add(.DrawBlanks)
+        var flags = .editor.flags
+        if enabled do
+            flags.add(flag)
         else do
-            .editor.flags.remove(.DrawBlanks)
-        .editor.setFlags(.editor.flags)
+            flags.remove(flag)
+        .editor.setFlags(flags)
+        .scheduleMore()
     }
 
-    // Sets the tab stops of the source every `width` spaces.
     mtd setTabWidth(width: s32)
     {
         if width != 2 and width != 4 and width != 8 do
             return
-        g_TabWidth = width
-        .applyTabWidth()
+        .tabWidth       = width
+        g_TabWidth      = width
+        .editor.tabSize = width
+        .editor.setFlags(.editor.flags)
+        .scheduleMore()
     }
 
-    mtd applyTabWidth()
+    // Rereads the code around the current resident window with the selected decoder.
+    mtd applyEncoding(encoding: Text.Encoding)
     {
-        .editor.tabSize = g_TabWidth
-        .editor.setFlags(.editor.flags)
+        if encoding == .encoding do
+            return
+
+        let contentStart = encoding == .detectedText.encoding ? .detectedText.contentStart : 0
+        if not .reloadWindow(.residentStart, encoding, contentStart, "", caret: true)
+        {
+            .services.showDetails(me, Format.toString(texts().ui_EncodingUnavailable, Viewer.encodingName(encoding)))
+            return
+        }
+
+        .hasStatistics = false
+        if .statisticsTask.isPending() do
+            .statisticsTask.cancel()
+        else do
+            .startStatistics()
+        .showLanguageDetails()
+        .services.informationChanged(me)
+    }
+
+    mtd startStatistics()
+    {
+        .statisticsEncoding = .encoding
+        .statisticsStart    = .contentStart
+
+        let view     = me
+        let start    = .statisticsStart
+        let encoding = .statisticsEncoding
+        .statisticsTask.submit(func|view, start, encoding|()->TextStatistics fail => try TextStatisticsCounter.countFile(view.fileName, start, encoding),
+                               .taskNotifier(&.statisticsTask),
+                               .Background)
+    }
+
+    mtd retire()->bool
+    {
+        .retiring = true
+        .stopLoading()
+        .statisticsTask.cancel()
+        return not .statisticsTask.isPending()
     }
 
     // Returns where the delimiter at the caret stands — the one after it, or else the one before
@@ -595,7 +649,7 @@ impl Panel
         return true
     }
 
-    // Gives the lens the whitespace marks and the zoom of the source.
+    // Offers the reading controls and the source-specific commands in the lens.
     mtd describeLens(entries: *Viewer.LensEntries)
     {
         entries.addZoom(.In, .zoomPercent, func|view = me, percent = Viewer.zoomTarget(.In, me.zoomPercent)|() { view.setZoom(percent) })
@@ -617,13 +671,28 @@ impl Panel
         // The pair is offered only when the caret stands by a bracket, which is when it means something.
         if .delimiterAtCaret().lineIndex != Swag.U64.Max do
             entries.add(texts().ui_MatchingDelimiter, .GoTo, func|view = me|() { discard view.goToMatchingDelimiter() }, defaultKey: {modifiers: .Control, key: .Oem6}, bindId: "scope.code.matchingDelimiter")
-        entries.add(texts().ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .editor.flags.has(.WordWrap), defaultKey: {modifiers: .CtrlShift, key: .W}, bindId: "scope.code.wrap")
-        entries.add(texts().ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .editor.flags.has(.LineNumbers), bindId: "scope.code.numbers")
-        entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .editor.flags.has(.DrawBlanks), bindId: "scope.code.blanks")
+        entries.add(texts().ui_Wrap, .Wrap, func|view = me|() { view.toggleWrap() }, checked: .wrapping, defaultKey: {modifiers: .CtrlShift, key: .W}, bindId: "scope.code.wrap")
+        entries.add(texts().ui_Numbers, .LineNumbers, func|view = me|() { view.toggleLineNumbers() }, checked: .lineNumbers, bindId: "scope.code.numbers")
+        entries.add(texts().ui_Blanks, .Whitespace, func|view = me|() { view.toggleBlanks() }, checked: .blanks, bindId: "scope.code.blanks")
 
         // The tab stops answer a query, as the languages do, rather than fill the empty lens.
         for width in Viewer.TabWidths where entries.query.count or entries.results.collectingShortcuts do
-            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .editor.tabSize == width, bindId: Format.toString("scope.code.tabWidth.%", width))
+            entries.add(Viewer.tabWidthRowText(texts().ui_TabWidth, width), .Whitespace, func|view = me, width|() { view.setTabWidth(width) }, checked: .tabWidth == width, bindId: Format.toString("scope.code.tabWidth.%", width))
+
+        PlainText.describeEncodingCommands(me, entries, "scope.code")
+        if .optionsButton do
+            entries.add(appStrings().cmd_Options, .Settings, func|view = me|() { view.showOptions() }, bindId: "scope.code.options")
+    }
+
+    mtd describeOptions(page: *OptionSheet.Page) => PlainText.describeReadingOptions(me, page)
+
+    mtd showOptions()
+    {
+        let button = .optionsButton
+        if not button do
+            return
+        let sheet = OptionSheet.View.create(button, func|view = me|(page) { view.describeOptions(page) }, owner: me)
+        sheet.doModal(button, autoDestroy: true)
     }
 
     mtd showZoomMenu()
@@ -647,19 +716,21 @@ impl Panel
             .fileName        = fileName
             .services        = services
             .info            = info
+            .wrapping        = g_Wrapping
+            .lineNumbers     = g_LineNumbers
+            .blanks          = g_Blanks
+            .tabWidth        = g_TabWidth
         }
 
         result.createEditor()
         if info do
-            result.createZoomControl(info)
+            result.createReadingControls(info)
         result.selectLexer()
         result.hookEvents()
         result.startReading()
 
         result.applyLayout()
         result.setZoom(g_ZoomPercent)
-        result.applyBlanks()
-        result.applyTabWidth()
         result.scheduleMore()
         return result
     }
@@ -729,15 +800,22 @@ impl Panel
             .marginLeft  = Viewer.ColumnInset
             .marginRight = Viewer.ColumnInset
             .style.setFont(me.theme().createDefaultFontFs(me.themeMetrics().defaultFixedFontSize), .Regular)
-            .setFlags(.ReadOnly | (g_LineNumbers ? .LineNumbers : .None) | (g_Wrapping ? .WordWrap : .None))
         }
     }
 
-    // Creates the zoom menu button in the host's information group `info`.
-    private mtd createZoomControl(info: *Wnd)
+    // Creates the options and zoom controls on the host's line of readings.
+    private mtd createReadingControls(info: *Wnd)
     {
-        .zoomLabel = Viewer.createZoomButton(info, "scope.code.zoom", texts().ui_ZoomMenu)
-        .zoomLabel.sigPressed += func|view = me|(_) { view.showZoomMenu() }
+        with .optionsButton = Viewer.createInfoOptionsButton(info)
+        {
+            .sigPressed += func|view = me|(_) { view.showOptions() }
+        }
+
+        with .zoomLabel = Viewer.createZoomButton(info, "scope.code.zoom", texts().ui_ZoomMenu)
+        {
+            .dockStyle  = .Right
+            .sigPressed += func|view = me|(_) { view.showZoomMenu() }
+        }
     }
 
     // Colors the editor with the Swag lexer for Swag sources, and with the generic lexer configured
@@ -858,6 +936,10 @@ impl Panel
                 view.repositioning = false
                 return true
 
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .W and keyEvt.modifiers == .CtrlShift:
+                view.toggleWrap()
+                return true
+
             case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Oem6 and keyEvt.modifiers == .Control:
                 discard view.goToMatchingDelimiter()
                 return true
@@ -905,15 +987,19 @@ impl Panel
             .showReadError(Viewer.failureText(Swag.err))
             return
         }
-        .encoding = probe.encoding
-        .contentStart = probe.contentStart
+
+        .detectedText  = probe
+        .encoding      = probe.encoding
+        .contentStart  = probe.contentStart
         .residentStart = .contentStart
-        .bytesRead = .contentStart
+        .bytesRead     = .contentStart
         catch .stream.seek(.Begin, .contentStart)
         {
             .showReadError(Viewer.failureText(Swag.err))
             return
         }
+
+        .numberWindow()
         if size <= .contentStart do
             .finishLoading()
         else do
@@ -926,10 +1012,21 @@ impl IWnd for Panel
     // The count of the whole file arrives: the sheet can give its lines and how they end.
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
-        if not .statisticsLoad.claim(evt) do
+        if evt.task != &.statisticsTask or not .statisticsTask.isDone() do
             return
-        let error = .statisticsLoad.finish(&.statistics)
-        .hasStatistics = error.isEmpty()
+
+        let cancelled = .statisticsTask.isCancelled()
+        var countError: Swag.Error
+        catch { .statistics = try .statisticsTask.take() } as countError
+        if .retiring do
+            return
+        if cancelled or .statisticsEncoding != .encoding or .statisticsStart != .contentStart
+        {
+            .startStatistics()
+            return
+        }
+
+        .hasStatistics = countError.isEmpty()
         .services.informationChanged(me)
     }
 
@@ -948,8 +1045,13 @@ impl IWnd for Panel
 
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
-        if evt.kind == .LanguageChanged and .zoomLabel do
-            .zoomLabel.toolTip = texts().ui_ZoomMenu
+        if evt.kind == .LanguageChanged
+        {
+            if .optionsButton do
+                .optionsButton.toolTip = appStrings().ui_Options
+            if .zoomLabel do
+                .zoomLabel.toolTip = texts().ui_ZoomMenu
+        }
 
         // A theme carries its own faces: the fixed face is set again in the new one.
         if evt.kind == .ThemeChanged do
@@ -959,7 +1061,8 @@ impl IWnd for Panel
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        .stopLoading()
+        discard .retire()
+        .statisticsTask.wait()
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)
@@ -1006,7 +1109,7 @@ impl Panel
 
 func createViewer(host: Viewer.Host)
 {
-    let view = Panel.create(host.contentParent(), host.fileName(), host.services(), host.createInfoGroup(Viewer.ZoomSlotWidth))
+    let view = Panel.create(host.contentParent(), host.fileName(), host.services(), host.createInfoGroup(Viewer.InfoOptionsWidth + Viewer.ZoomSlotWidth))
     if not view.failureReason.isEmpty()
     {
         host.reject(view.failureReason)
@@ -1029,13 +1132,7 @@ func createViewer(host: Viewer.Host)
     host.setLensSource(func|view|(entries) { view.describeLens(entries) })
     host.setInformation(func|view|(sheet) { view.describeInformation(sheet) })
 
-    view.statisticsLoad.start(host.fileName(), &countSource, view)
+    view.startStatistics()
     host.setLifecycle({isLoading: func|view|()->bool => view.loadTimer != null,
-                       retire: func|view|()->bool => view.statisticsLoad.retire()})
-}
-
-private func countSource(fileName: string)->TextStatistics fail
-{
-    let probe = Viewer.probeTextFile(fileName)
-    return try TextStatisticsCounter.countFile(fileName, probe.contentStart, probe.encoding)
+                       retire: func|view|()->bool => view.retire()})
 }

@@ -2405,6 +2405,44 @@ func sectionCountText(ctrl: *PropertiesCtrl, index: u64)->string => ctrl.section
     Swag.require(sectionCountText(ctrl, 1) == "2")
 }
 
+// Submitting a live filter leaves the property dialog open and keeps the query in effect.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(640, 440)
+
+    let dlg = Dialog.create(&host.surface, 440, 320, title: "Options")
+    dlg.addButton("Done", Dialog.BtnNo)
+    dlg.addButton("Close", Dialog.BtnCancel, true)
+
+    var data: PropHeadlessData
+    let ctrl = PropertiesCtrl.create(dlg.createContentView(), flags: .SectionTabs | .SearchBar)
+    ctrl.dockStyle = .Center
+    ctrl.addStruct(data, "General")
+
+    var checked: bool
+    host.app.sigFrame += func|&host, ctrl, &checked|(_)
+    {
+        if checked do
+            return
+
+        checked = true
+        ctrl.search.setFocus()
+        ctrl.search.setText("count")
+        host.keyPress(.Return)
+        Swag.require(not ctrl.search.hasFocus() and ctrl.properties.matchCount() == 1)
+        Swag.require(ctrl.search.text() == "count")
+
+        ctrl.search.setFocus()
+        host.keyPress(.Escape)
+        Swag.require(not ctrl.search.hasFocus() and ctrl.search.text() == "count")
+        Swag.require(host.clickModalButton(Dialog.BtnNo))
+    }
+
+    let result = dlg.doModal()
+    Swag.require(checked and result == Dialog.BtnNo)
+}
+
 // The same section icon also survives a tabbed grid's presentation changes.
 #test
 {

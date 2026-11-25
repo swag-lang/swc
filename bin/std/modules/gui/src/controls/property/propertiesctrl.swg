@@ -107,6 +107,22 @@ impl PropertiesCtrl
                 .sigTextChanged += func|ed|(fil) { ed.applySearch(fil.text()) }
                 .updateFlags(.ClearButton)
             }
+
+            // EditBox has already signalled submission. Keep Enter within the live filter
+            // so the surrounding dialog does not run its default action.
+            bar.hookOnEvent = func|ed|(_, evt)
+            {
+                if evt is KeyEvent as key where key.kind == .Pressed and
+                                                key.key == .Return and
+                                                key.modifiers == .None and
+                                                ed.search.hasFocus()
+                {
+                    ed.search.releaseFocus()
+                    return true
+                }
+
+                return false
+            }
         }
 
         // Section filter bar

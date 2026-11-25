@@ -273,6 +273,7 @@ using Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(200, 120)
     let field = EditBox.create(&host.root, "", {20, 20, 145, 32})
+    let resting = host.renderSettled()
     field.setFocus()
     host.sendRune(.A, 'a')
     let editing = host.renderSettled()
@@ -281,16 +282,18 @@ using Core, Pixel
     let keyboard = host.renderSettled()
     Swag.require(field.hasVisibleFocus())
 
-    var borderChanged: bool
+    let colors = field.themeColors()
+    var borderKept, borderChanged: bool
     for x in 12
     {
         let edge   = cast(u32, x) + 154
         let before = editing.pixelColor(edge, 36)
-        Swag.require(before != field.themeColors().edit_FocusBorder)
+        Swag.require(before != colors.edit_FocusBorder)
+        borderKept    = borderKept or (before == colors.edit_Border and before == resting.pixelColor(edge, 36))
         borderChanged = borderChanged or keyboard.pixelColor(edge, 36) != before
     }
 
-    Swag.require(borderChanged)
+    Swag.require(borderKept and borderChanged)
 }
 
 // An editor's surrounding frame responds to keyboard mode independently of its text recipient.

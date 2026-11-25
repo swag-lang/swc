@@ -403,7 +403,6 @@ struct Decoder
         soundTracks:   Array'SoundFile      // Tracks streamed from the AVI file.
         bytesPerPixel: u64                  // Source bytes of one pixel of an uncompressed frame.
         rowBytes:      u64                  // Padded length of one row of an uncompressed frame.
-        isRgb555:      bool                 // Whether 16-bit BI_RGB pixels use the default 5-5-5 masks.
         nextIndex:     u64                  // Index of the frame the decoder is positioned on.
         pictures:      PictureStream        // Coded pictures, when frames are a coded stream.
         isTopDown:     bool                 // Whether uncompressed rows start with the top one.
@@ -660,9 +659,9 @@ private impl Decoder
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support the AVI '%' video codec", describeId(compression)))}
 
         let bitCount = layout.format.biBitCount
+        let isRgb555 = bitCount == 16 and compression == Bmp.BI_RGB
         .info.codecName = "Uncompressed RGB"
-        .isRgb555       = bitCount == 16 and compression == Bmp.BI_RGB
-        if bitCount != 24 and bitCount != 32 and not .isRgb555 do
+        if bitCount != 24 and bitCount != 32 and not isRgb555 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("video decoder does not support uncompressed AVI frames of % bits per pixel", bitCount))}
 
         // Uncompressed frames follow the bitmap rules: rows are padded to a multiple of four
@@ -883,8 +882,14 @@ private impl Decoder
         if decoded.width != .info.width or decoded.height != .info.height do
             fail InvalidFormatError{"AVI frame does not have the dimensions its stream declares"}
 
-        decoded.convertTo(.RGB8)
         .prepareTarget(target)
+        if decoded.pixelFormat == .BGR8
+        {
+            copyBitmapRows'3(decoded.pixels.storage(), target, decoded.rowStride, false)
+            return
+        }
+
+        decoded.convertTo(.RGB8)
         Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
     }
 
@@ -896,33 +901,11 @@ private impl Decoder
 
         .prepareTarget(target)
         let payload = .payload.storage()
-        for y in .info.height
+        switch .bytesPerPixel
         {
-            // Pixel storage is bottom-up and so is a bitmap frame of positive height, so only a
-            // top-down frame is turned over here.
-            let sourceRow = cast(u64, (.isTopDown ? .info.height - y - 1 : y)) * .rowBytes
-            let targetRow = cast(u64, y) * cast(u64, target.rowStride)
-            for x in .info.width
-            {
-                let source      = payload + sourceRow + cast(u64, x) * .bytesPerPixel
-                let destination = target.pixels.storage() + targetRow + cast(u64, x) * 3
-                if .isRgb555
-                {
-                    let pixel = cast(u32, source[0]) | (cast(u32, source[1]) << 8)
-                    let blue  = pixel & 0x1F
-                    let green = (pixel >> 5) & 0x1F
-                    let red   = (pixel >> 10) & 0x1F
-                    destination[0] = cast(u8, (red << 3) | (red >> 2))
-                    destination[1] = cast(u8, (green << 3) | (green >> 2))
-                    destination[2] = cast(u8, (blue << 3) | (blue >> 2))
-                }
-                else
-                {
-                    destination[0] = source[2]
-                    destination[1] = source[1]
-                    destination[2] = source[0]
-                }
-            }
+        case 2: copyBitmapRows'2(payload, target, .rowBytes, .isTopDown)
+        case 3: copyBitmapRows'3(payload, target, .rowBytes, .isTopDown)
+        case 4: copyBitmapRows'4(payload, target, .rowBytes, .isTopDown)
         }
     }
 
@@ -933,6 +916,62 @@ private impl Decoder
     {
         if target.width != .info.width or target.height != .info.height or target.pixelFormat != .RGB8 do
             target[] = Image.create(.info.width, .info.height, .RGB8)
+    }
+}
+
+// Selects the RGB channels of four BGR or BGRA pixels in output order.
+private const Bgr24ToRgb  = cast(Math.Simd.U8x16, [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
+private const Bgra32ToRgb = cast(Math.Simd.U8x16, [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128])
+
+private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Image, sourceStride: u64, topDown: bool)
+{
+    let output = target.pixels.storage()
+    for y in target.height
+    {
+        // Pixel storage is bottom-up, so a top-down bitmap is turned over here.
+        let sourceY     = topDown ? target.height - y - 1 : y
+        var source      = pixels + cast(u64, sourceY) * sourceStride
+        var destination = output + cast(u64, y) * target.rowStride
+        var count       = target.width
+
+        #static if PIXEL_BYTES != 2
+        {
+            let shuffle = PIXEL_BYTES == 3 ? Bgr24ToRgb : Bgra32ToRgb
+
+            // Six pixels leave room for both 16-byte operations. The next iteration or
+            // scalar tail overwrites the four bytes beyond the four converted pixels.
+            while count >= 6
+            {
+                let packed = Math.Simd.load(source)
+                Math.Simd.store(destination, Math.Simd.shuffle(packed, shuffle))
+                source      += 4 * PIXEL_BYTES
+                destination += 12
+                count       -= 4
+            }
+        }
+
+        for count
+        {
+            #static if PIXEL_BYTES == 2
+            {
+                let pixel = cast(u32, source[0]) | (cast(u32, source[1]) << 8)
+                let blue  = pixel & 0x1F
+                let green = (pixel >> 5) & 0x1F
+                let red   = (pixel >> 10) & 0x1F
+                destination[0] = cast(u8, (red << 3) | (red >> 2))
+                destination[1] = cast(u8, (green << 3) | (green >> 2))
+                destination[2] = cast(u8, (blue << 3) | (blue >> 2))
+            }
+            else
+            {
+                destination[0] = source[2]
+                destination[1] = source[1]
+                destination[2] = source[0]
+            }
+
+            source      += PIXEL_BYTES
+            destination += 3
+        }
     }
 }
 

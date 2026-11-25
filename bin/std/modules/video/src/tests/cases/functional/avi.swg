@@ -157,7 +157,10 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 {
     var deep = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-bgra.avi"))
     Swag.require(deep.width() == 32 and deep.height() == 24 and deep.frameCount() == 6)
-    videoAssertFixtureFrame(expect deep.decodeFrame(5), 5, tolerance: 0)
+    let deepFrame = expect deep.decodeFrame(5)
+    videoAssertFixtureFrame(deepFrame, 5, tolerance: 0)
+    videoAssertColor(deepFrame.pixelColor(31, 0), 0, 255, 0, tolerance: 0)
+    videoAssertGray(deepFrame.pixelColor(31, 23), videoFixtureGray(5), tolerance: 0)
 
     var flat = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
     videoAssertFixtureFrame(expect flat.decodeFrame(0), 0, tolerance: 0)
@@ -165,8 +168,13 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     // 33 pixels of 24 bits fill 99 bytes, and a bitmap row is padded to 100.
     var odd = expect Reader.open(videoFixturePath("ffmpeg-rawvideo-odd.avi"))
     Swag.require(odd.width() == 33 and odd.height() == 25 and odd.frameCount() == 3)
-    for index in 3'u64 do
-        videoAssertFixtureFrame(expect odd.decodeFrame(index), index, tolerance: 0)
+    for index in 3'u64
+    {
+        let frame = expect odd.decodeFrame(index)
+        videoAssertFixtureFrame(frame, index, tolerance: 0)
+        videoAssertColor(frame.pixelColor(32, 0), 0, 255, 0, tolerance: 0)
+        videoAssertGray(frame.pixelColor(32, 24), videoFixtureGray(index), tolerance: 0)
+    }
 }
 
 // BI_RGB 16-bit frames use the default RGB555 masks. This synthetic 5x2 stream has padded rows

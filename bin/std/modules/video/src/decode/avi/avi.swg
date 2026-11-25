@@ -202,9 +202,10 @@ private func readChunk(source: *ByteSource, end: u64)->Chunk fail
     if source.position() > end or ChunkHeaderSize > end - source.position() do
         fail InvalidFormatError{"AVI chunk header runs past the end of its list"}
 
+    let header = try source.readNative'([2] u32)()
     var result: #returntype
-    result.id   = try source.readLittleEndian'u32()
-    result.size = cast(u64, (try source.readLittleEndian'u32()))
+    result.id   = Math.littleEndianToNative(header[0])
+    result.size = cast(u64, Math.littleEndianToNative(header[1]))
     result.data = source.position()
     if result.data > end or result.size > end - result.data do
         fail InvalidFormatError{"AVI chunk runs past the end of the stream"}
@@ -800,17 +801,30 @@ private impl Decoder
         {
             try source.seek(offset)
             var startCode = 0'u32
-            var scanned   = 0'u64
-            while scanned < size
+            var remaining = size
+            while remaining
             {
-                startCode = (startCode << 8) | cast(u32, (try source.readByte()))
-                scanned   += 1
-                if startCode == (0x0000_0100'u32 | Mpeg4.CodeVop)
+                let bytes = try source.peek(1)
+                let count = Math.min(bytes.count, remaining)
+                for byte, index in bytes[until count]
                 {
-                    if scanned == size do
+                    startCode = (startCode << 8) | cast(u32, byte)
+                    if startCode != (0x0000_0100'u32 | Mpeg4.CodeVop) do
+                        continue
+
+                    let next = index + 1
+                    if next < count do
+                        return (cast(u32, bytes[next]) >> 6) == Mpeg4.VopIntra
+                    if count == remaining do
                         return false
+
+                    // The type byte is in the next source window.
+                    try source.skip(count)
                     return (cast(u32, (try source.readByte())) >> 6) == Mpeg4.VopIntra
                 }
+
+                try source.skip(count)
+                remaining -= count
             }
 
             return false

@@ -104,7 +104,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     let sound = unwrap reader.audioTrack(0)
     Swag.require(sound.sampleEncoding() == .Mp3 and sound.sampleRateHz() == 48_000 and sound.numChannels() == 1)
 
-    let reference = expect Reader.open(videoFixturePath("ffmpeg-h264-mp3.mp4"))
+    let reference      = expect Reader.open(videoFixturePath("ffmpeg-h264-mp3.mp4"))
     let referenceSound = unwrap reference.audioTrack(0)
     Swag.require(sound.packetCount() == referenceSound.packetCount() and sound.sampleFrameCount() == referenceSound.sampleFrameCount())
     var decoded, expected: Array's16
@@ -326,9 +326,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     // Keep the media and headers, remove the optional index, and repair the RIFF length.
     bytes.resize(index)
-    let riffSize = cast(u32, (index - 8))
-    for byteIndex in 4 do
-        bytes[4 + cast(u64, byteIndex)] = cast(u8, ((riffSize >> cast(u32, (byteIndex * 8))) & 0xFF))
+    aviWriteU32(bytes.toSlice(), 4, cast(u32, bytes.count - 8))
 
     var reader = expect Reader.openMemory("packed-no-index.avi", bytes.toSlice())
     Swag.require(reader.frameCount() == 60)
@@ -338,6 +336,44 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     var frame: Image
     expect reader.decodeFrameInto(&frame, 58)
     Swag.require(frame.width == 96 and frame.height == 64)
+    let reference = expect reader.decodeFrame(28)
+    reader.close()
+
+    // MPEG-4 user data can place the VOP marker beyond the first file read window.
+    let movieList = Slice.findSubslice(bytes.toSlice(), "movi")
+    Swag.require(movieList < bytes.count)
+    var chunk = movieList + 4
+    for 28
+    {
+        let size = cast(u64, aviReadU32(bytes.toSlice(), chunk + 4))
+        chunk += 8 + size + (size & 1)
+    }
+
+    let frameSize = aviReadU32(bytes.toSlice(), chunk + 4)
+    let payload   = chunk + 8
+    const Vop: [4] u8 = [0'u8, 0, 1, 0xB6]
+    let vop = Slice.findSubslice(bytes.toSlice()[payload until payload + frameSize], Vop)
+    Swag.require(vop < frameSize)
+
+    var userData: Array'u8
+    userData.resize(2 * ByteSource.WindowSize)
+    Memory.set(userData.storage(), 'A', userData.count)
+    userData[0] = 0
+    userData[1] = 0
+    userData[2] = 1
+    userData[3] = 0xB2
+    bytes.insertAt(payload + vop, userData.toSlice())
+    aviWriteU32(bytes.toSlice(), chunk + 4, frameSize + cast(u32, userData.count))
+    aviWriteU32(bytes.toSlice(), movieList - 4, cast(u32, bytes.count - movieList))
+    aviWriteU32(bytes.toSlice(), 4, cast(u32, bytes.count - 8))
+
+    let path = videoTempPath("avi-vop-window", "avi")
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, bytes.toSlice())
+    var file = expect Reader.open(path)
+    Swag.require(file.frameCount() == 60 and file.syncFrameAt(1) == 28 and file.syncFrameAt(31) == 58)
+    expect file.decodeFrameInto(&frame, 28)
+    Swag.require(Slice.equals(frame.pixels.toSlice(), reference.pixels.toSlice()))
 }
 
 // A frame that carries no payload repeats the picture before it, which is how the container
@@ -608,6 +644,12 @@ func aviReadU32(bytes: const [..] u8, offset: u64)->u32
     for shift in 4 do
         result |= cast(u32, bytes[offset + cast(u64, shift)]) << cast(u32, (shift * 8))
     return result
+}
+
+func aviWriteU32(bytes: [..] u8, offset: u64, value: u32)
+{
+    for index in 4'u64 do
+        bytes[offset + index] = cast(u8, (value >> cast(u32, index * 8)) & 0xFF)
 }
 
 // Reports whether the four characters of `id` sit at `offset`.

@@ -243,16 +243,15 @@ impl IWnd for View
                 .focusRow = hit.row
             .invalidate()
 
-        case .Pressed:
-            if evt.button != .Left do
-                break
+        case .Pressed, .DoubleClick:
             if not .body.contains(pos)
             {
                 .close()
                 break
             }
 
-            .pressed = hit
+            if evt.kind == .Pressed and evt.button == .Left do
+                .pressed = hit
 
         case .Released:
             if evt.button != .Left do
@@ -271,6 +270,12 @@ impl IWnd for View
         default:
             break
         }
+    }
+
+    mtd impl onHookEvent(evt: IEvent)
+    {
+        if evt is NotifyEvent as notice where notice.kind == .PressedElsewhere do
+            .close()
     }
 
     mtd impl onTimerEvent(_: *TimerEvent)
@@ -443,6 +448,7 @@ private impl View
         .show()
         .captureMouse()
         .setFocus()
+        .app().registerHookEvents(me)
         .startArrival(metrics)
 
         .app().inModalLoop += 1

@@ -874,9 +874,29 @@ impl ViewerWindow
         if not .canRefreshCaption() do
             return
         let toggle = .currentSidePanelButton
-        .outlineCaptionButton.show(not .fullScreen and toggle and toggle.id == OutlineToggleId)
+        .showCaptionAction(.outlineCaptionButton, not .fullScreen and toggle and toggle.id == OutlineToggleId)
         .outlineCaptionButton.toolTip = Format.toString("% (%)", .captionFileAction(outlineTitle()), Input.formatKeyShortcut(Input.KeyModifiers.Control | .Shift, .O))
         .updateOutlineCaptionState()
+    }
+
+    private mtd showCaptionAction(action: *CaptionButton, visible: bool)
+    {
+        if action.isLocallyVisible() == visible do
+            return
+        if not .workspace or .fullScreen or .app().isReducedMotion()
+        {
+            action.show(visible)
+            return
+        }
+
+        // Layout and hit testing use the new controls immediately. The old glyph can still fade.
+        let animator = &.app().animator
+        let metrics  = .themeMetrics()
+        if visible do
+            discard animator.arrive(action, {}, Time.Duration.fromSeconds(metrics.motion_QuickSeconds), .EaseOut)
+        else do
+            discard animator.leave(action)
+        action.parent!.sendResizeEvent()
     }
 
     private mtd captionFileAction(action: string)->String
@@ -906,7 +926,7 @@ impl ViewerWindow
         .refreshOutlineCaption()
         let text = appStrings()
         .returnExplorerCaptionButton.toolTip = text.cmd_ReturnToExplorer
-        .returnExplorerCaptionButton.show(.canReturnToExplorer() and not .fullScreen)
+        .showCaptionAction(.returnExplorerCaptionButton, .canReturnToExplorer() and not .fullScreen)
 
         .surface?.wnd.showTitle(.showsCaptionTitle())
         let selected = .acceptsViewCommands()
@@ -916,16 +936,16 @@ impl ViewerWindow
         .informationCaptionButton.enable(selected or (.workspace?.wantsComparisonSheet() orelse false))
         .refreshCaptionButton.enable(selected)
         let exploring = .isExploring() and not .fullScreen
-        .backCaptionButton.show(exploring)
-        .forwardCaptionButton.show(exploring)
-        .upCaptionButton.show(exploring)
-        .refreshCaptionButton.show(exploring)
+        .showCaptionAction(.backCaptionButton, exploring)
+        .showCaptionAction(.forwardCaptionButton, exploring)
+        .showCaptionAction(.upCaptionButton, exploring)
+        .showCaptionAction(.refreshCaptionButton, exploring)
         .findCaptionButton.hide()
         .fullScreenCaptionButton.show(not .fullScreen)
-        .informationCaptionButton.show((.isExploring() or not .currentFile.isEmpty()) and not .fullScreen)
+        .showCaptionAction(.informationCaptionButton, (.isExploring() or not .currentFile.isEmpty()) and not .fullScreen)
         let archiveFile = exploring and .explorer and .explorer.listing.isArchive
         let openFile    = not .isExploring() and not .currentFile.isEmpty()
-        .viewerCaptionButton.show((openFile or archiveFile) and not .fullScreen)
+        .showCaptionAction(.viewerCaptionButton, (openFile or archiveFile) and not .fullScreen)
         var alternateViewer = openFile and .activeChoiceIndex < .choices.count and .activeChoiceIndex != 0
         if archiveFile
         {
@@ -1053,10 +1073,12 @@ impl ViewerWindow
         let hovering = not timed and .viewerBar.surfaceRect().contains(.pointerPosition)
         let keyboard = (not timed or .app().focusVisible) and .viewerBar.isAncestorOf(focused)
         let captured = .mouseCapture()
+        // A popup for the layout or another pane must not keep this viewer's controls awake.
+        let popup = .app().isInModalLoop() and
+                    (.viewerBar.isOwnerOf(captured) or (.currentView?.isOwnerOf(captured) orelse false))
         let held    = hovering or keyboard or .viewerBar.isAncestorOf(captured) or
                       .cellCaption.isAncestorOf(captured) or
-                      .app().isInModalLoop() or
-                      .lens.isOpen()
+                      popup or .lens.isOpen()
         if held and .viewerBarShown and .isVisible()
         {
             .viewerBarTimer = .addTimer(ViewerBarLinger)

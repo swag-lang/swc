@@ -322,7 +322,36 @@ using Core, Gui, Pixel, Audio
     var peerPoint = long.imageView.surfaceRect().center()
     host.surface.surfaceToScreen(&peerPoint)
     host.moveMouse(peerPoint)
-    Swag.require(scene.views[1].document!.viewerBar.isVisible() and not document.viewerBar.isVisible())
+    let peerDocument = unwrap scene.views[1].document
+    Swag.require(peerDocument.viewerBar.isVisible() and not document.viewerBar.isVisible())
+    var control = long.playButton.surfaceRect().center()
+    host.surface.surfaceToScreen(&control)
+    host.moveMouse(control)
+    host.fireTimer(peerDocument.viewerBarTimer)
+    Swag.require(not peerDocument.viewerBar.isVisible())
+    host.moveMouse(peerPoint)
+    Swag.require(peerDocument.viewerBar.isVisible())
+
+    var checked: bool
+    var outside = workspace.localToSurface(Math.Point{30, workspace.gridBody().bottom() - 16})
+    host.surface.surfaceToScreen(&outside)
+    host.app.sigFrame += func|host = &host, peerDocument, outside, checked = &checked|(_)
+    {
+        if checked[] do
+            return
+        let sheet = host.capturedOptionSheet()
+        if not sheet do
+            return
+        checked[] = true
+        Swag.require(sheet.activateRow(appStrings().scene_Layout))
+        host.fireTimer(peerDocument.viewerBarTimer)
+        Swag.require(not peerDocument.viewerBar.isVisible() and not peerDocument.viewerBarTimer)
+        host.click(outside, .Right)
+        Swag.require(sheet.isClosed())
+    }
+    host.clickWnd(workspace.mediaTransport)
+    Swag.require(checked and scene.layout == .Grid2 and not host.capturedOptionSheet())
+
     document.revealViewerBar()
     var point = short.playButton.surfaceRect().center()
     Swag.require(host.surfaceWnd.windowAt(point.x, point.y) == short.playButton)

@@ -181,3 +181,53 @@ using Core, Gui, Pixel
     let opened = workspace.primary.runCommand(MediaCommands.Transport)
     Swag.require(opened and host.autoHandled and workspace.scene()!.layout == .SideBySide)
 }
+
+// Clicking back across the grid reverses both fades at their current opacity.
+#test
+{
+    let folder = Testing.tempFilePath("scope-caption-folders-", "")
+    expect Directory.create(folder, recurse: true)
+    defer discard catch Directory.delete(folder, recurse: true)
+
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    workspace.openScene([folder, scopeTestDataPath("viewer.txt")], .SideBySide)
+    openViews(&host, workspace)
+    let scene    = unwrap workspace.scene()
+    let explorer = unwrap scene.views[0].document
+    let reader   = unwrap scene.views[1].document
+    completeExplorer(&host, unwrap explorer.explorer)
+
+    let up      = explorer.upCaptionButton
+    let choices = reader.viewerCaptionButton
+    Swag.require(up.isVisible() and not choices.isVisible())
+    var oldUp = up.surfaceRect().center()
+    host.surface.surfaceToScreen(&oldUp)
+    host.setReducedMotion(false)
+    host.clickWnd(reader.cellCaption.title)
+    Swag.require(workspace.activeDocument() == reader)
+    Swag.require(not up.isVisible() and choices.isVisible())
+    Swag.require(host.mouseTargetAt(oldUp) != up)
+
+    let step = up.themeMetrics().motion_QuickSeconds * 0.25
+    host.advanceAnimations(step)
+    let outgoing = up.presentationOpacity
+    let incoming = choices.presentationOpacity
+    Swag.require(outgoing > 0 and outgoing < 1 and incoming > 0 and incoming < 1)
+
+    host.clickWnd(explorer.documentPanel)
+    Swag.require(workspace.activeDocument() == explorer)
+    Swag.require(up.isVisible() and not choices.isVisible())
+    Swag.require(up.presentationOpacity == outgoing and choices.presentationOpacity == incoming)
+    host.advanceAnimations(step)
+    Swag.require(up.presentationOpacity > outgoing and choices.presentationOpacity < incoming)
+    host.clickWnd(reader.cellCaption.title)
+    host.finishAnimations()
+    Swag.require(workspace.activeDocument() == reader and not up.isVisible() and choices.isVisible())
+    Swag.require(choices.presentationOpacity == 1 and host.mouseTargetAt(oldUp) != up)
+
+    host.setReducedMotion(true)
+    host.clickWnd(explorer.documentPanel)
+    Swag.require(up.isVisible() and up.presentationOpacity == 1 and not choices.isVisible())
+}

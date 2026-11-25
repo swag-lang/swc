@@ -318,6 +318,33 @@ func rowCenter(sheet: *OptionSheet.View, label: string)->Math.Point
     })
 }
 
+// Non-client presses and presses delivered as a right click or a double click dismiss the sheet.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(480, 520)
+    defer host.shutdown()
+    var model: SheetModel
+    let outside = host.surface.wnd.localToSurface(Math.Point{20, 20})
+
+    runSheet(&host, &model, func|host = &host, outside|(sheet)
+    {
+        host.click(outside, .Right)
+        Swag.require(sheet.isClosed())
+    })
+    runSheet(&host, &model, func|host = &host, outside|(sheet)
+    {
+        host.doubleClick(outside)
+        Swag.require(sheet.isClosed())
+    })
+    runSheet(&host, &model, func|host = &host|(sheet)
+    {
+        host.app.notifyPressedElsewhere()
+        Swag.require(sheet.isClosed())
+    })
+    Swag.require(not host.app.mouseCapture() and not host.app.isInModalLoop())
+}
+
 // The body follows the height of the page on screen, and a page change lets input settle it.
 #test
 {

@@ -6,8 +6,7 @@ using Core, Pixel
 const Width  = 3840
 const Height = 2160
 
-// A tiled picture with distinct channels and asymmetric rows. Each channel is
-// exactly representable as a replicated five-bit value for the RGB555 case.
+// A tiled picture with distinct channels and asymmetric rows.
 func avi4kPicture()->Image
 {
     const Colors: [4] [3] u8 = [[140'u8, 255, 0], [16'u8, 49, 66], [231'u8, 82, 123], [33'u8, 189, 214]]
@@ -85,10 +84,12 @@ func assertAvi4kFrame(path: string, reference: const *Image)
 #[Swag.TestTag("stress")]
 #test
 {
-    let reference = avi4kPicture()
-    const Depths: [3] u16 = [16, 24, 32]
+    const Depths:    [3] u16 = [16, 24, 32]
+    const Expanded5: [32] u8 = [0'u8, 8, 16, 24, 33, 41, 49, 57, 66, 74, 82, 90, 99, 107, 115, 123,
+                                132, 140, 148, 156, 165, 173, 181, 189, 198, 206, 214, 222, 231, 239, 247, 255]
     for bitCount in Depths
     {
+        let reference  = bitCount == 16 ? Image.create(Width, Height, .RGB8) : avi4kPicture()
         let topDown    = bitCount == 24
         let pixelBytes = cast(u64, bitCount / 8)
         let rowBytes   = Width * pixelBytes
@@ -104,11 +105,13 @@ func assertAvi4kFrame(path: string, reference: const *Image)
             {
                 if bitCount == 16
                 {
-                    let packed = (cast(u32, source[0] >> 3) << 10) |
-                                 (cast(u32, source[1] >> 3) << 5) |
-                                 cast(u32, source[2] >> 3)
-                    dest[0] = cast(u8, packed & 255)
-                    dest[1] = cast(u8, packed >> 8)
+                    // Exercise every packed word, including the unused high bit.
+                    let packed = cast(u32, (y * Width + x) & 0xFFFF)
+                    dest[0]   = cast(u8, packed & 255)
+                    dest[1]   = cast(u8, packed >> 8)
+                    source[0] = Expanded5[(packed >> 10) & 31]
+                    source[1] = Expanded5[(packed >> 5) & 31]
+                    source[2] = Expanded5[packed & 31]
                 }
                 else
                 {

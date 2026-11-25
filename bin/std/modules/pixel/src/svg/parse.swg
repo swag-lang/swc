@@ -317,6 +317,14 @@ private impl GroupState
     mtd const hasMarkers()->bool => .markerStartId.count or .markerMidId.count or .markerEndId.count
 }
 
+private struct GroupScope
+{
+    state:        GroupState
+    firstShape, firstItem: u64
+    pathLength:   f32
+    definitionId: string?
+}
+
 private struct Parser
 {
     text:    string     // Whole document.
@@ -2971,22 +2979,25 @@ private impl Parser
     mtd parseContent(parent: GroupState) fail
     {
         let len = (.text).count
-        var geo: AttributeMap
+        var geo:    AttributeMap
+        var groups: Array'GroupScope
         while .pos < len
         {
             .skipUntil('<')
             if .pos >= len do
-                return
+                break
             .pos += 1
             if .pos >= len do
-                return
+                break
 
-            // Closing tag of the parent scope.
             if .text[.pos] == '/'
             {
                 .skipUntil('>')
                 .pos += 1
-                return
+                if groups.isEmpty() do
+                    return
+                .closeGroup(&groups)
+                continue
             }
 
             // Declarations and comments.
@@ -3008,7 +3019,8 @@ private impl Parser
                 .pos += 1
             let name = .text[nameStart until .pos]
 
-            var state = parent
+            let inherited = groups.isEmpty() ? &parent : &groups.backPtr().state
+            var state     = inherited[]
 
             // The property is not inherited. Ancestor clips are applied to the completed
             // subtree below, after any clip that a descendant declares for itself.
@@ -3065,8 +3077,18 @@ private impl Parser
                 .svgDepth -= 1
 
             case "g":
-                if not selfClosed do
-                    try .parseContent(state)
+
+                // Groups use an explicit stack so a deeply nested document does not recurse.
+                if not selfClosed
+                {
+                    let group = groups.emplaceInitAddress()
+                    group.state        = #move state
+                    group.firstShape   = firstShape
+                    group.firstItem    = firstItem
+                    group.pathLength   = .geoNumber(&geo, .PathLength, -1)
+                    group.definitionId = .elementDefinitionId(&group.state, &geo)
+                    continue
+                }
 
             case "path":
                 let d = geo.tryFind(.D)
@@ -3313,20 +3335,43 @@ private impl Parser
                     try .parseContent(state)
             }
 
-            let authoredPathLength = .geoNumber(&geo, .PathLength, -1)
-            if authoredPathLength > 0 and .drawing.shapes.count > firstShape do
-                .applyPathLength(firstShape, .drawing.shapes.count - firstShape, authoredPathLength, transformScale(state.transform))
+            .finishElement(&state, firstShape, firstItem, .geoNumber(&geo, .PathLength, -1), .elementDefinitionId(&state, &geo))
+        }
+
+        // As before, end of input completes any open groups from the innermost out.
+        while not groups.isEmpty() do
+            .closeGroup(&groups)
+    }
+
+    mtd closeGroup(groups: *Array'GroupScope)
+    {
+        let group = groups.backPtr()
+        .finishElement(&group.state, group.firstShape, group.firstItem, group.pathLength, group.definitionId)
+        groups.removeBack()
+    }
+
+    mtd const elementDefinitionId(state: const *GroupState, geo: const *AttributeMap)->string?
+    {
+        if state.inDefs do
+            if let id = geo.tryFind(.Id) do
+                return .sourceView(id.value)
+        return null
+    }
+
+    mtd finishElement(state: *GroupState, firstShape, firstItem: u64, pathLength: f32, definitionId: string?)
+    {
+        if .drawing.shapes.count > firstShape
+        {
+            let count = .drawing.shapes.count - firstShape
+            if pathLength > 0 do
+                .applyPathLength(firstShape, count, pathLength, transformScale(state.transform))
 
             // Register the shapes a defs child emitted under its id.
-            if state.inDefs and .drawing.shapes.count > firstShape
-            {
-                let idAttr = geo.tryFind(.Id)
-                if idAttr do
-                    .defs.add(.sourceView(idAttr.value), {first: firstShape, count: .drawing.shapes.count - firstShape})
-            }
-
-            .applyClipPath(&state, firstItem)
+            if definitionId != null do
+                .defs.add(.sourceView(definitionId), {first: firstShape, count: count})
         }
+
+        .applyClipPath(state, firstItem)
     }
 
     // Reads a `marker` element's viewport, reference point and orientation rule.

@@ -36,6 +36,23 @@ struct ParseOptions
     }
 }
 
+private struct ShapeStroke
+{
+    gradient: u64
+    paintId:  u64
+    color:    Color
+    opacity:  f32 = 1
+
+    width:   f32 = 1
+    pattern: Array'f32
+    offset:  f32
+    miter:   f32 = 3
+
+    enabled:   bool         = true
+    capStyle:  LineCapStyle = None
+    joinStyle: JoinStyle    = Miter
+}
+
 // Describes one filled or stroked shape of a parsed [[Pixel.Svg.Drawing]].
 //
 // The contours are stored in the drawing's user units, already transformed by the
@@ -57,17 +74,7 @@ struct Shape
 
         hidden: bool     // Whether the shape is a reusable definition, not painted directly.
 
-        strokeGradient: u64                      // Index plus one of the resolved gradient, or zero for solid paint.
-        strokeColor:    Color                    // Solid stroke color, including opacity once resolved.
-        strokePaintId:  u64                      // Interned stroke paint identifier, or zero for a solid stroke.
-        strokeOpacity:  f32          = 1         // Stroke-only opacity multiplier.
-        strokeWidth:    f32          = 1         // Stroke width, in user units.
-        strokePattern:  Array'f32                // Alternating dash and gap lengths, in user units.
-        strokeOffset:   f32                      // Offset into the dash sequence, in user units.
-        strokeMiter:    f32          = 3         // Maximum miter length relative to stroke width.
-        hasStroke:      bool                     // Whether the shape is stroked.
-        capStyle:       LineCapStyle = None      // Cap applied to open subpath ends.
-        joinStyle:      JoinStyle    = Miter     // Join between stroke segments.
+        stroke: u64     // Index plus one of authored stroke properties.
 
         paintTransform: Math.Transform2 = Math.Transform2.Identity     // Element transform retained for user-space paint servers.
 
@@ -105,6 +112,7 @@ struct Drawing
     items:           Array'DrawingItem              // Visible elements in paint order.
     paintBins:       Array'PaintBin                 // Spatial buckets of paint item indices.
     paintBlocks:     Array'PaintBlock               // Bounds of consecutive runs of paint items.
+    strokes:         Array'ShapeStroke              // Paint and line style for stroked shapes.
     gradientBrushes: Array'Brush                    // Resolved fill and stroke gradient brushes.
     scanFills:       Array'ScanFill                 // Raster caches for dense solid fills.
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
@@ -2101,29 +2109,30 @@ private impl Parser
             shape.evenOdd     = state.evenOdd
         }
 
-        shape.hasStroke = state.hasStroke
         if state.hasStroke
         {
-            shape.strokeColor   = state.strokeColor
-            shape.strokePaintId = .internReference(state.strokePaintId)
-            shape.strokeOpacity = state.strokeOpacity * state.opacity
+            let stroke = .drawing.strokes.emplaceInitAddress()
+            shape.stroke   = .drawing.strokes.count
+            stroke.color   = state.strokeColor
+            stroke.paintId = .internReference(state.strokePaintId)
+            stroke.opacity = state.strokeOpacity * state.opacity
             let geometryScale = transformScale(state.transform)
-            shape.strokeWidth = state.strokeWidth * geometryScale
+            stroke.width = state.strokeWidth * geometryScale
             let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
-            shape.strokeOffset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * geometryScale
-            shape.strokeMiter  = state.strokeMiter
+            stroke.offset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * geometryScale
+            stroke.miter  = state.strokeMiter
             if let dashes = .strokeDashes(state.strokePattern)
             {
-                shape.strokePattern.reserve(dashes.count)
+                stroke.pattern.reserve(dashes.count)
                 for value in dashes
                 {
                     let length = value.isPercent ? value.value * viewportDiagonal : value.value
-                    shape.strokePattern.add(length * geometryScale)
+                    stroke.pattern.add(length * geometryScale)
                 }
             }
 
-            shape.capStyle  = state.capStyle
-            shape.joinStyle = state.joinStyle
+            stroke.capStyle  = state.capStyle
+            stroke.joinStyle = state.joinStyle
         }
 
         shape.paintTransform = state.transform
@@ -2627,9 +2636,12 @@ private impl Parser
         for i in count
         {
             let shape = &.drawing.shapes[first + i]
-            for &value in shape.strokePattern do
-                value[] *= scale
-            shape.strokeOffset *= scale
+            if let stroke = .drawing.strokeFor(shape)
+            {
+                for &value in stroke.pattern do
+                    value[] *= scale
+                stroke.offset *= scale
+            }
         }
     }
 
@@ -3947,14 +3959,14 @@ private impl Parser
                     shape.hasFill = false
             }
 
-            if shape.hasStroke
+            if let stroke = .drawing.strokeFor(shape)
             {
-                if not shape.strokePaintId do
-                    shape.strokeColor = applyOpacity(shape.strokeColor, shape.strokeOpacity)
-                elif let gradient = .gradients.tryFind(.referenceNames[shape.strokePaintId - 1]) do
-                    shape.strokeGradient = .storeGradient(&gradient.value, shape, shape.strokeOpacity)
+                if not stroke.paintId do
+                    stroke.color = applyOpacity(stroke.color, stroke.opacity)
+                elif let gradient = .gradients.tryFind(.referenceNames[stroke.paintId - 1]) do
+                    stroke.gradient = .storeGradient(&gradient.value, shape, stroke.opacity)
                 else do
-                    shape.hasStroke = false
+                    stroke.enabled = false
             }
         }
     }
@@ -3974,40 +3986,33 @@ private impl Parser
         {
             // Build the transformed copy fully before appending: appending can
             // reallocate the array and invalidate the source borrow.
-            var list:                        LinePathList
-            var fillColor, strokeColor:      Color
-            var fillPaintId, strokePaintId, filterId: u64
-            var fillOpacity, strokeOpacity:  f32
-            var hasFill, hasStroke, evenOdd: bool
-            var strokeWidth, strokeOffset:   f32
-            var strokeMiter:                 f32
-            var strokePattern:               Array'f32
-            var capStyle:                    LineCapStyle = None
-            var joinStyle:                   JoinStyle    = Miter
-            var paintTransform:              Math.Transform2
+            var list:             LinePathList
+            var fillColor:        Color
+            var fillPaintId, filterId, strokeIndex: u64
+            var fillOpacity:      f32
+            var hasFill, evenOdd: bool
+            var paintTransform:   Math.Transform2
 
             scope
             {
                 let src = &.drawing.shapes[first + i]
-                fillColor     = src.fillColor
-                strokeColor   = src.strokeColor
-                fillPaintId   = src.fillPaintId
-                strokePaintId = src.strokePaintId
-                filterId      = src.filterId
-                fillOpacity   = src.fillOpacity
-                strokeOpacity = src.strokeOpacity
-                hasFill       = src.hasFill
-                hasStroke     = src.hasStroke
-                evenOdd       = src.evenOdd
-                let geometryScale = transformScale(state.transform)
-                strokeWidth   = src.strokeWidth * geometryScale
-                strokeOffset  = src.strokeOffset * geometryScale
-                strokeMiter   = src.strokeMiter
-                strokePattern = src.strokePattern
-                for &value in strokePattern do
-                    value[] *= geometryScale
-                capStyle  = src.capStyle
-                joinStyle = src.joinStyle
+                fillColor   = src.fillColor
+                fillPaintId = src.fillPaintId
+                filterId    = src.filterId
+                fillOpacity = src.fillOpacity
+                hasFill     = src.hasFill
+                evenOdd     = src.evenOdd
+                if let original = .drawing.strokeFor(src)
+                {
+                    var stroke = original[]
+                    let scale  = transformScale(state.transform)
+                    stroke.width  *= scale
+                    stroke.offset *= scale
+                    for &value in stroke.pattern do
+                        value[] *= scale
+                    .drawing.strokes.add(#move stroke)
+                    strokeIndex = .drawing.strokes.count
+                }
 
                 // The definition's own paint space is composed under the instance's, with the
                 // `use` offset between them.
@@ -4061,18 +4066,9 @@ private impl Parser
                 .fillColor      = fillColor
                 .fillPaintId    = fillPaintId
                 .fillOpacity    = fillOpacity
-                .strokeColor    = strokeColor
-                .strokePaintId  = strokePaintId
-                .strokeOpacity  = strokeOpacity
                 .hasFill        = hasFill
-                .hasStroke      = hasStroke
                 .evenOdd        = evenOdd
-                .strokeWidth    = strokeWidth
-                .strokeOffset   = strokeOffset
-                .strokeMiter    = strokeMiter
-                .strokePattern  = #move strokePattern
-                .capStyle       = capStyle
-                .joinStyle      = joinStyle
+                .stroke         = strokeIndex
                 .paintTransform = paintTransform
                 .hidden         = hidden or state.inDefs
                 .filterId       = filterId
@@ -4091,18 +4087,24 @@ private impl Parser
 // against a viewport is widened by so an item touching the edge is never rejected.
 private const InkFringeMargin = 2.0'f32
 
-internal impl Shape
+private impl Drawing
 {
+    mtd const strokeFor(shape: const *Shape)->*ShapeStroke?
+    {
+        return shape.stroke ? &.strokes[shape.stroke - 1] : null
+    }
+
     // Returns the rectangle this shape can ink, its contours plus whatever a stroke adds
     // around them.
-    mtd const inkBounds()->Rectangle
+    mtd const shapeInkBounds(shape: const *Shape)->Rectangle
     {
-        var result: #returntype = .pathList.controlBounds()
-        if .hasStroke
+        var result: #returntype = shape.pathList.controlBounds()
+        let stroke = .strokeFor(shape)
+        if stroke and stroke.enabled
         {
             // Half the width lies either side of the contour, and a miter join reaches at
             // most the miter limit past a corner. A cap never reaches further than a join.
-            let margin = Math.abs(.strokeWidth) * 0.5 * Math.max(.strokeMiter, 1.0'f32)
+            let margin = Math.abs(stroke.width) * 0.5 * Math.max(stroke.miter, 1.0'f32)
             result.inflate(margin)
         }
 
@@ -4219,7 +4221,7 @@ impl Drawing
                 let filter = .filters.tryFind(shape.filterId)
                 if filter and filter.value.primitives.count do
                     break
-                item.bounds    = shape.inkBounds()
+                item.bounds    = .shapeInkBounds(shape)
                 item.hasBounds = true
 
             case .Image:
@@ -4414,27 +4416,28 @@ impl Drawing
                 painter.fillPath(&shape.pathList, shape.fillColor)
         }
 
-        if shape.hasStroke
+        let stroke = .strokeFor(shape)
+        if stroke and stroke.enabled
         {
             var pen: Pen
-            if shape.strokeGradient do
-                pen.brush = .gradientBrushes[shape.strokeGradient - 1]
+            if stroke.gradient do
+                pen.brush = .gradientBrushes[stroke.gradient - 1]
             else do
-                pen.brush.color = shape.strokeColor
+                pen.brush.color = stroke.color
 
-            pen.size           = shape.strokeWidth
-            pen.begCapStyle    = shape.capStyle
-            pen.endCapStyle    = shape.capStyle
-            pen.joinStyle      = shape.joinStyle
-            pen.joinMiterLimit = shape.strokeMiter
-            pen.dashOffset     = shape.strokeOffset
-            if not shape.strokePattern.isEmpty()
+            pen.size           = stroke.width
+            pen.begCapStyle    = stroke.capStyle
+            pen.endCapStyle    = stroke.capStyle
+            pen.joinStyle      = stroke.joinStyle
+            pen.joinMiterLimit = stroke.miter
+            pen.dashOffset     = stroke.offset
+            if not stroke.pattern.isEmpty()
             {
-                pen.pattern = shape.strokePattern
-                if Math.abs(shape.strokeWidth) > 0.000001
+                pen.pattern = stroke.pattern
+                if Math.abs(stroke.width) > 0.000001
                 {
                     for &value in pen.pattern do
-                        value[] /= Math.abs(shape.strokeWidth)
+                        value[] /= Math.abs(stroke.width)
                 }
 
                 pen.dashStyle = .Pattern
@@ -5003,11 +5006,12 @@ impl Drawing
             if item.kind != .Shape do
                 return false
             let shape = &.shapes[item.index]
-            if shape.filterId or shape.fillPaintId or shape.strokePaintId do
+            if shape.filterId or shape.fillPaintId do
                 return false
             if shape.hasFill and (shape.fillColor.argb & 0xFFFFFF) != 0xFFFFFF do
                 return false
-            if shape.hasStroke and (shape.strokeColor.argb & 0xFFFFFF) != 0xFFFFFF do
+            let stroke = .strokeFor(shape)
+            if stroke and (stroke.paintId or (stroke.enabled and (stroke.color.argb & 0xFFFFFF) != 0xFFFFFF)) do
                 return false
         }
 

@@ -102,5 +102,5 @@ internal func waitForWorkspace(app: *Application, workspace: *ViewerWorkspace)
     Swag.require(workspace.activeDocument().runCommand(ViewerCommands.FullScreen) and not remaining.fullScreen)
     workspace.closeView(0)
     Swag.require(workspace.activeDocument() == remaining and restored.layout == .Single)
-    Swag.require(remaining.position == workspace.clientRect() and workspace.tabs.isLocallyVisible())
+    Swag.require(remaining.position == workspace.sceneArea() and workspace.tabs.isLocallyVisible())
 }

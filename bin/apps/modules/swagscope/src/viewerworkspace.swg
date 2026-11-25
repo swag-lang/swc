@@ -471,6 +471,21 @@ impl ViewerWorkspace
         .resumeScene(remember)
     }
 
+    mtd replaceGridDocument(document: *ViewerWindow, path: string)->bool
+    {
+        let scene = .scene()
+        if not scene or .focusOnGrid or (not scene.maximized and not .isTiled()) do
+            return false
+
+        for view, index in scene.views where view.document == document
+        {
+            .replaceDocument(index, path)
+            return true
+        }
+
+        return false
+    }
+
     mtd replaceDocument(index: u64, path: string, select = true)
     {
         let scene = .scene()
@@ -575,7 +590,8 @@ impl ViewerWorkspace
         if not document do
             return
         view.playMode = document.playMode
-        if document.isExploring()
+        // An Explorer can still be visible while a different file is opening in this pane.
+        if document.isExploring() and not document.explorerTransition
         {
             let explorer = unwrap document.explorer
             if explorer.restoringView do

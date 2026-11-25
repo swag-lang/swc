@@ -275,10 +275,11 @@ impl ViewerWindow
         let dialog = FileDlg.create(unwrap .surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
+        let path = dialog.selectedPath()
         if newTab and .workspace do
-            .workspace.openDocument(dialog.selectedPath(), newTab: true)
-        else do
-            .openFile(dialog.selectedPath())
+            .workspace.openDocument(path, newTab: true)
+        elif not (.workspace?.replaceGridDocument(me, path) orelse false) do
+            .openFile(path)
     }
 
     // Closes the current file and forgets its reading state, stops the slide show and the change
@@ -355,10 +356,13 @@ impl ViewerWindow
         .updateViewerBar()
         if .explorerActive
         {
+            let explorer = unwrap .explorer
             .home.hide()
             .hintLine.hide()
-            .searchBox.setText(.explorer!.filter.text(), notify: false)
-            .explorer.setShown(true)
+            .searchBox.setText(explorer.filter.text(), notify: false)
+            explorer.setShown(true)
+            if not explorer.requested.isEmpty() do
+                .workspace?.updateDocumentPath(me, explorer.sourceArchivePath(explorer.requested))
             if .infoSheet.isLocallyVisible() do
                 .refreshInformation()
         }
@@ -567,6 +571,7 @@ impl ViewerWindow
         .updateSearchAvailability()
         .applyLayout()
         .invalidate()
+        .workspace?.refreshComparison()
     }
 
     // Replaces a viewer that stopped after creation with the application's standard error surface.

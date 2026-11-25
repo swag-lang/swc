@@ -54,6 +54,74 @@ using Core, Gui, Audio
     Swag.require(grid.layout == .Grid2 and grid.views[0].path == second and grid.views[1].path == third)
 }
 
+// Ctrl+O replaces the selected pane, including the sole visible pane of a maximized layout.
+#test
+{
+    let first = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let other = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let replacement = expect Path.absolute(scopeTestDataPath("viewer.srt"))
+    for layout in [SceneLayout.Auto, .SideBySide, .Stacked, .Grid2, .Grid3, .Grid4]
+    {
+        var host: Testing.HeadlessHost
+        let workspace = testWorkspace(&host)
+        defer host.shutdown()
+        workspace.openScene([first, other], layout)
+        openViews(&host, workspace)
+        let scene = unwrap workspace.scene()
+        for index in 2
+        {
+            workspace.selectView(index)
+            let pane = workspace.activeDocument()
+            let peer = unwrap scene.views[1 - index].document
+            let peerPath = String.from(peer.currentFile)
+            host.acceptModalFileDialog(replacement)
+            host.shortcut(.O, .Control)
+            openViews(&host, workspace)
+            Swag.require(host.autoHandled and workspace.scenes.count == 1 and workspace.scene() == scene)
+            Swag.require(scene.layout == layout and scene.views.count == 2 and scene.cellOf(index) == index)
+            Swag.require(scene.views[index].document == pane and pane.currentFile == replacement)
+            Swag.require(scene.views[1 - index].document == peer and peer.currentFile == peerPath)
+        }
+
+        let pane = workspace.activeDocument()
+        workspace.toggleMaximized()
+        host.acceptModalFileDialog(other)
+        host.shortcut(.O, .Control)
+        openViews(&host, workspace)
+        Swag.require(host.autoHandled and scene.maximized and workspace.scene() == scene)
+        Swag.require(workspace.activeDocument() == pane and pane.currentFile == other)
+        workspace.toggleMaximized()
+        Swag.require(scene.views[0].document!.isVisible() and scene.views[0].document!.currentFile == replacement)
+    }
+}
+
+// Comparison follows the new viewer only after it replaces the previous one.
+#test
+{
+    var host: Testing.HeadlessHost
+    let workspace = testWorkspace(&host)
+    defer host.shutdown()
+    let text = expect Path.absolute(scopeTestDataPath("comprehensive.txt"))
+    let code = expect Path.absolute(scopeTestDataPath("sample.cpp"))
+    let image = expect Path.absolute(scopeTestDataPath("viewer.png"))
+    workspace.openScene([text, code], .SideBySide, compare: true)
+    openViews(&host, workspace)
+    let scene = unwrap workspace.scene()
+    Swag.require(workspace.comparisonVisible())
+
+    host.acceptModalFileDialog(image)
+    host.shortcut(.O, .Control)
+    Swag.require(host.autoHandled and workspace.scene() == scene and not workspace.comparisonVisible())
+    openViews(&host, workspace)
+    Swag.require(not workspace.comparisonVisible() and workspace.activeDocument().currentFile == image)
+    Swag.require(scene.views[1].document!.currentFile == code)
+
+    host.acceptModalFileDialog(text)
+    host.shortcut(.O, .Control)
+    openViews(&host, workspace)
+    Swag.require(host.autoHandled and workspace.scene() == scene and workspace.comparisonVisible())
+}
+
 // A drag follows the pointer between occupied cells. It leaves the active document alone
 // until the drop, and replaces only the file in the cell it lands on.
 #test

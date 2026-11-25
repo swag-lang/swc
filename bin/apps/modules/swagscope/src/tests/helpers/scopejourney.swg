@@ -15,7 +15,7 @@ struct ScopeJourney
 
 impl ScopeJourney
 {
-    mtd setup()
+    mtd setup(withWorkspace = false)
     {
         .root = Testing.tempFilePath("scope-journey-", "")
         expect Directory.create(.root)
@@ -24,7 +24,10 @@ impl ScopeJourney
         registerAppStrings(&.app.resources)
         .surface = expect .app.createSurface(40, 40, 1100, 790, surfaceId: "scope-test-journey")
         .surface.setTitle(ProductName)
-        .window = ViewerWindow.create(.surface.wnd, createViewerPluginRegistry())
+        if withWorkspace do
+            .window = ViewerWorkspace.create(.surface.wnd, createViewerPluginRegistry()).primary
+        else do
+            .window = ViewerWindow.create(.surface.wnd, createViewerPluginRegistry())
         .window.onlineMovies = false
         .window.onlineMusic  = false
         .surface.show()
@@ -63,12 +66,12 @@ impl ScopeJourney
         }
     }
 
-    mtd waitForFile(path: string)
+    mtd waitForFile(path: string, document: *ViewerWindow? = null)
     {
-        let window = .window
+        let window = document orelse .window
         .waitFor("file loaded", func|window, path|()->bool
         {
-            if window.currentFile != path or
+            if window.currentFile != path or not window.pendingFile.isEmpty() or window.outgoingView or
                window.currentView == null or
                window.activeChoiceIndex >= window.instances.count do
                 return false
@@ -76,5 +79,43 @@ impl ScopeJourney
             Swag.require(instance.failureReason.isEmpty(), instance.failureReason.toString())
             return instance.isLoading == null or not instance.isLoading()
         })
+    }
+
+    mtd chooseFile(document: *ViewerWindow, path: string, command: WndId = ViewerCommands.Open,
+                   cancel = false, input: *Testing.DesktopInput? = null)
+    {
+        var answered: bool
+        var watch: Time.Stopwatch
+        watch.start()
+        let folder = Path.directoryName(path) orelse ""
+        let name   = Path.fileName(path) orelse ""
+        .app.sigFrame += func|folder, name, cancel, &answered, &watch|(app)
+        {
+            if answered do
+                return
+            Swag.require(watch.elapsedMilliseconds() < 5_000, "The file dialog did not become ready")
+            for surface in app.surfaces
+            {
+                if surface.view() is FileDlg as dialog where not surface.isHidden
+                {
+                    if not cancel
+                    {
+                        Swag.require(dialog.browser.setCurrentFolder(folder))
+                        dialog.browser.setFileName(name)
+                        if not dialog.browser.hasValidSelection() do
+                            return
+                    }
+
+                    answered = dialog.closeWithResult(cancel ? Dialog.BtnCancel : Dialog.BtnOk)
+                    return
+                }
+            }
+        }
+        defer .app.sigFrame.clear()
+        if input do
+            input.shortcut(.O, .Control)
+        else do
+            document.sendCommandEvent(command)
+        Swag.require(answered, "The command did not open a file dialog")
     }
 }

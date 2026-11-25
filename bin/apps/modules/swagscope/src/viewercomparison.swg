@@ -657,13 +657,14 @@ impl ViewerWorkspace
         for &view, index in scene.views
         {
             paths[index] = view.path
-            let current = view.document?.currentView
-            if not current
+            let document = view.document
+            if not document or not document.currentView or not document.pendingFile.isEmpty() or document.outgoingView
             {
                 .comparison?.hide(keepActivities: true)
                 return
             }
 
+            let current = document.currentView
             picture    = picture and current is Viewers.Picture.Panel
             media      = media and current is Viewers.Film.Panel
             structured = structured and current is Viewers.Binary.Panel

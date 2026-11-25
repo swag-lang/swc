@@ -9,6 +9,8 @@ using Swag, Core, Core.Errors
 
 private
 {
+    // Marker lookahead may return four bytes before the current input window.
+    const PushbackBytes   = 4
     const InBufSize       = 4096
     const MaxComponents   = 4
     const MaxQuantTables  = 4
@@ -221,7 +223,7 @@ internal struct Decoder
         hasJfifMarker:   bool
         adobeTransform:  u8
 
-        inBuf:       [InBufSize + 128] u8
+        inBuf:       [PushbackBytes + InBufSize + 128] u8
         compSampH:   [MaxComponents] s32
         compSampV:   [MaxComponents] s32
         compQuant:   [MaxComponents] u32
@@ -254,7 +256,6 @@ internal struct Decoder
 impl Decoder
 {
     mtd safeSampleBuf()->[*] u8 => unwrap .pSampleBuf
-    mtd safeInBufOfs()->[*] u8  => unwrap .inBufOfs
 
     mtd init(buffer: const [..] u8, options: DecodeOptions) fail
     {
@@ -262,7 +263,6 @@ impl Decoder
         .stream     = buffer.buffer
         .streamLen  = cast(s32, buffer.count)
 
-        .inBufOfs = .inBuf
         .prepareInBuffer()
         .bitsLeft = 16
         .getBits1(16)

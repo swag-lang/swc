@@ -139,6 +139,15 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertLoadedJpg("h2v2.jpg", 1024, 768, 30'u8, 26'u8, 25'u8)
 }
 
+// Pillow 12.3.0 baseline JPEG of one gray sample at 128, saved at quality 77.
+// The short scan reaches the end of the input window during marker lookahead.
+#test
+{
+    let image = expect Image.load(getTestDataPath("pillow-gray-1x1.jpg"))
+    Swag.require(image.width == 1 and image.height == 1 and image.pixelFormat == .BGR8)
+    assertJpgPixelNear(image, 128, 128, 128, 0)
+}
+
 // Load grayscale-like, progressive, and larger JPEG fixtures.
 #test
 {

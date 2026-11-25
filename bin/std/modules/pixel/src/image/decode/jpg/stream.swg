@@ -580,8 +580,9 @@ impl Decoder
 
     mtd prepareInBuffer()
     {
+        let start = cast([*] u8, &.inBuf[PushbackBytes])
         .inBufLeft = 0
-        .inBufOfs  = .inBuf
+        .inBufOfs  = start
         if .eofReached do
             return
 
@@ -595,7 +596,7 @@ impl Decoder
             }
 
             let bytesRead = size
-            Memory.copy(cast([*] u8, &.inBuf[0]) + .inBufLeft, unwrap .stream + .streamSeek, cast(u64, size))
+            Memory.copy(start + .inBufLeft, unwrap .stream + .streamSeek, cast(u64, size))
             .streamSeek += size
             .inBufLeft  += bytesRead
             if .inBufLeft >= InBufSize or .eofReached do
@@ -603,6 +604,6 @@ impl Decoder
         }
 
         .totalBytesRead += .inBufLeft
-        memset16(.safeInBufOfs() + .inBufLeft, 0xD9FF, 64)
+        memset16(start + .inBufLeft, 0xD9FF, 64)
     }
 }

@@ -6,6 +6,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/TaskContext.h"
+#include "Support/Core/FlatTable.h"
 #include "Support/Report/Assert.h"
 #if SWC_HAS_REF_DEBUG_INFO
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -80,23 +81,116 @@ namespace
         return symVar.typeRef().isValid();
     }
 
-    // An atomic count lets readers skip locking empty payload tables.
-    void* findSharedPayload(const RefPointerMap<AstNodeRef>& map, std::shared_mutex& mutex, const std::atomic<uint32_t>& count, AstNodeRef nodeRef)
+    // Readers keep the table version they loaded. Slots publish their keys only
+    // after the values are ready, and a rehash leaves old generations alive.
+    class SharedPayloadTable
     {
-        if (!count.load(std::memory_order_acquire))
-            return nullptr;
+    public:
+        bool hasTable() const noexcept { return published_.load(std::memory_order_acquire) != nullptr; }
 
-        const std::shared_lock lock(mutex);
-        return map.find(nodeRef);
-    }
+        void* find(AstNodeRef ref) const noexcept
+        {
+            const Table* table = published_.load(std::memory_order_acquire);
+            if (!table)
+                return nullptr;
 
-    void storeSharedPayload(RefPointerMap<AstNodeRef>& map, std::shared_mutex& mutex, std::atomic<uint32_t>& count, AstNodeRef nodeRef, void* payload, bool mustBeNew)
-    {
-        const std::unique_lock lock(mutex);
-        SWC_ASSERT(!mustBeNew || !map.find(nodeRef));
-        map.set(nodeRef, payload);
-        count.store(static_cast<uint32_t>(map.size()), std::memory_order_release);
-    }
+            const auto [slot, found] = table->findSlot(ref.get());
+            return found ? slot->payload.load(std::memory_order_acquire) : nullptr;
+        }
+
+        void set(AstNodeRef ref, void* payload, bool mustBeNew)
+        {
+            SWC_UNUSED(mustBeNew);
+            const std::lock_guard lock(mutex_);
+            if (current_)
+            {
+                const auto [slot, found] = current_->findSlot(ref.get());
+                if (found)
+                {
+                    SWC_ASSERT(!mustBeNew || !slot->payload.load(std::memory_order_relaxed));
+                    slot->payload.store(payload, std::memory_order_release);
+                    return;
+                }
+                if ((count_ + 1) * 4 <= current_->capacity * 3)
+                {
+                    slot->publish(ref.get(), payload);
+                    ++count_;
+                    return;
+                }
+            }
+
+            auto next = std::make_unique<Table>(current_ ? current_->capacity * 2 : 64);
+            if (current_)
+            {
+                for (size_t i = 0; i < current_->capacity; ++i)
+                {
+                    const Slot&  old = current_->slots[i];
+                    const auto   key = old.key.load(std::memory_order_relaxed);
+                    if (key != INVALID_REF)
+                        next->findSlot(key).first->publish(key, old.payload.load(std::memory_order_relaxed));
+                }
+                next->previous = std::move(current_);
+            }
+
+            next->findSlot(ref.get()).first->publish(ref.get(), payload);
+            ++count_;
+            current_ = std::move(next);
+            published_.store(current_.get(), std::memory_order_release);
+        }
+
+        void erase(AstNodeRef ref)
+        {
+            const std::lock_guard lock(mutex_);
+            if (!current_)
+                return;
+            const auto [slot, found] = current_->findSlot(ref.get());
+            if (found)
+                slot->payload.store(nullptr, std::memory_order_release);
+        }
+
+    private:
+        struct Slot
+        {
+            std::atomic<uint32_t> key{INVALID_REF};
+            std::atomic<void*>    payload{nullptr};
+
+            void publish(uint32_t ref, void* value) noexcept
+            {
+                payload.store(value, std::memory_order_relaxed);
+                key.store(ref, std::memory_order_release);
+            }
+        };
+
+        struct Table
+        {
+            explicit Table(size_t size) :
+                slots(std::make_unique<Slot[]>(size)),
+                capacity(size)
+            {
+            }
+
+            std::pair<Slot*, bool> findSlot(uint32_t ref) const noexcept
+            {
+                const size_t mask = capacity - 1;
+                for (size_t index = FlatTable::slotIndex(ref, mask);; index = (index + 1) & mask)
+                {
+                    Slot&          slot = slots[index];
+                    const uint32_t key  = slot.key.load(std::memory_order_acquire);
+                    if (key == ref || key == INVALID_REF)
+                        return {&slot, key == ref};
+                }
+            }
+
+            std::unique_ptr<Slot[]> slots;
+            const size_t            capacity;
+            std::unique_ptr<Table>  previous;
+        };
+
+        std::mutex             mutex_;
+        std::unique_ptr<Table> current_;
+        std::atomic<Table*>    published_{nullptr};
+        size_t                 count_ = 0;
+    };
 
     // Aligned node refs make shard counts poor filters. Per-node bits record
     // which tables ever held an entry; refs outside this AST still need a lookup.
@@ -118,6 +212,35 @@ namespace
         return !ast.hasNode(nodeRef) || ast.node(nodeRef).maySideTable(table);
     }
 }
+
+struct NodePayload::Shard
+{
+    mutable std::mutex        storeMutex;
+    mutable std::shared_mutex constAssignSourceParametersMutex;
+    mutable std::shared_mutex foldedSourceSymbolsMutex;
+    mutable std::shared_mutex resolvedCallArgsMutex;
+
+    PagedStore store{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
+
+    SharedPayloadTable loweringPayloads;
+    SharedPayloadTable inlinePayloads;
+    SharedPayloadTable inlineContextOverrides;
+    SharedPayloadTable semaPayloads;
+
+    RefPointerMap<AstNodeRef, const SymbolVariable> constAssignSourceParameters;
+    RefPointerMap<AstNodeRef, const Symbol>         foldedSourceSymbols;
+
+    // Publish side-table counts so empty tables can be queried without locking.
+    // Update a count under its entry's lock: readers that must observe an entry
+    // must also observe the nonzero count.
+    std::atomic<uint32_t> constAssignSourceParametersCount{0};
+    std::atomic<uint32_t> foldedSourceSymbolsCount{0};
+    std::atomic<uint32_t> resolvedCallArgsCount{0};
+
+    // Store call arguments inline so writers need only resolvedCallArgsMutex,
+    // avoiding contention on the store shared with symbol/substitute payloads.
+    std::unordered_map<AstNodeRef, SmallVector<ResolvedCallArgument, 4>> resolvedCallArgsByNode;
+};
 
 NodePayload::~NodePayload()
 {
@@ -762,7 +885,7 @@ void NodePayload::setLoweringPayload(AstNodeRef nodeRef, void* payload)
 
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*         shard    = ensureShard(shardIdx);
-    storeSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef, payload, false);
+    shard->loweringPayloads.set(nodeRef, payload, false);
     markSideTable(ast(), nodeRef, SIDE_TABLE_LOWERING);
 }
 
@@ -772,10 +895,10 @@ void* NodePayload::getLoweringPayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    if (!shard || !shard->loweringPayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_LOWERING))
+    if (!shard || !shard->loweringPayloads.hasTable() || !maySideTable(ast(), nodeRef, SIDE_TABLE_LOWERING))
         return nullptr;
 
-    return findSharedPayload(shard->loweringPayloads, shard->loweringPayloadsMutex, shard->loweringPayloadsCount, nodeRef);
+    return shard->loweringPayloads.find(nodeRef);
 }
 
 bool NodePayload::hasSemaPayload(AstNodeRef nodeRef) const
@@ -795,7 +918,7 @@ void NodePayload::setInlinePayload(AstNodeRef nodeRef, void* payload)
 
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*         shard    = ensureShard(shardIdx);
-    storeSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef, payload, true);
+    shard->inlinePayloads.set(nodeRef, payload, true);
     markSideTable(ast(), nodeRef, SIDE_TABLE_INLINE);
 }
 
@@ -805,10 +928,10 @@ void* NodePayload::getInlinePayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    if (!shard || !shard->inlinePayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE))
+    if (!shard || !shard->inlinePayloads.hasTable() || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE))
         return nullptr;
 
-    return findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef);
+    return shard->inlinePayloads.find(nodeRef);
 }
 
 void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
@@ -818,7 +941,7 @@ void NodePayload::setInlineContextOverride(AstNodeRef nodeRef, void* payload)
 
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*         shard    = ensureShard(shardIdx);
-    storeSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef, payload, true);
+    shard->inlineContextOverrides.set(nodeRef, payload, true);
     markSideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE);
 }
 
@@ -828,10 +951,10 @@ void* NodePayload::getInlineContextOverride(AstNodeRef nodeRef) const
         return nullptr;
 
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    if (!shard || !shard->inlineContextOverridesCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE))
+    if (!shard || !shard->inlineContextOverrides.hasTable() || !maySideTable(ast(), nodeRef, SIDE_TABLE_INLINE_OVERRIDE))
         return nullptr;
 
-    return findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef);
+    return shard->inlineContextOverrides.find(nodeRef);
 }
 
 // Visitor paths request both inline tables, so share their node and shard checks.
@@ -847,16 +970,16 @@ void NodePayload::getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*&
     if (!shard)
         return;
 
-    const bool anyPayload  = shard->inlinePayloadsCount.load(std::memory_order_acquire) != 0;
-    const bool anyOverride = shard->inlineContextOverridesCount.load(std::memory_order_acquire) != 0;
+    const bool anyPayload  = shard->inlinePayloads.hasTable();
+    const bool anyOverride = shard->inlineContextOverrides.hasTable();
     if (!anyPayload && !anyOverride)
         return;
 
     const AstNode* node = ast().hasNode(nodeRef) ? &ast().node(nodeRef) : nullptr;
     if (anyPayload && (!node || node->maySideTable(SIDE_TABLE_INLINE)))
-        outPayload = findSharedPayload(shard->inlinePayloads, shard->inlinePayloadsMutex, shard->inlinePayloadsCount, nodeRef);
+        outPayload = shard->inlinePayloads.find(nodeRef);
     if (anyOverride && (!node || node->maySideTable(SIDE_TABLE_INLINE_OVERRIDE)))
-        outOverride = findSharedPayload(shard->inlineContextOverrides, shard->inlineContextOverridesMutex, shard->inlineContextOverridesCount, nodeRef);
+        outOverride = shard->inlineContextOverrides.find(nodeRef);
 }
 
 void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
@@ -866,7 +989,7 @@ void NodePayload::setSemaPayload(AstNodeRef nodeRef, void* payload)
 
     const uint32_t shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*         shard    = ensureShard(shardIdx);
-    storeSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef, payload, true);
+    shard->semaPayloads.set(nodeRef, payload, true);
     markSideTable(ast(), nodeRef, SIDE_TABLE_SEMA);
 }
 
@@ -876,10 +999,10 @@ void* NodePayload::getSemaPayload(AstNodeRef nodeRef) const
         return nullptr;
 
     const Shard* shard = tryGetShard(nodeRef.get() % NODE_PAYLOAD_SHARD_NUM);
-    if (!shard || !shard->semaPayloadsCount.load(std::memory_order_acquire) || !maySideTable(ast(), nodeRef, SIDE_TABLE_SEMA))
+    if (!shard || !shard->semaPayloads.hasTable() || !maySideTable(ast(), nodeRef, SIDE_TABLE_SEMA))
         return nullptr;
 
-    return findSharedPayload(shard->semaPayloads, shard->semaPayloadsMutex, shard->semaPayloadsCount, nodeRef);
+    return shard->semaPayloads.find(nodeRef);
 }
 
 void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
@@ -892,9 +1015,7 @@ void NodePayload::clearSemaPayload(AstNodeRef nodeRef)
     if (!shard)
         return;
 
-    const std::unique_lock lock(shard->semaPayloadsMutex);
     shard->semaPayloads.erase(nodeRef);
-    shard->semaPayloadsCount.store(static_cast<uint32_t>(shard->semaPayloads.size()), std::memory_order_release);
 }
 
 void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam)

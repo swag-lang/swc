@@ -250,43 +250,6 @@ private:
     SymbolNamespace* moduleNamespace_ = nullptr;
     SymbolNamespace* fileNamespace_   = nullptr;
 
-    struct Shard
-    {
-        mutable std::mutex        storeMutex;
-        mutable std::shared_mutex loweringPayloadsMutex;
-        mutable std::shared_mutex inlinePayloadsMutex;
-        mutable std::shared_mutex inlineContextOverridesMutex;
-        mutable std::shared_mutex semaPayloadsMutex;
-        mutable std::shared_mutex constAssignSourceParametersMutex;
-        mutable std::shared_mutex foldedSourceSymbolsMutex;
-        mutable std::shared_mutex resolvedCallArgsMutex;
-
-        PagedStore store{PagedStore::K_DEFAULT_PAGE_SIZE, PagedStore::ReverseLookup::Disabled};
-
-        RefPointerMap<AstNodeRef> loweringPayloads;
-        RefPointerMap<AstNodeRef> inlinePayloads;
-        RefPointerMap<AstNodeRef> inlineContextOverrides;
-        RefPointerMap<AstNodeRef> semaPayloads;
-
-        RefPointerMap<AstNodeRef, const SymbolVariable> constAssignSourceParameters;
-        RefPointerMap<AstNodeRef, const Symbol>         foldedSourceSymbols;
-
-        // Publish side-table counts so empty tables can be queried without locking.
-        // Update a count under its entry's lock: readers that must observe an entry
-        // must also observe the nonzero count.
-        std::atomic<uint32_t> loweringPayloadsCount{0};
-        std::atomic<uint32_t> inlinePayloadsCount{0};
-        std::atomic<uint32_t> inlineContextOverridesCount{0};
-        std::atomic<uint32_t> semaPayloadsCount{0};
-        std::atomic<uint32_t> constAssignSourceParametersCount{0};
-        std::atomic<uint32_t> foldedSourceSymbolsCount{0};
-        std::atomic<uint32_t> resolvedCallArgsCount{0};
-
-        // Store call arguments inline so writers need only resolvedCallArgsMutex,
-        // avoiding contention on the store shared with symbol/substitute payloads.
-        std::unordered_map<AstNodeRef, SmallVector<ResolvedCallArgument, 4>> resolvedCallArgsByNode;
-    };
-
     std::array<std::atomic<Shard*>, NODE_PAYLOAD_SHARD_NUM> shards_{};
 };
 

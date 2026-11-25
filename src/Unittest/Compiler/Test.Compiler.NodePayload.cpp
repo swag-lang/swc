@@ -30,9 +30,17 @@ namespace
     public:
         using NodePayload::addPayloadFlags;
         using NodePayload::ast;
+        using NodePayload::clearSemaPayload;
+        using NodePayload::getInlineContext;
+        using NodePayload::getLoweringPayload;
+        using NodePayload::getSemaPayload;
         using NodePayload::getSubstituteRef;
         using NodePayload::getSymbol;
         using NodePayload::getSymbolList;
+        using NodePayload::setInlineContextOverride;
+        using NodePayload::setInlinePayload;
+        using NodePayload::setLoweringPayload;
+        using NodePayload::setSemaPayload;
         using NodePayload::setSubstitute;
         using NodePayload::setSymbol;
         using NodePayload::setSymbolList;
@@ -74,6 +82,63 @@ SWC_TEST_BEGIN(NodePayload_ConcurrentUpdatesPreserveDisjointState)
 
     flagWriter.join();
     if (!valid.load(std::memory_order_relaxed))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NodePayload_SideTablesPublishPointersDuringGrowth)
+{
+    SourceView            sourceView(SourceViewRef{0}, nullptr);
+    NodePayloadTestAccess payload;
+    payload.ast().setSourceView(sourceView);
+
+    std::array<AstNodeRef, 1024> nodes;
+    std::array<int, 1024>        values{};
+    for (AstNodeRef& node : nodes)
+        node = payload.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+
+    std::atomic<size_t> published = 0;
+    std::atomic<bool>   reading   = false;
+    std::atomic<bool>   failed    = false;
+    std::jthread       reader([&] {
+        reading.store(true, std::memory_order_release);
+        size_t count = 0;
+        do
+        {
+            count = published.load(std::memory_order_acquire);
+            for (size_t i = 0; i < count; ++i)
+            {
+                void* inlinePayload  = nullptr;
+                void* inlineOverride = nullptr;
+                payload.getInlineContext(nodes[i], inlinePayload, inlineOverride);
+                if (inlinePayload != &values[i] || inlineOverride != &nodes[i])
+                    failed.store(true, std::memory_order_relaxed);
+            }
+        } while (count != nodes.size());
+    });
+
+    while (!reading.load(std::memory_order_acquire))
+        std::this_thread::yield();
+    for (size_t i = 0; i < nodes.size(); ++i)
+    {
+        payload.setInlinePayload(nodes[i], &values[i]);
+        payload.setInlineContextOverride(nodes[i], &nodes[i]);
+        published.store(i + 1, std::memory_order_release);
+    }
+    reader.join();
+
+    const AstNodeRef first = nodes.front();
+    payload.setLoweringPayload(first, &values[0]);
+    payload.setLoweringPayload(first, &values[1]);
+    if (failed.load(std::memory_order_relaxed) || payload.getLoweringPayload(first) != &values[1])
+        return Result::Error;
+
+    payload.setSemaPayload(first, &values[0]);
+    payload.clearSemaPayload(first);
+    if (payload.getSemaPayload(first))
+        return Result::Error;
+    payload.setSemaPayload(first, &values[1]);
+    if (payload.getSemaPayload(first) != &values[1])
         return Result::Error;
 }
 SWC_TEST_END()

@@ -228,12 +228,13 @@ impl Decoder
     {
         // A block that carries nothing but its average is the common case of a photograph, and the
         // whole transform then reduces to one repeated sample.
-        let words = cast(const [*] u64, data)
-        var mixed = words[0] & 0xFFFFFFFF_FFFF0000
-        for i in 1 to 15 do
-            mixed |= words[i]
+        const AcOnly = cast(Math.Simd.U16x8, [0'u16, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF])
+        let coefficients = cast(const [*] u16, data)
+        var ac = Math.Simd.load(coefficients) & AcOnly
+        for i in 1 to 7 do
+            ac |= Math.Simd.load(coefficients + i * 8)
 
-        if mixed == 0
+        if Math.Simd.allTrue(ac == Math.Simd.splat(0'u16))
         {
             // The pass over lines would have scaled the average before the pass over columns
             // removed that scale again, and it stores the product as a sixteen-bit value.

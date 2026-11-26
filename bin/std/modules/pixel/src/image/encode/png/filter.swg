@@ -20,18 +20,13 @@ using Core, Core.Errors
 #[Swag.Inline]
 func residualScore(value: u8)->s32 => 128 - Math.abs(cast(s32, value) - 128)
 
-// Folds the scores of sixteen filtered bytes into a running total.
-//
-// '128 - |b - 128|' is 'min(b, -b)' in byte arithmetic, so the whole score stays in eight-bit
-// lanes and the two widened halves add without leaving 's16'. Keeping the total packed is what
-// matters: reducing to a scalar on every step would put a horizontal add, and the scalar
-// dependency behind it, on the loop's critical path.
+// The byte residual is signed for scoring. Reinterpret its absolute value as
+// unsigned so -128 contributes 128, then sum into the two packed accumulators.
 #[Swag.Inline]
-func accumulateResidual(total: Math.Simd.S32x4, residual: Math.Simd.U8x16, ones: Math.Simd.S16x8)->Math.Simd.S32x4
+func accumulateResidual(total: Math.Simd.U64x2, residual, zero: Math.Simd.U8x16)->Math.Simd.U64x2
 {
-    let score  = Math.min(residual, Math.Simd.splat(0'u8) - residual)
-    let halves = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(score)) + cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(score))
-    return total + Math.Simd.mulAddPairs(halves, ones)
+    let magnitude = cast #bit(Math.Simd.U8x16, Math.abs(cast #bit(Math.Simd.S8x16, residual)))
+    return total + Math.Simd.absoluteDifferences(magnitude, zero)
 }
 
 func filterUpRow(source, previous: const [*] u8, destination: [*] u8, count: u64)
@@ -99,14 +94,14 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
 // Both read their predictor straight out of memory, which is what lets one loop serve them.
 func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)->s32
 {
-    let ones   = Math.Simd.splat(1's16)
-    var total  = Math.Simd.splat(0's32)
+    let zero   = Math.Simd.splat(0'u8)
+    var total  = Math.Simd.splat(0'u64)
     var offset = 0'u64
     if up
     {
         while count - offset >= 16
         {
-            total  = accumulateResidual(total, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset), ones)
+            total  = accumulateResidual(total, Math.Simd.load(source + offset) - Math.Simd.load(previous + offset), zero)
             offset += 16
         }
     }
@@ -114,12 +109,12 @@ func filterSumIndependent(source, previous: const [*] u8, count: u64, up: bool)-
     {
         while count - offset >= 16
         {
-            total  = accumulateResidual(total, Math.Simd.load(source + offset), ones)
+            total  = accumulateResidual(total, Math.Simd.load(source + offset), zero)
             offset += 16
         }
     }
 
-    var sum = Math.Simd.sum(total)
+    var sum = cast(s32, Math.Simd.sum(total))
     while offset < count
     {
         var residual = source[offset]
@@ -192,7 +187,7 @@ func filterAverageRow(source, previous: const [*] u8, destination: [*] u8, count
 
 func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
 {
-    let ones   = Math.Simd.splat(1's16)
+    let zero   = Math.Simd.splat(0'u8)
     let prefix = Math.min(count, bytesPerPixel)
     var sum    = 0's32
     for i in prefix
@@ -201,16 +196,16 @@ func filterSumAverage(source, previous: const [*] u8, count, bytesPerPixel: u64)
         sum += residualScore(cast #bit(u8, (source[i] - #wrap average)))
     }
 
-    var total  = Math.Simd.splat(0's32)
+    var total  = Math.Simd.splat(0'u64)
     var offset = prefix
     while count - offset >= 16
     {
         let average = averagePredictor(Math.Simd.load(source + offset - bytesPerPixel), Math.Simd.load(previous + offset))
-        total  = accumulateResidual(total, Math.Simd.load(source + offset) - average, ones)
+        total  = accumulateResidual(total, Math.Simd.load(source + offset) - average, zero)
         offset += 16
     }
 
-    sum += Math.Simd.sum(total)
+    sum += cast(s32, Math.Simd.sum(total))
     while offset < count
     {
         let average = cast(u8, ((cast(u16, source[offset - bytesPerPixel]) + previous[offset]) / 2))
@@ -288,22 +283,22 @@ func filterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, 
 
 func filterSumPaeth(source, previous: const [*] u8, count, bytesPerPixel: u64)->s32
 {
-    let ones   = Math.Simd.splat(1's16)
+    let zero   = Math.Simd.splat(0'u8)
     let prefix = Math.min(count, bytesPerPixel)
     var sum    = 0's32
     for i in prefix do
         sum += residualScore(cast #bit(u8, (source[i] - #wrap previous[i])))
 
-    var total  = Math.Simd.splat(0's32)
+    var total  = Math.Simd.splat(0'u64)
     var offset = prefix
     while count - offset >= 16
     {
         let predictor = paethPredictorBytes(Math.Simd.load(source + offset - bytesPerPixel), Math.Simd.load(previous + offset), Math.Simd.load(previous + offset - bytesPerPixel))
-        total  = accumulateResidual(total, Math.Simd.load(source + offset) - predictor, ones)
+        total  = accumulateResidual(total, Math.Simd.load(source + offset) - predictor, zero)
         offset += 16
     }
 
-    sum += Math.Simd.sum(total)
+    sum += cast(s32, Math.Simd.sum(total))
     while offset < count
     {
         let predictor = paethScalar(source[offset - bytesPerPixel], previous[offset], previous[offset - bytesPerPixel])

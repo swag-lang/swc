@@ -437,6 +437,26 @@ impl Encoder
             writer.writeBits(run.extra, run.width)
     }
 
+    #[Swag.Inline]
+    func repeatedPixelCount(data: const [*] u32, color, limit: u32)->u32
+    {
+        using Math.Simd
+
+        let repeated = splat(color)
+        var length   = 1'u32
+        while limit - length >= 4
+        {
+            let different = bitmask(load(data + length) == repeated) ^ 0xF
+            if different do
+                return length + Math.trailingZeros(different)
+            length += 4
+        }
+
+        while length < limit and data[length] == color do
+            length += 1
+        return length
+    }
+
     func(RESIDUAL: bool) writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
     {
         #static if not RESIDUAL
@@ -453,16 +473,8 @@ impl Encoder
         {
             if index and data[index] == data[index - 1]
             {
-                using Math.Simd
-
-                let color    = data[index - 1]
-                let repeated = splat(color)
-                let limit    = cast(u32, Math.min(4096'u64, pixels.count - index))
-                var length   = 1'u32
-                while limit - length >= 4 and allTrue(load(data + index + length) == repeated) do
-                    length += 4
-                while length < limit and data[index + length] == color do
-                    length += 1
+                let limit  = cast(u32, Math.min(4096'u64, pixels.count - index))
+                let length = repeatedPixelCount(data + index, data[index - 1], limit)
                 writeLength'(RESIDUAL)(writer, length)
                 index += length
                 continue

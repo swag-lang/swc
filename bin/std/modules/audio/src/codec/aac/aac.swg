@@ -296,26 +296,33 @@ private impl ImdctPlan
             im[index] = -a * .twImag[k] + b * .twReal[k]
         }
 
-        // The first two stages have fewer than four butterflies per group.
-        for stage in 2
+        // The first stages have twiddles of one and i. Keep one group of four
+        // adjacent complex coefficients in SIMD lanes for both stages.
+        const Even            = cast(Simd.U32x4, [0'u32, 0, 2, 2])
+        const Odd             = cast(Simd.U32x4, [1'u32, 1, 3, 3])
+        const First           = cast(Simd.U32x4, [0'u32, 1, 0, 1])
+        const Second          = cast(Simd.U32x4, [2'u32, 3, 2, 3])
+        const Sign            = 1'u32 << 31
+        const AlternateNegate = cast(Simd.U32x4, [0'u32, Sign, 0, Sign])
+        const LastNegate      = cast(Simd.U32x4, [0'u32, 0, Sign, Sign])
+        const Rotate          = cast(Simd.U32x4, [0'u32, ~0'u32, 0, ~0'u32])
+        for group in Quarter / 4
         {
-            let span   = 1'u32 << stage
-            let length = 2 * span
-            for group in Quarter / length
-            {
-                let base = group * length
-                for j in span
-                {
-                    let a  = base + j
-                    let b  = a + span
-                    let xr = re[b] * cos[span + j] - im[b] * sin[span + j]
-                    let xi = re[b] * sin[span + j] + im[b] * cos[span + j]
-                    re[b] = re[a] - xr
-                    im[b] = im[a] - xi
-                    re[a] += xr
-                    im[a] += xi
-                }
-            }
+            let index     = 4 * group
+            let valuesRe  = Simd.load(re + index)
+            let valuesIm  = Simd.load(im + index)
+            let oddRe     = cast #bit (Simd.F32x4, Simd.permute(cast #bit(Simd.U32x4, valuesRe), Odd) ^ AlternateNegate)
+            let oddIm     = cast #bit (Simd.F32x4, Simd.permute(cast #bit(Simd.U32x4, valuesIm), Odd) ^ AlternateNegate)
+            let sumsRe    = Simd.permute(valuesRe, Even) + oddRe
+            let sumsIm    = Simd.permute(valuesIm, Even) + oddIm
+            let secondRe  = Simd.permute(sumsRe, Second)
+            let secondIm  = Simd.permute(sumsIm, Second)
+            let rotatedRe = Simd.select(Rotate, -secondIm, secondRe)
+            let rotatedIm = Simd.select(Rotate, secondRe, secondIm)
+            let flipRe    = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, rotatedRe) ^ LastNegate)
+            let flipIm    = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, rotatedIm) ^ LastNegate)
+            Simd.store(re + index, Simd.permute(sumsRe, First) + flipRe)
+            Simd.store(im + index, Simd.permute(sumsIm, First) + flipIm)
         }
 
         var butterfly = 4'u32

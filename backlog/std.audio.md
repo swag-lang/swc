@@ -206,6 +206,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   build on one core. AAC, AC-3, MP3, Vorbis and Opus still trail FFmpeg on one core.
   [FileSamples comparisons](../bench/results/swagscope-filesamples/audio-decode-linux.md#sixth-optimization-pass)
   · [AAC and Opus follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#seventh-optimization-pass)
+  · [AAC FFT follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#eighth-optimization-pass)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectrum reconstruction, Vorbis residue and Opus CELT allocation.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native

@@ -155,17 +155,26 @@ impl Decoder
         if not sps.saoEnabled or not .saoUsed do
             return
 
-        let frame = unwrap .current
-        .saoSource.resize(frame.luma.count)
-        .saoSourceChromaB.resize(frame.chromaB.count)
-        .saoSourceChromaR.resize(frame.chromaR.count)
-        Core.swap(&.saoSource, &frame.luma)
-        Core.swap(&.saoSourceChromaB, &frame.chromaB)
-        Core.swap(&.saoSourceChromaR, &frame.chromaR)
-
+        let frame   = unwrap .current
         let columns = cast(u64, sps.widthInCtbs)
         for component in 3'u32
         {
+            // A plane without offsets already holds its final samples.
+            var hasOffsets = false
+            for &parameters in .sao where parameters.typeIdx[component]
+            {
+                hasOffsets = true
+                break
+            }
+
+            if not hasOffsets do
+                continue
+
+            let plane   = component == 0 ? &frame.luma : component == 1 ? &frame.chromaB : &frame.chromaR
+            let scratch = component == 0 ? &.saoSource : component == 1 ? &.saoSourceChromaB : &.saoSourceChromaR
+            scratch.resize(plane.count)
+            Core.swap(scratch, plane)
+
             for ry in sps.heightInCtbs
             {
                 let row = .sao.storage() + cast(u64, ry) * columns

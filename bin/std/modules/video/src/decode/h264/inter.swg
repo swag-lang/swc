@@ -959,55 +959,39 @@ private func storeWeightedRow(dst: [*] u8, width: s32, value: Simd.U8x16)
     }
 }
 
-#[Swag.Inline]
-private func weightUniRow(pixels: Simd.U8x16, logDenom, weight, offset: s32)->Simd.U8x16
-{
-    let rounding = logDenom > 0 ? 1's16 << cast(u32, (logDenom - 1)) : 0's16
-    let weights  = Simd.splat(cast(s16, weight))
-    let bias     = Simd.splat(rounding)
-    let offsets  = Simd.splat(cast(s16, offset))
-    let low      = (cast #bit(Simd.S16x8, Simd.widenLow(pixels)) * weights + bias) >> cast(u32, logDenom)
-    let high     = (cast #bit(Simd.S16x8, Simd.widenHigh(pixels)) * weights + bias) >> cast(u32, logDenom)
-    return Simd.packUnsigned(low + offsets, high + offsets)
-}
-
-// Narrow weighted blocks only consume the low eight byte lanes.
-#[Swag.Inline]
-private func weightUniRow8(pixels: Simd.U8x16, logDenom, weight, offset: s32)->Simd.U8x16
-{
-    let rounding = logDenom > 0 ? 1's16 << cast(u32, (logDenom - 1)) : 0's16
-    let weights  = Simd.splat(cast(s16, weight))
-    let bias     = Simd.splat(rounding)
-    let offsets  = Simd.splat(cast(s16, offset))
-    let low      = (cast #bit(Simd.S16x8, Simd.widenLow(pixels)) * weights + bias) >> cast(u32, logDenom)
-    return Simd.packUnsigned(low + offsets, low + offsets)
-}
-
 func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, height: s32, logDenom, weight, offset: s32)
 {
-    if srcStride >= 16 and (width == 2 or width == 4 or width == 8 or width == 16)
+    #[Swag.Inline]
+    func(const Width: s32) weightRows(dst: [*] u8, src: const [*] u8, dstStride, srcStride: u64, height, logDenom, weight, offset: s32)
     {
-        if width != 16
+        let shift    = cast(u32, logDenom)
+        let rounding = logDenom > 0 ? 1's16 << (shift - 1) : 0's16
+        let weights  = Simd.splat(cast(s16, weight))
+        let bias     = Simd.splat(rounding)
+        let offsets  = Simd.splat(cast(s16, offset))
+        var out      = dst
+        var line     = src
+        for height
         {
-            var out  = dst
-            var line = src
-            for cast(u64, height)
-            {
-                storeWeightedRow(out, width, weightUniRow8(Simd.load(line), logDenom, weight, offset))
-                out  += dstStride
-                line += srcStride
-            }
-
-            return
-        }
-
-        var out  = dst
-        var line = src
-        for cast(u64, height)
-        {
-            storeWeightedRow(out, width, weightUniRow(Simd.load(line), logDenom, weight, offset))
+            let pixels = Simd.load(line)
+            let low    = ((cast #bit(Simd.S16x8, Simd.widenLow(pixels)) * weights + bias) >> shift) + offsets
+            var high   = low
+            if Width == 16 do
+                high = ((cast #bit(Simd.S16x8, Simd.widenHigh(pixels)) * weights + bias) >> shift) + offsets
+            storeWeightedRow(out, Width, Simd.packUnsigned(low, high))
             out  += dstStride
             line += srcStride
+        }
+    }
+
+    if srcStride >= 16 and (width == 2 or width == 4 or width == 8 or width == 16)
+    {
+        switch width
+        {
+        case 2:  weightRows'2(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 4:  weightRows'4(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 8:  weightRows'8(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 16: weightRows'16(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
         }
 
         return

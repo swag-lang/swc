@@ -28,13 +28,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
-- Evidence: [the Linux decode comparison](../bench/results/video/20261126-decode-comparison/README.md) measures one-slice 1080p Baseline at
-  2.40× native single-threaded FFmpeg and High at 1.68×. The baseline profile
-  attributes about a fifth of Baseline samples to CAVLC residuals and VLC lookup. High's
-  CABAC residual loop and integer motion compensation remain measured hotspots.
-- Next: profile the remaining CAVLC residual and motion compensation work on Baseline, and
-  isolate the CABAC residual and integer prediction costs on High. Keep decoded planes
-  byte-exact across the Baseline, Main, High and 4:4:4 corpus.
+- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measures one-slice 1080p Baseline at
+  2.27× native single-threaded FFmpeg and High at 1.47×. The Baseline profile attributes about a
+  fifth of samples to CAVLC residuals and VLC lookup. High's CABAC residual loop remains the
+  largest sampled kernel.
+- Next: profile Baseline coefficient and motion decoding after the prefix lookups and isolate
+  the High CABAC residual cost. Keep decoded planes byte-exact across the Baseline, Main, High
+  and 4:4:4 corpus.
 - Measurement: use one VCL slice per picture, one AVC lane, warm references, decode forward, and
   interleave identical input against single-threaded FFmpeg. Measure the decoding thread and caller;
   whole-process cycles include unrelated workers. Multi-slice scheduling belongs to std.video.013.
@@ -47,13 +47,13 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: [the Linux decode comparison](../bench/results/video/20261126-decode-comparison/README.md) measures serial Main10 at
-  1.65× native single-threaded FFmpeg at 1080p and 1.63× at 3840×2076.
-  The optimized 4K profile still spends about 22% of samples in residual coding and 14% in
-  the generic copy routine. The Main and Main10 conformance digests and the container
-  reference planes are the correctness boundary.
-- Next: attribute the remaining copy cost to prediction, SAO and reference padding by call
-  site. Compare the largest copy or residual kernel against the current serial baseline.
+- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measures serial Main10 at
+  1.46× native single-threaded FFmpeg at 3840×2076. The residual coding routine still accounts
+  for about a quarter of samples. The remaining generic copies are predominantly in SAO.
+  The Main and Main10 conformance digests and container reference planes are the correctness
+  boundary.
+- Next: profile significance context selection and the arithmetic loop separately, then
+  compare a targeted residual change on motion, all-intra and WPP streams.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in
   one process on the same blocks, not by disabling stages.

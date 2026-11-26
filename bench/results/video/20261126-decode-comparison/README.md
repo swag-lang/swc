@@ -52,6 +52,38 @@ no sample-adaptive offset as one span per row. The measured AVC High trial that 
 integer prediction copies was dropped after the timings failed to show an improvement.
 A trial that recorded AVC CABAC coefficient positions as a bit mask also regressed and was dropped.
 
+## Prediction and SAO follow-up
+
+The follow-up compares against `12536022be` with the same Release compiler and timing
+protocol. The AVC and grayscale clips use five repetitions. The 4K and camera clips use
+three. Each value is a median in milliseconds per picture. FFmpeg dispatches native SIMD.
+
+| Stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| H.264 High, 1080p | 9.00 | 8.39 | 5.73 | -6.8% | 1.47× |
+| H.264 Baseline, 1080p | 5.40 | 5.13 | 2.26 | -4.9% | 2.27× |
+| H.265 Main10, 3840×2076 | 56.81 | 52.72 | 36.22 | -7.2% | 1.46× |
+| H.265 Main10, camera clip | 6.23 | 6.57 | 3.98 | +5.4% | 1.65× |
+| H.265 Main10, grayscale 1080p | 13.23 | 12.94 | 8.20 | -2.2% | 1.58× |
+
+The quality check matched all Y, Cb and Cr samples on 803 pictures. All 109 targeted
+Release tests passed, including the 153 HEVC conformance picture digests.
+
+Of 359 samples inside the generic copy on the previous 4K decoder, 224 came from integer
+prediction and 126 from SAO. The new decoder copies the common integer prediction widths
+with fixed-size loads and stores and keeps planes without SAO offsets in place. The AVC
+decoder broadcasts the prediction weight and rounding once per block and selects its row
+store by width outside the loop.
+
+The camera clip was 5.4% slower in the final series and 6.0% faster in the earlier combined
+trial. Its sample ranges overlap. An earlier variant updated the SAO plane mask while
+parsing coding tree units. The grayscale series regressed by 8.1% with that variant. The
+final variant derives the active planes from the stored SAO parameters before filtering.
+[Follow-up measurements and profile counts](followup.json).
+
+Reproduce the grayscale input by adding `-vf hue=s=0` to the 1080p Main10 generation
+command and setting `-frames:v 120`.
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

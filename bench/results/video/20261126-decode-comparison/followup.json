@@ -1,0 +1,596 @@
+{
+  "swag_baseline_commit": "12536022be",
+  "compiler": "Swag 0.1.1180 Release",
+  "ffmpeg": "7.1.5-0+deb13u1",
+  "host": "AMD EPYC 9V74, Linux x86-64",
+  "warmup_pictures": 30,
+  "profile_main10_4k_before": {
+    "samples": 2553,
+    "generic_copy_samples": 359,
+    "integer_prediction_copy_samples": 224,
+    "sao_copy_samples": 126,
+    "reference_padding_copy_samples": 7,
+    "other_copy_samples": 2
+  },
+  "profile_main10_4k_copy_trial": {
+    "samples": 2514,
+    "generic_copy_samples": 135,
+    "specialized_prediction_copy_samples": 170,
+    "sao_copy_samples": 126,
+    "reference_padding_copy_samples": 8,
+    "other_copy_samples": 1
+  },
+  "timing": [
+    {
+      "fixture_sha256": "12160ca86217e5944973c5e8018b7c57b484e0b58ff7992e52157875ca44c607",
+      "stream": {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/15360"
+      },
+      "frames": 180,
+      "quality": {
+        "candidate": {
+          "sha256": "5941be36f64aaf88eef7e4022a4159707dfa807bb095dac9822cb0ac6775c424",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "5941be36f64aaf88eef7e4022a4159707dfa807bb095dac9822cb0ac6775c424",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 150,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            8.48800662,
+            9.218574033333335,
+            8.387614453333335,
+            7.865952553333333,
+            7.6546311199999995
+          ],
+          "median": 8.387614453333335
+        },
+        "baseline": {
+          "samples": [
+            9.261070133333332,
+            9.608932946666666,
+            8.646452253333333,
+            9.002760073333334,
+            7.808172913333333
+          ],
+          "median": 9.002760073333334
+        },
+        "ffmpeg": {
+          "samples": [
+            5.888432586666667,
+            6.01729024,
+            5.725179566666666,
+            5.722145940000001,
+            5.561715686666667
+          ],
+          "median": 5.725179566666666
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            8.849933786666666,
+            8.76903046,
+            9.144138966666668,
+            9.683236346666666,
+            8.74263472
+          ],
+          "median": 8.849933786666666
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          5.84708584,
+          6.0123137,
+          5.639824106666667,
+          5.659705373333333,
+          5.5554345199999995
+        ],
+        "ffmpeg_no_simd": [
+          8.821104253333335,
+          8.76116872,
+          8.939217066666666,
+          9.547227526666665,
+          8.734604193333332
+        ]
+      },
+      "fixture": "avc-high.mp4",
+      "logical_cpu": 2
+    },
+    {
+      "fixture_sha256": "d5fbb99afd420f4abde3c8b4f03851b0421217019acfe9604194123beb5e2233",
+      "stream": {
+        "codec_name": "h264",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/15360"
+      },
+      "frames": 180,
+      "quality": {
+        "candidate": {
+          "sha256": "15c21d6554257520e16aec1fc74782ec401e0c89e25c3497808a5c06dac5e690",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "15c21d6554257520e16aec1fc74782ec401e0c89e25c3497808a5c06dac5e690",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 150,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            5.132585006666667,
+            5.2302866266666665,
+            5.33282686,
+            5.08656464,
+            4.85623504
+          ],
+          "median": 5.132585006666667
+        },
+        "baseline": {
+          "samples": [
+            4.90919436,
+            5.284570466666667,
+            6.553796906666666,
+            5.39901288,
+            5.926866613333333
+          ],
+          "median": 5.39901288
+        },
+        "ffmpeg": {
+          "samples": [
+            2.0969681266666664,
+            2.1523206800000003,
+            2.2997862399999995,
+            2.43568102,
+            2.2579214666666667
+          ],
+          "median": 2.2579214666666667
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            4.571181660000001,
+            4.552172306666666,
+            4.426134366666667,
+            4.44167088,
+            4.8818292733333335
+          ],
+          "median": 4.552172306666666
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          2.09584954,
+          2.1512117133333333,
+          2.2976235933333333,
+          2.4346050599999995,
+          2.2557582533333336
+        ],
+        "ffmpeg_no_simd": [
+          4.453289753333332,
+          4.478468586666667,
+          4.423492953333333,
+          4.431722873333333,
+          4.8485908533333335
+        ]
+      },
+      "fixture": "avc-baseline.mp4",
+      "logical_cpu": 2
+    },
+    {
+      "fixture_sha256": "b1a5fa481feca5ab10605c8e590334bd459090993bbf4e7cc0f4a661e1939269",
+      "stream": {
+        "codec_name": "hevc",
+        "width": 3840,
+        "height": 2076,
+        "pix_fmt": "yuv420p10le",
+        "time_base": "1/12288"
+      },
+      "frames": 90,
+      "quality": {
+        "candidate": {
+          "sha256": "7fbd16d93dadecb63cf5e14fe76ac63537b163872f0934009f1bdbf3c42a5a2a",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "7fbd16d93dadecb63cf5e14fe76ac63537b163872f0934009f1bdbf3c42a5a2a",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 60,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            62.25813528333333,
+            50.51738833333333,
+            52.717789499999995
+          ],
+          "median": 52.717789499999995
+        },
+        "baseline": {
+          "samples": [
+            56.81156046666667,
+            64.38648718333333,
+            50.96945
+          ],
+          "median": 56.81156046666667
+        },
+        "ffmpeg": {
+          "samples": [
+            36.22178863333333,
+            32.776089733333336,
+            37.42266071666667
+          ],
+          "median": 36.22178863333333
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            69.06091031666666,
+            62.812303766666666,
+            65.70875821666667
+          ],
+          "median": 65.70875821666667
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          36.13040108333334,
+          32.7636002,
+          37.40835713333333
+        ],
+        "ffmpeg_no_simd": [
+          68.83922221666667,
+          62.77073601666667,
+          65.69536631666666
+        ]
+      },
+      "fixture": "hevc-main10-4k.mp4",
+      "logical_cpu": 4
+    },
+    {
+      "fixture_sha256": "ce36d42b0e70a2211376f78be609978766a1c085bbcf0b767c1ecf1fe330be58",
+      "stream": {
+        "codec_name": "hevc",
+        "width": 960,
+        "height": 720,
+        "pix_fmt": "yuv420p10le",
+        "time_base": "1/500000"
+      },
+      "frames": 233,
+      "quality": {
+        "candidate": {
+          "sha256": "b41a4c71b4734835c83c399a08a23a55843ec3dd77b5c44c0cec3c91bec37799",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "b41a4c71b4734835c83c399a08a23a55843ec3dd77b5c44c0cec3c91bec37799",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 203,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            6.28105735960591,
+            6.566639640394089,
+            6.625643270935961
+          ],
+          "median": 6.566639640394089
+        },
+        "baseline": {
+          "samples": [
+            5.806227596059113,
+            6.22738445320197,
+            6.671259689655172
+          ],
+          "median": 6.22738445320197
+        },
+        "ffmpeg": {
+          "samples": [
+            3.5839364236453206,
+            4.115422167487685,
+            3.9768794975369457
+          ],
+          "median": 3.9768794975369457
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            13.561776719211824,
+            14.046991896551724,
+            13.531042733990148
+          ],
+          "median": 13.561776719211824
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          3.583060152709359,
+          4.10324248768473,
+          3.975631807881773
+        ],
+        "ffmpeg_no_simd": [
+          13.517020266009851,
+          13.904198334975368,
+          13.50592906403941
+        ]
+      },
+      "fixture": "hevc-turning-pages.mp4",
+      "logical_cpu": 4
+    },
+    {
+      "fixture_sha256": "58947587648a39515d211c47e737817d17554e2e9df51b53d76691e9a35a9c42",
+      "stream": {
+        "codec_name": "hevc",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "time_base": "1/15360"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "b3b8df89fa85fc557b0030bf7f75346ca86ce8acac4b8fa464555d753b31e66f",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "b3b8df89fa85fc557b0030bf7f75346ca86ce8acac4b8fa464555d753b31e66f",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 90,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            12.942349466666666,
+            14.182488744444445,
+            12.280067722222222,
+            12.20966612222222,
+            13.031685033333332
+          ],
+          "median": 12.942349466666666
+        },
+        "baseline": {
+          "samples": [
+            13.529468355555556,
+            13.197960211111111,
+            13.232932911111112,
+            12.604736044444444,
+            13.238454733333333
+          ],
+          "median": 13.232932911111112
+        },
+        "ffmpeg": {
+          "samples": [
+            7.238440944444443,
+            9.351578488888888,
+            8.197566700000001,
+            8.7970303,
+            8.014106799999999
+          ],
+          "median": 8.197566700000001
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            14.418309433333336,
+            16.329497944444444,
+            17.79826326666667,
+            14.30821531111111,
+            14.854656044444445
+          ],
+          "median": 14.854656044444445
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          7.2176926111111115,
+          9.350911988888889,
+          8.163784033333334,
+          8.79626988888889,
+          8.011358166666666
+        ],
+        "ffmpeg_no_simd": [
+          14.412947622222221,
+          16.18783187777778,
+          17.76350777777778,
+          14.240432077777776,
+          14.620353055555555
+        ]
+      },
+      "fixture": "hevc-main10-gray.mp4",
+      "logical_cpu": 0
+    }
+  ],
+  "gray_trials": {
+    "prediction_copy_only": {
+      "fixture_sha256": "58947587648a39515d211c47e737817d17554e2e9df51b53d76691e9a35a9c42",
+      "stream": {
+        "codec_name": "hevc",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "time_base": "1/15360"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "b3b8df89fa85fc557b0030bf7f75346ca86ce8acac4b8fa464555d753b31e66f",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "b3b8df89fa85fc557b0030bf7f75346ca86ce8acac4b8fa464555d753b31e66f",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 90,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            12.494843755555555,
+            10.776022755555555,
+            11.109031777777778
+          ],
+          "median": 11.109031777777778
+        },
+        "baseline": {
+          "samples": [
+            12.226784722222222,
+            11.971476833333332,
+            11.128152955555557
+          ],
+          "median": 11.971476833333332
+        },
+        "ffmpeg": {
+          "samples": [
+            6.934118122222222,
+            7.790477166666666,
+            7.1872443
+          ],
+          "median": 7.1872443
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            12.551137933333333,
+            13.725152133333333,
+            12.658544188888888
+          ],
+          "median": 12.658544188888888
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          6.933728477777777,
+          7.763816066666667,
+          7.186950277777777
+        ],
+        "ffmpeg_no_simd": [
+          12.550614266666667,
+          13.722316922222221,
+          12.631564688888888
+        ]
+      },
+      "fixture": "hevc-main10-gray.mp4",
+      "logical_cpu": 1
+    },
+    "prediction_copy_and_sao_mask": {
+      "fixture_sha256": "58947587648a39515d211c47e737817d17554e2e9df51b53d76691e9a35a9c42",
+      "stream": {
+        "codec_name": "hevc",
+        "width": 1920,
+        "height": 1080,
+        "pix_fmt": "yuv420p10le",
+        "time_base": "1/15360"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "b3b8df89fa85fc557b0030bf7f75346ca86ce8acac4b8fa464555d753b31e66f",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        },
+        "baseline": {
+          "sha256": "b3b8df89fa85fc557b0030bf7f75346ca86ce8acac4b8fa464555d753b31e66f",
+          "different_samples": 0,
+          "different_frames": 0,
+          "max_difference": 0,
+          "psnr_db": "inf"
+        }
+      },
+      "timed_frames": 90,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            12.77161488888889,
+            12.9786218,
+            12.684053522222221
+          ],
+          "median": 12.77161488888889
+        },
+        "baseline": {
+          "samples": [
+            11.811423355555556,
+            11.860584011111111,
+            11.550963733333333
+          ],
+          "median": 11.811423355555556
+        },
+        "ffmpeg": {
+          "samples": [
+            8.359166155555554,
+            7.698544077777778,
+            8.6439816
+          ],
+          "median": 8.359166155555554
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            14.758169377777778,
+            14.690102433333333,
+            16.840151988888888
+          ],
+          "median": 14.758169377777778
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          8.358605333333333,
+          7.696506555555555,
+          8.642809955555556
+        ],
+        "ffmpeg_no_simd": [
+          14.756460522222223,
+          14.68861936666667,
+          16.837290177777778
+        ]
+      },
+      "fixture": "hevc-main10-gray.mp4",
+      "logical_cpu": 0
+    }
+  },
+  "native_tests_passed": 109
+}

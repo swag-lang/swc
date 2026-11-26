@@ -176,13 +176,21 @@ private const PulseTails: [PulseTailLayout.count] u64 = #run
 }
 
 #[Swag.Inline]
-private func unpackPulseTail(code: u32)->Simd.F32x4
+private func unpackPulseTail(code: u32)->Simd.S32x4
 {
     const Place = cast(Simd.U32x4, [1'u32 << 27, 1'u32 << 22, 1'u32 << 17, 1'u32 << 12])
-
-    // Place each biased integer into the mantissa of exactly 2^23, then remove both biases.
     let integers = (Simd.splat(code) * Place) >> 27
-    return cast #bit(Simd.F32x4, (integers | 0x4B00_0000'u32)) - 8_388_624.0'f32
+    return cast #bit(Simd.S32x4, integers) - 16
+}
+
+// The largest pulse magnitude comes from the bit-allocation cache. Inserting
+// a biased pulse into the mantissa of 2^23 gives it one exact unit per bit.
+#[Swag.Inline]
+private func pulseFloats(pulses: Simd.S32x4)->Simd.F32x4
+{
+    const Bias = cast(s32, PulseLayout.limit[0] - 1)
+    let mantissa = cast #bit(Simd.U32x4, pulses + Bias) | 0x4B00_0000'u32
+    return cast #bit(Simd.F32x4, mantissa) - (8388608.0'f32 + cast(f32, Bias))
 }
 
 private const PulseChoiceRows = #run
@@ -1157,7 +1165,7 @@ internal impl CeltDecoder
     }
 
     // Reconstructs the signed pulse vector in the spectrum and returns its squared norm.
-    mtd decodePulses(target: [*] f32, n, k: u32, dec: *RangeDecoder)->f32
+    mtd decodePulses(target: [*] s32, n, k: u32, dec: *RangeDecoder)->f32
     {
         var index     = dec.decodeUint(pulseArrangements(n, k) + pulseArrangements(n, k + 1))
         var remaining = k
@@ -1183,8 +1191,8 @@ internal impl CeltDecoder
 
             let row       = cast(const [*] u32, &PulseArrangements[PulseLayout.offset[dimensions]])
             let threshold = row[remaining + 1]
-            let negative  = cast #bit(u32, -cast(s32, index >= threshold))
-            index -= threshold & negative
+            let negative  = -cast(s32, index >= threshold)
+            index -= threshold & cast #bit(u32, negative)
 
             let available = remaining
             var offset    = row[remaining]
@@ -1196,8 +1204,8 @@ internal impl CeltDecoder
 
             index -= offset
             let magnitude = available - remaining
-            let value     = cast #bit(u32, cast(f32, magnitude)) | (negative & 0x8000_0000)
-            target[position] = cast #bit(f32, value)
+            let value     = cast(s32, magnitude)
+            target[position] = (value ^ negative) - negative
             norm             += magnitude * magnitude
             position         += 1
         }
@@ -1208,7 +1216,7 @@ internal impl CeltDecoder
         {
             // Single pulses are indexed by increasing position when positive and by
             // decreasing position when negative. Zero pulses leave the entire tail empty.
-            Memory.clear(tail, cast(u64, dimensions) * #sizeof(f32))
+            Memory.clear(tail, cast(u64, dimensions) * #sizeof(s32))
             if remaining
             {
                 if index < dimensions do
@@ -1222,7 +1230,7 @@ internal impl CeltDecoder
 
         if dimensions == 1
         {
-            let value = cast(f32, remaining)
+            let value = cast(s32, remaining)
             tail[0] = index ? -value : value
             return cast(f32, norm + remaining * remaining)
         }
@@ -1234,8 +1242,8 @@ internal impl CeltDecoder
         let code      = negative ? index - threshold : index
         let second    = (code + 1) >> 1
         let first     = cast(s32, remaining - second)
-        tail[0] = cast(f32, negative ? -first : first)
-        tail[1] = cast(f32, (code & 1) ? cast(s32, second) : -cast(s32, second))
+        tail[0] = negative ? -first : first
+        tail[1] = (code & 1) ? cast(s32, second) : -cast(s32, second)
         return cast(f32, norm + cast(u32, first * first) + second * second)
     }
 
@@ -1425,7 +1433,8 @@ internal impl CeltDecoder
 
     mtd algUnquant(x: [*] f32, n, k: u32, spread, b: u32, dec: *RangeDecoder, gain: f32)->u32
     {
-        let energy = .decodePulses(x, n, k, dec)
+        let pulses = cast([*] s32, x)
+        let energy = .decodePulses(pulses, n, k, dec)
         var mask   = 1'u32
         if b > 1
         {
@@ -1433,7 +1442,7 @@ internal impl CeltDecoder
             mask = 0
             for i in b
             {
-                let block = x + i * blockSize
+                let block = pulses + i * blockSize
                 for j in blockSize where block[j] != 0
                 {
                     mask |= 1'u32 << i
@@ -1446,12 +1455,12 @@ internal impl CeltDecoder
         let vectorEnd = n & ~3'u32
         for block in vectorEnd / 4
         {
-            let part = x + 4 * block
-            Simd.store(part, Simd.load(part) * scale)
+            let offset = 4 * block
+            Simd.store(x + offset, pulseFloats(Simd.load(pulses + offset)) * scale)
         }
 
         for i in vectorEnd until n do
-            x[i] *= scale
+            x[i] = cast(f32, pulses[i]) * scale
         .expRotation(x, n, b, k, spread)
         return mask
     }

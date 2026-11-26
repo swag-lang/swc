@@ -788,8 +788,7 @@ impl Codec
     mtd decodeSpectrum(header: const *FrameHeader, info: const *GranuleInfo, reader: *BitReader, channel: u32, limit: u64)
     {
         let lines = &.lines[cast(u64, channel)]
-        for index in 576'u64 do
-            lines[][index] = 0
+        Memory.set(cast(*void, &lines[][0]), 0, #sizeof(Granule576))
 
         var line      = 0'u64
         var band      = 0'u64

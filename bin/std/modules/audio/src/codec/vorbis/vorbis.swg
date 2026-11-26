@@ -1376,8 +1376,14 @@ private impl Codec
                                 complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             elif Kind == 1 do
                                 complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
-                            else do
-                                complete = .decodeAcrossChannels'Stereo(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
+                            else
+                            {
+                                if not Stereo and width == 5 and codebook.dimensions == 5 do
+                                    complete = .decodeFiveAcrossChannels(codebook, reader, active, offset, residue.partitionSize)
+                                else do
+                                    complete = .decodeAcrossChannels'Stereo(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
+                            }
+
                             if not complete do
                                 return
                         }
@@ -1431,6 +1437,33 @@ private impl Codec
                 target[index] += book.values[cast(u64, entry) * book.dimensions + dimension]
                 index         += 1
             }
+        }
+
+        return true
+    }
+
+    // A five-value codeword fills one spectral bin in a five-channel submap.
+    mtd decodeFiveAcrossChannels(book: *Codebook, reader: *BitReader, active: const [MaxChannels] u32, partitionOffset: u64, count: u32)->bool
+    {
+        let first    = .spectrum[active[0]].storage()
+        let second   = .spectrum[active[1]].storage()
+        let third    = .spectrum[active[2]].storage()
+        let fourth   = .spectrum[active[3]].storage()
+        let fifth    = .spectrum[active[4]].storage()
+        let values   = book.values.storage()
+        let binLimit = (partitionOffset + count) / 5
+        let firstBin = partitionOffset / 5
+        for bin in firstBin until binLimit
+        {
+            let entry = book.decode(reader)
+            if entry < 0 do
+                return false
+            let vector = values + cast(u64, entry) * 5
+            first[bin]  += vector[0]
+            second[bin] += vector[1]
+            third[bin]  += vector[2]
+            fourth[bin] += vector[3]
+            fifth[bin]  += vector[4]
         }
 
         return true

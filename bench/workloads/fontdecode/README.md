@@ -5,10 +5,11 @@ runner records the opening and rasterization phases separately and checks that t
 builds return the same glyph index, advance, bitmap dimensions, and CRC-64. Pillow with FreeType
 supplies an independent timing in Basic layout mode and must return a nonempty grayscale mask.
 
-The public corpus has 37 files and 44 scenarios. It covers static and variable TrueType at the
+The public corpus has 40 files and 47 scenarios. It covers static and variable TrueType at the
 default axis coordinates, Latin CFF, large CID-keyed OpenType, nine faces across two CJK collections,
 and seven WOFF1 files. It includes Arabic, Devanagari, Thai, Tibetan, Armenian, Hebrew, Ethiopic,
-CJK, mathematical symbols, and supplementary-plane glyphs. The manifest pins upstream inputs
+CJK, mathematical symbols, and supplementary-plane glyphs. The static CJK controls cover
+Japanese, Chinese calligraphy, and Hangul. The manifest pins upstream inputs
 and their SHA-256 hashes. FontTools generates the WOFF1 files from those inputs. The results
 record the hash of each generated file because compression can vary by tool version.
 

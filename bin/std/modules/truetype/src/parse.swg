@@ -284,28 +284,21 @@ private func(sequential: bool) validateCMapGroups(subTable: const [..] u8, glyph
     }
 }
 
-// Selects the richest character map the face declares.
-//
-// A rendering-only subset may legally omit the table entirely: a document that embeds one
-// addresses its glyphs by index or through its own encoding, and never asks the font what
-// character a glyph stands for. Such a face simply answers no character lookup.
-func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
+struct CMapSelection
 {
-    let record = findTable(faceData, TAG_CMAP)
-    if not record
-    {
-        if allowMissing do
-            return
-        try fault(0x92)
-    }
+    base:       const [..] u8?
+    variation:  const [..] u8?
+    format:     u16
+    platformID: u16
+    encodingID: u16
+}
 
-    let table     = unwrap record
-    let cmapTable = try getSlice(faceData.fontBytes(), table.offset, table.length)
-    let count     = try readU16(cmapTable, 2)
+func selectCMap(cmapTable: const [..] u8, glyphCount: u32)->CMapSelection fail
+{
+    let count = try readU16(cmapTable, 2)
 
-    var bestSlice: const [..] u8?
+    var result: #returntype
     var bestScore = -1
-    var bestFmt   = 0'u16
     var validatedGroupOffset = Swag.U64.Max
 
     for index in count
@@ -434,7 +427,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
                 }
 
                 let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
-                if lastGlyph >= faceData.face.glyphCount do
+                if lastGlyph >= glyphCount do
                     try fault(0x03)
 
                 previousEndCode = endCode
@@ -481,9 +474,9 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         if (format == 12 or format == 13) and validatedGroupOffset != offset
         {
             if format == 12 do
-                try validateCMapGroups'true(subTable, faceData.face.glyphCount)
+                try validateCMapGroups'true(subTable, glyphCount)
             else do
-                try validateCMapGroups'false(subTable, faceData.face.glyphCount)
+                try validateCMapGroups'false(subTable, glyphCount)
             validatedGroupOffset = offset
         }
 
@@ -491,7 +484,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         // it: they resolve a base character already mapped elsewhere.
         if format == 14
         {
-            faceData.variationCMap = subTable
+            result.variation = subTable
             continue
         }
 
@@ -500,23 +493,44 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         let score = formatScore + scoreNameRecord(platformID, encodingID, 0)
         if score > bestScore
         {
-            bestSlice = subTable
-            bestScore = score
-            bestFmt   = format
-            faceData.face.selectCharMap(platformID, encodingID)
+            bestScore         = score
+            result.base       = subTable
+            result.format     = format
+            result.platformID = platformID
+            result.encodingID = encodingID
         }
     }
 
-    if bestScore < 0
+    return result
+}
+
+// Selects the richest character map. Rendering-only subsets may omit a base map
+// because their caller addresses glyphs by index or through its own encoding.
+func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
+{
+    let record = findTable(faceData, TAG_CMAP)
+    if not record
     {
         if allowMissing do
             return
-        try fault(0x96)
+        try fault(0x92)
     }
 
-    faceData.chosenCMap = unwrap bestSlice
-    faceData.cmapFormat = bestFmt
-    faceData.hasCMap    = true
+    let table     = unwrap record
+    let cmapTable = try getSlice(faceData.fontBytes(), table.offset, table.length)
+    let selection = try faceData.fontSource.cachedCMap(cmapTable, faceData.face.glyphCount)
+    faceData.variationCMap = selection.variation
+    if let base = selection.base
+    {
+        faceData.chosenCMap = base
+        faceData.cmapFormat = selection.format
+        faceData.hasCMap    = true
+        faceData.face.selectCharMap(selection.platformID, selection.encodingID)
+    }
+    elif not allowMissing
+    {
+        try fault(0x96)
+    }
 }
 
 func parseHorizontalMetrics(faceData: *FaceImpl) fail

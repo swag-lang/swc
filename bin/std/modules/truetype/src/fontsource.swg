@@ -1,5 +1,12 @@
 using Core, Swag
 
+private struct CMapCacheEntry
+{
+    bytes:      const [..] u8
+    glyphCount: u32
+    selection:  CMapSelection
+}
+
 private struct FontSourceStorage
 {
     late allocator: IAllocator
@@ -7,6 +14,7 @@ private struct FontSourceStorage
     bytes:          Array'u8
     woffSfnt:       Array'u8
     cffPrograms:    Array'(*CffFont)
+    cmapSelections: Array'CMapCacheEntry
     parseMutex:     Swag.Mutex
 }
 
@@ -108,12 +116,34 @@ impl FontSource
         return program
     }
 
+    // A shared table can occur on faces with different glyph bounds.
+    mtd const cachedCMap(bytes: const [..] u8, glyphCount: u32)->CMapSelection fail
+    {
+        if not .storage do
+            return try selectCMap(bytes, glyphCount)
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+        for entry in storage.cmapSelections
+        {
+            if entry.bytes.buffer == bytes.buffer and
+               entry.bytes.count == bytes.count and
+               entry.glyphCount == glyphCount do
+                return entry.selection
+        }
+
+        let selection = try selectCMap(bytes, glyphCount)
+        storage.cmapSelections.add({bytes: bytes, glyphCount: glyphCount, selection: selection})
+        return selection
+    }
+
     private func takeBytes(bytes: #move Array'u8, allocator: IAllocator)->FontSource
     {
         let storage = Memory.new'FontSourceStorage(allocator)
-        storage.allocator = allocator
-        storage.bytes     = #move bytes
-        storage.cffPrograms.allocator = allocator
+        storage.allocator                = allocator
+        storage.bytes                    = #move bytes
+        storage.cffPrograms.allocator    = allocator
+        storage.cmapSelections.allocator = allocator
         return {storage: storage}
     }
 }
@@ -170,7 +200,8 @@ public impl FontSource
     // Loads one zero-based face while retaining this snapshot.
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
-    // per-face state. The source allocator covers shared CFF data and WOFF1 reconstruction.
+    // per-face state. The source allocator covers the shared character maps, CFF programs,
+    // and WOFF1 reconstruction.
     // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>

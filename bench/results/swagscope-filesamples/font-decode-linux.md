@@ -443,3 +443,49 @@ and CRC-64. FreeType 2.14.3 agrees on the glyph indices.
 | `NotoSansSC-Variable.woff` | 112.930 | 112.537 | 109.453 | 82.094 | 133.829 |
 | `NotoSansJP-Variable.woff` | 56.865 | 58.157 | 57.344 | 34.873 | 70.728 |
 | `NotoSansTC-Variable.woff` | 77.360 | 75.758 | 76.828 | 51.539 | 88.707 |
+
+## Shared character map selection
+
+Faces borrowed from one immutable source keep the validated base map and variation
+map selection for each table range and glyph count. A later open of that range
+can use the selection without rescanning its groups. Collection members can
+share a selection when both bounds agree.
+
+The corpus adds three public static TrueType fonts, for 59 scenarios on 52
+files. Timings use one CPU, a 20 px glyph, and 11 interleaved batches after five
+warmups. The baseline is `36223c728c`. Each source batch opens 251 fresh faces
+from the same source after its first parse. File controls use 21 independent
+pathname opens per batch. FreeType 2.14.3 uses a memory face for the source run
+and a pathname face for the file run. The Swag builds produce matching glyph
+indices, advances, dimensions, and CRC-64. FreeType selects the same glyph
+indices. [Raw timings and a repeat on eight controls](font-decode-linux-cmap-source.json)
+
+| Fixture | Face | Source before (µs) | Source after (µs) | FreeType memory (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 0 | 58.44 | 56.95 | 91.81 |
+| `Inter-Variable.ttf` | 0 | 33.93 | 30.74 | 1633.30 |
+| `NimbusSans-Regular.otf` | 0 | 14.08 | 13.18 | 51.26 |
+| `NotoSansCJK-Regular.ttc` | 0 | 53.84 | 24.41 | 793.59 |
+| `NotoSansCJK-Regular.ttc` | 1 | 63.30 | 34.83 | 811.87 |
+| `NotoSansCJK-Regular.ttc` | 2 | 55.60 | 29.11 | 776.44 |
+| `NotoSansCJK-Regular.ttc` | 7 | 51.01 | 27.38 | 783.83 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 51.72 | 25.17 | 972.10 |
+| `NotoSerifCJK-Regular.ttc` | 0 | 54.72 | 30.51 | 873.99 |
+| `NotoSerifCJK-Regular.ttc` | 1 | 82.77 | 56.13 | 873.95 |
+| `NotoSerifCJK-Regular.ttc` | 2 | 57.04 | 31.20 | 853.90 |
+| `NotoSerifCJK-Regular.ttc` | 3 | 97.05 | 75.96 | 864.13 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 63.80 | 39.85 | 952.80 |
+| `ZenKakuGothicNew-Regular.ttf` | 0 | 74.80 | 78.72 | 820.66 |
+| `MaShanZheng-Regular.ttf` | 0 | 92.88 | 102.14 | 1067.52 |
+| `GowunBatang-Regular.ttf` | 0 | 130.72 | 131.75 | 696.43 |
+| `NotoSansJP-Variable.ttf` | 0 | 51.73 | 38.55 | 1781.86 |
+| `NotoSansTC-Variable.ttf` | 0 | 64.26 | 52.71 | 1860.31 |
+| `NotoSansSC-Variable.ttf` | 0 | 60.61 | 54.36 | 1832.17 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 65.29 | 35.90 | 974.25 |
+
+Static CJK source medians were within 3.6% in the quieter control repeat. The
+pathname comparison still shows the independent-copy cost, including 3.76 ms
+for Noto Serif CJK JP versus 0.89 ms in FreeType and 1.21 ms for Gowun Batang
+versus 0.71 ms in FreeType. For Noto Serif CJK JP, the two independent pathname
+repeats were 5–9% slower than the Swag baseline. The source speedup applies to
+retained snapshots.

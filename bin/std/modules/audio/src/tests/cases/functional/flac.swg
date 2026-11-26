@@ -985,4 +985,23 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     }) as outcome
     Swag.require(callbacks == invalidAt)
     Swag.require(outcome.value() is InvalidFormatError)
+
+    // The first packet runs directly. A failure must not publish its unwritten PCM.
+    packets[0].byteSize = 1
+    let invalid = expect SoundFile.openPacketStream(original.sourcePath(),
+                                                    .Flac,
+                                                    original.sampleRateHz(),
+                                                    channels,
+                                                    frames * packetCount,
+                                                    packets.toSlice(),
+                                                    original.decoderConfig.toSlice())
+    callbacks = 0
+    var firstError: Swag.Error
+    catch invalid.decodePcm16(func|&callbacks|(_)
+    {
+        callbacks += 1
+        return true
+    }) as firstError
+    Swag.require(callbacks == 0)
+    Swag.require(firstError.value() is InvalidFormatError)
 }

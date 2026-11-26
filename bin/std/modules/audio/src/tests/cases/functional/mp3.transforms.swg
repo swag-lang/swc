@@ -132,3 +132,24 @@ using Core
         }
     }
 }
+
+// Equal logical filter histories must stay equal at different physical ring
+// positions, as happens when a worker reconstructs the history before a chunk.
+#test
+{
+    var serial, rotated: Mp3.ChannelState
+    serial.reset()
+    rotated.reset()
+    rotated.filterAt = 2
+    for granule in 3'u64
+    {
+        var lines, actual, expected: Mp3.Granule576
+        for index in 576'u64 do
+            lines[index] = cast(f32, cast(s32, ((index * 41 + granule * 53) % 97)) - 48) / 64
+
+        Mp3.synthesizeGranule(&serial, &lines, &expected[0])
+        Mp3.synthesizeGranule(&rotated, &lines, &actual[0])
+        for index in 576'u64 do
+            Swag.require(actual[index] == expected[index])
+    }
+}

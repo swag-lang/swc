@@ -804,15 +804,60 @@ private impl CeltMdct
         }
         else
         {
-            for i in n4
+            #static if #safety(Swag.SafetyWhat.BoundCheck)
             {
-                let point = points[i]
-                yp[2 * i] = point[1] * t[i] + point[0] * t[n4 + i]
-                yp[n2 - 1 - 2 * i] = point[1] * t[n4 + i] - point[0] * t[i]
+                for i in n4
+                {
+                    let point = points[i]
+                    yp[2 * i] = point[1] * t[i] + point[0] * t[n4 + i]
+                    yp[n2 - 1 - 2 * i] = point[1] * t[n4 + i] - point[0] * t[i]
+                }
+            }
+            else
+            {
+                postRotateMonoPacked(points, t, yp, n4)
             }
         }
 
         overlap(out)
+    }
+}
+
+#[Swag.Inline]
+private func rotateMonoPair(points, sin, cos: Simd.F32x4)->Simd.F32x4
+{
+    const Swap = cast(Simd.U32x4, [1'u32, 0, 3, 2])
+    const Sign = cast(Simd.U32x4, [0'u32, 0x8000_0000, 0, 0x8000_0000])
+    let across = Swag.vecShuffle(points, Swap)
+    let signed = cast #bit (Simd.F32x4, cast #bit (Simd.U32x4, across) ^ Sign)
+    return Math.mulAdd(points, cos, signed * sin)
+}
+
+#[Swag.NoInline]
+private func postRotateMonoPacked(points: const [*] Simd.F32x4, t: const [*] f32, yp: [*] f32, n4: u32)
+{
+    let n2 = 2 * n4
+
+    // Pair opposite ends so each output group has four adjacent samples.
+    const Join      = cast(Simd.U32x4, [0'u32, 1, 4, 5])
+    const PairStart = cast(Simd.U32x4, [0'u32, 0, 1, 1])
+    const PairEnd   = cast(Simd.U32x4, [3'u32, 3, 2, 2])
+    const OutStart  = cast(Simd.U32x4, [0'u32, 5, 2, 7])
+    const OutEnd    = cast(Simd.U32x4, [6'u32, 3, 4, 1])
+    for block in n4 / 4
+    {
+        let start = 2 * block
+        let end   = n4 - 1 - start
+        let p     = Swag.vecShuffle2(points[start], points[start + 1], Join)
+        let q     = Swag.vecShuffle2(points[end], points[end - 1], Join)
+        let loSin = Swag.vecShuffle(Simd.load(t + start), PairStart)
+        let loCos = Swag.vecShuffle(Simd.load(t + n4 + start), PairStart)
+        let hiSin = Swag.vecShuffle(Simd.load(t + end - 3), PairEnd)
+        let hiCos = Swag.vecShuffle(Simd.load(t + n4 + end - 3), PairEnd)
+        let lo    = rotateMonoPair(p, loSin, loCos)
+        let hi    = rotateMonoPair(q, hiSin, hiCos)
+        Simd.store(yp + 2 * start, Swag.vecShuffle2(lo, hi, OutStart))
+        Simd.store(yp + n2 - 4 - 2 * start, Swag.vecShuffle2(lo, hi, OutEnd))
     }
 }
 

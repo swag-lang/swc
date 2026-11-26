@@ -16,7 +16,9 @@ alias SubbandOverlap = [18, 32] f32
 
 private const FilterHistory = 32'u64
 private const FilterMask    = FilterHistory - 1
-private const FilterRows    = FilterHistory + 16
+// Four windows can start three rows apart and read fifteen more rows each.
+private const FilterMirrorRows = 18'u64
+private const FilterRows = FilterHistory + FilterMirrorRows
 
 // What one channel carries from one granule to the next.
 //
@@ -221,6 +223,51 @@ private func(N: u64, T) mergeDctHalves(input: const [*] T, output: [*] T)
     output[N - 1] = input[N - 1]
 }
 
+#[Swag.Inline]
+private func(T, Step: u64, AddOddNeighbors: bool) writeDct4(a, b, c, d: T, output: [*] T)
+{
+    const Factors = #run buildCosineReciprocals'2(4'f64)
+    let evenLo = a + d
+    let evenHi = b + c
+    let oddLo  = (a - d) * Factors[0]
+    let oddHi  = (b - c) * Factors[1]
+    let last   = (oddLo - oddHi) * 0.707106781
+    let bin0   = evenLo + evenHi
+    let bin1   = (oddLo + oddHi) + last
+    let bin2   = (evenLo - evenHi) * 0.707106781
+    #static if AddOddNeighbors
+    {
+        output[0]        = bin0 + bin1
+        output[Step]     = bin1 + bin2
+        output[2 * Step] = bin2 + last
+        output[3 * Step] = last
+    }
+    else
+    {
+        output[0]        = bin0
+        output[Step]     = bin1
+        output[2 * Step] = bin2
+        output[3 * Step] = last
+    }
+}
+
+#[Swag.Inline]
+private func(T, Step: u64) writeDct8(input: const [*] T, output: [*] T)
+{
+    const Factors = #run buildCosineReciprocals'4(8'f64)
+    let a = input[0]
+    let b = input[1]
+    let c = input[2]
+    let d = input[3]
+    let e = input[4]
+    let f = input[5]
+    let g = input[6]
+    let h = input[7]
+    writeDct4'(T, 2 * Step, false)(a + h, b + g, c + f, d + e, output)
+    writeDct4'(T, 2 * Step, true)((a - h) * Factors[0], (b - g) * Factors[1],
+                          (c - f) * Factors[2], (d - e) * Factors[3], output + Step)
+}
+
 // Unnormalized DCT-II: X[k] = sum_i x[i] cos(pi*(i+1/2)*k/N).
 //
 // Pairing opposite input samples separates even and odd outputs. Lee's half-angle factor
@@ -237,20 +284,11 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
     }
     elif N == 4
     {
-        const Factors = #run buildCosineReciprocals'2(4'f64)
-        let a = input[0]
-        let b = input[1]
-        let c = input[2]
-        let d = input[3]
-        let evenLo = a + d
-        let evenHi = b + c
-        let oddLo = (a - d) * Factors[0]
-        let oddHi = (b - c) * Factors[1]
-        let last = (oddLo - oddHi) * 0.707106781
-        output[0] = evenLo + evenHi
-        output[1] = (oddLo + oddHi) + last
-        output[2] = (evenLo - evenHi) * 0.707106781
-        output[3] = last
+        writeDct4'(T, 1, false)(input[0], input[1], input[2], input[3], output)
+    }
+    elif N == 8
+    {
+        writeDct8'(T, 1)(input, output)
     }
     elif N == 3
     {
@@ -589,7 +627,7 @@ private func saveSynthesisBins(state: *ChannelState, halves: const [*] f32)
     }
 
     // The mirrored rows let each 16-tap window read across the wrap.
-    if state.filterAt < 16 do
+    if state.filterAt < FilterMirrorRows do
         Memory.copy(&state.filter[state.filterAt + FilterHistory, 0], newest, #sizeof(f32) * 32)
 
     let first = even[8 * 4]
@@ -639,51 +677,6 @@ private func synthesizeBlock(state: const *ChannelState, at: u64, destination: [
         // so both lanes produce the same sample.
         store(destination + 1 + group * 4, left)
         store(destination + 28 - group * 4, permute(right, Reverse))
-    }
-}
-
-// Windows two time slots apart share fourteen rows and the same tap parity.
-#[Swag.Inline]
-private func(Tap: u64) addSharedMirroredPair(history: const [*] f32, group: u64, left, right, laterLeft, laterRight: *Math.Simd.F32x4)
-{
-    const Even = 2 * Tap * 32
-    const Odd  = Even + 32 + 16
-    let lane   = group * 4
-    let first  = Math.Simd.load(history + Even + lane)
-    let second = Math.Simd.load(history + Odd + lane)
-    left[]       += first * MirroredWeights[0, 2 * Tap, group]
-    left[]       += second * MirroredWeights[0, 2 * Tap + 1, group]
-    right[]      += first * MirroredWeights[1, 2 * Tap, group]
-    right[]      += second * MirroredWeights[1, 2 * Tap + 1, group]
-    laterLeft[]  += first * MirroredWeights[0, 2 * Tap + 2, group]
-    laterLeft[]  += second * MirroredWeights[0, 2 * Tap + 3, group]
-    laterRight[] += first * MirroredWeights[1, 2 * Tap + 2, group]
-    laterRight[] += second * MirroredWeights[1, 2 * Tap + 3, group]
-}
-
-private func synthesizeBlockPair(state: const *ChannelState, at: u64, destination: [*] f32)
-{
-    using Math.Simd
-    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
-    let laterAt = (at + FilterMask - 1) & FilterMask
-    let history = cast(const [*] f32, &state.filter[at, 0])
-    let later   = cast(const [*] f32, &state.filter[laterAt, 0])
-    for group in 4'u64
-    {
-        var left, right, laterLeft, laterRight: F32x4
-        addMirroredPair'0(later, group, &laterLeft, &laterRight)
-        addSharedMirroredPair'0(history, group, &left, &right, &laterLeft, &laterRight)
-        addSharedMirroredPair'1(history, group, &left, &right, &laterLeft, &laterRight)
-        addSharedMirroredPair'2(history, group, &left, &right, &laterLeft, &laterRight)
-        addSharedMirroredPair'3(history, group, &left, &right, &laterLeft, &laterRight)
-        addSharedMirroredPair'4(history, group, &left, &right, &laterLeft, &laterRight)
-        addSharedMirroredPair'5(history, group, &left, &right, &laterLeft, &laterRight)
-        addSharedMirroredPair'6(history, group, &left, &right, &laterLeft, &laterRight)
-        addMirroredPair'7(history, group, &left, &right)
-        store(destination + 1 + group * 4, left)
-        store(destination + 28 - group * 4, permute(right, Reverse))
-        store(destination + 65 + group * 4, laterLeft)
-        store(destination + 92 - group * 4, permute(laterRight, Reverse))
     }
 }
 
@@ -756,20 +749,45 @@ private func synthesizeBlockFour(state: const *ChannelState, at: u64, destinatio
 private func polyphaseHalves(lines: const *Granule576, start: u64, halves: [*] Math.Simd.F32x4)
 {
     using Math.Simd
-    const Factors = #run buildCosineReciprocals'16(32'f64)
-    var split: [32] F32x4
-    for i in 16'u64
+    const Outer = #run buildCosineReciprocals'16(32'f64)
+    const Inner = #run buildCosineReciprocals'8(16'f64)
+    var quarters: [4, 8] F32x4
+    for i in 8'u64
     {
-        let first = load(&lines[][i * 18 + start])
-        let last  = load(&lines[][(31 - i) * 18 + start])
-        split[i]      = first + last
-        split[16 + i] = (first - last) * Factors[i]
+        let j     = 15 - i
+        let low   = load(&lines[][i * 18 + start])
+        let high  = load(&lines[][(31 - i) * 18 + start])
+        let otherLow  = load(&lines[][j * 18 + start])
+        let otherHigh = load(&lines[][(31 - j) * 18 + start])
+        let even     = low + high
+        let odd      = (low - high) * Outer[i]
+        let evenPair = otherLow + otherHigh
+        let oddPair  = (otherLow - otherHigh) * Outer[j]
+        quarters[0, i] = even + evenPair
+        quarters[1, i] = (even - evenPair) * Inner[i]
+        quarters[2, i] = odd + oddPair
+        quarters[3, i] = (odd - oddPair) * Inner[i]
     }
 
-    dct'(16, F32x4)(&split[0], halves)
-    dct'(16, F32x4)(&split[16], halves + 16)
-    for i in 15'u64 do
-        halves[16 + i] += halves[17 + i]
+    var partial: [8] F32x4
+    writeDct8'(F32x4, 2)(&quarters[0, 0], halves)
+    writeDct8'(F32x4, 1)(&quarters[1, 0], &partial[0])
+    for i in 7'u64 do
+        halves[2 * i + 1] = partial[i] + partial[i + 1]
+    halves[15] = partial[7]
+
+    // The following window reads neighboring sums of the odd half. Combine
+    // them directly from its two DCT-II branches after computing both.
+    writeDct8'(F32x4, 1)(&quarters[2, 0], &quarters[0, 0])
+    writeDct8'(F32x4, 1)(&quarters[3, 0], &partial[0])
+    for i in 7'u64
+    {
+        let odd = partial[i] + partial[i + 1]
+        halves[16 + 2 * i] = quarters[0, i] + odd
+        halves[17 + 2 * i] = odd + quarters[0, i + 1]
+    }
+    halves[30] = quarters[0, 7] + partial[7]
+    halves[31] = partial[7]
 }
 
 // Turns the 32 by 18 subband samples of one granule into 576 output samples.
@@ -799,14 +817,7 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
             pcm[32] = starts[2]
             pcm[64] = starts[1]
             pcm[96] = starts[0]
-            // The four starting rows and their taps fit one view when the mirror covers all of them.
-            if at <= FilterHistory - 3 do
-                synthesizeBlockFour(state, at, pcm)
-            else
-            {
-                synthesizeBlockPair(state, (at + 3) & FilterMask, pcm)
-                synthesizeBlockPair(state, (at + 2) & FilterMask, pcm + 32)
-            }
+            synthesizeBlockFour(state, at, pcm)
         }
         else
         {

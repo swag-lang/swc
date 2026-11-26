@@ -39,8 +39,8 @@ private impl BitReader
 
     mtd const left()->u64 => (.length - .offset) * 8 + cast(u64, .valid)
 
-    // Requests are at most sixteen bits. The high bits are valid, so each refill
-    // can append up to six bytes while leaving the unused low bits zero.
+    // The high .valid bits are available to readers. The remaining low bits can
+    // already contain matching lookahead from the next refill.
     #[Swag.NoInline]
     mtd refill()
     {
@@ -48,9 +48,10 @@ private impl BitReader
         if bytes >= 8
         {
             let next = Math.bigEndianToNative(cast(const [*] u64, .data + .offset)[0])
-            .valid  += 48
-            .word   |= (next >> 16) << (64 - .valid)
-            .offset += 6
+            .word |= next >> .valid
+            let count = (64 - .valid) / 8
+            .valid  += 8 * count
+            .offset += cast(u64, count)
             return
         }
 
@@ -306,6 +307,57 @@ private impl ImdctPlan
         Simd.store(output + 3 * Quarter / 4, cast #bit(Simd.F32x4, Simd.interleaveHigh(highAB, highCD)))
     }
 
+    #[Swag.Inline]
+    mtd(Quarter: u64, Butterfly: u64) const runFftPair(re, im: [*] f32, cos, sin: const [*] f32)
+    {
+        for group in Quarter / (4 * Butterfly)
+        {
+            let base = 4 * Butterfly * group
+            for block in Butterfly / 4
+            {
+                let j       = 4 * block
+                let wr      = Simd.load(cos + Butterfly + j)
+                let wi      = Simd.load(sin + Butterfly + j)
+                let a0r     = Simd.load(re + base + j)
+                let a0i     = Simd.load(im + base + j)
+                let a1r     = Simd.load(re + base + Butterfly + j)
+                let a1i     = Simd.load(im + base + Butterfly + j)
+                let b0r     = Simd.load(re + base + 2 * Butterfly + j)
+                let b0i     = Simd.load(im + base + 2 * Butterfly + j)
+                let b1r     = Simd.load(re + base + 3 * Butterfly + j)
+                let b1i     = Simd.load(im + base + 3 * Butterfly + j)
+                let aRotR   = a1r * wr - a1i * wi
+                let aRotI   = a1r * wi + a1i * wr
+                let bRotR   = b1r * wr - b1i * wi
+                let bRotI   = b1r * wi + b1i * wr
+                let aSumR   = a0r + aRotR
+                let aSumI   = a0i + aRotI
+                let aDiffR  = a0r - aRotR
+                let aDiffI  = a0i - aRotI
+                let bSumR   = b0r + bRotR
+                let bSumI   = b0i + bRotI
+                let bDiffR  = b0r - bRotR
+                let bDiffI  = b0i - bRotI
+                let sumReal = Simd.load(cos + 2 * Butterfly + j)
+                let sumImag = Simd.load(sin + 2 * Butterfly + j)
+                let sumRotR = bSumR * sumReal - bSumI * sumImag
+                let sumRotI = bSumR * sumImag + bSumI * sumReal
+                Simd.store(re + base + j, aSumR + sumRotR)
+                Simd.store(im + base + j, aSumI + sumRotI)
+                Simd.store(re + base + 2 * Butterfly + j, aSumR - sumRotR)
+                Simd.store(im + base + 2 * Butterfly + j, aSumI - sumRotI)
+                let diffReal = Simd.load(cos + 3 * Butterfly + j)
+                let diffImag = Simd.load(sin + 3 * Butterfly + j)
+                let diffRotR = bDiffR * diffReal - bDiffI * diffImag
+                let diffRotI = bDiffR * diffImag + bDiffI * diffReal
+                Simd.store(re + base + Butterfly + j, aDiffR + diffRotR)
+                Simd.store(im + base + Butterfly + j, aDiffI + diffRotI)
+                Simd.store(re + base + 3 * Butterfly + j, aDiffR - diffRotR)
+                Simd.store(im + base + 3 * Butterfly + j, aDiffI - diffRotI)
+            }
+        }
+    }
+
     mtd(Quarter: u64, Sparse: bool) const run(spectrum: const [*] f32, output: [*] f32, window: const *ImdctOverlap? = null)
     {
         const Half = 2 * Quarter
@@ -410,6 +462,13 @@ private impl ImdctPlan
         }
 
         var butterfly = 4'u32
+        #static if Quarter == 512 and not Sparse
+        {
+            .runFftPair'(Quarter, 4)(re, im, cos, sin)
+            .runFftPair'(Quarter, 16)(re, im, cos, sin)
+            butterfly = 64
+        }
+
         while butterfly < Quarter
         {
             let length = 2 * butterfly
@@ -1976,4 +2035,42 @@ impl IPacketCodec for AacCodec
     var error:    Swag.Error
     discard catch reader.readEscapeMagnitude() as error
     Swag.require(error.value() is InvalidFormatError)
+}
+
+// Refill must credit each byte once, including the short tail of a packet.
+#test
+{
+    let data: [23] u8 = [0xAF, 0x13, 0x00, 0xD7, 0xFF, 0x32, 0x5C, 0x81,
+                         0x1E, 0x69, 0xEF, 0x44, 0x29, 0x2B, 0xF5, 0x7F,
+                         0x2D, 0x0A, 0x19, 0x64, 0x71, 0x9F, 0x80]
+    for size in 1 until data.count + 1
+    {
+        for skip in 8
+        {
+            var reader = BitReader.create(&data[0], size)
+            discard reader.get(cast(s32, skip))
+            let end      = 8 * size
+            var position = skip
+            while position < end
+            {
+                let count    = Math.min(end - position, (position % 16) + 1)
+                var expected = 0'u32
+                for offset in position until position + count do
+                    expected = (expected << 1) | ((data[offset / 8] >> (7 - offset % 8)) & 1)
+                if position + count == end and count < 16 and skip & 1
+                {
+                    Swag.require(reader.get(16) == (expected << (16 - count)))
+                    Swag.require(reader.overrun and not reader.left())
+                    break
+                }
+
+                Swag.require(reader.get(cast(s32, count)) == expected)
+                position += count
+                Swag.require(reader.left() == end - position)
+                Swag.require(not reader.overrun)
+            }
+
+            Swag.require(reader.get(1) == 0 and reader.overrun)
+        }
+    }
 }

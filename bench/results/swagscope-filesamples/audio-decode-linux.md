@@ -1399,3 +1399,86 @@ campaign. The maximum difference is one in both comparisons.
 
 Native Release passes 337 audio tests. Release-safe passes 104 focused Dolby,
 MP3, Opus, Ogg and FLAC tests.
+
+## Forty-first optimization pass
+
+These native Linux Release medians cover opening and materializing the
+first ten seconds of PCM16. Swag uses the same compiler with and without
+the changes. The previous audio sources are at `a859c30ab1`. FFmpeg 9.1 has
+native x86 assembly enabled. There are 42 observations per engine in the
+FileSamples cohorts and 28 in the generated cohorts.
+
+[Raw stage times and PCM digests](audio-decode-linux-round41.json)
+
+| FileSamples input | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.flac` | 10.18 | 10.28 | 11.00 | 9.70 | 9.70 | 10.71 | 6.66 | 6.42 | 6.37 |
+| `sample1.oga` | 9.35 | 9.29 | 10.69 | 9.03 | 8.97 | 10.50 | 6.77 | 6.77 | 6.71 |
+| `sample3.aac` | 6.15 | 5.89 | 6.09 | 6.11 | 5.92 | 6.36 | 4.03 | 4.08 | 6.34 |
+| `sample3.ac3` | 7.21 | 7.14 | 7.18 | 6.79 | 6.39 | 6.19 | 5.75 | 5.75 | 6.28 |
+| `sample3.mp3` | 8.00 | 7.96 | 7.71 | 7.11 | 6.68 | 6.88 | 3.94 | 3.85 | 7.06 |
+| `sample3.ogg` | 7.06 | 6.96 | 7.49 | 6.28 | 6.42 | 6.76 | 6.42 | 6.39 | 6.55 |
+| `sample3.opus` | 18.12 | 17.77 | 18.72 | 17.53 | 17.93 | 18.30 | 17.90 | 18.02 | 18.82 |
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 2.46 | 2.39 | 3.22 | 1.79 | 1.95 | 3.15 |
+| `aac-lc-48k-5.1.aac` | 18.09 | 18.02 | 16.98 | 10.06 | 9.48 | 17.10 |
+| `aac-lc-48k-stereo.aac` | 8.48 | 8.27 | 7.87 | 4.79 | 4.66 | 7.72 |
+| `ac3-32k-mono.ac3` | 4.69 | 4.15 | 3.68 | 3.21 | 2.82 | 3.55 |
+| `ac3-32k-stereo.ac3` | 6.60 | 6.54 | 6.22 | 6.16 | 6.17 | 6.16 |
+| `ac3-44k-stereo.ac3` | 8.13 | 7.76 | 7.20 | 7.48 | 7.54 | 7.42 |
+| `ac3-48k-3.0.ac3` | 15.05 | 12.48 | 11.79 | 10.36 | 9.27 | 11.39 |
+| `ac3-48k-5.0.ac3` | 24.22 | 19.89 | 19.42 | 15.96 | 14.84 | 18.75 |
+| `ac3-48k-5.1.ac3` | 20.22 | 20.14 | 20.86 | 16.11 | 16.15 | 20.70 |
+| `ac3-48k-quad.ac3` | 19.12 | 14.57 | 15.21 | 13.69 | 11.00 | 15.91 |
+| `ac3-48k-stereo.ac3` | 7.97 | 8.10 | 7.42 | 6.26 | 6.19 | 6.86 |
+| `eac3-48k-5.1.eac3` | 21.67 | 21.44 | 20.93 | 20.80 | 21.49 | 20.19 |
+| `mp3-24k-mono.mp3` | 2.54 | 2.27 | 2.67 | 1.57 | 1.56 | 2.57 |
+| `mp3-44k-stereo-cbr.mp3` | 7.07 | 7.07 | 7.05 | 3.60 | 3.01 | 6.97 |
+| `mp3-48k-stereo.mp3` | 8.25 | 8.07 | 7.97 | 5.70 | 4.73 | 7.92 |
+| `mp3-8k-mono.mp3` | 0.92 | 0.91 | 1.09 | 0.73 | 0.80 | 1.12 |
+| `vorbis-32k-mono.ogg` | 3.35 | 3.29 | 4.34 | 3.41 | 3.26 | 4.43 |
+| `vorbis-48k-3.0.ogg` | 14.10 | 13.95 | 13.56 | 14.70 | 13.38 | 13.53 |
+| `vorbis-48k-5.0.ogg` | 24.21 | 21.91 | 22.10 | 24.18 | 21.88 | 21.25 |
+| `vorbis-48k-5.1.ogg` | 27.11 | 26.04 | 25.75 | 16.43 | 16.30 | 26.85 |
+| `vorbis-48k-6.1.ogg` | 31.10 | 29.60 | 28.14 | 18.55 | 17.25 | 30.07 |
+| `vorbis-48k-7.1.ogg` | 32.85 | 32.52 | 32.97 | 19.87 | 18.43 | 32.12 |
+| `vorbis-48k-quad.ogg` | 18.00 | 17.51 | 18.04 | 18.12 | 16.15 | 17.54 |
+| `vorbis-48k-stereo.ogg` | 8.63 | 8.56 | 9.13 | 8.45 | 8.17 | 8.95 |
+| `flac-48k-5.1-16.flac` | 19.24 | 19.88 | 33.60 | 9.50 | 8.11 | 16.64 |
+| `ogg-flac-48k-mono-16.oga` | 3.36 | 3.40 | 6.00 | 2.19 | 1.99 | 4.52 |
+| `opus-20ms-48k-stereo.opus` | 26.45 | 26.94 | 27.35 | 27.65 | 29.94 | 28.82 |
+| `opus-5ms-48k-stereo.opus` | 27.14 | 27.01 | 31.41 | 28.24 | 26.14 | 31.08 |
+| `opus-voip-16k-mono.opus` | 7.00 | 7.12 | 9.44 | 6.99 | 6.86 | 9.67 |
+| `opus-voip-48k-mono.opus` | 12.98 | 12.59 | 13.41 | 13.86 | 12.90 | 13.21 |
+
+AAC refills multiple lookahead bytes directly and fuses FFT stages. AC-3
+and E-AC-3 share small allocation tables for the low-BAP mantissas. AC-3
+uses paired vector synthesis on three-to-five-channel layouts. FLAC jobs
+write into reserved storage and take a direct path when a batch contains
+one packet. A failed first packet publishes no samples. MP3 fuses synthesis
+and rotates mirrored history with one floating-point operation order.
+CELT separates mono MDCT overlap from the stereo path. Vorbis walks long
+codeword fallback trees a word at a time and handles more residue with
+contiguous vectors.
+
+The 37 outputs match byte-for-byte across worker budgets. Of those,
+29 are identical to the previous build. The remaining
+MP3 and AC-3 outputs differ by at most one PCM16 unit per sample.
+`sample3.mp3` differs in 23 of 882,000 samples.
+`ac3-48k-3.0.ac3` differs in 531 of 1,440,000 samples.
+`ac3-48k-5.0.ac3` differs in 1,015 of 2,400,000 samples.
+`ac3-48k-quad.ac3` differs in 1,028 of 1,920,000 samples.
+FileSamples MP3 also stays within one PCM16 unit of the first
+campaign (42,950 changed samples).
+
+Native Release passes 339 audio tests. Release-safe passes 153 focused
+audio tests.
+
+At four cores, generated AC-3 5.0 and MP3 44.1 kHz recover the time
+increases seen in the preceding pass. E-AC-3 5.1 takes 1.30 ms longer
+than the FFmpeg four-core median. FileSamples MP3 is 0.25 ms slower
+on CPU 0 and 0.21 ms faster on CPU 1. The wider Release-safe test
+also hits a pre-existing NaN gain conversion panic, reproduced with
+the previous audio sources.

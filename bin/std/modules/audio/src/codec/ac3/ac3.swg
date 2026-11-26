@@ -528,12 +528,12 @@ private impl Ac3Codec
         {
             // Reads stay within the padded allocation. The logical limit is
             // checked once at the end of the block, before any PCM is emitted.
-            readPreparedMantissas'(false, false)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
+            readPreparedMantissas'(false, true)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
             reader.overrun = reader.bitPos > reader.size * 8
         }
         else
         {
-            readPreparedMantissas'(false, true)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
+            readPreparedMantissas'(true, true)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
         }
 
         for band in block.rematrixCount where block.rematrix[band]
@@ -620,6 +620,21 @@ private impl Ac3Codec
         if channels == MaxChannels
         {
             .surroundImdct.process(&.imdct, cast(const *[MaxChannels, SamplesPerBlock] f64, coefficients), blockSwitch, destination)
+            return
+        }
+
+        switch channels
+        {
+        case 3:
+            .surroundImdct.processMapped'3(&.imdct, coefficients, blockSwitch, bsi.acmod, bsi.nfchans, bsi.lfeon, destination)
+            return
+
+        case 4:
+            .surroundImdct.processMapped'4(&.imdct, coefficients, blockSwitch, bsi.acmod, bsi.nfchans, bsi.lfeon, destination)
+            return
+
+        case 5:
+            .surroundImdct.processMapped'5(&.imdct, coefficients, blockSwitch, bsi.acmod, bsi.nfchans, bsi.lfeon, destination)
             return
         }
 

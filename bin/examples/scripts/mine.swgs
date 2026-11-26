@@ -1,4 +1,5 @@
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel
 
@@ -10,9 +11,6 @@ const CellSize = 30'f32
 // of the grid or under the buttons.
 const BoardExtent = CellSize * (GridSize + 2)
 const ControlRow  = CellSize * 2
-
-// Room for the title bar the surface draws inside the size it is given.
-const CaptionRoom = 48
 
 struct Cell
 {
@@ -216,5 +214,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, cast(s32, BoardExtent), cast(s32, (BoardExtent + ControlRow)) + CaptionRoom, title: "Minesweeper", canSize: false, hook: &onEvent)
+    try runExample(cast(s32, BoardExtent), cast(s32, (BoardExtent + ControlRow)), title: "Minesweeper", canSize: false, hook: &onEvent)
 }

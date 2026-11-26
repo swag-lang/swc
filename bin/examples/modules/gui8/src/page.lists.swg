@@ -48,7 +48,7 @@ func createListsPage(parent: *Wnd)
                              "Rows can carry independent check state while preserving list navigation.",
                              layout.bottom)
     let checks = ListCtrl.createSimple(bottom,
-                                       Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                       Math.Rectangle{18, 76, layout.bottom.width - 36, layout.bottom.height - 94})
     checks.setFrameForm(.Square)
     checks.setSelectionMode(.Multi)
     checks.setIconSize(16)

@@ -4,6 +4,7 @@
 // @NOTICE: /bin/THIRDPARTY.md#pacman-example
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 #import("audio", location: "swag@std")
 
 using Gui, Core, Pixel
@@ -17,7 +18,6 @@ const BoardHeight = 345.0
 
 // Room for the title bar the surface draws inside the size it is given. The board is centred in
 // whatever is left, so this only has to be generous, not exact.
-const CaptionRoom = 48
 
 late var g_Wnd:     *Wnd
 var g_DataPath:     String
@@ -2254,5 +2254,5 @@ func loadBindTextures()
             expect Audio.setOutputVolume(0)
     }
 
-    Application.runSurface(100, 100, cast(s32, (BoardWidth * Scale)), cast(s32, (BoardHeight * Scale)) + CaptionRoom, title: "Pacman", hook: &onEvent, init: &muteForTest)
+    try runExample(cast(s32, (BoardWidth * Scale)), cast(s32, (BoardHeight * Scale)), title: "Pac-Man", hook: &onEvent, init: &muteForTest)
 }

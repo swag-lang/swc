@@ -15,10 +15,10 @@ func createColumnsPage(parent: *Wnd)
     files.setSelectionMode(.Multi)
     files.setIconSize(16)
     addListFlags(files)
-    files.addColumn("Name", 190, app.theme.icon(.OpenFile, 16))
-    files.addColumn("Kind", 110)
-    files.addColumn("Owner", 120)
-    files.addColumn("Changed", 110, app.theme.icon(.Sort, 16))
+    files.addColumn("Name", 140, app.theme.icon(.OpenFile, 16))
+    files.addColumn("Kind", 78)
+    files.addColumn("Owner", 83)
+    files.addColumn("Changed", 102, app.theme.icon(.Sort, 16))
     files.header.setItemWidthLimits(0, minimum: 130)
     files.header.itemAt(0).isResizable       = false
     files.header.itemAt(3).reservesIconSpace = true
@@ -45,10 +45,10 @@ func createColumnsPage(parent: *Wnd)
         .setSelectionMode(.Single)
         .setIconSize(16)
         .updateFlags(.AlternateLines)
-        .addColumn("Task", 180, app.theme.icon(.Edit, 16))
-        .addColumn("State", 110)
-        .addColumn("Priority", 90, app.theme.icon(.ChevronDown, 16))
-        .addColumn("Assignee", 120)
+        .addColumn("Task", 154, app.theme.icon(.Edit, 16))
+        .addColumn("State", 85)
+        .addColumn("Priority", 86, app.theme.icon(.ChevronDown, 16))
+        .addColumn("Assignee", 112)
     }
 
     for i in 16
@@ -69,7 +69,7 @@ func createColumnsPage(parent: *Wnd)
                              "Horizontal scrolling keeps the header and list content aligned.",
                              layout.bottom)
     with let wide = ListCtrl.createMultiColumns(bottom,
-                                                Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                                Math.Rectangle{18, 76, layout.bottom.width - 36, layout.bottom.height - 94})
     {
         .setFrameForm(.Square)
         .setSelectionMode(.Multi)

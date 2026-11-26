@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=4hA7G3gup-4
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel, Core.Math
 
@@ -126,5 +127,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 754, 569, title: "Verlet", hook: &onEvent)
+    try runExample(754, 569, title: "Verlet", hook: &onEvent)
 }

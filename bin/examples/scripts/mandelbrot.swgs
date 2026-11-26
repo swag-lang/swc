@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=6z7GQewK-Ks&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel
 
@@ -21,13 +22,12 @@ func updateFractal()
         let minimum    = parameters.minimum
         let maximum    = parameters.maximum
 
-        var real      = map(cast(f32, x), 0, cast(f32, g_Image.width), minimum, maximum)
-        var imaginary = map(cast(f32, y), 0, cast(f32, g_Image.height), minimum, maximum)
+        let extent        = maximum - minimum
+        let realPart      = map(cast(f32, x), 0, cast(f32, g_Image.width), minimum, maximum)
+        let imaginaryPart = map(cast(f32, y), 0, cast(f32, g_Image.height), -extent * 0.5, extent * 0.5)
 
-        // Each pixel fixes the constant; only the iterated value changes.
-        let constantReal      = real
-        let constantImaginary = imaginary
-
+        // Iterate z² + c from zero at every sample.
+        var real, imaginary: f32
         var iterations = 0
         const MaxIterations = 100
         while iterations < MaxIterations
@@ -38,8 +38,8 @@ func updateFractal()
 
             real       = previousReal * previousReal - previousImaginary * previousImaginary
             imaginary  = 2 * previousReal * previousImaginary
-            real       += constantReal
-            imaginary  += constantImaginary
+            real       += realPart
+            imaginary  += imaginaryPart
             iterations += 1
             if real * real + imaginary * imaginary > 4 do
                 break
@@ -54,17 +54,19 @@ func updateFractal()
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
-    let width  = cast(s32, wnd.position.width)
-    let height = cast(s32, wnd.position.height)
-
     switch evt
     {
     case CreateEvent:
-        with let slider = Slider.create(wnd, {0, 0, 200}, range: true)
+        with let label = Label.create(wnd, "Real axis", {24, 16, 72, 32}, null, .SecondaryText)
+        {
+            .setTextAlignment(.Left, .Center)
+        }
+
+        with let slider = Slider.create(wnd, {104, 16, 260, 32}, range: true)
         {
             g_Slider = slider
             .setBounds(-2.5, 2.5)
-            .setRange(-2.5, 2.5)
+            .setRange(-2.1, 1.1)
             .sigChanged += func|wnd|(_)
             {
                 updateFractal()
@@ -72,7 +74,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             }
         }
 
-        g_Image = Image.create(200, 200, .BGR8)
+        g_Image = Image.create(384, 384, .BGR8)
 
         updateFractal()
         return true
@@ -87,8 +89,17 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         if not g_Texture.isValid() do
             g_Texture = renderer.addImage(g_Image)
 
-        if g_Texture.isValid() do
-            painter.drawTexture(0, 0, cast(f32, width), cast(f32, height), g_Texture)
+        if g_Texture.isValid()
+        {
+            let client = wnd.clientRect()
+            let room   = Math.Rectangle{24, 64, client.width - 48, client.height - 88}
+            if room.width > 0 and room.height > 0
+            {
+                let dest = Math.Rectangle.fittedWithin({0, 0, g_Image.width, g_Image.height}, room)
+                painter.drawTexture(dest, g_Texture)
+            }
+        }
+
         return true
     }
 
@@ -98,5 +109,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 #main
 {
     Swag.setWorkerCount(4)
-    Application.runSurface(100, 100, 466, 481, title: "Mandelbrot", hook: &onEvent)
+    try runExample(510, 550, title: "Mandelbrot", hook: &onEvent)
 }

@@ -35,6 +35,7 @@ directly when it owns a normal workspace module.
 */
 // 'swag@std' resolves 'gui' from the standard workspace under SWAG_PATH.
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 // Import Audio from the same standard workspace.
 #import("audio", location: "swag@std")
@@ -87,7 +88,7 @@ The '#main' hook is the entry point for an executable or script. In script mode,
     // Create one application surface and dispatch its events to 'onEvent'.
     // A smoke run exits after a bounded frame count,
     // which keeps automated example tests non-interactive.
-    Application.runSurface(100, 100, 254, 481, title: "Flappy Bird", hook: &onEvent)
+    try runExample(254, 481, title: "Flappy Bird", hook: &onEvent, canSize: false)
 }
 
 /**

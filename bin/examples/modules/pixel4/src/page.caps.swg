@@ -15,7 +15,7 @@ const CapRows = [
     CapRow{"Triangle / Triangle", .Triangle, .Triangle, Argb.MediumSeaGreen},
     CapRow{"Arrow / None", .ArrowAnchor, .None, Argb.DarkOrange},
     CapRow{"None / Arrow 2", .None, .ArrowAnchor2, Argb.MediumPurple},
-    CapRow{"Round anchor / Square anchor", .RoundAnchor, .SquareAnchor, Argb.Goldenrod}]
+    CapRow{"Round / Square anchors", .RoundAnchor, .SquareAnchor, Argb.Goldenrod}]
 
 func makeCapPath(left, right, y: f32)->LinePath
 {
@@ -37,8 +37,6 @@ func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
                     row.label,
                     g_LabelFont,
                     Argb.DarkSlateGray)
-    painter.drawString(startX - 44, rect.y + 6, "start", g_HelpFont, Argb.LightSlateGray)
-    painter.drawString(endX - 16, rect.y + 6, "end", g_HelpFont, Argb.LightSlateGray)
 
     painter.drawLine(startX, baselineY, endX, baselineY, Color.fromArgb(44, Argb.Black), 2)
     painter.fillCircle(startX, baselineY, 3, Argb.DarkSlateGray)
@@ -69,18 +67,21 @@ func drawCapsPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel path drawing",
-                   "Page 1 : starts, endings and cap styles on the same straight segment.")
+                   "Starts, endings and cap styles on the same straight segment.")
 
     let body = drawPanel(painter,
                          {28, 98, 924, 586},
                          "Caps and endings",
                          "The path starts on the left, ends on the right. Only the pen changes from row to row.")
-    let rowHeight = body.height / cast(f32, CapRows.count)
+    painter.drawStringCenter(body.x + 250, body.y + 9, "Path start", g_HelpFont, Argb.DimGray)
+    painter.drawStringCenter(body.right() - 38, body.y + 9, "Path end", g_HelpFont, Argb.DimGray)
+    const HeaderHeight = 24.0
+    let rowHeight = (body.height - HeaderHeight) / cast(f32, CapRows.count)
 
     painter.pushClippingSurfaceRect(body)
     for i in CapRows.count
     {
-        let rowRect = Math.Rectangle{body.x, body.y + i * rowHeight, body.width, rowHeight}
+        let rowRect = Math.Rectangle{body.x, body.y + HeaderHeight + i * rowHeight, body.width, rowHeight}
         drawCapRow(painter, rowRect, CapRows[i])
     }
 

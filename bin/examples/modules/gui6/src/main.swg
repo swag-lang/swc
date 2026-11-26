@@ -1,4 +1,4 @@
-// Use --dark for Encre or --light for Papier. F1 advances through the menu examples.
+// Use --dark for Encre or --light for Papier. F1 and F2 change pages.
 using Core, Gui, Pixel
 
 const W                    = 1080
@@ -7,7 +7,7 @@ const MaxPages             = 4
 const TestFramesPerPage    = 35
 const RootMargin           = 24.0
 const PageTop              = 92.0
-const PageBottomMargin     = 44.0
+const PageBottomMargin     = 48.0
 const PanelGap             = 24.0
 const TopPanelHeight       = 320.0
 const MinBottomPanelHeight = 206.0
@@ -71,6 +71,7 @@ var g_SubTitle:      *Label?
 var g_ThemeButton:   *PushButton?
 var g_PageView:      *Wnd?
 var g_Footer:        *Label?
+var g_PageNav:       *StackLayoutCtrl?
 var g_StatusLabel:   *Label?
 var g_Preview:       *Wnd?
 var g_PageMenus:     Array'(*MenuCtrl)
@@ -87,15 +88,10 @@ var g_ActionCount:   s32
 var g_Mode          = PreviewMode.Detailed
 var g_StatusText:    String
 
-func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
-{
-    label.setTextAlignment(horizontal, vertical)
-}
-
 func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
-    setLabelTextStyle(label, .Left, .Center)
+    label.setTextAlignment(.Left, .Center)
     return label
 }
 
@@ -202,9 +198,9 @@ func updateHeader()
     let title    = unwrap g_Title
     let subTitle = unwrap g_SubTitle
     let footer   = unwrap g_Footer
-    title.setText(Format.toString("GUI6 menu showcase - %", pageTitle(g_Page)))
+    title.setText(pageTitle(g_Page))
     subTitle.setText(pageSubtitle(g_Page))
-    footer.setText(Format.toString("F1 : next page (%/%). %", g_Page + 1, MaxPages, stateSummary()))
+    footer.setText(Format.toString("Page % of % · %", g_Page + 1, MaxPages, stateSummary()))
 }
 
 func updateStatusLabel()
@@ -371,11 +367,9 @@ func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font
 
 func drawStatePill(painter: *Painter, rect: Math.Rectangle, text: string, active: bool, font: *Font, colors: *ThemeColors)
 {
-    let fill      = active ? Argb.CornflowerBlue : colors.view_Bk
-    let textColor = active ? Argb.White : colors.label_Text
-    painter.fillRoundRect(rect, 16, 16, fill)
-    painter.drawRoundRect(rect, 16, 16, active ? Argb.CornflowerBlue : colors.frameWnd_Border, 1)
-    painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), text, font, textColor)
+    let fill = active ? colors.selection : colors.raised
+    painter.fillRoundRect(rect, 6, 6, fill)
+    painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), text, font, colors.text)
 }
 
 func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
@@ -389,92 +383,26 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let font      = view.theme().createDefaultFont(14)
         let titleFont = view.theme().createDefaultFont(20, .Bold)
 
-        painter.fillRect(rect, colors.view_Bk)
-        let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
-        painter.fillRoundRect(card, 20, 20, Color.fromArgb(255, 246, 248, 250))
-        painter.drawRoundRect(card, 20, 20, Color.fromArgb(70'u8, Argb.Black), 1)
+        painter.fillRoundRect(rect, 8, 8, colors.ground)
+        const Inset = 20.0
+        let contentWidth = rect.width - 2 * Inset
+        painter.drawString(Inset, Inset, "Command State", titleFont, colors.text)
 
-        let contentX     = card.x + 24
-        let contentWidth = Math.max(card.width - 48, 1.0)
-        painter.drawString(contentX, card.y + 22, "Menu-driven workspace", titleFont, Argb.DarkSlateGray)
-        drawWrappedText(painter, Math.Rectangle{contentX, card.y + 60, contentWidth, 42}, g_StatusText, font, Argb.DimGray, 2)
-
-        let pillGap    = 12.0
-        let pillHeight = 32.0
-        let pillTop    = card.y + 100
-        var pillsBottom: f32
-
-        if contentWidth >= 560.0
+        let labels = [
+            Format.toString("Grid %", boolWord(g_ShowGrid)),
+            Format.toString("Guides %", boolWord(g_ShowGuides)),
+            String.from(currentModeName()),
+            String.from(g_DocumentDirty ? "Dirty" : "Saved")]
+        let active  = [g_ShowGrid, g_ShowGuides, true, g_DocumentDirty]
+        let columns = contentWidth >= 510 ? 4 : 2
+        const Gap = 8.0
+        let width = (contentWidth - (columns - 1) * Gap) / columns
+        for label, index in labels
         {
-            let pillWidth = (contentWidth - 3 * pillGap) * 0.25
-            drawStatePill(painter,
-                          Math.Rectangle{contentX, pillTop, pillWidth, pillHeight},
-                          Format.toString("grid %", boolWord(g_ShowGrid)),
-                          g_ShowGrid,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight},
-                          Format.toString("guides %", boolWord(g_ShowGuides)),
-                          g_ShowGuides,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
-                          currentModeName(),
-                          true,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
-                          g_DocumentDirty ? "dirty" : "saved",
-                          g_DocumentDirty,
-                          font,
-                          colors)
-            pillsBottom = pillTop + pillHeight
-        }
-        else
-        {
-            let pillWidth = (contentWidth - pillGap) * 0.5
-            let secondX   = contentX + pillWidth + pillGap
-            let secondRow = pillTop + pillHeight + 10
-            drawStatePill(painter,
-                          Math.Rectangle{contentX, pillTop, pillWidth, pillHeight},
-                          Format.toString("grid %", boolWord(g_ShowGrid)),
-                          g_ShowGrid,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{secondX, pillTop, pillWidth, pillHeight},
-                          Format.toString("guides %", boolWord(g_ShowGuides)),
-                          g_ShowGuides,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{contentX, secondRow, pillWidth, pillHeight},
-                          currentModeName(),
-                          true,
-                          font,
-                          colors)
-            drawStatePill(painter,
-                          Math.Rectangle{secondX, secondRow, pillWidth, pillHeight},
-                          g_DocumentDirty ? "dirty" : "saved",
-                          g_DocumentDirty,
-                          font,
-                          colors)
-            pillsBottom = secondRow + pillHeight
-        }
-
-        let lineY = card.bottom() - 52
-        if lineY > pillsBottom + 12
-        {
-            painter.drawLine(contentX, lineY, contentX + contentWidth, lineY, Color.fromArgb(60'u8, Argb.Black), 1)
-            drawWrappedText(painter,
-                            Math.Rectangle{contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18},
-                            stateSummary(),
-                            font,
-                            Argb.DimGray,
-                            1)
+            let column = cast(s32, index) % columns
+            let row    = cast(s32, index) / columns
+            let chip   = Math.Rectangle{Inset + column * (width + Gap), 58 + row * 38, width, 30}
+            drawStatePill(painter, chip, label.toString(), active[index], font, colors)
         }
     }
 
@@ -704,11 +632,21 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is CommandEvent as cmd
     {
-        if processMenuCommand(cmd.id)
+        switch cmd.id
         {
-            cmd.accepted = true
-            return true
+        case "next-page":
+            nextPage()
+
+        case "previous-page":
+            previousPage()
+
+        default:
+            if not processMenuCommand(cmd.id) do
+                return false
         }
+
+        cmd.accepted = true
+        return true
     }
     elif evt is CommandStateEvent as state where state.kind == .Compute
     {
@@ -735,6 +673,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
         g_ThemeButton = null
         g_PageView    = null
         g_Footer      = null
+        g_PageNav     = null
         g_StatusLabel = null
         g_Preview     = null
         return true
@@ -787,7 +726,7 @@ func layoutRootView()
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin, TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let footerY      = PageTop + pageHeight + 8.0
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title2      = unwrap g_Title
@@ -798,7 +737,8 @@ func layoutRootView()
     themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
     pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
-    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
+    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth - PageNavWidth - 12, 32})
+    g_PageNav!.setPosition(Math.Rectangle{RootMargin + contentWidth - PageNavWidth, footerY, PageNavWidth, 32})
 }
 
 func nextPage()
@@ -833,28 +773,10 @@ func updateTestMode()
     nextPage()
 }
 
-func canUsePageArrows()->bool
-{
-    if not g_View or not g_PageView do
-        return false
-
-    let view2     = unwrap g_View
-    let pageView2 = unwrap g_PageView
-
-    let focus = view2.focusedWindow()
-    if not focus or focus == g_View do
-        return true
-
-    return not pageView2.isAncestorOf(focus)
-}
-
-func onFrame(app: *Application)
+func onFrame(_: *Application)
 {
     if not g_Surface or not g_View or not g_PageView do
         return
-
-    if app.keyboard.isKeyJustPressed(.F1) do
-        nextPage()
 
     updateTestMode()
 }
@@ -883,12 +805,12 @@ func createRootView()
 
     let title = Label.create(view, "", {})
     g_Title = title
-    setLabelTextStyle(title, .Left, .Center)
+    title.setTextAlignment(.Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
     let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
-    setLabelTextStyle(subTitle, .Left, .Top)
+    subTitle.setTextAlignment(.Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
@@ -902,10 +824,16 @@ func createRootView()
 
     let footer = Label.create(view, "", {})
     g_Footer = footer
-    setLabelTextStyle(footer, .Left, .Center)
-    footer.updateFlags(.SecondaryText)
+    footer.setTextAlignment(.Left, .Center)
+    footer.updateFlags(.SecondaryText | .Ellipsis)
+
+    g_PageNav = createPageNavigation(view,
+                                     func(_) { previousPage() },
+                                     func(_) { nextPage() })
 
     registerMenuShortcuts()
+    view.registerKeyShortcut(.None, .F1, "next-page")
+    view.registerKeyShortcut(.None, .F2, "previous-page")
     layoutRootView()
     view.hookOnEvent = &onRootEvent
 }
@@ -920,11 +848,11 @@ func createRootView()
             g_DarkTheme = false
     }
 
-    let flags = SurfaceFlags.LargeCaption |
+    let flags = SurfaceFlags.SmallCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.CloseButton |
                 SurfaceFlags.Border
-    let surface = try app.createSurface(100, 80, W - 46, H - 31, flags)
+    let surface = try app.createSurface(100, 80, W, H, flags)
     g_Surface = surface
     surface.setTitle("GUI6 menu showcase")
     surface.setIcon(app.theme.icon(ThemeIcons.More, 18))

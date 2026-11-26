@@ -8,6 +8,7 @@
     cfg.moduleRevision  = 0
     cfg.moduleBuildNum  = 0
     cfg.embeddedImports = true
+    cfg.safetyGuards    |= .Assert
     cfg.backendKind     = .Executable
     cfg.backendSubKind  = .Default
 }

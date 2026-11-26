@@ -37,7 +37,7 @@ func buildInvertImage(source: Image)->Image
 
 func buildTonalCards(source: Image)
 {
-    setTextureCard(&g_TonalCards[0], "Original load", "Image.load + addImage", g_SourceTexture)
+    setTextureCard(&g_TonalCards[0], "Original load", "Image.decode + addImage", g_SourceTexture)
     setImageCard(&g_TonalCards[1], "Grayscale", "grayscale()", buildGrayScaleImage(source, 1.0))
     setImageCard(&g_TonalCards[2], "Gray blend", "grayscale(0.55)", buildGrayScaleImage(source, 0.55))
     setImageCard(&g_TonalCards[3], "Contrast +", "contrast(0.22)", buildContrastImage(source, 0.22))
@@ -51,7 +51,7 @@ func drawTonalPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel tonal filters",
-                   "Page 1 : grayscale, contrast, lightness, gamma and inversion on the same local JPG.")
+                   "Grayscale, contrast, lightness, gamma and inversion on the same bundled JPEG.")
     for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_TonalCards[i])
 }

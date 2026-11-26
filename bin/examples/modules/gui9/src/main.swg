@@ -12,7 +12,6 @@ var g_Surface:     *Surface?
 var g_View:        *Wnd?
 var g_Browser:     *FileBrowserCtrl?
 var g_ThemeButton: *PushButton?
-var g_StartDir:    String
 var g_DarkTheme:   bool
 
 // Shared by every file dialog of the session: each one reopens with the previous
@@ -108,36 +107,28 @@ func onForm(_: *Button)
     discard dlg.doModal()
 }
 
-func onFileOpen(_: *Button)
+func showFileDialog(mode: FileDlgMode)
 {
-    var opt: FileDlgOptions
-    opt.mode  = .SelectFile
-    opt.state = &g_FileState
-    opt.filters.add({name: "All files", extensions: ""})
-    opt.filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
-    discard FileDlg.create(unwrap g_Surface, opt).doModal()
-}
+    with var options: FileDlgOptions
+    {
+        .mode  = mode
+        .state = &g_FileState
+        switch mode
+        {
+        case .SelectFile, .SelectFiles:
+            .filters.add({name: "All Files", extensions: ""})
+            .filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
 
-func onFileSave(_: *Button)
-{
-    var opt: FileDlgOptions
-    opt.mode  = .CreateFile
-    opt.state = &g_FileState
-    opt.filters.add({name: "Text", extensions: ".txt"})
-    discard FileDlg.create(unwrap g_Surface, opt).doModal()
-}
+        case .CreateFile:
+            .filters.add({name: "Text", extensions: ".txt"})
 
-func onSelectFolder(_: *Button)
-{
-    var opt: FileDlgOptions
-    opt.mode  = .SelectFolder
-    opt.state = &g_FileState
-    discard FileDlg.create(unwrap g_Surface, opt).doModal()
-}
+        case .SelectFolder:
+            break
+        }
+    }
 
-//
-// View
-//
+    discard FileDlg.create(unwrap g_Surface, options).doModal()
+}
 
 func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 {
@@ -172,7 +163,7 @@ func createRootView()
     view.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
-    with let title = Label.create(unwrap g_View, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
+    with let title = Label.create(unwrap g_View, "Dialogs and File Browser", {0, 0, 0, 46})
     {
         .dockStyle = .Top
         .margin    = {16, 12, 16, 0}
@@ -186,11 +177,14 @@ func createRootView()
     content.backgroundStyle = .Transparent
 
     // Left: the reusable file-browsing composite (no dialog involved).
-    g_StartDir = Env.getSpecialDirectory(.UserDocuments)
+    var startFolder = Env.getSpecialDirectory(.UserDocuments)
+    if not Directory.exists(startFolder) do
+        startFolder = Path.directoryName(#file)
+    g_FileState.currentFolder = startFolder
 
     var opt: FileDlgOptions
     opt.mode = .SelectFile
-    opt.initialFolder = g_StartDir.toString()
+    opt.initialFolder = startFolder.toString()
     opt.filters.add({name: "All files", extensions: ""})
     opt.filters.add({name: "Text", extensions: ".txt"})
     opt.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
@@ -220,12 +214,13 @@ func createRootView()
         addDlgButton(stack, "Message: Yes / No / Cancel", &onMsgYesNoCancel)
         addDlgButton(stack, "Message: Confirm", &onMsgConfirm)
         addDlgButton(stack, "Message: Error", &onMsgError)
-        addDlgButton(stack, "Edit: single line", &onEditSingle)
-        addDlgButton(stack, "Edit: multi line", &onEditMulti)
-        addDlgButton(stack, "Form", &onForm)
-        addDlgButton(stack, "File: open", &onFileOpen)
-        addDlgButton(stack, "File: save", &onFileSave)
-        addDlgButton(stack, "File: select folder", &onSelectFolder)
+        addDlgButton(stack, "Edit Single Line…", &onEditSingle)
+        addDlgButton(stack, "Edit Multiple Lines…", &onEditMulti)
+        addDlgButton(stack, "Form…", &onForm)
+        addDlgButton(stack, "Open File…", func(_) { showFileDialog(.SelectFile) })
+        addDlgButton(stack, "Open Multiple Files…", func(_) { showFileDialog(.SelectFiles) })
+        addDlgButton(stack, "Save File…", func(_) { showFileDialog(.CreateFile) })
+        addDlgButton(stack, "Select Folder…", func(_) { showFileDialog(.SelectFolder) })
 
         with g_ThemeButton = PushButton.create(stack, "Switch to Encre", {0, 0, 220, 32})
         {
@@ -261,18 +256,18 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
             g_DarkTheme = false
     }
 
-    let flags = SurfaceFlags.LargeCaption |
+    let flags = SurfaceFlags.SmallCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.CloseButton |
                 SurfaceFlags.Border |
                 SurfaceFlags.Resizable
-    let surface = try app.createSurface(120, 90, W - 46, H - 31, flags)
-    g_Surface = surface
+    let surface = try app.createSurface(120, 90, W, H, flags)
+    surface.minSize = {940, 660}
+    g_Surface       = surface
     surface.setTitle("GUI9 dialogs showcase")
 
     createRootView()
     g_View!.hookOnEvent = &onRootEvent
-    applyTheme()
 
     // In automated test mode we just exercise the composite/build and exit;
     // the modal dialogs require interaction so they are not auto-opened.

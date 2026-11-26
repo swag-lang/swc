@@ -37,7 +37,7 @@ func createRadioButtonPage(parent: *Wnd)
 
     let bottom = createPanel(parent,
                              "States",
-                             "Disabled and large labels are grouped here to cover text clipping and inactive rendering.",
+                             "Disabled buttons keep their checked state without accepting input.",
                              layout.bottom)
     scope
     {
@@ -50,6 +50,6 @@ func createRadioButtonPage(parent: *Wnd)
         radio.setChecked(true)
         radio.disable()
 
-        discard RadioButton.create(bottom, "Very long radio button label that must clip inside its bounds", {320, 132, 360})
+        discard RadioButton.create(bottom, "Use the recommended settings", {320, 132, layout.bottom.width - 344})
     }
 }

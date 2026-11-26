@@ -1,203 +1,163 @@
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
-using Core, Pixel, Gui
+using Core, Gui, Pixel
 
-const NumElems  = 3
-const SpeedMove = 5
+const Side      = 3
+const TileCount = Side * Side
+const EmptyTile = TileCount - 1
+const Margin    = 24.0
+const BoardTop  = 68.0
+const TileGap   = 6.0
 
-var g_Image:        Image
-var g_Texture:      Texture
-var g_HotX, g_HotY: s32
-var g_Moving:       bool
+var g_Board:         [TileCount] s32
+var g_Empty:         s32
+var g_SlideFrom:     s32 = -1
+var g_SlideProgress: f32
+var g_Texture:       Texture
+var g_Source:        Math.Rectangle
+late var g_Status:   *Label
 
-struct Elem
+func areAdjacent(a, b: s32)->bool
 {
-    x, y:   f32
-    empty:  bool
-    moveX:  s32
-    moveY:  s32
-    moveDt: f32
-    angle:  f32 = 1
+    return Math.abs(a % Side - b % Side) + Math.abs(a / Side - b / Side) == 1
 }
 
-var g_Matrix: [NumElems, NumElems] Elem
-var g_Rect:   Math.Rectangle
-
-func tilePos(i, j: s32)->Math.Rectangle
+func shuffle(wnd: *Wnd)
 {
-    let displayW = g_Rect.width / NumElems
-    let displayH = g_Rect.height / NumElems
-    let xd       = i * displayW
-    let yd       = j * displayH
-    return Math.Rectangle{xd, yd, displayW, displayH}
+    for tile in TileCount do
+        g_Board[tile] = tile
+
+    g_Empty     = EmptyTile
+    g_SlideFrom = -1
+    var previous = -1
+
+    // Legal moves preserve solvability. An odd number of moves cannot return to the solved board.
+    for 73
+    {
+        var neighbors: [4] s32
+        var count:     u64
+        for tile in TileCount where tile != previous and areAdjacent(tile, g_Empty)
+        {
+            neighbors[count] = tile
+            count += 1
+        }
+
+        let next = neighbors[Random.shared().nextU64(0, count)]
+        g_Board[g_Empty] = g_Board[next]
+        g_Board[next]    = EmptyTile
+        previous         = g_Empty
+        g_Empty          = next
+    }
+
+    g_Status.setText("Slide a tile next to the empty space.")
+    wnd.invalidate()
+}
+
+func boardRect(wnd: *Wnd)->Math.Rectangle
+{
+    let client = wnd.clientRect()
+    let bounds = Math.Rectangle{Margin, BoardTop, client.width - 2 * Margin, client.height - BoardTop - Margin}
+    let extent = Math.max(0, Math.min(bounds.width, bounds.height))
+    return {bounds.horzCenter() - extent * 0.5, bounds.vertCenter() - extent * 0.5, extent, extent}
+}
+
+func tileRect(board: Math.Rectangle, tile: s32)->Math.Rectangle
+{
+    let extent = board.width / Side
+    return {board.x + (tile % Side) * extent, board.y + (tile / Side) * extent, extent, extent}
+}
+
+func slideTile(wnd: *Wnd, position: Math.Point)
+{
+    if g_SlideFrom >= 0 do
+        return
+
+    let board = boardRect(wnd)
+    if not board.contains(position) do
+        return
+
+    let extent = board.width / Side
+    let column = cast(s32, (position.x - board.x) / extent)
+    let row    = cast(s32, (position.y - board.y) / extent)
+    let tile   = row * Side + column
+    if areAdjacent(tile, g_Empty)
+    {
+        g_SlideFrom     = tile
+        g_SlideProgress = 0
+        wnd.invalidate()
+    }
+}
+
+func drawBoard(wnd: *Wnd, painter: *Painter)
+{
+    if g_SlideFrom >= 0
+    {
+        g_SlideProgress = Math.min(1, g_SlideProgress + 8 * wnd.app().deltaSeconds())
+        if g_SlideProgress >= 1
+        {
+            g_Board[g_Empty]     = g_Board[g_SlideFrom]
+            g_Board[g_SlideFrom] = EmptyTile
+            g_Empty              = g_SlideFrom
+            g_SlideFrom          = -1
+
+            var solved = true
+            for tile, index in g_Board where tile != index do
+                solved = false
+            if solved do
+                g_Status.setText("Puzzle solved.")
+        }
+
+        wnd.invalidate()
+    }
+
+    let board = boardRect(wnd)
+    if board.isEmpty() do
+        return
+
+    painter.fillRoundRect(board, 8, 8, wnd.themeColors().view_Bk)
+    for tile, index in g_Board where tile != EmptyTile
+    {
+        var dest = tileRect(board, cast(s32, index))
+        if index == g_SlideFrom
+        {
+            let end = tileRect(board, g_Empty)
+            dest.x = Math.lerp(dest.x, end.x, g_SlideProgress)
+            dest.y = Math.lerp(dest.y, end.y, g_SlideProgress)
+        }
+
+        dest.inflate(-TileGap * 0.5)
+        if dest.width > 0 do
+            painter.drawTexture(dest, tileRect(g_Source, tile), g_Texture)
+    }
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     switch evt
     {
-    case ResizeEvent:
-        g_Rect = wnd.clientRect()
-
     case CreateEvent:
-        var dataPath: String = Path.directoryName(#curlocation.fileName)
-        dataPath = Path.combine(dataPath, "datas")
-        dataPath = Path.combine(dataPath, "taquin")
-
-        g_Image   = expect Image.load(Path.combine(dataPath, "lighthouse.jpg"))
-        g_Texture = wnd.app().renderer.addImage(g_Image)
-        g_Rect    = wnd.clientRect()
-
-        // List of tiles to pick from
-        var toAdd: Array'Elem
-        for i in NumElems
+        with let button = PushButton.create(wnd, "Shuffle", {Margin, 20, 100, 32})
         {
-            for j in NumElems
-            {
-                toAdd.add(Elem{i, j})
-            }
+            .sigPressed += func|wnd|(_) { shuffle(wnd) }
         }
 
-        // Fill with random tiles
-        for i in NumElems
+        with g_Status = Label.create(wnd, "", {Margin + 116, 20, 300, 32}, null, .SecondaryText)
         {
-            for j in NumElems
-            {
-                if toAdd.count == 1 do
-                    break
-                let idx = Random.shared().nextU64(0, toAdd.count)
-                g_Matrix[i, j]       = toAdd[idx]
-                g_Matrix[i, j].angle = Random.shared().nextF32(-0.01, 0.01)
-                toAdd.removeAt(idx)
-            }
+            .setTextAlignment(.Left, .Center)
         }
 
-        // Set an empty tile
-        let i = Random.shared().nextU64(0, cast(u64, NumElems) - 1)
-        let j = Random.shared().nextU64(0, cast(u64, NumElems) - 1)
-        g_Matrix[i, j].empty = true
+        let image = expect Image.decode(".jpg", #include("datas/taquin/lighthouse.jpg"))
+        g_Texture = wnd.app().renderer.addImage(image)
+        let extent = Math.min(image.width, image.height)
+        g_Source = {(image.width - extent) * 0.5, (image.height - extent) * 0.5, extent, extent}
+        shuffle(wnd)
 
-    case MouseEvent as mouseEvt where mouseEvt.kind == .Move:
-        let pt = wnd.surfaceToLocal(mouseEvt.surfacePos)
+    case MouseEvent as mouse where mouse.kind == .Pressed and mouse.button == .Left:
+        slideTile(wnd, wnd.surfaceToLocal(mouse.surfacePos))
 
-        g_HotX, g_HotY = -1
-        scope(Big)
-        for i in NumElems
-        {
-            for j in NumElems
-            {
-                let cur = &g_Matrix[i, j]
-                if cur.empty do
-                    continue
-                let rect = tilePos(i, j)
-                if rect.contains(pt)
-                {
-                    g_HotX = i
-                    g_HotY = j
-                    break to Big
-                }
-            }
-        }
-
-    case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed:
-        if g_Moving do
-            break
-        if g_HotX == -1 do
-            break
-
-        let i = g_HotX
-        let j = g_HotY
-
-        let cur = &g_Matrix[i, j]
-        if i and g_Matrix[i - 1, j].empty do
-            cur.moveX = -1
-        if j and g_Matrix[i, j - 1].empty do
-            cur.moveY = -1
-
-        if i != NumElems - 1 and g_Matrix[i + 1, j].empty do
-            cur.moveX = 1
-        if j != NumElems - 1 and g_Matrix[i, j + 1].empty do
-            cur.moveY = 1
-
-        if cur.moveX or cur.moveY
-        {
-            g_Moving   = true
-            cur.moveDt = 0
-        }
-
-    case PaintEvent as paintEvt:
-        let painter = paintEvt.paintContext.painter
-        let dt      = wnd.app().deltaSeconds()
-
-        painter.setAntialiased(true)
-        wnd.invalidate()
-
-        for i in NumElems
-        {
-            for j in NumElems
-            {
-                let cur = &g_Matrix[i, j]
-                if cur.empty do
-                    continue
-
-                // Dest position
-                var rd = tilePos(i, j)
-
-                // Move tile left <=> right
-                if cur.moveX
-                {
-                    let rdd = tilePos(i + cur.moveX, j)
-                    rd.x       = Math.lerp(rd.x, rdd.x, cur.moveDt)
-                    cur.moveDt += SpeedMove * dt
-                    cur.moveDt = Math.min(cur.moveDt, 1.0)
-                    if Math.isEqualEpsilon(rd.x, rdd.x)
-                    {
-                        g_Matrix[i + cur.moveX, j]       = cur[]
-                        g_Matrix[i + cur.moveX, j].moveX = 0
-                        cur.empty                        = true
-                        g_Moving                         = false
-                    }
-                }
-
-                // Move tile up <=> down
-                if cur.moveY
-                {
-                    let rdd = tilePos(i, j + cur.moveY)
-                    rd.y       = Math.lerp(rd.y, rdd.y, cur.moveDt)
-                    cur.moveDt += SpeedMove * dt
-                    cur.moveDt = Math.min(cur.moveDt, 1.0)
-                    if Math.isEqualEpsilon(rd.y, rdd.y)
-                    {
-                        g_Matrix[i, j + cur.moveY]       = cur[]
-                        g_Matrix[i, j + cur.moveY].moveY = 0
-                        cur.empty                        = true
-                        g_Moving                         = false
-                    }
-                }
-
-                // Sub position in the image
-                let elemW = g_Image.width / NumElems
-                let elemH = g_Image.height / NumElems
-                let xs    = cur.x * elemW
-                let ys    = cur.y * elemH
-                let rs    = Math.Rectangle{xs, ys, elemW, elemH}
-
-                painter.pushState()
-                painter.startClippingRegion()
-                painter.translateTransform(rd.horzCenter(), rd.vertCenter())
-                painter.rotateTransform(cur.angle)
-
-                let destRect = Math.Rectangle{-rd.width * 0.5, -rd.height * 0.5, rd.width, rd.height}
-                painter.fillRoundRect(destRect, 15, 15, Argb.White)
-                painter.endClippingRegion()
-
-                painter.drawTexture(destRect, rs, g_Texture)
-                painter.drawRoundRect(destRect, 15, 15, Pen.createSolid(Argb.Black, 4))
-
-                painter.resetClippingRegion()
-                painter.popState()
-            }
-        }
+    case PaintEvent as paint:
+        drawBoard(wnd, paint.paintContext.painter)
     }
 
     return false
@@ -205,5 +165,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 600, 660, "Taquin", hook: &onEvent)
+    try runExample(640, 700, title: "Sliding Puzzle", hook: &onEvent)
 }

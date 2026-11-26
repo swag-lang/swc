@@ -15,17 +15,18 @@ func makeSunsetGradient(rect: Math.Rectangle)->Brush
 
 func drawSpreadSample(painter: *Pixel.Painter, rect: Math.Rectangle, title: string, spread: GradientSpread)
 {
-    let axisEnd = rect.x + rect.width * 0.28
-    let brush   = Brush.createLinearGradient(rect.x,
-                                             rect.y,
+    let ramp    = insetRect(rect, 72, 0, 0, 0)
+    let axisEnd = ramp.x + ramp.width * 0.28
+    let brush   = Brush.createLinearGradient(ramp.x,
+                                             ramp.y,
                                              axisEnd,
-                                             rect.y,
+                                             ramp.y,
                                              Argb.DeepSkyBlue,
                                              Argb.Tomato,
                                              spread)
-    painter.fillRoundRect(rect, 12, 12, brush)
-    painter.drawRoundRect(rect, 12, 12, Color.fromArgb(80, Argb.MidnightBlue), 1)
-    painter.drawString(rect.x + 12, rect.vertCenter() - 8, title, g_HelpFont, Argb.White)
+    painter.fillRoundRect(ramp, 8, 8, brush)
+    painter.drawRoundRect(ramp, 8, 8, Color.fromArgb(80, Argb.MidnightBlue), 1)
+    painter.drawString(rect.x, rect.vertCenter() - g_HelpFont.height * 0.5, title, g_HelpFont, Argb.DarkSlateGray)
 }
 
 func drawGradientFillCard(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -102,7 +103,7 @@ func drawGradientSpreadCard(painter: *Pixel.Painter, rect: Math.Rectangle)
                          "Spread modes",
                          "Clamp, repeat and mirror define what happens outside the first gradient interval.")
     let gap = 14.0
-    let h   = (body.height - 2 * gap) / 3
+    let h   = (body.height - 20 - 2 * gap) / 3
     drawSpreadSample(painter,
                      Math.Rectangle{body.x + 18, body.y + 10, body.width - 36, h},
                      "Clamp",
@@ -128,7 +129,7 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let x    = body.horzCenter() - size.width * 0.5
     let y    = body.vertCenter() - g_TitleFont.height * 0.5
 
-    let back      = Math.Rectangle{body.x + 26, body.y + 18, body.width - 52, body.height - 42}
+    let back      = Math.Rectangle{body.x + 26, body.y + 18, body.width - 52, body.height - 54}
     var backBrush = Brush.createLinearGradient(back.x,
                                                back.y,
                                                back.right(),
@@ -138,10 +139,10 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     backBrush.setOpacityF32(0.32)
     painter.fillRoundRect(back, 22, 22, backBrush)
 
-    let glowCenter = Math.Vector2{body.horzCenter(), body.vertCenter()}
+    let glowCenter = Math.Vector2{back.horzCenter(), back.vertCenter()}
     var glowBrush  = Brush.createSweepGradient(glowCenter, Argb.White, Argb.Crimson, .Repeat)
     glowBrush.multiplyOpacity(0.42)
-    painter.fillCircle(glowCenter.x, glowCenter.y, Math.min(body.width, body.height) * 0.42, glowBrush)
+    painter.fillCircle(glowCenter.x, glowCenter.y, Math.min(back.width, back.height) * 0.42, glowBrush)
 
     var brush = Brush.createSweepGradient(Math.Vector2{x + size.width * 0.5, y + size.height * 0.5},
                                           0.0'deg,
@@ -153,7 +154,7 @@ func drawGradientTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     brush.multiplyTint(Color.fromArgb(235'u8, Argb.White))
     painter.drawString(x, y, text, g_TitleFont, brush)
     painter.drawString(body.x + 22,
-                       body.bottom() - 28,
+                       body.bottom() - 20,
                        "setOpacityF32 + multiplyTint + drawString",
                        g_HelpFont,
                        Argb.DimGray)
@@ -163,7 +164,7 @@ func drawGradientsPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel gradient paints",
-                   "Page 6 : linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
+                   "Linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
 
     drawGradientFillCard(painter, {28, 104, 452, 268})
     drawGradientStrokeCard(painter, {500, 104, 452, 268})

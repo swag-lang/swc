@@ -121,7 +121,7 @@ func drawRenderTargetPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel render targets",
-                   "Page 11 : offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
+                   "Offscreen drawing, texture reuse, source-rect sampling and brush reuse from a live render target.")
 
     // The target stores device texels while the offscreen pass draws in logical
     // units: allocate it at the painter's content scale so the drawing is as dense

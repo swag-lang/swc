@@ -42,20 +42,23 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     scope
     {
-        let center    = Math.Vector2{middleCell.horzCenter(), middleCell.y + middleCell.height * 0.40}
+        let preview   = insetRect(middleCell, 18, 12, 18, 58)
+        let center    = Math.Vector2{preview.horzCenter(), preview.vertCenter()}
+        let radius    = Math.min(preview.width, preview.height) * 0.48
         let fillBrush = Brush.createTiled(g_TileTexture)
         var pen       = Pen.createSolid(Argb.White, 16)
         pen.brush     = Brush.createTexture(g_FillTexture)
         pen.borderPos = .Inside
-        painter.fillCircle(center.x, center.y, 72, fillBrush)
-        painter.drawCircle(center.x, center.y, 72, pen)
+        painter.fillCircle(center.x, center.y, radius, fillBrush)
+        painter.drawCircle(center.x, center.y, radius, pen)
         drawBrushCellLabel(painter, middleCell, "Tiled texture fill", "Brush.createTiled + textured outline")
     }
 
     scope
     {
-        let center    = Math.Vector2{rightCell.horzCenter(), rightCell.y + rightCell.height * 0.38}
-        let star      = makeStarPolygon(center.x, center.y, 82, 36, 6)
+        let preview   = insetRect(rightCell, 18, 12, 18, 58)
+        let radius    = Math.min(preview.width, preview.height) * 0.44
+        let star      = makeStarPolygon(preview.horzCenter(), preview.vertCenter(), radius, radius * 0.44, 6)
         let fillBrush = Brush.createHatch(.OutlinedDiamond, Color.fromArgb(224, Argb.DarkMagenta))
         var pen       = Pen.createSolid(Argb.White, 12)
         pen.brush     = Brush.createTiled(g_TileTexture)
@@ -116,7 +119,7 @@ func drawBrushesPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel brush rendering",
-                   "Page 5 : drawing and filling forms with texture, tiled and hatch brushes.")
+                   "Drawing and filling forms with texture, tiled and hatch brushes.")
 
     let fillBody = drawPanel(painter,
                              {28, 104, 924, 272},

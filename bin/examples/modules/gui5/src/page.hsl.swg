@@ -9,8 +9,11 @@ func createHslModesPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        discard createModePicker(left, "Saturation / lightness", {24, 120, 250, 210}, .SaturationLightness)
-        discard createModePicker(left, "Hue / saturation", {314, 120, 250, 210}, .HueSaturation)
+        const Margin = 24.0
+        const Gap    = 20.0
+        let planeWidth = (layout.left.width - 2 * Margin - Gap) * 0.5
+        discard createModePicker(left, "Saturation / lightness", {Margin, 120, planeWidth, 210}, .SaturationLightness)
+        discard createModePicker(left, "Hue / saturation", {Margin + planeWidth + Gap, 120, planeWidth, 210}, .HueSaturation)
     }
 
     let right = createPanel(parent,
@@ -19,11 +22,14 @@ func createHslModesPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        discard createModePicker(right, "Hue / lightness", {24, 120, 250, 210}, .HueLightness)
-        discard createModePicker(right, "Hue", {300, 120, 28, 210}, .HueVertical)
-        discard createModePicker(right, "Light", {364, 120, 28, 210}, .LightnessVertical)
-        discard createModePicker(right, "Sat", {428, 120, 28, 210}, .SaturationVertical)
-        discard createModePicker(right, "Alpha", {492, 120, 28, 210}, .AlphaVertical)
+        const Margin   = 24.0
+        const BarPitch = 48.0
+        let barX = layout.right.width - Margin - 4 * BarPitch
+        discard createModePicker(right, "Hue / lightness", {Margin, 120, barX - 2 * Margin, 210}, .HueLightness)
+        discard createModePicker(right, "Hue", {barX, 120, 28, 210}, .HueVertical)
+        discard createModePicker(right, "Light", {barX + BarPitch, 120, 28, 210}, .LightnessVertical)
+        discard createModePicker(right, "Sat", {barX + 2 * BarPitch, 120, 28, 210}, .SaturationVertical)
+        discard createModePicker(right, "Alpha", {barX + 3 * BarPitch, 120, 28, 210}, .AlphaVertical)
     }
 
     let bottom = createPanel(parent,
@@ -32,10 +38,14 @@ func createHslModesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        discard createModePicker(bottom, "Hue", {24, 120, 260, 24}, .HueHorizontal)
-        discard createModePicker(bottom, "Lightness", {330, 120, 260, 24}, .LightnessHorizontal)
-        discard createModePicker(bottom, "Saturation", {636, 120, 260, 24}, .SaturationHorizontal)
-        discard createModePicker(bottom, "Alpha", {942, 120, 260, 24}, .AlphaHorizontal)
-        discard createQuickPalette(bottom, {24, 204, 520, 36}, "Fast presets")
+        const Margin = 24.0
+        const Gap    = 18.0
+        let barWidth = (layout.bottom.width - 2 * Margin - 3 * Gap) / 4
+        let pitch    = barWidth + Gap
+        discard createModePicker(bottom, "Hue", {Margin, 100, barWidth, 24}, .HueHorizontal)
+        discard createModePicker(bottom, "Lightness", {Margin + pitch, 100, barWidth, 24}, .LightnessHorizontal)
+        discard createModePicker(bottom, "Saturation", {Margin + 2 * pitch, 100, barWidth, 24}, .SaturationHorizontal)
+        discard createModePicker(bottom, "Alpha", {Margin + 3 * pitch, 100, barWidth, 24}, .AlphaHorizontal)
+        discard createQuickPalette(bottom, {Margin, 173, 520, 36}, "Fast presets")
     }
 }

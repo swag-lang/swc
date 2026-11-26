@@ -592,7 +592,7 @@ func updateHeader()
     let title    = unwrap g_Title
     let subTitle = unwrap g_SubTitle
     let footer   = unwrap g_Footer
-    title.setText("GUI4 property control inspector")
+    title.setText("Property Inspector")
     subTitle.setText("One property control edits several cards at once (multi-selection). The card struct uses nested category subgroups plus Heading / Gap / HelpBox decorators; the combo switches the display mode.")
     footer.setText(Format.toString("Grouping, decorators, multi-selection and live preview in one grid. %", g_StatusText))
 }
@@ -721,11 +721,11 @@ func onFrame(_: *Application)
             g_DarkTheme = false
     }
 
-    let flags = SurfaceFlags.LargeCaption |
+    let flags = SurfaceFlags.SmallCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.CloseButton |
                 SurfaceFlags.Border
-    let surface = try app.createSurface(100, 100, W - 46, H - 31, flags)
+    let surface = try app.createSurface(100, 100, W, H, flags)
     g_Surface = surface
     surface.setTitle("GUI4 property control inspector")
     surface.setIcon(app.theme.icon(ThemeIcons.Options, 18))

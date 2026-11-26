@@ -1,8 +1,5 @@
-// https://adventofcode.com/
-// Year 2021
-//
-// This won't be the more optimal or elegant code.
-// Just want to test Swag here...
+// Advent of Code 2021 • https://adventofcode.com/2021
+// Each call runs one puzzle part against its bundled input.
 
 #main
 {
@@ -21,4 +18,6 @@
     day7A()
     day7B()
     day8A()
+
+    Core.Console.print("Advent of Code 2021 checked 15 puzzle parts.\n")
 }

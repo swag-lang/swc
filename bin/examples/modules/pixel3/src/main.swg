@@ -7,7 +7,7 @@ const H = 560
 const Sizes  = [8, 9, 10, 11, 12, 13, 14, 16, 18, 22, 28, 36]
 const Sample = "Hamburg agQ 012"
 
-const ColPx     = 22.0
+const ColPx     = 28.0
 const ColBitmap = 120.0
 const ColMsdf   = 440.0
 const ColAuto   = 760.0
@@ -24,25 +24,15 @@ late var g_Render: Pixel.IRenderer
 var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 
-var g_FontPath:        String
-var g_FontBytes:       Array'u8
 late var g_TypeFace:   *Pixel.TypeFace
 late var g_HeaderFont: *Pixel.Font
-
-func fontPath(fileName: string, loc = #callerlocation)->String
-{
-    let srcPath = Path.directoryName(loc.fileName)
-    return Path.combine(Path.combine(srcPath, "data"), fileName)
-}
+late var g_TitleFont:  *Pixel.Font
 
 func loadFonts() fail
 {
-    g_FontPath = fontPath("segoeui.ttf")
-    let path = g_FontPath.toString()
-
-    g_FontBytes  = try File.readAllBytes(path)
-    g_TypeFace   = try TypeFace.create(path, g_FontBytes.toSlice())
+    g_TypeFace   = try TypeFace.create("segoeui.ttf", #include("../../../assets/segoeui.ttf"))
     g_HeaderFont = g_Renderer.fonts.createFont(g_TypeFace, 15)
+    g_TitleFont  = g_Renderer.fonts.createFont(g_TypeFace, 30)
 }
 
 // The three fonts for a given size (all cached after the first call).
@@ -85,13 +75,15 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
     painter.scaleTransform(layout.scale)
     painter.translateTransform(layout.rect.x, layout.rect.y)
 
-    // Column headers
-    painter.drawString(ColPx, 16, "px", g_HeaderFont, Argb.DimGray)
-    painter.drawString(ColBitmap, 16, "Bitmap", g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColMsdf, 16, "MSDF", g_HeaderFont, Argb.MidnightBlue)
-    painter.drawString(ColAuto, 16, "Auto", g_HeaderFont, Argb.DarkGreen)
+    painter.drawString(ColPx, 22, "Text rendering", g_TitleFont, Argb.MidnightBlue)
+    painter.drawString(ColPx, 62, "Compare bitmap, distance-field and automatic rendering at each size.", g_HeaderFont, Argb.DimGray)
+    painter.drawString(ColPx, 103, "Size (px)", g_HeaderFont, Argb.DimGray)
+    painter.drawString(ColBitmap, 103, "Bitmap", g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColMsdf, 103, "MSDF", g_HeaderFont, Argb.MidnightBlue)
+    painter.drawString(ColAuto, 103, "Auto", g_HeaderFont, Argb.MidnightBlue)
+    painter.fillRect(ColPx, 126, W - 2 * ColPx, 1, Argb.Gainsboro)
 
-    var y = 46.0
+    var y = 138.0
     for size in Sizes
     {
         let usize = cast(u32, size)
@@ -102,7 +94,7 @@ func drawScene(painter: *Pixel.Painter, layout: SceneLayout)
         painter.drawString(ColMsdf, y, Sample, fonts.msdf, Argb.Black)
         painter.drawString(ColAuto, y, Sample, fonts.auto, Argb.Black)
 
-        y += cast(f32, size) + 12
+        y += Math.max(cast(f32, size) + 11, 24.0)
     }
 
     painter.popTransform()

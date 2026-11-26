@@ -1,50 +1,84 @@
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
-using Gui, Core, Pixel
+using Core, Gui, Pixel
 
-var g_Img:     Image
-var g_Texture: Texture
+const Margin     = 24.0
+const PreviewTop = 76.0
+const MaxColumns = 112
+const MaxRows    = 45
+const GrayRamp   = " .,:;irsXA253hMHGS#9B&@"
 
-// 'late': the font is created in the CreateEvent handler, non-null everywhere after.
-// The deferred-init global removes the '?' + per-read '!' boilerplate.
 late var g_Font: *Font
+var g_Lines:     Array'String
+var g_TextSize:  Math.Point
 
-func openImage(surface: *Surface?)
+func setImage(image: Image)
 {
-    with var opt: FileDlgOptions
+    let cellWidth  = Painter.measureString("M", g_Font).width
+    let lineHeight = g_Font.height
+    let aspect     = cast(f32, image.width) / image.height
+
+    // A character cell is taller than it is wide. Sample the picture at that aspect.
+    let columns = Math.clamp(cast(s32, Math.round(MaxRows * lineHeight * aspect / cellWidth)), 1, MaxColumns)
+    let rows    = Math.clamp(cast(s32, Math.round(columns * cellWidth / (aspect * lineHeight))), 1, MaxRows)
+    let sample  = image.resized(columns, rows, .Quadratic)
+
+    g_Lines.clear()
+    for y in rows
     {
-        .mode  = .SelectFile
-        .title = "Load Image"
-        .confirmButtonText = "Load"
-        .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})
-        .shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: "My Images"})
-        .shortcuts.add({type: Env.SpecialDirectory.CommonPictures, name: "Images"})
-        .filters.add({name: "PNG - Portable Network Graphics (*.png)", extensions: ".png"})
-        .filters.add({name: "JPG - JPEG Image (*.jpg)", extensions: ".jpg"})
-        .filters.add({name: "BMP - Windows Bitmap (*.bmp)", extensions: ".bmp"})
-        .filters.add({name: "TGA - Truevision Targa (*.tga)", extensions: ".tga"})
+        var line: String
+        line.reserve(cast(u64, columns))
+        for x in columns
+        {
+            let color     = sample.pixelColor(x, y)
+            let luminance = (54 * cast(u32, color.r) + 183 * cast(u32, color.g) + 19 * cast(u32, color.b)) / 256
+            let index     = luminance * (GrayRamp.count - 1) / 255
+            line.append(GrayRamp[index])
+        }
+
+        g_Lines.add(line)
     }
 
-    let dlg = FileDlg.create(unwrap surface, opt)
-    if dlg.doModal() != Dialog.BtnOk do
-        return
-
-    var errOutcome: Swag.Error
-    catch { g_Img = try Image.load(dlg.selectedPath()) } as errOutcome
-    let err = errOutcome.value()
-    if err != null do
-        MessageDlg.error(surface, "Failed to load image", err)
+    g_TextSize = {columns * cellWidth, rows * lineHeight}
 }
 
-func compute(render: IRenderer)
+func openImage(wnd: *Wnd)
 {
-    if not g_Img.isValid() do
+    let surface = unwrap wnd.surface
+    with var options: FileDlgOptions
+    {
+        .mode  = .SelectFile
+        .title = "Open Image"
+        .confirmButtonText = "Open"
+        .shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: "Pictures"})
+        .filters.add({name: "Images", extensions: ".png;.jpg;.jpeg;.bmp;.tga;.gif;.webp;.tiff"})
+    }
+
+    let dialog = FileDlg.create(surface, options)
+    if dialog.doModal() != Dialog.BtnOk do
         return
 
-    g_Img.resize(128, 128)
-    g_Img.grayscale()
+    var outcome: Swag.Error
+    catch { setImage(try Image.load(dialog.selectedPath())) } as outcome
+    if let error = outcome.value() do
+        MessageDlg.error(surface, "Cannot open the image.", error)
+    wnd.invalidate()
+}
 
-    g_Texture = render.addImage(g_Img)
+func drawPreview(wnd: *Wnd, painter: *Painter)
+{
+    let client = wnd.clientRect()
+    let bounds = Math.Rectangle{Margin, PreviewTop, client.width - 2 * Margin, client.height - PreviewTop - Margin}
+    if bounds.width <= 0 or bounds.height <= 0 do
+        return
+
+    let zoom = Math.min(1.0, Math.min(bounds.width / g_TextSize.x, bounds.height / g_TextSize.y))
+    let x    = bounds.horzCenter() - g_TextSize.x * zoom * 0.5
+    let y    = bounds.vertCenter() - g_TextSize.y * zoom * 0.5
+    let ink  = wnd.themeColors().label_Text
+    for line, row in g_Lines do
+        painter.drawString(x, y + cast(f32, row) * g_Font.height * zoom, line.toString(), g_Font, ink, zoom: zoom)
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
@@ -52,36 +86,16 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        let btn = PushButton.create(wnd, "Load Image", {10, 10, 100})
-        btn.sigPressed += func|wnd|(btn)
+        with let open = PushButton.create(wnd, "Open Image…", {Margin, 20, 132, 32})
         {
-            openImage(btn.surface)
-            compute(btn.app().renderer)
-            wnd.invalidate()
+            .sigPressed += func|wnd|(_) { openImage(wnd) }
         }
 
-        g_Font = wnd.theme().createDefaultFont(10)
+        g_Font = wnd.theme().createDefaultFontFs(14)
+        setImage(expect Image.decode(".jpg", #include("../assets/balloon.jpg")))
 
-    case PaintEvent as paintEvt:
-        if not g_Img.isValid() do
-            break
-
-        let painter = paintEvt.paintContext.painter
-
-        const GrayRamp = "$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/|()1{}[?]?-_+~<>i!lI;:,\"^`\'. "
-
-        let size = cast(f32, g_Font.size) * 0.8
-
-        for x in g_Img.width
-        {
-            for y in g_Img.height
-            {
-                let col = g_Img.pixelColor(x, y)
-                let idx = Math.map(cast(f32, col.r), 0, 255, 0, cast(f32, GrayRamp.count))
-                let v   = Swag.makeString(GrayRamp.buffer + cast(s32, idx), 1)
-                painter.drawString(x * size, y * size, v, g_Font, Argb.White)
-            }
-        }
+    case PaintEvent as paint:
+        drawPreview(wnd, paint.paintContext.painter)
     }
 
     return false
@@ -89,5 +103,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 978, 993, title: "Ascii art", hook: &onEvent)
+    try runExample(1040, 800, title: "ASCII Art", hook: &onEvent)
 }

@@ -11,20 +11,26 @@ else
 }
 
 var g_Frame: Time.FrameTiming
+var g_Angle: f32
 
 func display() fail
 {
-    const SPEED = 100
-    glClearColor(0, 0, 0, 0)
-    glRotatef(SPEED * g_Frame.deltaSeconds, 0.0, 0.0, 1)
+    g_Angle += 75 * g_Frame.deltaSeconds
+    if g_Angle >= 360 do
+        g_Angle -= 360
+
+    glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    glRotatef(g_Angle, 0, 0, 1)
     glBegin(GL_TRIANGLES)
     glColor3f(1.0, 0.0, 0.0)
-    glVertex2i(0, 1)
+    glVertex2f(0, 0.76)
     glColor3f(0.0, 1.0, 0.0)
-    glVertex2i(-1, -1)
+    glVertex2f(-0.658, -0.38)
     glColor3f(0.0, 0.0, 1.0)
-    glVertex2i(1, -1)
+    glVertex2f(0.658, -0.38)
     glEnd()
     glFlush()
     #static if #os == Swag.TargetOs.Linux do
@@ -35,7 +41,9 @@ func display() fail
 
 func onResize(_: *Env.Window, width, height: s32)
 {
-    glViewport(0, 0, width, height)
+    // A centered square viewport preserves the triangle’s proportions on resize.
+    let extent = Math.min(width, height)
+    glViewport((width - extent) / 2, (height - extent) / 2, extent, extent)
 }
 
 #main

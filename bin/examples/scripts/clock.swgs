@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=ZI1dmHv3MeM&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel
 
@@ -12,23 +13,32 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case PaintEvent as paintEvt:
         let painter = paintEvt.paintContext.painter
 
-        let centerX = wnd.position.width * 0.5
-        let centerY = wnd.position.height * 0.5
+        let bounds = wnd.clientRect()
+        let cx     = bounds.horzCenter()
+        let cy     = bounds.vertCenter()
+        let radius = Math.min(bounds.width, bounds.height) * 0.34
+        if radius < 16 do
+            return false
+
+        let colors    = wnd.themeColors()
+        let now       = Time.DateTime.now()
+        let seconds   = now.second + now.millisecond / 1000.0
+        let minutes   = now.minute + seconds / 60
+        let hours     = (now.hour % 12) + minutes / 60
+        let fractions = [hours / 12, minutes / 60, seconds / 60]
+        let inks      = [colors.text, colors.softText, colors.arc]
 
         painter.setParams(.Antialiased)
-        painter.clear(Argb.Black)
-        painter.drawCircle(centerX, centerY, 150, Argb.Purple, 8)
+        painter.clear(colors.ground)
+        for fraction, index in fractions
+        {
+            let ring = radius * (0.68 + cast(f32, index) * 0.16)
+            painter.drawCircle(cx, cy, ring, colors.line, 4)
+            painter.drawArc(cx, cy, ring, 0, fraction * Math.ConstF32.TwoPi, inks[index], 4)
+        }
 
-        let now = Time.DateTime.now()
-
-        using Math
-        let hour   = map(cast(f32, (now.hour % 12)), 0, 12, 0, ConstF32.TwoPi)
-        let minute = map(cast(f32, now.minute), 0, 60, 0, ConstF32.TwoPi)
-        let sec    = map(cast(f32, now.second), 0, 60, 0, ConstF32.TwoPi)
-
-        painter.drawArc(centerX, centerY, 60, 0, hour, Argb.Red, 8)
-        painter.drawArc(centerX, centerY, 80, 0, minute, Argb.Green, 8)
-        painter.drawArc(centerX, centerY, 100, 0, sec, Argb.Blue, 8)
+        let time = Format.toString("%{D02}:%{D02}", now.hour, now.minute)
+        painter.drawStringCenter(cx, cy, time, wnd.theme().createDefaultFontFs(28), colors.text)
 
         wnd.invalidate()
     }
@@ -38,5 +48,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 466, 481, title: "Clock", hook: &onEvent)
+    try runExample(466, 481, title: "Clock", hook: &onEvent)
 }

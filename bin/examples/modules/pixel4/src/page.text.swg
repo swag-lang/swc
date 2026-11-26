@@ -19,7 +19,7 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawTextCardSurface(painter, left, Color.fromArgb(255, 247, 249, 251))
     drawTextCardSurface(painter, right, Color.fromArgb(255, 244, 247, 252))
 
-    var story = RichString.fromMarkup("<b>Text layout</b> keeps styled chunks on the same baseline, wraps by shaped run width, and gives <span class=\"p1\">justified</span> paragraphs predictable bounds.\nParagraph gaps, min line height and max-line clipping keep dense UI text stable.")
+    var story = RichString.fromMarkup("<b>Text layout</b> wraps styled runs by their shaped width. <span class=\"p1\">Justified</span> lines align to both edges.\nA paragraph gap separates this line.")
     with var storyFmt: RichStringFormat
     {
         .flags         = .WordWrap | .Clip
@@ -27,7 +27,6 @@ func drawTextFlowCard(painter: *Pixel.Painter, rect: Math.Rectangle)
         .lineGap       = 3
         .paragraphGap  = 5
         .minLineHeight = 17
-        .maxLines      = 6
         .font.regular  = g_HelpFont
         .font.bold     = g_LabelFont
         .palette[0]    = Argb.DarkSlateGray
@@ -96,14 +95,14 @@ func drawPaintedGlyphCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     sweepBrush.addGradientStop(0.4, Argb.SeaGreen)
     painter.drawString(sweepX, sweepY, sweepText, g_LabelFont, sweepBrush)
 
-    let textureText = "texture brush + underline"
-    let textureSize = Painter.measureString(textureText, g_HelpFont)
+    let textureText = "Tiled brush"
+    let textureSize = Painter.measureString(textureText, g_SubTitleFont)
     let textureX    = sample.horzCenter() - textureSize.width * 0.5
-    let textureY    = sample.bottom() - g_HelpFont.height - 12
+    let textureY    = sample.bottom() - g_SubTitleFont.height - 12
     painter.drawString(textureX,
                        textureY,
                        textureText,
-                       g_HelpFont,
+                       g_SubTitleFont,
                        Brush.createTiled(g_TileTexture),
                        UnderlineStyle.Underline)
 }
@@ -200,7 +199,7 @@ func drawTextPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel text rendering",
-                   "Page 7 : shaped runs, rich layout, painted glyphs, baseline metrics and vector outlines in one painter pass.")
+                   "Shaped runs, rich layout, painted glyphs, baseline metrics and vector outlines in one painter pass.")
     drawTextFlowCard(painter, {28, 104, 452, 280})
     drawPaintedGlyphCard(painter, {500, 104, 452, 280})
     drawBaselineCard(painter, {28, 406, 452, 258})

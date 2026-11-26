@@ -3,10 +3,12 @@
 
 using Core, Gui, Pixel
 
-const CellSize   = 90'f32
-const BoardSize  = CellSize * 8
-const BorderSize = 30'f32
+const CellSize            = 90'f32
+const BoardSize           = CellSize * 8
+const BorderSize          = 30'f32
 const BoardWithBorderSize = BoardSize + 2 * BorderSize
+const BoardMargin         = 16.0
+const SidebarX            = BoardWithBorderSize + 2 * BoardMargin
 
 const ColorOdd       = Argb.Bisque
 const ColorEven      = Argb.Tan
@@ -465,51 +467,36 @@ func paintBoard(paintEvt: *PaintEvent)
     }
 }
 
-// Writes the state of the game under the button, in the text color of the theme.
-func paintStates(paintEvt: *PaintEvent, text: Color)
+func paintStates(wnd: *Wnd, painter: *Painter)
 {
-    let painter = paintEvt.paintContext.painter
-    var str: String
+    let colors   = wnd.themeColors()
+    let headline = wnd.theme().createDefaultFont(18, .Bold)
+    let font     = unwrap Res.smallfont
+    let turn     = g_Game.whiteTurn ? "White to Move" : "Black to Move"
+    painter.drawString(SidebarX, 72, turn, headline, colors.text)
 
-    var y = BoardWithBorderSize + 12
-    str = Format.toString("% player turn", g_Game.whiteTurn ? "White" : "Black")
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
+    let check = isCheck(g_Board, g_Game.whiteTurn) ? "King in check" : "King is safe"
+    painter.drawString(SidebarX, 108, check, font, colors.softText)
+    if g_Game.gameStatus != "Game is not over" do
+        painter.drawString(SidebarX, 134, g_Game.gameStatus, font, colors.text)
 
-    str = Format.toString("White king is %", isCheck(g_Board, true) ? "in check" : "safe")
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
+    painter.drawString(SidebarX, 184, "Castling", headline, colors.text)
+    let states = [
+        Format.toString("White kingside: %", castleStatus(g_Game.castle[0, 0], g_Game.whiteTurn, 6, 8)),
+        Format.toString("White queenside: %", castleStatus(g_Game.castle[0, 1], g_Game.whiteTurn, 6, 4)),
+        Format.toString("Black kingside: %", castleStatus(g_Game.castle[1, 0], not g_Game.whiteTurn, 90, 92)),
+        Format.toString("Black queenside: %", castleStatus(g_Game.castle[1, 1], not g_Game.whiteTurn, 90, 88))]
 
-    str = Format.toString("Black king is %", isCheck(g_Board, false) ? "in check" : "safe")
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
-
-    painter.drawString(0, y, g_Game.gameStatus, unwrap Res.smallfont, text)
-    y += 12
-
-    str = Format.toString("White little castle is %", castleStatus(g_Game.castle[0, 0], g_Game.whiteTurn, 6, 8))
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
-
-    str = Format.toString("White big castle is %", castleStatus(g_Game.castle[0, 1], g_Game.whiteTurn, 6, 4))
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
-
-    str = Format.toString("Black little castle is %", castleStatus(g_Game.castle[1, 0], not g_Game.whiteTurn, 90, 92))
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
-
-    str = Format.toString("Black big castle is %", castleStatus(g_Game.castle[1, 1], not g_Game.whiteTurn, 90, 88))
-    painter.drawString(0, y, str, unwrap Res.smallfont, text)
-    y += 12
+    for state, index in states do
+        painter.drawString(SidebarX, 218 + cast(f32, index) * 24, state.toString(), font, colors.softText)
 }
 
 func pickCell(pos: Math.Point)->s8
 {
-    let xpix = pos.x - BorderSize
+    let xpix = pos.x - BoardMargin - BorderSize
     if xpix < 0 or xpix >= BoardSize do
         return -1
-    let ypix = pos.y - BorderSize
+    let ypix = pos.y - BoardMargin - BorderSize
     if ypix < 0 or ypix >= BoardSize do
         return -1
 
@@ -524,11 +511,11 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     {
     case CreateEvent:
         Res.font      = wnd.theme().createDefaultFont(20)
-        Res.smallfont = wnd.theme().createDefaultFont(12)
+        Res.smallfont = wnd.theme().createDefaultFont(13)
         initGame()
         initCells()
 
-        let btn = PushButton.create(wnd, "Restart", {BoardWithBorderSize + 12, 12})
+        let btn = PushButton.create(wnd, "Restart", {SidebarX, BoardMargin, 110, 32})
         btn.sigPressed += func|wnd|(_)
         {
             initGame()
@@ -577,8 +564,12 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         return true
 
     case PaintEvent as paintEvt:
+        let painter = paintEvt.paintContext.painter
+        painter.pushTransform()
+        painter.translateTransform(BoardMargin, BoardMargin)
         paintBoard(paintEvt)
-        paintStates(paintEvt, wnd.themeColors().label_Text)
+        painter.popTransform()
+        paintStates(wnd, painter)
     }
 
     return false
@@ -588,7 +579,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     var app: Gui.Application
 
-    let surface = try app.createSurface(100, 100, 978, 993, flags: (.StandardWindow & ~.Resizable), hook: &onEvent)
+    let surface = try app.createSurface(100, 100, 1050, 852, flags: .SmallCaption | .MinimizeButton | .CloseButton | .Border, hook: &onEvent)
     surface.setTitle("Chess")
 
     var dataPath: String = Path.directoryName(#curlocation.fileName)

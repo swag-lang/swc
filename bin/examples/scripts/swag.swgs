@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=4hA7G3gup-4
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel, Core.Math
 
@@ -119,5 +120,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 650, 420, title: "Swag (move mouse on me!)", hook: &onEvent, testFrames: 50)
+    try runExample(650, 420, title: "Swag (move mouse on me!)", hook: &onEvent)
 }

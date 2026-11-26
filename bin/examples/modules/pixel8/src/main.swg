@@ -43,8 +43,6 @@ late var g_Render: Pixel.IRenderer
 var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 
-late var g_TypeFace:     *Pixel.TypeFace
-late var g_BoldTypeFace: *Pixel.TypeFace
 late var g_TitleFont:    *Pixel.Font
 late var g_SubtitleFont: *Pixel.Font
 late var g_LabelFont:    *Pixel.Font
@@ -54,13 +52,13 @@ var g_Formulas:          [FormulaCount] MathExpression
 
 func initContent() fail
 {
-    g_TypeFace     = try TypeFace.load("segoeui.ttf")
-    g_BoldTypeFace = try TypeFace.load("segoeuib.ttf")
-    g_TitleFont    = g_Renderer.fonts.createFont(g_BoldTypeFace, 32, .Auto)
-    g_SubtitleFont = g_Renderer.fonts.createFont(g_TypeFace, 15, .Auto)
-    g_LabelFont    = g_Renderer.fonts.createFont(g_BoldTypeFace, 15, .Auto)
-    g_SourceFont   = g_Renderer.fonts.createFont(g_TypeFace, 12, .Auto)
-    g_MathFont     = g_Renderer.fonts.createFont(g_TypeFace, 34, .Auto)
+    let regular = try TypeFace.create("Inter Regular", #include("../../../assets/inter-regular.ttf"))
+    let bold    = try TypeFace.create("Inter Bold", #include("../../../assets/inter-bold.ttf"))
+    g_TitleFont    = g_Renderer.fonts.createFont(bold, 32, .Auto)
+    g_SubtitleFont = g_Renderer.fonts.createFont(regular, 15, .Auto)
+    g_LabelFont    = g_Renderer.fonts.createFont(bold, 15, .Auto)
+    g_SourceFont   = g_Renderer.fonts.createFont(regular, 12, .Auto)
+    g_MathFont     = g_Renderer.fonts.createFont(regular, 34, .Auto)
 
     for source, idx in Sources do
         g_Formulas[idx] = try MathExpression.parse(source)

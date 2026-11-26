@@ -32,7 +32,11 @@ func onEvent(view: *Wnd, evt: IEvent)->bool
 
     let view = surface.view()
     view.hookOnEvent = &onEvent
-    g_Button         = PushButton.create(view, "Push Button")
+    with g_Button = PushButton.create(view, "Push Button")
+    {
+        .sigPressed += func(button) { button.setText("Pressed") }
+    }
+
     centerButton(view)
 
     if Env.isSmokeRun() do

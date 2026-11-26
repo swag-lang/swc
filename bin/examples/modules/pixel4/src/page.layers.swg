@@ -40,22 +40,29 @@ func drawLayerCard(painter: *Pixel.Painter,
                    angle: Math.Angle,
                    accent: Color)
 {
-    let body        = drawPanel(painter, rect, title, subtitle)
-    let layerWidth  = 310
-    let layerHeight = 170
-    let dstRect     = Math.Rectangle{
-        body.horzCenter() - layerWidth * 0.5,
-        body.vertCenter() - layerHeight * 0.5 + 8,
-        layerWidth,
-        layerHeight}
+    let body    = drawPanel(painter, rect, title, subtitle)
+    let preview = insetRect(body, 12, 6, 12, 6)
+    const LayerWidth  = 310
+    const LayerHeight = 170
 
-    painter.fillRoundRect(insetRect(body, 18, 14, 18, 14), 18, 18, Brush.createTiled(g_TileTexture))
+    // Leave room around the rotated layer and its offset shadow.
+    let shadowRoom = shadow ? 34.0 : 22.0
+    let scale      = Math.min((preview.width - 36) / LayerWidth, (preview.height - shadowRoom) / LayerHeight)
+    let width      = LayerWidth * scale
+    let height     = LayerHeight * scale
+    let dstRect    = Math.Rectangle{
+        preview.horzCenter() - width * 0.5,
+        preview.vertCenter() - height * 0.5 - (shadow ? 6 : 0),
+        width,
+        height}
+
+    painter.fillRoundRect(preview, 12, 12, Brush.createTiled(g_TileTexture))
 
     var layer: Layer
-    layer.begin(painter, {width: layerWidth, height: layerHeight, renderScale: renderScale})
+    layer.begin(painter, {width: LayerWidth, height: LayerHeight, renderScale: renderScale})
     painter.pushTransform()
     painter.scaleTransform(cast(f32, renderScale))
-    drawLayerArtwork(painter, layerWidth, layerHeight, title, accent)
+    drawLayerArtwork(painter, LayerWidth, LayerHeight, title, accent)
     painter.popTransform()
     layer.end()
 
@@ -69,17 +76,19 @@ func drawLayerCard(painter: *Pixel.Painter,
         .shadow.radius     = 8
     }
 
+    painter.pushClippingRect(preview)
     painter.pushTransform()
     painter.rotateTransform(angle, dstRect.horzCenter(), dstRect.vertCenter())
     layer.draw(drawInfo)
     painter.popTransform()
+    painter.popClippingRect()
 }
 
 func drawLayerPipelinePage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel layers",
-                   "Page 13 : offscreen layers, supersample resolve, blur shadows and alpha-safe composition.")
+                   "Offscreen layers, supersample resolve, blur shadows and alpha-safe composition.")
     drawLayerCard(painter,
                   {28, 104, 452, 258},
                   "Layer",

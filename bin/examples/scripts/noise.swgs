@@ -1,16 +1,14 @@
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel, Core.Math
 
 var g_Texture: Texture
 var g_Image:   Image
 
-const W, H = 1024
-const UX   = 300
-
-// Room for the title bar the surface draws inside the size it is given. Without it the view is
-// shorter than the image and the noise is cut off along the bottom edge.
-const CaptionRoom = 48
+const Resolution    = 1024
+const SettingsWidth = 320
+const Margin        = 20.0
 
 #[Swag.Using(Gui.Properties)]
 struct NoiseParams
@@ -66,13 +64,14 @@ func compute()
 
 func createUI(wnd: *Wnd)
 {
-    with let prop = PropertiesCtrl.create(wnd, {0, 0, UX, H - 70}, .Grid)
+    with let prop = PropertiesCtrl.create(wnd, {0, 0, SettingsWidth}, .Grid)
     {
-        .padding         = 10
+        .dockStyle       = .Left
+        .margin          = {Margin, Margin, 0, Margin}
         .backgroundStyle = .Window
         .splitter.setPaneVisible(0, false)
-        .properties.setEditorWidth(260)
-        .properties.setNameColumnWidth(65)
+        .properties.setEditorWidth(196)
+        .properties.setNameColumnWidth(112)
         .properties.addStruct(g_NoiseParams)
         .properties.sigValueChanged += func|wnd|(_, _)
         {
@@ -87,7 +86,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        g_Image = Image.create(W, H, .BGR8)
+        g_Image = Image.create(Resolution, Resolution, .BGR8)
         createUI(wnd)
         compute()
 
@@ -101,8 +100,14 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         if not g_Texture.isValid() do
             g_Texture = renderer.addImage(g_Image)
 
-        if g_Texture.isValid() do
-            painter.drawTexture(cast(f32, UX), 0, cast(f32, W), cast(f32, H), g_Texture)
+        if g_Texture.isValid()
+        {
+            let client = wnd.clientRect()
+            let left   = SettingsWidth + 2 * Margin
+            let room   = Math.Rectangle{left, Margin, client.width - left - Margin, client.height - 2 * Margin}
+            let dest   = Math.Rectangle.fittedWithin({0, 0, Resolution, Resolution}, room)
+            painter.drawTexture(dest, g_Texture)
+        }
     }
 
     return false
@@ -112,5 +117,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     Swag.startWorkers()
 
-    Application.runSurface(100, 100, W + UX, H + CaptionRoom, title: "Noise", canSize: false, hook: &onEvent)
+    try runExample(1040, 720, title: "Noise", canSize: false, hook: &onEvent)
 }

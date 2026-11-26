@@ -1,10 +1,9 @@
 #import("gui", location: "swag@std")
+#load("surface.swg")
 #load("calc.symbols.swg")
 
 using Core, Gui, Pixel, Core.Math
 
-late var g_FontTxt: *Font
-late var g_FontBtn: *Font
 late var g_Edit:    *EditBox
 var g_ComputeValue: s64
 var g_CurValue:     s64
@@ -12,9 +11,17 @@ var g_Op:           String
 var g_Error:        string?
 var g_Start:        bool = true
 
-func validateOp(str: string)
+func enter(str: string)
 {
-    if Latin1.isDigit(str[0])
+    if str == "Clear"
+    {
+        g_ComputeValue = 0
+        g_CurValue     = 0
+        g_Op.clear()
+        g_Error = null
+        g_Start = true
+    }
+    elif Latin1.isDigit(str[0])
     {
         if g_Start
         {
@@ -61,62 +68,54 @@ func validateOp(str: string)
         edit.setText(Format.toString("%", g_CurValue))
 }
 
-#[Swag.Mixin]
-func createBtn(str: string, x, y: s32)
+func addKey(layout: *GridLayoutCtrl, text: string, column, row: s32, span = 1)
 {
-    scope
+    let form        = text == "=" ? PushButtonForm.Strong : PushButtonForm.Normal
+    with let button = PushButton.create(layout, text, form: form)
     {
-        let btn = PushButton.create(layout, str)
-        btn.sigPressed += func(btn) { validateOp(btn.name.text) }
-        btn.style.setFont(g_FontBtn, .Regular)
-        layout.setCell(btn, x, y)
-
-        switch str
-        {
-        case "=": btn.style.addStyleSheetColors("btnPush_Bk 0xFF880000")
-        case "+", "-", Mul, Div: btn.style.addStyleSheetColors("btnPush_Bk 0xFF008800")
-        }
+        .style.setFont(layout.theme().createDefaultFont(text == "Clear" ? 17 : 26), .Regular)
+        .sigPressed += func|text|(_) { enter(text) }
     }
+
+    layout.setCell(button, column, row, span)
 }
 
 func onEvent(wnd: *Wnd, evt: IEvent)->bool
 {
     if evt is CreateEvent
     {
-        g_FontTxt = wnd.theme().createDefaultFont(30)
-        g_FontBtn = wnd.theme().createDefaultFont(30)
-
         with let layout = GridLayoutCtrl.create(wnd, 4, 6)
         {
             .dockStyle       = .Center
             .flags           = .EqualColumnWidths | .EqualRowHeights
             .backgroundStyle = .Window
-            .margin          = 10
+            .margin          = 16
         }
 
         with g_Edit = EditBox.create(layout, "0", flags: .ReadOnly | .RightAligned)
         {
-            .style.setFont(g_FontTxt, .Regular)
+            .style.setFont(wnd.theme().createDefaultFont(30), .Regular)
         }
 
         layout.setCell(g_Edit, 0, 0, 4)
 
-        createBtn("7", 0, 2)
-        createBtn("8", 1, 2)
-        createBtn("9", 2, 2)
-        createBtn("4", 0, 3)
-        createBtn("5", 1, 3)
-        createBtn("6", 2, 3)
-        createBtn("1", 0, 4)
-        createBtn("2", 1, 4)
-        createBtn("3", 2, 4)
-        createBtn("0", 1, 5)
+        addKey(layout, "7", 0, 2)
+        addKey(layout, "8", 1, 2)
+        addKey(layout, "9", 2, 2)
+        addKey(layout, "4", 0, 3)
+        addKey(layout, "5", 1, 3)
+        addKey(layout, "6", 2, 3)
+        addKey(layout, "1", 0, 4)
+        addKey(layout, "2", 1, 4)
+        addKey(layout, "3", 2, 4)
+        addKey(layout, "0", 0, 5, 3)
 
-        createBtn(Div, 3, 1)
-        createBtn(Mul, 3, 2)
-        createBtn("-", 3, 3)
-        createBtn("+", 3, 4)
-        createBtn("=", 3, 5)
+        addKey(layout, "Clear", 0, 1, 3)
+        addKey(layout, Div, 3, 1)
+        addKey(layout, Mul, 3, 2)
+        addKey(layout, "-", 3, 3)
+        addKey(layout, "+", 3, 4)
+        addKey(layout, "=", 3, 5)
 
         layout.computeLayout()
     }
@@ -126,5 +125,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 354, 369, title: "Calc", hook: &onEvent)
+    try runExample(354, 369, title: "Calculator", hook: &onEvent, canSize: false)
 }

@@ -57,7 +57,7 @@ func drawJoinCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)
 
 func drawJoinsPage(painter: *Pixel.Painter)
 {
-    drawPageHeader(painter, "Pixel path drawing", "Page 2 : join handling on sharp bends and reflex angles.")
+    drawPageHeader(painter, "Pixel path drawing", "Join handling on sharp bends and reflex angles.")
 
     for i in JoinCards.count
     {

@@ -22,10 +22,6 @@ else
 
 var g_Frame: Time.FrameTiming
 
-var g_VertexBuffer: GLuint
-var g_IndexBuffer:  GLuint
-var g_ProgramID:    GLuint
-
 var g_LocMVP:      GLint
 var g_LocModel:    GLint
 var g_LocLightDir: GLint
@@ -94,7 +90,7 @@ const VertexShader = """
     }
 """
 
-const PixelShader = """
+const FragmentShader = """
     #version 330 core
     in vec3 vNormal;
     in vec3 vColor;
@@ -192,59 +188,15 @@ impl Mat4
     }
 }
 
-func compileShader(stage: GLenum, source: string)->GLuint
-{
-    let id  = glCreateShader(stage)
-    var ptr = source.buffer
-    glShaderSource(id, 1, &ptr, null)
-    glCompileShader(id)
-
-    var ok: GLint
-    glGetShaderiv(id, GL_COMPILE_STATUS, &ok)
-    if not ok
-    {
-        var len: s32
-        glGetShaderiv(id, GL_INFO_LOG_LENGTH, &len)
-        var log: String
-        log.reserve(cast(u64, len) + 1)
-        glGetShaderInfoLog(id, len, null, log.buffer)
-        Console.print("shader compile error: ", log, "\n")
-    }
-
-    return id
-}
-
-func createProgram()
-{
-    let vertexShaderID   = compileShader(GL_VERTEX_SHADER, VertexShader)
-    let fragmentShaderID = compileShader(GL_FRAGMENT_SHADER, PixelShader)
-
-    g_ProgramID = glCreateProgram()
-    glAttachShader(g_ProgramID, vertexShaderID)
-    glAttachShader(g_ProgramID, fragmentShaderID)
-    glLinkProgram(g_ProgramID)
-
-    glDetachShader(g_ProgramID, vertexShaderID)
-    glDetachShader(g_ProgramID, fragmentShaderID)
-    glDeleteShader(vertexShaderID)
-    glDeleteShader(fragmentShaderID)
-
-    g_LocMVP      = glGetUniformLocation(g_ProgramID, ("uMVP").buffer)
-    g_LocModel    = glGetUniformLocation(g_ProgramID, ("uModel").buffer)
-    g_LocLightDir = glGetUniformLocation(g_ProgramID, ("uLightDir").buffer)
-}
-
 func display() fail
 {
     g_Angle += g_Frame.deltaSeconds
 
-    glViewport(0, 0, g_Width, g_Height)
+    if g_Width <= 0 or g_Height <= 0 do
+        return
+
     glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)
-
-    glEnable(GL_CULL_FACE)
-    glCullFace(GL_BACK)
-    glFrontFace(GL_CCW)
 
     // Build model -> view -> projection. The model spins on two axes, the view
     // pushes the cube away from the camera, and the projection adds perspective.
@@ -255,30 +207,10 @@ func display() fail
     var mvp        = Mat4.mul(projection, Mat4.mul(view, model))
     var modelCopy  = model
 
-    glUseProgram(g_ProgramID)
     glUniformMatrix4fv(g_LocMVP, 1, GL_FALSE, &mvp.m[0])
     glUniformMatrix4fv(g_LocModel, 1, GL_FALSE, &modelCopy.m[0])
-    glUniform3f(g_LocLightDir, 0.4, 0.7, 1.0)
-
-    glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_IndexBuffer)
-
-    const Stride = 9 * #sizeof(GLfloat)
-    var offset: const [*] u8? = null
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, Stride, offset)
-    offset += 3 * #sizeof(GLfloat)
-    glEnableVertexAttribArray(1)
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, Stride, offset)
-    offset += 3 * #sizeof(GLfloat)
-    glEnableVertexAttribArray(2)
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, Stride, offset)
 
     glDrawElements(GL_TRIANGLES, Indices.count, GL_UNSIGNED_INT, null)
-
-    glDisableVertexAttribArray(0)
-    glDisableVertexAttribArray(1)
-    glDisableVertexAttribArray(2)
 
     glFlush()
     #static if #os == Swag.TargetOs.Linux do
@@ -309,15 +241,43 @@ func onResize(_: *Env.Window, width, height: s32)
     defer g_Context.destroy()
     glInitExtensions()
 
-    glGenBuffers(1, &g_VertexBuffer)
-    glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
+    var vertexArray: GLuint
+    glGenVertexArrays(1, &vertexArray)
+    defer glDeleteVertexArrays(1, &vertexArray)
+    glBindVertexArray(vertexArray)
+
+    var vertexBuffer: GLuint
+    glGenBuffers(1, &vertexBuffer)
+    defer glDeleteBuffers(1, &vertexBuffer)
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer)
     glBufferData(GL_ARRAY_BUFFER, #sizeof(Vertices), Vertices.buffer, GL_STATIC_DRAW)
 
-    glGenBuffers(1, &g_IndexBuffer)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, g_IndexBuffer)
+    var indexBuffer: GLuint
+    glGenBuffers(1, &indexBuffer)
+    defer glDeleteBuffers(1, &indexBuffer)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, #sizeof(Indices), Indices.buffer, GL_STATIC_DRAW)
 
-    createProgram()
+    const Stride = 9 * #sizeof(GLfloat)
+    for attribute in 3
+    {
+        let index  = cast(GLuint, attribute)
+        let offset = cast(const [*] u8?, attribute * 3 * #sizeof(GLfloat))
+        glEnableVertexAttribArray(index)
+        glVertexAttribPointer(index, 3, GL_FLOAT, GL_FALSE, Stride, offset)
+    }
+
+    let program = try createProgram(VertexShader, FragmentShader)
+    defer glDeleteProgram(program)
+    glUseProgram(program)
+    g_LocMVP      = glGetUniformLocation(program, "uMVP".buffer)
+    g_LocModel    = glGetUniformLocation(program, "uModel".buffer)
+    g_LocLightDir = glGetUniformLocation(program, "uLightDir".buffer)
+    glUniform3f(g_LocLightDir, 0.4, 0.7, 1.0)
+
+    glEnable(GL_CULL_FACE)
+    glCullFace(GL_BACK)
+    glFrontFace(GL_CCW)
 
     g_Window.callbacks.onResize = &onResize
 

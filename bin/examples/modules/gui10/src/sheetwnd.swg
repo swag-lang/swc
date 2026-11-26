@@ -73,6 +73,10 @@ impl SheetView
         case .Metrics:  .buildMetrics()
         }
 
+        var height = 2 * SheetPadding
+        for &row in .rows do
+            height += row.group ? GroupHeight : RowHeight
+        .host.setScrollSize(0, height)
         .invalidate()
     }
 
@@ -256,13 +260,20 @@ impl IWnd for SheetView
         let colors  = &app.theme.colors
         let client  = .paddedClientRect()
         let width   = Math.max(client.width - 2 * SheetPadding, 1.0)
+        let top     = .scrollPos.y + client.y
+        let bottom  = .scrollPos.y + client.bottom()
 
         var y = client.y + SheetPadding
         for &row in .rows
         {
+            if y >= bottom do
+                break
+
             let height = row.group ? GroupHeight : RowHeight
             let rect   = Math.Rectangle{client.x + SheetPadding, y, width, height}
             y += height
+            if y <= top do
+                continue
 
             if row.group
             {
@@ -314,8 +325,6 @@ impl IWnd for SheetView
                 drawCell(painter, Math.Rectangle{x, rect.y, HexWidth, height}, row.text.toString(), unwrap .fontMono, colors.label_TextLight)
             }
         }
-
-        .host.setScrollSize(0, y - client.y + SheetPadding)
     }
 }
 

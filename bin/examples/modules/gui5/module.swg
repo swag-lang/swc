@@ -1,4 +1,5 @@
 #import("gui", location: "swag@std")
+#load("../../shared/pagenavigation.swg")
 
 #run
 {

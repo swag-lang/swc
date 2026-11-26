@@ -1,8 +1,5 @@
-// https://adventofcode.com/
-// Year 2024
-//
-// This won't be the more optimal or elegant code.
-// Just want to test Swag here...
+// Advent of Code 2024 • https://adventofcode.com/2024
+// Each call runs one puzzle part against its bundled input.
 
 #main
 {
@@ -24,4 +21,6 @@
     day8B()
     day9A()
     day9B()
+
+    Core.Console.print("Advent of Code 2024 checked 18 puzzle parts.\n")
 }

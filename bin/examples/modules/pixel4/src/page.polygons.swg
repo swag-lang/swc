@@ -94,7 +94,7 @@ func drawPolygonsPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel polygon rendering",
-                   "Page 4 : convex fills, concave triangulation and polygon winding for holes.")
+                   "Convex fills, concave triangulation and polygon winding for holes.")
 
     let convexRect   = Math.Rectangle{28, 110, 452, 248}
     let concaveRect  = Math.Rectangle{500, 110, 452, 248}

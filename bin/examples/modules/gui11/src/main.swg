@@ -784,12 +784,12 @@ func createRootView()
             g_DarkTheme = false
     }
 
-    let flags = SurfaceFlags.LargeCaption |
+    let flags = SurfaceFlags.SmallCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.MaximizeButton |
                 SurfaceFlags.CloseButton |
                 SurfaceFlags.Border
-    let surface = try app.createSurface(90, 60, W - 46, H - 31, flags)
+    let surface = try app.createSurface(90, 60, W, H, flags)
     g_Surface = surface
     surface.setTitle("GUI11 motion laboratory")
     surface.setIcon(app.theme.icon(ThemeIcons.Play, 18))

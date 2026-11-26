@@ -6,31 +6,62 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
                             title,
                             "Standalone Header items can be resized, clamped, decorated and marked as sorted.",
                             rect)
-    let header = Header.create(panel, Math.Rectangle{18, 94, rect.width - 36, 34})
+    const Inset = 18.0
+    let width  = rect.width - Inset * 2
+    let header = Header.create(panel, {Inset, 84, width, 34})
     header.form = round ? .Round : .Flat
     if disabledClick do
         header.updateFlags(remove: .Clickable)
-    discard header.addColumn("Name", 190, app.theme.icon(.OpenFile, 16))
-    header.setItemWidthLimits(0, 120, 260)
-    let state = header.addColumn("State", 120, app.theme.icon(.Filter, 16))
-    state.isClickable = not disabledClick
-    let size = header.addColumn("Size", 92)
+
+    discard header.addColumn("Name", width * 0.34, app.theme.icon(.OpenFile, 16))
+    header.setItemWidthLimits(0, 106, 220)
+    discard header.addColumn("State", width * 0.23, app.theme.icon(.Filter, 16))
+    let size = header.addColumn("Size", width * 0.16)
     size.isResizable = false
-    discard header.addColumn("Owner", Math.max(rect.width - 36 - 190 - 120 - 92, 140.0), app.theme.icon(.Sort, 16))
+    discard header.addColumn("Owner", width * 0.24)
     header.setSortIndicator(1, round ? .Ascending : .Descending)
 
-    let rowY = 148.0
-    for i in 4
+    let rows = Wnd.create'Wnd(panel, {Inset, 126, width, 118})
+    rows.hookOnEvent = func|header|(view, event)
     {
-        let y    = rowY + i * 34
-        let icon = Label.create(panel, "", Math.Rectangle{34, y, 20, 24})
-        icon.setIcon(sampleIcon(i, 16))
-        discard createText(panel,
-                           Format.toString("Header row %", i + 1),
-                           Math.Rectangle{60, y, 180, 24})
-        discard createText(panel, i % 2 == 0 ? "ready" : "waiting", Math.Rectangle{250, y, 110, 24})
-        discard createText(panel, Format.toString("% KB", 24 + i * 9), Math.Rectangle{370, y, 80, 24})
-        discard createText(panel, i % 2 == 0 ? "runtime" : "editor", Math.Rectangle{470, y, 160, 24})
+        if event is PaintEvent as paint
+        {
+            let painter = paint.paintContext.painter
+            let font    = view.theme().createDefaultFont(view.themeMetrics().defaultFontSize)
+            let colors  = view.themeColors()
+
+            for row in 4
+            {
+                let cells = [Format.toString("Sample %", row + 1),
+                             String.from(row % 2 == 0 ? "Ready" : "Waiting"),
+                             Format.toString("% KB", 24 + row * 9),
+                             String.from(row % 2 == 0 ? "Runtime" : "Editor")]
+
+                for text, column in cells
+                {
+                    let index = cast(u32, column)
+                    let x     = header.itemPositionAt(index)
+                    let y     = row * 28.0
+                    let cell  = Math.Rectangle{x, y, header.itemWidthAt(index), 28}
+                    painter.pushClippingRect(cell)
+                    painter.drawString(x + 8, y + 5, text.toString(), font, colors.text)
+                    painter.popClippingRect()
+                }
+            }
+        }
+
+        return false
+    }
+
+    header.sigLayoutChanged += func|rows|(_)
+    {
+        rows.invalidate()
+    }
+
+    header.sigColumnClicked += func|header|(_, column)
+    {
+        let ascending = header.sortColumn != column or header.sortDirection != .Ascending
+        header.setSortIndicator(column, ascending ? .Ascending : .Descending)
     }
 }
 
@@ -46,7 +77,7 @@ func createHeadersPage(parent: *Wnd)
                              "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.",
                              layout.bottom)
     let list = ListCtrl.createMultiColumns(bottom,
-                                           Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                           Math.Rectangle{18, 76, layout.bottom.width - 36, layout.bottom.height - 94})
     list.setFrameForm(.Round)
     list.setSelectionMode(.Single)
     list.setIconSize(16)

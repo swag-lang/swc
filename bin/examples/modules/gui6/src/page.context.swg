@@ -52,26 +52,24 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         let font      = view.theme().createDefaultFont(15)
         let titleFont = view.theme().createDefaultFont(20, .Bold)
 
-        painter.fillRect(rect, colors.view_Bk)
-        let card = Math.Rectangle{24, 24, Math.max(rect.width - 48, 1.0), Math.max(rect.height - 48, 1.0)}
-        painter.fillRoundRect(card, 22, 22, Color.fromArgb(255, 246, 248, 250))
-        painter.drawRoundRect(card, 22, 22, Color.fromArgb(70'u8, Argb.Black), 1)
-        painter.drawString(card.x + 28, card.y + 28, "Right-click target", titleFont, Argb.DarkSlateGray)
+        painter.fillRoundRect(rect, 8, 8, colors.ground)
+        let card = Math.Rectangle{20, 16, rect.width - 40, rect.height - 32}
+        painter.drawString(card.x, card.y + 4, "Right-click target", titleFont, colors.text)
         drawWrappedText(painter,
-                        Math.Rectangle{card.x + 28, card.y + 72, card.width - 56, 56},
+                        Math.Rectangle{card.x, card.y + 42, card.width, 56},
                         "Right-click this panel or use the buttons to open the same context menu at different anchors.",
                         font,
-                        Argb.DimGray,
+                        colors.softText,
                         2)
         drawStatePill(painter,
-                      Math.Rectangle{card.x + 28, card.y + 130, 132, 34},
-                      g_ContextPinned ? "pinned" : "unpinned",
+                      Math.Rectangle{card.x, card.y + 106, 132, 32},
+                      g_ContextPinned ? "Pinned" : "Unpinned",
                       g_ContextPinned,
                       font,
                       colors)
         drawStatePill(painter,
-                      Math.Rectangle{card.x + 176, card.y + 130, 132, 34},
-                      Format.toString("delete %", boolWord(not g_ContextPinned)),
+                      Math.Rectangle{card.x + 144, card.y + 106, 132, 32},
+                      Format.toString("Delete %", boolWord(not g_ContextPinned)),
                       not g_ContextPinned,
                       font,
                       colors)

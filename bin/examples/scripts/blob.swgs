@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=ZI1dmHv3MeM&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel, Core.Math
 const NoiseMax = 5.0
@@ -46,5 +47,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 466, 481, title: "Blob", hook: &onEvent)
+    try runExample(466, 481, title: "Blob", hook: &onEvent)
 }

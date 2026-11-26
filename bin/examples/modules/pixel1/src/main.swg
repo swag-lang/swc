@@ -1,8 +1,11 @@
 using Core, Pixel
 
-const W    = 820
-const H    = 560
-const COLW = 400     // width of one column
+const W = 840
+const H = 624
+const ColumnWidth = 400
+
+late var g_TitleFont: *Font
+late var g_LabelFont: *Font
 
 // Draw the same set of figures inside a column starting at 'ox'.
 // 'aa' toggles antialiasing so the two columns can be compared side by side.
@@ -10,14 +13,10 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
 {
     painter.setAntialiased(aa)
 
-    // Header cue (no text): green = antialiased, red = aliased.
-    painter.fillRect(ox + 24, 20, COLW - 48, 14, aa ? Argb.MediumSeaGreen : Argb.IndianRed)
-
-    // --- Circle: curved edges are the clearest AA showcase ---
+    // Curves and diagonal edges expose differences in coverage.
     painter.fillCircle(ox + 96, 110, 58, Argb.Tomato)
     painter.drawCircle(ox + 96, 110, 58, Argb.Firebrick, 4)
 
-    // --- Rotated square (diamond): diagonal straight edges ---
     let dcx     = ox + 270
     let dcy     = 110'f32
     let dhalf   = 62'f32
@@ -29,7 +28,6 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
     painter.fillPolygon(diamond[to], Brush.createSolid(Argb.SteelBlue))
     drawClosedOutline(painter, diamond[to], Pen.createSolid(Argb.MidnightBlue, 4))
 
-    // --- Triangle: slanted edges and sharp corners ---
     let tri = [
         Math.Vector2{ox + 96, 210},
         Math.Vector2{ox + 36, 320},
@@ -37,9 +35,7 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
     painter.fillPolygon(tri[to], Brush.createSolid(Argb.MediumSeaGreen))
     drawClosedOutline(painter, tri[to], Pen.createSolid(Argb.DarkGreen, 4))
 
-    // --- Filled 5-point star: the non-convex fill path (clean + triangulate +
-    // centered fringe AA). Alternating outer/inner radii give sharp convex tips
-    // and concave notches, the clearest showcase for non-convex antialiasing. ---
+    // Alternating radii put sharp tips and concave notches in the same polygon.
     var star: Array'Math.Vector2
     let scx = ox + 272
     let scy = 268'f32
@@ -53,15 +49,14 @@ func drawFigures(painter: *Pixel.Painter, ox: f32, aa: bool)
     painter.fillPolygon(star[to], Brush.createSolid(Argb.Goldenrod))
     drawClosedOutline(painter, star[to], Pen.createSolid(Argb.SaddleBrown, 3))
 
-    // --- Diagonal thick line with round caps ---
+    // Compare stroke caps and rounded corners below the fills.
     var pen = Pen.createSolid(Argb.MediumPurple, 12)
     pen.begCapStyle = .Round
     pen.endCapStyle = .Round
-    painter.drawLine(ox + 40, 430, ox + COLW - 40, 372, pen)
+    painter.drawLine(ox + 40, 430, ox + ColumnWidth - 40, 372, pen)
 
-    // --- Rounded rectangle: curved corners + straight edges ---
-    painter.fillRoundRect(ox + 40, 456, COLW - 80, 78, 22, 22, Argb.LightSeaGreen)
-    painter.drawRoundRect(ox + 40, 456, COLW - 80, 78, 22, 22, Argb.Teal, 4)
+    painter.fillRoundRect(ox + 40, 456, ColumnWidth - 80, 78, 22, 22, Argb.LightSeaGreen)
+    painter.drawRoundRect(ox + 40, 456, ColumnWidth - 80, 78, 22, 22, Argb.Teal, 4)
 }
 
 // Draw a closed polygon outline from a list of points.
@@ -84,13 +79,17 @@ func drawScene(painter: *Pixel.Painter)
     painter.clear(Argb.WhiteSmoke)
     painter.setColorMaskColor()
 
-    // Left column: antialiased. Right column: aliased.
-    drawFigures(painter, 0, true)
-    drawFigures(painter, COLW + 20, false)
+    painter.drawString(28, 20, "Antialiasing", g_TitleFont, Argb.DarkSlateGray)
+    painter.drawString(28, 59, "Compare the same filled and stroked shapes.", g_LabelFont, Argb.DimGray)
+    painter.drawStringCenter(W * 0.25, 100, "Antialiasing on", g_LabelFont, Argb.DarkSlateGray)
+    painter.drawStringCenter(W * 0.75, 100, "Antialiasing off", g_LabelFont, Argb.DarkSlateGray)
+    painter.fillRect(W * 0.5, 88, 1, H - 112, Argb.Gainsboro)
 
-    // Divider between the two columns (drawn aliased, 1px).
-    painter.setAntialiased(false)
-    painter.fillRect(COLW + 9, 0, 2, H, Argb.Gainsboro)
+    painter.pushTransform()
+    painter.translateTransform(0, 70)
+    drawFigures(painter, 10, true)
+    drawFigures(painter, 430, false)
+    painter.popTransform()
 }
 
 func display() fail
@@ -134,6 +133,10 @@ var g_RC:          Pixel.RenderContext
     defer g_Render.deleteContext(&g_RC)
     g_Render.setCurrentContext(g_RC)
     g_Render.init()
+
+    let typeface = try TypeFace.create("Inter Regular", #include("../../../assets/inter-regular.ttf"))
+    g_TitleFont = g_Renderer.fonts.createFont(typeface, 30)
+    g_LabelFont = g_Renderer.fonts.createFont(typeface, 15)
 
     g_Window.callbacks.onResize = &onResize
 

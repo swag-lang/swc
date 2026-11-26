@@ -1,9 +1,11 @@
 using Core, Pixel
 
-const W                 = 980
-const H                 = 720
-const MaxPages          = 13
-const TestFramesPerPage = 30
+const NavigationWidth = 112.0
+const NavigationGap   = 8.0
+
+const W        = 980
+const H        = 732
+const MaxPages = 13
 const PanelHeaderHeight = 76.0
 
 var g_Window:      Env.Window
@@ -13,8 +15,6 @@ var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 var g_Keyboard:    Input.Keyboard
 
-var g_FontPath:          String
-var g_FontBytes:         Array'u8
 late var g_TypeFace:     *Pixel.TypeFace
 late var g_TitleFont:    *Pixel.Font
 late var g_OutlineFont:  *Pixel.Font
@@ -25,21 +25,12 @@ var g_FillTexture:       Texture
 var g_TileTexture:       Texture
 var g_OutlineText:       LinePathList
 
-var g_Page:      s32
-var g_TestFrame: s32
-
-func fontPath(fileName: string, loc = #callerlocation)->String
-{
-    let srcPath = Path.directoryName(loc.fileName)
-    return Path.combine(Path.combine(srcPath, "data"), fileName)
-}
+var g_NeedsPaint = true
+var g_Page: s32
 
 func loadFonts() fail
 {
-    g_FontPath = fontPath("segoeui.ttf")
-    let path = g_FontPath.toString()
-    g_FontBytes    = try File.readAllBytes(path)
-    g_TypeFace     = try TypeFace.create(path, g_FontBytes.toSlice())
+    g_TypeFace     = try TypeFace.create("segoeui.ttf", #include("../../../assets/segoeui.ttf"))
     g_TitleFont    = g_Renderer.fonts.createFont(g_TypeFace, 34)
     g_OutlineFont  = g_Renderer.fonts.createFont(g_TypeFace, 84)
     g_SubTitleFont = g_Renderer.fonts.createFont(g_TypeFace, 18)
@@ -143,9 +134,10 @@ func insetRect(rect: Math.Rectangle, left, top, right, bottom: f32)->Math.Rectan
     return result
 }
 
-func nextPage()
+func changePage(step: s32)
 {
-    g_Page = (g_Page + 1) % MaxPages
+    g_Page       = (g_Page + step + MaxPages) % MaxPages
+    g_NeedsPaint = true
 }
 
 func isAnchorCap(cap: LineCapStyle)->bool
@@ -162,10 +154,24 @@ func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
     drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, g_SubTitleFont, Argb.DimGray)
 }
 
+func navigationRect(index: s32)->Math.Rectangle
+{
+    let right = W - 28.0
+    let width = NavigationWidth * 2 + NavigationGap
+    return {right - width + index * (NavigationWidth + NavigationGap), H - 36, NavigationWidth, 28}
+}
+
 func drawFooter(painter: *Pixel.Painter)
 {
-    let pageText = Format.toString("F1 : next page (%/%). Pages : caps, joins, transparency, polygons, brushes, gradients, text, clipping, blend modes I/II, render targets, text effects, layers.", g_Page + 1, MaxPages)
-    painter.drawString(28, H - 26, pageText, g_HelpFont, Argb.DimGray)
+    painter.drawString(28, H - 30, Format.toString("Page % of %", g_Page + 1, MaxPages), g_HelpFont, Argb.DimGray)
+    const Labels = ["Previous · F2", "Next · F1"]
+    for label, index in Labels
+    {
+        let rect = navigationRect(cast(s32, index))
+        painter.fillRoundRect(rect, 6, 6, Argb.White)
+        painter.drawRoundRect(rect, 6, 6, Color.fromArgb(72, Argb.SlateGray), 1)
+        painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), label, g_HelpFont, Argb.DarkSlateGray)
+    }
 }
 
 func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)->Math.Rectangle
@@ -377,29 +383,35 @@ func onResize(window: *Env.Window, width, height: s32)
     g_RC.width  = width
     g_RC.height = height
     g_Painter.setContentScale(window.dpiScale())
+    g_NeedsPaint = true
+}
+
+func onPaint(_: *Env.Window)
+{
+    g_NeedsPaint = true
+}
+
+func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
+{
+    if event.kind != .ButtonUp or event.button != .Left do
+        return
+
+    let scale = g_Painter.contentScale()
+    let x     = event.x / scale
+    let y     = event.y / scale
+    if navigationRect(0).contains(x, y) do
+        changePage(-1)
+    elif navigationRect(1).contains(x, y) do
+        changePage(1)
 }
 
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(Input.Key.F1) do
-        nextPage()
-}
-
-func updateTestMode()
-{
-    if not Env.isSmokeRun() do
-        return
-
-    g_TestFrame += 1
-    if g_TestFrame < TestFramesPerPage do
-        return
-
-    g_TestFrame = 0
-    if g_Page + 1 >= MaxPages do
-        return
-
-    nextPage()
+    if g_Keyboard.isKeyJustPressed(.F1) do
+        changePage(1)
+    elif g_Keyboard.isKeyJustPressed(.F2) do
+        changePage(-1)
 }
 
 #main
@@ -422,16 +434,28 @@ func updateTestMode()
     loadBrushTextures()
     loadTextShowcase()
 
-    g_Window.callbacks.onResize = &onResize
+    g_Window.callbacks.onResize  = &onResize
+    g_Window.callbacks.onPointer = &onPointer
+    g_Window.callbacks.onPaint   = &onPaint
     try g_Window.show()
 
+    let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if Env.isSmokeRun() do
-        loop.smokeFrames = cast(u32, MaxPages) * cast(u32, TestFramesPerPage)
+    if smoke do
+        loop.smokeFrames = MaxPages
+
     while loop.next()
     {
         updateShortcuts()
-        try display()
-        updateTestMode()
+        if g_NeedsPaint
+        {
+            try display()
+            g_NeedsPaint = false
+        }
+
+        if smoke and g_Page + 1 < MaxPages do
+            changePage(1)
+        elif not smoke do
+            Threading.Thread.sleep(Time.Duration.fromMilliseconds(8))
     }
 }

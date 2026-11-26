@@ -2,6 +2,7 @@
 // https://www.youtube.com/watch?v=uWzPe_S-RVE&list=PLRqwX-V7Uu6ZiZxtDDRCi6uhfTH4FilpH
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel, Core.Math
 
@@ -188,5 +189,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 900, 500, title: "Pendulum", hook: &onEvent)
+    try runExample(900, 500, title: "Pendulum", hook: &onEvent)
 }

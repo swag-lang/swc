@@ -196,30 +196,21 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
     return label
 }
 
-// Marks the button standing for the active palette, and the one standing for the active page.
-//
-// The selected button takes the default form, which is the one form every palette fills with
-// its own accent: the selector then also reports what the accent of the palette it names is.
+// Mark the active palette and page as selections in the current theme.
 func updateSelectors()
 {
-    for btn, idx in g_ThemeButtons
-    {
-        btn.setForm(cast(s32, idx) == cast(s32, g_Variant) ? .Default : .Flat)
-        btn.invalidate()
-    }
+    for button, index in g_ThemeButtons do
+        button.setForm(index == cast(u64, g_Variant) ? .Alternate : .Flat)
 
-    for btn, idx in g_PageButtons
-    {
-        btn.setForm(cast(s32, idx) == g_Page ? .Default : .Flat)
-        btn.invalidate()
-    }
+    for button, index in g_PageButtons do
+        button.setForm(index == cast(u64, g_Page) ? .Alternate : .Flat)
 }
 
 func updateHeader()
 {
     g_Title!.setText(Format.toString("GUI10 theme inspector - %", pageTitle(g_Page)))
     g_SubTitle!.setText(pageSubtitle(g_Page))
-    g_Footer!.setText(Format.toString("Palette: %. F1 : next page (%/%). F2 : next palette. The filter keeps only the values whose name contains it.", variantName(g_Variant), g_Page + 1, MaxPages))
+    g_Footer!.setText(Format.toString("% · Page % of %", variantName(g_Variant), g_Page + 1, MaxPages))
 }
 
 func applyTheme()
@@ -300,7 +291,19 @@ func layoutRootView()
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent
+    if evt is CommandEvent as command
+    {
+        switch command.id
+        {
+        case "next-page":    nextPage()
+        case "next-palette": setVariant(nextThemeVariant(g_Variant))
+        default: return false
+        }
+
+        command.accepted = true
+        return true
+    }
+    elif evt is ResizeEvent
     {
         layoutRootView()
     }
@@ -342,27 +345,14 @@ func updateTestMode()
         return
     }
 
-    if cast(s32, g_Variant) + 1 >= ThemeVariantCount
-    {
-        Env.exit(0)
-    }
+    if cast(s32, g_Variant) + 1 >= ThemeVariantCount do
+        return
 
     showPage(0)
     setVariant(nextThemeVariant(g_Variant))
 }
 
-func onFrame(app: *Application)
-{
-    if not g_Surface do
-        return
-
-    if app.keyboard.isKeyJustPressed(.F1) do
-        nextPage()
-    if app.keyboard.isKeyJustPressed(.F2) do
-        setVariant(nextThemeVariant(g_Variant))
-
-    updateTestMode()
-}
+func onFrame(_: *Application) => updateTestMode()
 
 func createRootView()
 {
@@ -397,14 +387,14 @@ func createRootView()
 
     let filter = EditBox.create(view, "", {})
     g_Filter = filter
-    filter.setPlaceholder("filter by name")
+    filter.setPlaceholder("Filter by name")
     filter.setIcon(app.theme.icon(.Search, 16))
     filter.sigTextChanged += func(ed) { g_Sheet!.view.setFilter(ed.text()) }
 
     // Only one control of a surface can hold the keyboard, so the focus mark is the one state
     // the wall cannot show by standing still. The diagnostic draws every ring at once, which is
     // how the mark is judged against every shape a palette answers for rather than one at a time.
-    let rings = CheckButton.create(view, "focus rings", {})
+    let rings = CheckButton.create(view, "Focus Rings", {})
     g_Rings = rings
     rings.sigChanged += func(box)
     {
@@ -420,16 +410,18 @@ func createRootView()
     setLabelTextStyle(footer, .Left, .Center)
 
     layoutRootView()
+    view.registerKeyShortcut(.None, .F1, "next-page")
+    view.registerKeyShortcut(.None, .F2, "next-palette")
     view.hookOnEvent = &onRootEvent
 }
 
 #main
 {
-    let flags = SurfaceFlags.LargeCaption |
+    let flags = SurfaceFlags.SmallCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.CloseButton |
                 SurfaceFlags.Border
-    let surface = try app.createSurface(60, 40, W - 46, H - 31, flags)
+    let surface = try app.createSurface(60, 40, W, H, flags)
     g_Surface = surface
     surface.setTitle("GUI10 theme inspector")
     surface.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
@@ -440,7 +432,7 @@ func createRootView()
     app.sigFrame += &onFrame
     if Env.isSmokeRun() do
         app.maxRunFrame = cast(u32, (MaxPages * ThemeVariantCount * TestFramesPerPage + 10))
-    surface.show()
     applyTheme()
+    surface.show()
     app.run()
 }

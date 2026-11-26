@@ -10,47 +10,35 @@ else
     var g_Context: Ogl.Platform.Win32.Context
 }
 
-var g_VertexBuffer: GLuint
-var g_ProgramID:    GLuint
-
 const VertexBufferData: [?] GLfloat = [
-    -1.0, -1.0, 0.0,
-    1.0, -1.0, 0.0,
-    0.0, 1.0, 0.0]
+    -0.658, -0.38,
+    0.658, -0.38,
+    0.0, 0.76]
 
 const VertexShader = """
     #version 330 core
-    layout(location = 0) in vec3 vertexPosition_modelspace;
-    out vec3 vcolor;
+    layout(location = 0) in vec2 position;
     void main()
     {
-        gl_Position.xyz = vertexPosition_modelspace;
-        gl_Position.w = 1.0;
-        vcolor = vec3(1,0,1);
+        gl_Position = vec4(position, 0.0, 1.0);
     }
 """
 
-const PixelShader = """
+const FragmentShader = """
     #version 330 core
-    in vec3 vcolor;
-    out vec3 color;
+    out vec4 color;
     void main()
     {
-        color = vcolor;//vec3(1,0,0);
+        color = vec4(0.22, 0.74, 0.97, 1.0);
     }
 """
 
 func display() fail
 {
-    glClearColor(0, 0, 0, 0)
+    glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)
 
-    glUseProgram(g_ProgramID)
-    glEnableVertexAttribArray(0)
-    glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, null)
     glDrawArrays(GL_TRIANGLES, 0, 3)
-    glDisableVertexAttribArray(0)
 
     glFlush()
     #static if #os == Swag.TargetOs.Linux do
@@ -61,45 +49,8 @@ func display() fail
 
 func onResize(_: *Env.Window, width, height: s32)
 {
-    glViewport(0, 0, width, height)
-}
-
-func createShader()
-{
-    var result:        GLint
-    var infoLogLength: s32
-    var infoLog:       String
-
-    let vertexShaderID      = glCreateShader(GL_VERTEX_SHADER)
-    var vertexSourcePointer = VertexShader.buffer
-    glShaderSource(vertexShaderID, 1, &vertexSourcePointer, null)
-    glCompileShader(vertexShaderID)
-    glGetShaderiv(vertexShaderID, GL_COMPILE_STATUS, &result)
-    glGetShaderiv(vertexShaderID, GL_INFO_LOG_LENGTH, &infoLogLength)
-    infoLog.reserve(cast(u64, infoLogLength) + 1)
-    glGetShaderInfoLog(vertexShaderID, infoLogLength, null, infoLog.buffer)
-
-    let fragmentShaderID   = glCreateShader(GL_FRAGMENT_SHADER)
-    var pixelSourcePointer = PixelShader.buffer
-    glShaderSource(fragmentShaderID, 1, &pixelSourcePointer, null)
-    glCompileShader(fragmentShaderID)
-    glGetShaderiv(fragmentShaderID, GL_COMPILE_STATUS, &result)
-    glGetShaderiv(fragmentShaderID, GL_INFO_LOG_LENGTH, &infoLogLength)
-    infoLog.reserve(cast(u64, infoLogLength) + 1)
-    glGetShaderInfoLog(fragmentShaderID, infoLogLength, null, infoLog.buffer)
-
-    g_ProgramID = glCreateProgram()
-    glAttachShader(g_ProgramID, vertexShaderID)
-    glAttachShader(g_ProgramID, fragmentShaderID)
-    glLinkProgram(g_ProgramID)
-    glGetProgramiv(g_ProgramID, GL_LINK_STATUS, &result)
-    glGetProgramiv(g_ProgramID, GL_INFO_LOG_LENGTH, &infoLogLength)
-    glGetProgramInfoLog(g_ProgramID, infoLogLength, null, infoLog.buffer)
-
-    glDetachShader(g_ProgramID, vertexShaderID)
-    glDetachShader(g_ProgramID, fragmentShaderID)
-    glDeleteShader(vertexShaderID)
-    glDeleteShader(fragmentShaderID)
+    let extent = Math.min(width, height)
+    glViewport((width - extent) / 2, (height - extent) / 2, extent, extent)
 }
 
 #main
@@ -113,10 +64,22 @@ func createShader()
     defer g_Context.destroy()
     glInitExtensions()
 
-    glGenBuffers(1, &g_VertexBuffer)
-    glBindBuffer(GL_ARRAY_BUFFER, g_VertexBuffer)
+    var vertexArray: GLuint
+    glGenVertexArrays(1, &vertexArray)
+    defer glDeleteVertexArrays(1, &vertexArray)
+    glBindVertexArray(vertexArray)
+
+    var vertexBuffer: GLuint
+    glGenBuffers(1, &vertexBuffer)
+    defer glDeleteBuffers(1, &vertexBuffer)
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer)
     glBufferData(GL_ARRAY_BUFFER, #sizeof(VertexBufferData), VertexBufferData.buffer, GL_STATIC_DRAW)
-    createShader()
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, null)
+
+    let program = try createProgram(VertexShader, FragmentShader)
+    defer glDeleteProgram(program)
+    glUseProgram(program)
 
     g_Window.callbacks.onResize = &onResize
 

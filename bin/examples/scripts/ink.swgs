@@ -5,15 +5,17 @@
 // https://editor.p5js.org/codingtrain/sketches/HtEtm1vii
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Core, Gui, Pixel, Core.Math
 
-var Palette:      [9] Color
+var Palette:         [9] Color
 var newDrop = true
 var counter = 0
-var currentColor: Color
-var drops:        Array'(*Drop)
-var lastPos:      Vector2
+var currentColor:    Color
+var drops:           Array'(*Drop)
+var lastPos:         Vector2
+late var g_HintFont: *Font
 
 #init
 {
@@ -26,6 +28,12 @@ var lastPos:      Vector2
     Palette[6] = Color.fromRgb(240, 99, 164)
     Palette[7] = Color.fromRgb(241, 97, 100)
     Palette[8] = Color.fromRgb(248, 158, 79)
+}
+
+#drop
+{
+    for drop in drops do
+        Memory.delete(drop)
 }
 
 struct Drop
@@ -67,8 +75,12 @@ impl Drop
         let otherr = other.r * other.r
         for &v in .lp.flattenedPolygon().points
         {
-            let p    = v - other.center
-            let root = sqrt(1 + (otherr / p.lengthSquared()))
+            let p = v - other.center
+            let distanceSquared = p.lengthSquared()
+            if not distanceSquared do
+                continue
+
+            let root = sqrt(1 + otherr / distanceSquared)
             v[] = (p * root) + other.center
         }
 
@@ -102,7 +114,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        break
+        g_HintFont = wnd.theme().createDefaultFont(16)
 
     case MouseEvent as mouseEvt where mouseEvt.kind == .Move or mouseEvt.kind == .Pressed:
         return true
@@ -122,7 +134,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             mousePos.y  = 100
         }
 
-        if leftPressed and mousePos.y > 0
+        if leftPressed and wnd.clientRect().contains(mousePos.x, mousePos.y)
         {
             if newDrop
             {
@@ -131,7 +143,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
                 counter      += 1
             }
 
-            if lastPos.distanceTo(mousePos) > 1
+            if drops.isEmpty() or lastPos.distanceTo(mousePos) > 1
             {
                 addInk(mousePos.x, mousePos.y, 25, currentColor)
                 lastPos = mousePos
@@ -149,8 +161,16 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             newDrop = true
         }
 
-        for drop in drops do
-            drop.show(painter)
+        if drops.isEmpty()
+        {
+            let bounds = wnd.clientRect()
+            painter.drawStringCenter(bounds.horzCenter(), bounds.vertCenter(), "Drag to add ink", g_HintFont, wnd.themeColors().softText)
+        }
+        else
+        {
+            for drop in drops do
+                drop.show(painter)
+        }
 
         wnd.invalidate()
     }
@@ -160,5 +180,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 978, 993, title: "Ink", canSize: false, hook: &onEvent)
+    try runExample(880, 720, title: "Ink", canSize: false, hook: &onEvent)
 }

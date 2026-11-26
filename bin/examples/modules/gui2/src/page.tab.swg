@@ -1,11 +1,11 @@
 using Core, Gui, Pixel
 
-func addTabSample(tab: *Tab, prefix: string)
+func addTabSample(tab: *Tab)
 {
-    for index in 4
+    const Names = ["One", "Two", "Three"]
+    for name, index in Names
     {
         let view = Wnd.create'Wnd(tab)
-        let name = Format.toString("%%", prefix, index + 1)
         discard createText(view, Format.toString("View %", index + 1), {14, 12, 120, 24})
         tab.addItem(name, app.theme.icon(ThemeIcons.Search, 14), view)
     }
@@ -20,9 +20,9 @@ func createTabPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        let tab = Tab.create(left, {22, 88, 430, 122})
+        let tab = Tab.create(left, {22, 88, layout.left.width - 44, 122})
         tab.setForm(.Flat)
-        addTabSample(tab, "Flat ")
+        addTabSample(tab)
     }
 
     let right = createPanel(parent,
@@ -31,10 +31,10 @@ func createTabPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let tab = Tab.create(right, {22, 88, 420, 124})
+        let tab = Tab.create(right, {22, 88, layout.right.width - 44, 124})
         tab.setForm(.Round)
         tab.setLayout(.Fixed)
-        addTabSample(tab, "Round ")
+        addTabSample(tab)
         tab.setSelectedIndex(1)
     }
 
@@ -42,16 +42,17 @@ func createTabPage(parent: *Wnd)
                              "Button forms",
                              "Button and push-button tabs are compact alternatives for tool surfaces.",
                              layout.bottom)
+    let tabWidth = (layout.bottom.width - 72) * 0.5
     scope
     {
-        var tab = Tab.create(bottom, {24, 92, 440, 120})
+        var tab = Tab.create(bottom, {24, 92, tabWidth, 120})
         tab.setForm(.Button)
-        addTabSample(tab, "Button ")
+        addTabSample(tab)
         tab.setSelectedIndex(2)
 
-        tab = Tab.create(bottom, {520, 92, 440, 120})
+        tab = Tab.create(bottom, {48 + tabWidth, 92, tabWidth, 120})
         tab.setForm(.PushButton)
-        addTabSample(tab, "Push ")
+        addTabSample(tab)
         tab.setSelectedIndex(1)
     }
 }

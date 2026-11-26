@@ -1,15 +1,17 @@
 using Core, Pixel
 
-const W                 = 1260
-const H                 = 860
-const GalleryCols       = 2
-const GalleryRows       = 2
-const CardsPerPage      = GalleryCols * GalleryRows
-const PageCount         = 8
-const TestFramesPerPage = 10
-const CardHeaderHeight  = 78.0
-const MaxSourceSide     = 192.0
-const AlphaFadeStep     = 16
+const NavigationWidth = 112.0
+const NavigationGap   = 8.0
+
+const W                = 1260
+const H                = 860
+const GalleryCols      = 2
+const GalleryRows      = 2
+const CardsPerPage     = GalleryCols * GalleryRows
+const PageCount        = 8
+const CardHeaderHeight = 78.0
+const MaxSourceSide    = 192.0
+const AlphaFadeStep    = 16
 
 const PageBmp  = 0
 const PageTga  = 1
@@ -40,14 +42,13 @@ var g_Painter:     Pixel.Painter
 var g_RC:          Pixel.RenderContext
 var g_Keyboard:    Input.Keyboard
 
-late var g_TypeFace:  *Pixel.TypeFace
 late var g_TitleFont: *Pixel.Font
 late var g_LabelFont: *Pixel.Font
 late var g_HelpFont:  *Pixel.Font
 
-var g_Page:      s32
-var g_TestFrame: s32
-var g_Cards:     [PageCount][CardsPerPage] DecoderCard
+var g_NeedsPaint = true
+var g_Page:  s32
+var g_Cards: [PageCount][CardsPerPage] DecoderCard
 
 func dataPath(fileName: string, loc = #callerlocation)->String
 {
@@ -57,10 +58,10 @@ func dataPath(fileName: string, loc = #callerlocation)->String
 
 func loadFonts() fail
 {
-    g_TypeFace  = try TypeFace.load("segoeui.ttf")
-    g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace, 34)
-    g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace, 18)
-    g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace, 14)
+    let regular = try TypeFace.create("Inter Regular", #include("../../../assets/inter-regular.ttf"))
+    g_TitleFont = g_Renderer.fonts.createFont(regular, 34)
+    g_LabelFont = g_Renderer.fonts.createFont(regular, 18)
+    g_HelpFont  = g_Renderer.fonts.createFont(regular, 14)
 }
 
 func normalizeSource(image: Image)->Image
@@ -270,6 +271,26 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: DecoderCard)
     painter.popClippingRect()
 }
 
+func navigationRect(index: s32)->Math.Rectangle
+{
+    let right = W - 28.0
+    let width = NavigationWidth * 2 + NavigationGap
+    return {right - width + index * (NavigationWidth + NavigationGap), H - 36, NavigationWidth, 28}
+}
+
+func drawFooter(painter: *Pixel.Painter)
+{
+    painter.drawString(28, H - 30, Format.toString("Page % of %", g_Page + 1, PageCount), g_HelpFont, Argb.DimGray)
+    const Labels = ["Previous · F2", "Next · F1"]
+    for label, index in Labels
+    {
+        let rect = navigationRect(cast(s32, index))
+        painter.fillRoundRect(rect, 6, 6, Argb.White)
+        painter.drawRoundRect(rect, 6, 6, Color.fromArgb(72, Argb.SlateGray), 1)
+        painter.drawStringCenter(rect.horzCenter(), rect.vertCenter(), label, g_HelpFont, Argb.DarkSlateGray)
+    }
+}
+
 func drawScene(painter: *Pixel.Painter)
 {
     painter.setColorMaskFull()
@@ -282,18 +303,19 @@ func drawScene(painter: *Pixel.Painter)
     for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])
 
-    let footer = Format.toString("F1 : next codec (%/%). BMP, TGA, JPEG, PNG, GIF, TIFF, ICO and WebP.", g_Page + 1, PageCount)
-    painter.drawString(28, H - 22, footer, g_HelpFont, Argb.DimGray)
+    drawFooter(painter)
+}
+
+func sceneLayout()->SceneLayout
+{
+    let scale = g_Painter.contentScale()
+    return computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)),
+                              cast(s32, Math.round(g_RC.height / scale)))
 }
 
 func display() fail
 {
-    // The render context is physical device pixels; the fit is computed in logical
-    // units, and the painter maps them to device pixels on scaled displays.
-    let scale  = g_Painter.contentScale()
-    let layout = computeSceneLayout(cast(s32, Math.round(g_RC.width / scale)),
-                                    cast(s32, Math.round(g_RC.height / scale)))
-
+    let layout = sceneLayout()
     g_Render.begin(g_RC)
     g_Painter.begin()
     g_Painter.pushClippingSurfaceRect(layout.rect)
@@ -313,34 +335,42 @@ func onResize(window: *Env.Window, width, height: s32)
     g_RC.width  = width
     g_RC.height = height
     g_Painter.setContentScale(window.dpiScale())
+    g_NeedsPaint = true
 }
 
-func nextPage()
+func onPaint(_: *Env.Window)
 {
-    g_Page = (g_Page + 1) % PageCount
+    g_NeedsPaint = true
+}
+
+func changePage(step: s32)
+{
+    g_Page       = (g_Page + step + PageCount) % PageCount
+    g_NeedsPaint = true
+}
+
+func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
+{
+    if event.kind != .ButtonUp or event.button != .Left do
+        return
+
+    let scale  = g_Painter.contentScale()
+    let layout = sceneLayout()
+    let x      = (event.x / scale - layout.rect.x) / layout.scale
+    let y      = (event.y / scale - layout.rect.y) / layout.scale
+    if navigationRect(0).contains(x, y) do
+        changePage(-1)
+    elif navigationRect(1).contains(x, y) do
+        changePage(1)
 }
 
 func updateShortcuts()
 {
     g_Keyboard.update()
-    if g_Keyboard.isKeyJustPressed(Input.Key.F1) do
-        nextPage()
-}
-
-func updateTestMode()
-{
-    if not Env.isSmokeRun() do
-        return
-
-    g_TestFrame += 1
-    if g_TestFrame < TestFramesPerPage do
-        return
-
-    g_TestFrame = 0
-    if g_Page + 1 >= PageCount do
-        Env.exit(0)
-
-    nextPage()
+    if g_Keyboard.isKeyJustPressed(.F1) do
+        changePage(1)
+    elif g_Keyboard.isKeyJustPressed(.F2) do
+        changePage(-1)
 }
 
 #main
@@ -363,16 +393,28 @@ func updateTestMode()
     try loadFonts()
     try buildPages()
 
-    g_Window.callbacks.onResize = &onResize
+    g_Window.callbacks.onResize  = &onResize
+    g_Window.callbacks.onPointer = &onPointer
+    g_Window.callbacks.onPaint   = &onPaint
     try g_Window.show()
 
+    let smoke = Env.isSmokeRun()
     var loop: Env.WindowLoop
-    if Env.isSmokeRun() do
-        loop.smokeFrames = cast(u32, PageCount) * cast(u32, TestFramesPerPage)
+    if smoke do
+        loop.smokeFrames = PageCount
+
     while loop.next()
     {
         updateShortcuts()
-        try display()
-        updateTestMode()
+        if g_NeedsPaint
+        {
+            try display()
+            g_NeedsPaint = false
+        }
+
+        if smoke and g_Page + 1 < PageCount do
+            changePage(1)
+        elif not smoke do
+            Threading.Thread.sleep(Time.Duration.fromMilliseconds(8))
     }
 }

@@ -3,6 +3,7 @@
 // @NOTICE: /bin/THIRDPARTY.md#invaders-example-audio
 
 #import("gui", location: "swag@std")
+#load("surface.swg")
 #import("audio", location: "swag@std")
 
 using Gui, Core, Pixel
@@ -362,5 +363,5 @@ func loadBindTextures()
             expect Audio.setOutputVolume(0)
     }
 
-    Application.runSurface(100, 100, W - 46, H - 31, title: "Space-invaders", hook: &onEvent, init: &muteForTest)
+    try runExample(W - 46, H - 31, title: "Space Invaders", hook: &onEvent, init: &muteForTest)
 }

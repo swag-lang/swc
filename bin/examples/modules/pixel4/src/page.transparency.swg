@@ -47,7 +47,7 @@ func drawTransparencyPage(painter: *Pixel.Painter)
 {
     drawPageHeader(painter,
                    "Pixel path drawing",
-                   "Page 3 : color stacking and alpha blending on a filled surface plus overlapping strokes.")
+                   "Color stacking and alpha blending on a filled surface plus overlapping strokes.")
 
     let sceneBody = drawPanel(painter,
                               {28, 102, 924, 374},

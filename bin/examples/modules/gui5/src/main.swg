@@ -1,4 +1,4 @@
-// Use --dark for Encre or --light for Papier. F1 advances through the color controls.
+// Use --dark for Encre or --light for Papier. F1 and F2 change pages.
 using Core, Gui, Pixel
 
 const W                    = 1140
@@ -7,10 +7,10 @@ const MaxPages             = 5
 const TestFramesPerPage    = 35
 const RootMargin           = 24.0
 const PageTop              = 92.0
-const PageBottomMargin     = 44.0
+const PageBottomMargin     = 48.0
 const PanelGap             = 24.0
-const TopPanelHeight       = 400.0
-const MinBottomPanelHeight = 240.0
+const TopPanelHeight       = 436.0
+const MinBottomPanelHeight = 218.0
 const ThemeButtonWidth     = 152.0
 const HeaderGap            = 18.0
 
@@ -29,20 +29,16 @@ var g_SubTitle:    *Label?
 var g_ThemeButton: *PushButton?
 var g_PageView:    *Wnd?
 var g_Footer:      *Label?
+var g_PageNav:     *StackLayoutCtrl?
 var g_Page:        s32
 var g_TestFrame:   s32
 var g_DarkTheme:   bool
 var g_Color:       Color = Argb.CornflowerBlue
 
-func setLabelTextStyle(label: *Label, horizontal = StringHorzAlignment.Left, vertical = StringVertAlignment.Center)
-{
-    label.setTextAlignment(horizontal, vertical)
-}
-
 func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelFlags.None)->*Label
 {
     let label = Label.create(parent, text, rect, null, flags)
-    setLabelTextStyle(label, .Left, .Center)
+    label.setTextAlignment(.Left, .Center)
     return label
 }
 
@@ -77,7 +73,7 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let width        = Math.max(rect.width, 1.0)
     let height       = Math.max(rect.height, TopPanelHeight + PanelGap + MinBottomPanelHeight)
     let halfWidth    = (width - PanelGap) * 0.5
-    let topHeight    = Math.min(TopPanelHeight, Math.max(400.0, (height - PanelGap) * 0.62))
+    let topHeight    = TopPanelHeight
     let bottomY      = topHeight + PanelGap
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
@@ -135,9 +131,9 @@ func updateHeader()
     let title    = unwrap g_Title
     let subTitle = unwrap g_SubTitle
     let footer   = unwrap g_Footer
-    title.setText(Format.toString("GUI5 color widgets - %", pageTitle(g_Page)))
+    title.setText(pageTitle(g_Page))
     subTitle.setText(pageSubtitle(g_Page))
-    footer.setText(Format.toString("F1 : next page (%/%). Selected %", g_Page + 1, MaxPages, colorSummary()))
+    footer.setText(Format.toString("Page % of % · Selected %", g_Page + 1, MaxPages, colorSummary()))
 }
 
 func updateThemeButton()
@@ -544,7 +540,7 @@ func layoutRootView()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
     let pageHeight   = Math.max(rect.height - PageTop - PageBottomMargin,
                                 TopPanelHeight + PanelGap + MinBottomPanelHeight)
-    let footerY    = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
+    let footerY    = PageTop + pageHeight + 8.0
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
     let title2      = unwrap g_Title
@@ -555,12 +551,25 @@ func layoutRootView()
     themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
     pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
-    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
+    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth - PageNavWidth - 12, 32})
+    g_PageNav!.setPosition(Math.Rectangle{RootMargin + contentWidth - PageNavWidth, footerY, PageNavWidth, 32})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
-    if evt is ResizeEvent
+    if evt is CommandEvent as command
+    {
+        if command.id == "next-page" do
+            nextPage()
+        elif command.id == "previous-page" do
+            previousPage()
+        else do
+            return false
+
+        command.accepted = true
+        return true
+    }
+    elif evt is ResizeEvent
     {
         layoutRootView()
         buildPage()
@@ -575,6 +584,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
         g_ThemeButton = null
         g_PageView    = null
         g_Footer      = null
+        g_PageNav     = null
     }
 
     return false
@@ -612,28 +622,10 @@ func updateTestMode()
     nextPage()
 }
 
-func canUsePageArrows()->bool
-{
-    if not g_View or not g_PageView do
-        return false
-
-    let view2     = unwrap g_View
-    let pageView2 = unwrap g_PageView
-
-    let focus = view2.focusedWindow()
-    if not focus or focus == g_View do
-        return true
-
-    return not pageView2.isAncestorOf(focus)
-}
-
-func onFrame(app: *Application)
+func onFrame(_: *Application)
 {
     if not g_Surface or not g_View or not g_PageView do
         return
-
-    if app.keyboard.isKeyJustPressed(.F1) do
-        nextPage()
 
     updateTestMode()
 }
@@ -646,12 +638,12 @@ func createRootView()
 
     let title = Label.create(view, "", {})
     g_Title = title
-    setLabelTextStyle(title, .Left, .Center)
+    title.setTextAlignment(.Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
     let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
-    setLabelTextStyle(subTitle, .Left, .Top)
+    subTitle.setTextAlignment(.Left, .Top)
 
     let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
@@ -665,9 +657,15 @@ func createRootView()
 
     let footer = Label.create(view, "", {})
     g_Footer = footer
-    setLabelTextStyle(footer, .Left, .Center)
-    footer.updateFlags(.SecondaryText)
+    footer.setTextAlignment(.Left, .Center)
+    footer.updateFlags(.SecondaryText | .Ellipsis)
 
+    g_PageNav = createPageNavigation(view,
+                                     func(_) { previousPage() },
+                                     func(_) { nextPage() })
+
+    view.registerKeyShortcut(.None, .F1, "next-page")
+    view.registerKeyShortcut(.None, .F2, "previous-page")
     layoutRootView()
     view.hookOnEvent = &onRootEvent
 }
@@ -682,11 +680,11 @@ func createRootView()
             g_DarkTheme = false
     }
 
-    let flags = SurfaceFlags.LargeCaption |
+    let flags = SurfaceFlags.SmallCaption |
                 SurfaceFlags.MinimizeButton |
                 SurfaceFlags.CloseButton |
                 SurfaceFlags.Border
-    let surface = try app.createSurface(100, 50, W - 46, H - 31, flags)
+    let surface = try app.createSurface(100, 50, W, H, flags)
     g_Surface = surface
     surface.setTitle("GUI5 color widgets")
     surface.setIcon(app.theme.icon(ThemeIcons.Picker, 18))

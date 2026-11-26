@@ -29,7 +29,7 @@ func createFitStack(parent: *Wnd, rect: Math.Rectangle)
 {
     let panel = createPanel(parent,
                             "Horizontal fit",
-                            "HorzFit divides the available width between visible children.",
+                            "HorizontalFit divides the available width between visible children.",
                             rect)
     let stack = StackLayoutCtrl.create(panel, .HorizontalFit, Math.Rectangle{18, 96, rect.width - 36, 52})
     stack.spacing = 10
@@ -54,7 +54,7 @@ func createSliderStack(parent: *Wnd, rect: Math.Rectangle)
                             "Form rows",
                             "A vertical stack hosting composite controls with fixed row heights.",
                             rect)
-    let stack = StackLayoutCtrl.create(panel, .Top, Math.Rectangle{18, 94, rect.width - 36, rect.height - 114})
+    let stack = StackLayoutCtrl.create(panel, .Top, Math.Rectangle{18, 80, rect.width - 36, rect.height - 98})
     stack.spacing = 12
 
     let width = Math.max(rect.width - 36, 280.0)

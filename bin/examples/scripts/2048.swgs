@@ -1,4 +1,5 @@
 #import("gui", location: "swag@std")
+#load("surface.swg")
 
 using Gui, Core, Pixel
 
@@ -341,5 +342,5 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
 
 #main
 {
-    Application.runSurface(100, 100, 480, 620, title: "2048", hook: &onEvent)
+    try runExample(480, 620, title: "2048", hook: &onEvent)
 }

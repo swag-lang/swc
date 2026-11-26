@@ -54,10 +54,10 @@ func createTreesPage(parent: *Wnd)
     table.setIconSize(16)
     table.setFirstColumnIconMargin(false)
     addListFlags(table)
-    table.addColumn("Item", 210, app.theme.icon(.ChevronRight, 16))
-    table.addColumn("State", 110)
-    table.addColumn("Size", 90)
-    table.addColumn("Owner", 100)
+    table.addColumn("Item", 184, app.theme.icon(.ChevronRight, 16))
+    table.addColumn("State", 84)
+    table.addColumn("Size", 76)
+    table.addColumn("Owner", 90)
     for i in 5
     {
         let root = table.createLine(Format.toString("folder %", i + 1), sampleIcon(i))
@@ -87,7 +87,7 @@ func createTreesPage(parent: *Wnd)
                              "Tree controls preserve expansion, selection and check state independently.",
                              layout.bottom)
     with let stateTree = ListCtrl.createSimple(bottom,
-                                               Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                               Math.Rectangle{18, 76, layout.bottom.width - 36, layout.bottom.height - 94})
     {
         .setFrameForm(.Square)
         .setSelectionMode(.Multi)

@@ -41,7 +41,7 @@ const Samples = [
 
 func loadFonts() fail
 {
-    g_TypeFace  = try TypeFace.load("segoeui.ttf")
+    g_TypeFace  = try TypeFace.create("segoeui.ttf", #include("../../../assets/segoeui.ttf"))
     g_TitleFont = g_Renderer.fonts.createFont(g_TypeFace, 34, .Bitmap)
     g_LabelFont = g_Renderer.fonts.createFont(g_TypeFace, 16, .Bitmap)
     g_HelpFont  = g_Renderer.fonts.createFont(g_TypeFace, 13, .Bitmap)

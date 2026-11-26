@@ -721,7 +721,7 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
     {
         .font         = font
         .builder      = builder
-        .subrs        = glyphPrivate.subrs
+        .subrs        = &glyphPrivate.subrs
         .nominalWidth = glyphPrivate.nominalWidth
         .width        = glyphPrivate.defaultWidth
         .widthOnly    = builder == null

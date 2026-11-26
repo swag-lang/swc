@@ -164,6 +164,11 @@ ships; history lives in Git, not here.
 - Next: measure the cost of evaluating cubic sample positions after contours have chosen
   their segment counts. Rerun the original Windows comparison at one worker and at the
   runtime default.
+- Evidence: [direct scan conversion on color mattes](../bench/workloads/svgraster/resvg-comparison.md#direct-scan-conversion-on-color-mattes)
+  cuts the 16,000-path color fixture from 1088 to 396 ms with identical pixels.
+  resvg takes 570 ms. Clipped curves drop from 66 to 18 ms against 17 ms for
+  resvg. Thin and dashed strokes still spend time generating and scanning their
+  outline fragments.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

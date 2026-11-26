@@ -494,3 +494,35 @@ one worker, about 17% of CPU samples landed in the solid stroke coverage
 loop and 9% in triangle setup. Another 6% landed in the overlap alpha
 clear. Those samples came from optimized native code built with debug
 information and timed independently of the Release benchmark.
+
+## Direct scan conversion on color mattes
+
+The Scope bitmap path records solid fills, outlines and clip masks as contours
+on its opaque CPU targets. Eligible shapes reach the rasterizer without
+building a temporary texture per fill. The shared coverage pass writes both
+color mattes, including when a stroke crosses a partially covered clip.
+The screenshot-independent comparison still uses the author's fill rules and
+paint order.
+
+The table shows one-worker Release medians in milliseconds from seven
+interleaved samples on one AMD EPYC 7763 logical CPU. The Swag baseline is
+`e3e4f7f37a` and the reference is resvg 0.50.0. See the
+[phase timings and pixel checks](mixed-geometry-linux.json).
+
+| Fixture | Swag before | Swag after | resvg | Mean difference from resvg before | Mean difference after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `small.svg` | 7.59 | 6.42 | 2.28 | 0.0230 | 0.0230 |
+| `curves.svg` | 37.64 | 20.67 | 17.61 | 0.3967 | 0.3967 |
+| `strokes.svg` | 175.37 | 114.42 | 25.63 | 3.1819 | 2.6642 |
+| `clipped.svg` | 66.43 | 18.43 | 17.37 | 0.2319 | 0.1567 |
+| `dense.svg` | 82.23 | 83.21 | 79.53 | 2.5406 | 2.5406 |
+| `large.svg` | 1087.96 | 396.30 | 570.10 | 1.0466 | 1.0466 |
+| `sparse-curves.svg` | 1.25 | 1.25 | 1.58 | 0.0060 | 0.0060 |
+| `thin-edges.svg` | 2.08 | 2.56 | 2.45 | 0.0052 | 0.0052 |
+
+Mean difference averages the absolute 8-bit deltas in premultiplied RGB and
+alpha. Six fixtures matched the baseline CRC-64, including the 16,000-path
+drawing. The changed strokes and clips have smaller mean differences from
+resvg. The maximum delta from the previous raster is 113 on the strokes and
+195 on the clipped fixture. A focused test verifies a translucent stroke
+behind a fractional clip in both a tiled and an untiled render.

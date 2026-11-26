@@ -453,8 +453,9 @@ impl Painter
     // Creates a CPU painter that scan-converts eligible solid paths.
     //
     // The renderer is borrowed for the painter's lifetime. Antialiased fills with explicit
-    // winding rules and solid strokes on the main surface can be submitted as contours. Their edge coverage follows the device sample grid. Large axis-aligned
-    // texture spans reuse their bilinear sample coordinates across rows.
+    // winding rules and solid strokes can be submitted as contours on the main surface
+    // and on RGB-only BGRA target draws. Their edge coverage follows the device
+    // sample grid. Large axis-aligned texture spans reuse their sample coordinates.
     func createScanline(renderer: *RenderCpu)->Painter
     {
         var result = create(renderer)

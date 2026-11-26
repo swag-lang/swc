@@ -153,6 +153,9 @@ impl ScanFill
     // Records a texture whose pixel grid is aligned with the destination's device pixels.
     mtd paint(painter: *Painter, paths: *LinePathList, color: Color, evenOdd: bool)
     {
+        if painter.recordScanFill(paths, color, evenOdd ? .EvenOdd : .NonZero) do
+            return
+
         let transform = painter.transform()
         let density   = painter.contentScale()
         let target    = painter.recordingTargetSize()

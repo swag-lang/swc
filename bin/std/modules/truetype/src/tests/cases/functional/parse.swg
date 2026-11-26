@@ -634,6 +634,21 @@ private func lookupCffName(thread: const *Threading.Thread)
     Swag.require(parsed.operands.count == 3)
 }
 
+// Decoding another CFF DICT reuses storage and replaces all previous operands.
+#test
+{
+    const First:  [5] u8 = [140, 141, 5, 143, 20]
+    const Second: [2] u8 = [142, 21]
+    var dict    = expect parseCffDict(First)
+    let address = cast(u64, dict.operands.buffer)
+    Swag.require(dict.has(CFF_OP_FONT_BBOX) and dict.has(CFF_OP_DEFAULT_WIDTH))
+
+    expect dict.decode(Second)
+    Swag.require(cast(u64, dict.operands.buffer) == address and dict.operands.count == 1)
+    Swag.require(not dict.has(CFF_OP_FONT_BBOX) and not dict.has(CFF_OP_DEFAULT_WIDTH))
+    Swag.require(dict.value(CFF_OP_NOMINAL_WIDTH, 0, -1) == 3)
+}
+
 // A CFF real without its terminating nibble fails instead of reading zero bytes forever.
 #test
 {

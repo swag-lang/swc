@@ -1,4 +1,4 @@
-# Single-lane video decoding against FFmpeg
+# Video decoding against FFmpeg
 
 `compare.py` compares planar H.264, HEVC, MPEG-4 Part 2 and RealVideo 4.0 through
 `Video.Reader` in Release.
@@ -41,7 +41,7 @@ trees. It receives the picture hashes, timing samples, FFmpeg version, reference
 compiler logs and individual run logs.
 
 Generate additional inputs with `generate.py`. The corpus covers gradient fades for weighted
-AVC prediction, temporal texture for CAVLC, AVC High 4:4:4, HEVC Main with WPP, and Main10
+AVC prediction, temporal texture for CAVLC, AVC High 4:4:4 and six-slice 4K, HEVC Main with WPP, and Main10
 intra-only and textured inter pictures. The MPEG-4 inputs include Simple Profile at 720p,
 textured intra pictures, and both P and B pictures with MPEG quantization matrices.
 The manifest records each command and input hash.
@@ -80,9 +80,14 @@ by default, and decodes the remaining pictures sequentially. Use `--warmup` for 
 clips. A separate untimed pass warms the process and file cache. The timer excludes
 startup, compilation, opening the container, the warmup pictures and output serialization.
 The Python runner rotates Swag and FFmpeg runs between repetitions and reports the median
-wall time per picture. Each implementation has one decode lane. FFmpeg uses its decoded
+wall time per picture. The default budget is one decode lane. FFmpeg uses its decoded
 native frames, while Swag's public reader writes to reusable eight-bit planes. The FFmpeg
 run with CPU flags cleared is diagnostic. Native FFmpeg is the performance reference.
+
+Use `--lanes` to set the worker limit for Swag and the decoder thread count for FFmpeg.
+Run scaling comparisons on the same CPU affinity mask and use a freshly built
+`ffmpeg_native`. FFmpeg's CPU measurement totals all threads. Swag can choose fewer
+frame lanes for a small picture or a codec with a smaller supported budget.
 
 This fixture starts with four HEVC samples that FFmpeg never emits as pictures. The comparison
 still matches all 30 displayed pictures by presentation time.

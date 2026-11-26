@@ -1,4 +1,4 @@
-"""Compare planar video pictures and serial decode time with FFmpeg."""
+"""Compare planar video pictures and decode time with FFmpeg."""
 
 import argparse
 import hashlib
@@ -28,6 +28,7 @@ def arguments():
     parser.add_argument("--library-bin", type=Path, default=REPO / "bin")
     parser.add_argument("--baseline-bin", type=Path)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--lanes", type=int, default=1, help="decoder thread budget for Swag and FFmpeg")
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--warmup", type=int, default=WARMUP,
                         help=f"pictures decoded before the timed window (default {WARMUP})")
@@ -37,6 +38,8 @@ def arguments():
     parser.add_argument("--reference", type=Path, help="prebuilt ffmpeg_native executable")
     parser.add_argument("input", type=Path, nargs="+")
     args = parser.parse_args()
+    if not 0 < args.lanes <= 0x7FFFFFFF:
+        parser.error("--lanes must be positive and fit in a signed 32-bit integer")
     if args.repetitions < 1:
         parser.error("--repetitions must be positive")
     if not 0 < args.warmup <= 0xFFFFFFFF:
@@ -76,12 +79,12 @@ def build_swag(args, name, library):
                "--out-dir", output / "bin", "--work-dir", output / "work"]
     run(command, args.output / f"{name}.build.log",
         env={**os.environ, "SWAG_PATH": str(library.resolve())})
-    return output / "bin/videodecode"
+    return output / "bin" / WORKLOAD.name
 
 
-def swag(executable, log, *values):
+def swag(executable, log, lanes, *values):
     return run([executable, *(str(value) for value in values)], log,
-               env={**os.environ, "SWAG_RUNTIME_THREADS": "1"})
+               env={**os.environ, "SWAG_RUNTIME_THREADS": str(lanes)})
 
 
 def fixture_timeline(path):
@@ -167,7 +170,7 @@ def benchmark_fixture(args, reference, executables, path, prefix):
     for name, executable in executables.items():
         planes = prefix.with_suffix(f".{name}.yuv")
         swag(executable, prefix.with_suffix(f".{name}.planes.log"),
-             picture_mode, path, timeline, planes)
+             args.lanes, picture_mode, path, timeline, planes)
         quality[name] = compare_planes(path, stream, len(times), planes)
         planes.unlink()
 
@@ -185,13 +188,15 @@ def benchmark_fixture(args, reference, executables, path, prefix):
         for name in order:
             log = prefix.with_suffix(f".{name}.{repetition + 1}.log")
             if name in executables:
-                text = swag(executables[name], log, "time", path, 1, len(times), args.warmup)
+                text = swag(executables[name], log, args.lanes, "time", path, 1, len(times), args.warmup)
                 count, ticks, frequency = map(int, SWAG_TIMING.findall(text)[0])
                 elapsed = ticks / frequency
             else:
                 command = [reference, path, "1", str(int(name == "ffmpeg_no_simd"))]
-                if args.warmup != WARMUP:
+                if args.warmup != WARMUP or args.lanes != 1:
                     command.append(str(args.warmup))
+                if args.lanes != 1:
+                    command.append(str(args.lanes))
                 text = run(command, log)
                 count_text, wall, cpu = FFMPEG_TIMING.findall(text)[0]
                 count, elapsed = int(count_text), float(wall)
@@ -224,7 +229,7 @@ def main():
         results.append(result)
         print(json.dumps(result), flush=True)
     version = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]
-    report = {"ffmpeg": version, "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
+    report = {"ffmpeg": version, "lanes": args.lanes, "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
               "results": results}
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     for result in results:

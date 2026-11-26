@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -34,7 +35,7 @@ static void receive(AVCodecContext *codec, AVFrame *frame, unsigned *count,
         if (++*count == warmup)
         {
             *start = seconds(CLOCK_MONOTONIC);
-            *cpu = seconds(CLOCK_THREAD_CPUTIME_ID);
+            *cpu = seconds(CLOCK_PROCESS_CPUTIME_ID);
         }
         av_frame_unref(frame);
     }
@@ -42,11 +43,12 @@ static void receive(AVCodecContext *codec, AVFrame *frame, unsigned *count,
 
 int main(int argc, char **argv)
 {
-    if (argc != 4 && argc != 5)
+    if (argc < 4 || argc > 6)
         return 2;
     const unsigned repeats = strtoul(argv[2], NULL, 10);
-    const unsigned warmup = argc == 5 ? strtoul(argv[4], NULL, 10) : 30;
-    if (!warmup)
+    const unsigned warmup = argc >= 5 ? strtoul(argv[4], NULL, 10) : 30;
+    const unsigned long lanes = argc == 6 ? strtoul(argv[5], NULL, 10) : 1;
+    if (!warmup || !lanes || lanes > INT_MAX)
         return 2;
     if (atoi(argv[3]))
         av_force_cpu_flags(0);
@@ -69,7 +71,7 @@ int main(int argc, char **argv)
         if (!codec || !packet || !frame)
             abort();
         check(avcodec_parameters_to_context(codec, params));
-        codec->thread_count = 1;
+        codec->thread_count = (int)lanes;
         check(avcodec_open2(codec, decoder, NULL));
 
         double start = 0, cpu = 0;
@@ -92,7 +94,7 @@ int main(int argc, char **argv)
             abort();
         if (rep)
             printf("video frames=%u wall=%.9f cpu=%.9f\n", count - warmup,
-                   seconds(CLOCK_MONOTONIC) - start, seconds(CLOCK_THREAD_CPUTIME_ID) - cpu);
+                   seconds(CLOCK_MONOTONIC) - start, seconds(CLOCK_PROCESS_CPUTIME_ID) - cpu);
         avcodec_free_context(&codec);
         avformat_close_input(&format);
         av_packet_free(&packet);

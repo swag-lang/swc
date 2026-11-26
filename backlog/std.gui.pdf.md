@@ -583,6 +583,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   take the public Flate predictor page from 107 to 71 ms at 1200 px and reduce
   loading from 68 to 37 ms. PDFium takes 48 ms overall. All 43 supported cases
   retain their bitmap checksums.
+- [Reusing translated soft masks](../bench/results/swagscope-filesamples/pdf-raster-linux.md#reusing-translated-soft-masks)
+  cuts load from 69 to 38 ms on the transformed mask fixture. At 1200 px the
+  total goes from 174 to 113 ms against PDFium's 94 ms. All 43 supported cases
+  retain their bitmap checksums.
 - Profile the remaining stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×

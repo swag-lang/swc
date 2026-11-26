@@ -28,6 +28,10 @@ const SoftMaskSamplesPerPoint = 2.0'f32
 // Largest coverage raster produced for one mark.
 const SoftMaskMaxDimension = 2048's32
 
+// Keeps at most 8 MiB of reusable coverage samples in the parser.
+const SoftMaskCoverageCacheGroupLimit = 16
+const SoftMaskCoverageCacheByteLimit  = 512 * 1024
+
 // One soft mask as the graphics state carries it.
 //
 // `q` copies the whole graphics state, so this names the group rather than holding its coverage:
@@ -45,36 +49,67 @@ impl SoftMaskRef
     // Reports whether a mask is in force, which `/SMask /None` clears.
     mtd const isActive()->bool => .groupId != InvalidNode
 
-    // Returns the cache key of the decoded group.
-    //
-    // The transform is part of the identity: one group placed twice covers two different regions
-    // of the page, and they are not the same coverage.
-    mtd const cacheKey()->u64
+    // An integral translation can be applied to the region instead of every group item.
+    mtd const groupTransform()->Transform2
     {
-        var hash = cast(u64, .groupId)
-        hash = mixHash(hash, .ctm.m11)
-        hash = mixHash(hash, .ctm.m12)
-        hash = mixHash(hash, .ctm.m21)
-        hash = mixHash(hash, .ctm.m22)
-        hash = mixHash(hash, .ctm.tx)
-        hash = mixHash(hash, .ctm.ty)
-        return hash
+        var result = .ctm
+        if result.m11 == 1 and result.m22 == 1 and not result.m12 and not result.m21 and
+           Math.abs(result.tx) <= 65536 and Math.abs(result.ty) <= 65536 and
+           result.tx == Math.round(result.tx) and result.ty == Math.round(result.ty)
+        {
+            result.tx, result.ty = 0
+        }
+
+        return result
     }
 }
 
-// Folds one transform component into a hash, by its exact representation rather than its value.
-private func mixHash(hash: u64, value: f32)->u64 => (hash << 7 | hash >> 57) ^ cast(u64, cast #bit(u32, value))
+struct SoftMaskKey
+{
+    groupId:   u32
+    transform: Transform2
+    pageWidth, pageHeight: f32
+    backdrop:  Color
+    kind:      SoftMaskKind
+}
+
+impl SoftMaskKey
+{
+    mtd const opEquals(other: SoftMaskKey)->bool
+    {
+        return .groupId == other.groupId and .transform == other.transform and
+               .pageWidth == other.pageWidth and .pageHeight == other.pageHeight and
+               .backdrop == other.backdrop and .kind == other.kind
+    }
+}
+
+impl Hash.IHash32 for SoftMaskKey
+{
+    mtd const impl compute()->u32
+    {
+        let t = &.transform
+        var hash = .groupId
+        for value in [t.m11, t.m12, t.m21, t.m22, t.tx, t.ty, .pageWidth, .pageHeight]
+        {
+            let bits = value == 0 ? 0'u32 : cast #bit(u32, value)
+            hash = (hash << 5 | hash >> 27) ^ bits
+        }
+
+        return hash ^ .backdrop.argb ^ cast(u32, .kind)
+    }
+}
 
 // One soft mask group after its content stream has been read.
 //
-// The marks are kept rather than a coverage raster: a mask covers several marks at different
-// scales, and each of them wants the coverage over its own box. Reading the group is the
-// expensive half and is paid once; rasterizing a mark's own region is cheap.
+// The page holds the decoded group marks. The coverage cache can hold one small
+// image region in group coordinates for placements that repeat the same bounds.
 struct SoftMaskGroup
 {
-    page:     Page
-    backdrop: Color
-    kind:     SoftMaskKind
+    page:           Page
+    backdrop:       Color
+    kind:           SoftMaskKind
+    cachedRegion:   Math.Rectangle
+    cachedCoverage: Image
 }
 
 // Reads the soft mask an `ExtGState` dictionary names.

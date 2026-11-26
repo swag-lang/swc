@@ -110,9 +110,9 @@ struct PdfParser
     // established under.
     //
     // A drop shadow is one mask group per shadowed object, and a template repeating a shadowed
-    // element pays the group's content parse once per page that shows it otherwise. The transform
-    // is part of the key because the same group placed twice is two different coverages.
-    softMaskCache: HashTable'(u64, SoftMaskGroup)
+    // element can reuse the decoded group. The key includes the transform that remains after
+    // extracting any integral translation, along with the coverage mode and backdrop.
+    softMaskCache: HashTable'(SoftMaskKey, SoftMaskGroup)
 }
 
 // How much decoded image data one document keeps.

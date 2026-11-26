@@ -483,6 +483,14 @@ private struct ParsedDashPattern
     viewportDiagonal: u32
 }
 
+private struct ClipPlacement
+{
+    definition: ClipRange
+    placement:  ClipRange
+    transform:  Math.Transform2
+    shareable:  bool
+}
+
 private struct Parser
 {
     text:    string     // Whole document.
@@ -494,6 +502,7 @@ private struct Parser
     // withheld from painting. These lookup tables borrow identifiers from the source.
     defs:            HashTable'(string, { first: u64, count: u64 })
     clipPaths:       HashTable'(string, { first: u64, count: u64 })
+    lastClip:        ClipPlacement
     symbols:         HashTable'(string, SymbolViewport)
     markers:         HashTable'(string, MarkerDefinition)
     gradients:       HashTable'(string, Gradient)
@@ -4199,6 +4208,60 @@ private impl Parser
         discard .instantiate(definition.first, definition.count, &markerState)
     }
 
+    func clipHasCurves(paths: const *LinePathList)->bool
+    {
+        for path in paths.paths where path.hasCurves() do
+            return true
+        return false
+    }
+
+    // A clip made only of straight solid contours can reuse identical transformed geometry.
+    // Keep the hidden shapes in parse order because a parent pathLength traverses that range.
+    mtd instantiateClip(first, count: u64, state: *GroupState)->ClipRange
+    {
+        let previous       = &.lastClip
+        let sameDefinition = previous.definition.first == first and previous.definition.count == count
+        if sameDefinition and
+           previous.shareable and
+           Memory.compare(&previous.transform, &state.transform, #sizeof(Math.Transform2)) == 0
+        {
+            let firstCopy = .drawing.shapes.count
+            for i in previous.placement.count
+            {
+                let shape = .drawing.shapes[previous.placement.first + i]
+                .drawing.shapes.add(shape)
+            }
+
+            return ClipRange{firstCopy, previous.placement.count}
+        }
+
+        let range = .instantiate(first, count, state, hidden: true)
+        if not sameDefinition
+        {
+            previous.definition = ClipRange{first, count}
+            previous.shareable  = true
+            for i in range.count
+            {
+                let shape = &.drawing.shapes[range.first + i]
+                if shape.stroke or shape.fillPaintId or shape.filterId
+                {
+                    previous.shareable = false
+                    break
+                }
+
+                if clipHasCurves(.drawing.pathsFor(shape))
+                {
+                    previous.shareable = false
+                    break
+                }
+            }
+        }
+
+        previous.transform = state.transform
+        previous.placement = ClipRange{range.first, range.count}
+        return previous.placement
+    }
+
     // Gives the items an element just emitted the clip its state names.
     //
     // The clip's own shapes are instantiated once, under the transform of the element that
@@ -4216,12 +4279,14 @@ private impl Parser
 
         var clipState: GroupState
         clipState.transform = state.clipTransform
-        let clip = .instantiate(definition.value.first, definition.value.count, &clipState, hidden: true)
+        let clip = .instantiateClip(definition.value.first, definition.value.count, &clipState)
         if clip.count == 0 do
             return
 
-        let outer = .drawing.storeClip(clip.first, clip.count)
+        let outer      = .drawing.storeClip(clip.first, clip.count)
         var intersections: HashTable'(s64, s64)
+        var outside:       LinePathList
+        var hasOutside = false
         for i in .drawing.items.count - firstItem
         {
             let item = &.drawing.items[firstItem + i]
@@ -4238,9 +4303,14 @@ private impl Parser
                 continue
             }
 
-            let range   = .drawing.clipRange(previous)
-            var inside  = .clipGeometry(range.first, range.count)
-            var outside = .clipGeometry(clip.first, clip.count)
+            let range  = .drawing.clipRange(previous)
+            var inside = .clipGeometry(range.first, range.count)
+            if not hasOutside
+            {
+                outside    = .clipGeometry(clip.first, clip.count)
+                hasOutside = true
+            }
+
             inside.intersect(&outside)
             var shape: Shape
             .drawing.storeContours(shape, #move inside)
@@ -5010,7 +5080,7 @@ impl Drawing
             if item.hasBounds and item.clip
             {
                 // A group can apply the same complex clip to every one of its children.
-                if item.clip != clip
+                if not .sameClip(item.clip, clip)
                 {
                     clip       = item.clip
                     clipBounds = .clipRangeBounds(clip)
@@ -5179,6 +5249,19 @@ impl Drawing
         if clip < 0 do
             return .clipRanges[cast(u64, -clip - 1)]
         return {}
+    }
+
+    // When a whole placement is shared, its first shape's contour identifies the placement.
+    private mtd const sameClip(left, right: s64)->bool
+    {
+        if left == right do
+            return true
+        if not left or not right do
+            return false
+
+        let a = .clipRange(left)
+        let b = .clipRange(right)
+        return a.count == b.count and .shapes[a.first].geometry == .shapes[b.first].geometry
     }
 
     // Returns the rectangle a clip range can keep, which is the union of its shapes.
@@ -5619,7 +5702,7 @@ impl Drawing
                         continue
                 }
 
-                if item.clip != activeClip
+                if not .sameClip(item.clip, activeClip)
                 {
                     .exchangeClip(painter, activeClip, item.clip)
                     activeClip = item.clip

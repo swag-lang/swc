@@ -1,0 +1,119 @@
+[
+  {
+    "file": "resvg-fill-and-stroke.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "fill and stroke paint order",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/extra/fill-and-stroke.svg",
+    "sha256": "eed885e8a0337be757d2d51289a68ca9f070cd7d2f20b7457eafcb23d9d9a982",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-acute-miter.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "acute miter join",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/extra/miter-join-with-acute-angle.svg",
+    "sha256": "f3482f3ed3605f32d43ac6dc91bc3b5d8a6222ca35126fc5287533139cc4bd86",
+    "width": 1200,
+    "height": 600
+  },
+  {
+    "file": "resvg-square-cap.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "square stroke cap",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/extra/stroke-linecap%3Dsquare.svg",
+    "sha256": "1c9d0ef1317e0d5ae6180b3b9f5df22e8412ab17b61546b22cc9f261123bb914",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-subpixel-rect.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "subpixel rectangle",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/extra/subpixel-rect-position.svg",
+    "sha256": "714b0158fd0569745476359be083b03678b3c95c67e47e68138a934f1f231e1b",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-transformed-rect.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "transformed rectangle",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/extra/transformed-rect.svg",
+    "sha256": "f58a1745e79a371592fe0c75d98e76d29479612f4c187c8c8afcf1fc17e80453",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-evenodd.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "even-odd compound fill",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/painting/fill-rule/evenodd.svg",
+    "sha256": "8b49835c2f6f3efb06e8d94b8f0be3280745eadceb2e2956d43524a2a7ecd8b8",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-nonzero.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "nonzero compound fill",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/painting/fill-rule/nonzero.svg",
+    "sha256": "b8e4335935265be8a8fada24164339fb50bdd96a7af2e122f6ea31ec39b12248",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-round-dashes.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "round-capped dashes",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/painting/stroke-dasharray/0-n-with-round-caps.svg",
+    "sha256": "5adece83a919bb16da0682628b91b8702f18505d834b221e2be3f8f967a1845b",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-dash-subpaths.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "dashes across subpaths",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/painting/stroke-dasharray/multiple-subpaths.svg",
+    "sha256": "0e8a1d52ef2f14fe00503a7285bcb45521723a6c1b66c885f45aabed87216cfc",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-round-join.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "round stroke join",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/painting/stroke-linejoin/round.svg",
+    "sha256": "3b761d48e7177085bd4358cdfa6d5be7fa316112ec4fd1bb62276db0e9db78df",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-clip.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "clip over vector and image content",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/masking/clip/simple-case.svg",
+    "sha256": "136bf96a953695a45e2c35139f4711fe1dda92746ca62d5604e3bb85998ea289",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-thick-stroke.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "wide stroke",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/painting/stroke-width/bold.svg",
+    "sha256": "3e536acb9fa23ea349b2468c4b389417eafc4c0a224dff0d8e40beb1b9561e6b",
+    "width": 1200,
+    "height": 1200
+  },
+  {
+    "file": "resvg-embedded-rgb16.svg",
+    "source": "resvg 0.50.0 test suite",
+    "workload": "embedded sixteen-bit PNG",
+    "url": "https://raw.githubusercontent.com/linebender/resvg/5bdbae64eefadc4bf0caa56dcf91702037929086/crates/resvg/tests/tests/structure/image/embedded-16bit-png.svg",
+    "sha256": "34103ec832ce3aab8b96bc17633799769147752faf3e5905a454d62da2176e16",
+    "width": 1200,
+    "height": 1200
+  }
+]

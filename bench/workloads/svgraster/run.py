@@ -2,6 +2,8 @@
 
 import argparse
 import hashlib
+import itertools
+import json
 import os
 from pathlib import Path
 import random
@@ -10,6 +12,7 @@ import shutil
 import statistics
 import subprocess
 import tempfile
+from urllib.request import urlopen
 
 
 HERE = Path(__file__).resolve().parent
@@ -106,6 +109,18 @@ def fixtures(scratch, filesamples):
         yield path, width, height
 
 
+def public_fixtures(scratch):
+    manifest = json.loads((HERE / "public-fixtures.json").read_text(encoding="utf-8"))
+    for fixture in manifest:
+        with urlopen(fixture["url"], timeout=30) as response:
+            svg = response.read()
+        if hashlib.sha256(svg).hexdigest() != fixture["sha256"]:
+            raise ValueError(f"{fixture['file']} differs from the pinned public fixture")
+        path = scratch / fixture["file"]
+        path.write_bytes(svg)
+        yield path, fixture["width"], fixture["height"]
+
+
 def build(compiler, bin_root, build_root, *, scope=False):
     build_root.mkdir()
     executable = build_root / compiler.name
@@ -152,6 +167,7 @@ def main():
     parser.add_argument("--reps", type=int, default=7)
     parser.add_argument("--workers", type=int, default=1)
     parser.add_argument("--scope", action="store_true", help="use Swag Scope's SVG bitmap parse options")
+    parser.add_argument("--public", action="store_true", help="include the pinned public resvg fixtures")
     args = parser.parse_args()
     if args.reps < 1 or args.workers < 1:
         parser.error("--reps and --workers must be positive")
@@ -170,7 +186,8 @@ def main():
         mode = "Scope bitmap" if args.scope else "default SVG"
         print(f"Release, {mode}, {args.workers} Swag workers, {args.reps} repetitions", flush=True)
         print("fixture                engine    parse ms   raster ms    total ms     vs resvg", flush=True)
-        for fixture, width, height in fixtures(scratch, args.filesamples):
+        extra = public_fixtures(scratch) if args.public else ()
+        for fixture, width, height in itertools.chain(fixtures(scratch, args.filesamples), extra):
             samples = {engine: [] for engine in (*programs, "resvg")}
             for i in range(args.reps):
                 order = list(programs.items())

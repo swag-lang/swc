@@ -526,8 +526,8 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
   On `sample1`, page loading still takes about 16 ms, including about 12 ms in the JPEG
   stream read and decode. Swag materializes the images and their mask at the stored
-  resolution. PDFium supports reduced-scale JPEG decoding and can request a higher
-  resolution when needed. [PDFium JPEG decoding](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/core/fpdfapi/page/cpdf_dib.cpp#562)
+  resolution. PDFium can defer JPEG decoding until render and uses a decoder that
+  exposes scanlines. [PDFium JPEG decoding](https://github.com/chromium/pdfium/blob/main/core/fxcodec/jpeg/jpegmodule.cpp)
 - Against `eab46cd563`, the sampled stroke optimizations take `sample3.pdf` from 46.09
   to 43.75 ms at 1200 px and from 77.51 to 74.89 ms at 2400 px. The same one-core
   PDFium 159 runs take 11.96 and 18.71 ms. These are medians of 14 interleaved
@@ -542,9 +542,16 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   1200, and 2400 px. Timing changes on `sample1.pdf` and `sample2.pdf` were small.
   The painter still emits the full dash geometry. Caching character-to-glyph
   lookups during PDF recording showed little benefit in isolation.
-- Measure direct scan conversion of dash patterns and size-aware JPEG decoding with the
-  encoded image retained for later zoom levels. Profile text recording and the remaining
-  image sampling on `sample2`.
+- The [expanded comparison](../bench/results/swagscope-filesamples/pdf-raster-linux.md)
+  measures 31 pages at 1200 px, including 26 public PDFs. Swag's packed grayscale
+  conversion cuts the PDF.js one-bit scan from 422 to 121 ms with the same bitmap CRC-32.
+  PDFium takes 26 ms. On the PDFBox JPEG and scan, most of the remaining time is in
+  scaled image painting. The curves fixture submits about 3.15 million stroke
+  triangles. Nested clips add polygon intersection at load and stencil writes at render.
+  The transformed-text fixture spends about 0.79 s in MSDF triangle draws.
+- Measure device-space image span resampling, direct scan conversion for strokes and
+  clips, and cached glyph masks for transformed PDF text. Retaining encoded images
+  for later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

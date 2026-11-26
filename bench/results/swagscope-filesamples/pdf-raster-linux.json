@@ -1,0 +1,4584 @@
+{
+  "baseline_revision": "740046dbe42320600d1648dd3bfd6b59b1f021a9",
+  "swag_change": "cc38f29c01fc1c5d5f6bba5bde621b6a891e8a73",
+  "cpu_model": "AMD EPYC 7763",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_affinity": [
+    2
+  ],
+  "side": 1200,
+  "pdfium": "159.0.8149.0@sourcebuild-toolchained",
+  "pypdfium2": "5.15.2",
+  "batches": 5,
+  "samples_per_batch": 1,
+  "cases": [
+    {
+      "file": "sample1.pdf",
+      "source": "FileSamples",
+      "workload": "illustrated document",
+      "sha256": "6b22904a7de5b77bf40598c37e94e01771485e1b900651b58bf50af7009f8056",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 261351595,
+            "ink_samples": 329,
+            "objects": {
+              "text": 603,
+              "path": 20,
+              "image": 3
+            }
+          },
+          "samples_ns": [
+            [
+              421584,
+              13710248,
+              36089312
+            ],
+            [
+              798874,
+              19518867,
+              41094567
+            ],
+            [
+              443785,
+              14796823,
+              35186106
+            ],
+            [
+              413118,
+              13260840,
+              36390225
+            ],
+            [
+              485635,
+              13510568,
+              36593968
+            ]
+          ],
+          "median_ms": {
+            "open": 0.443785,
+            "load": 13.710248,
+            "render": 36.390225,
+            "total": 50.426714
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 261351595,
+            "ink_samples": 329,
+            "objects": {
+              "text": 603,
+              "path": 20,
+              "image": 3
+            }
+          },
+          "samples_ns": [
+            [
+              668729,
+              13382091,
+              35815726
+            ],
+            [
+              527674,
+              13940792,
+              42398253
+            ],
+            [
+              413539,
+              15078262,
+              38486340
+            ],
+            [
+              509689,
+              13986858,
+              35693734
+            ],
+            [
+              408269,
+              13549902,
+              36208452
+            ]
+          ],
+          "median_ms": {
+            "open": 0.509689,
+            "load": 13.940792,
+            "render": 36.208452,
+            "total": 50.190281
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3827935324,
+            "ink_samples": 348,
+            "objects": {
+              "path": 20,
+              "text": 166,
+              "image": 3
+            }
+          },
+          "samples_ns": [
+            [
+              366059,
+              2258403,
+              22337505
+            ],
+            [
+              370658,
+              2365144,
+              28299562
+            ],
+            [
+              326214,
+              2669797,
+              22156641
+            ],
+            [
+              317227,
+              2231101,
+              22151252
+            ],
+            [
+              324732,
+              2220092,
+              22063479
+            ]
+          ],
+          "median_ms": {
+            "open": 0.326214,
+            "load": 2.258403,
+            "render": 22.156641,
+            "total": 24.961967
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "sample2.pdf",
+      "source": "FileSamples",
+      "workload": "progressive JPEG and text",
+      "sha256": "129bc2b734e361dab87b19aab1f19b7a2f924e05f156a4c2dada2267cd2f9a79",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 848,
+            "height": 1200,
+            "crc32": 2340427333,
+            "ink_samples": 154,
+            "objects": {
+              "text": 845,
+              "path": 23,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              202652,
+              2379571,
+              12331782
+            ],
+            [
+              174930,
+              2615355,
+              13997477
+            ],
+            [
+              170802,
+              2382787,
+              12814169
+            ],
+            [
+              194085,
+              2485160,
+              12027488
+            ],
+            [
+              152627,
+              2382526,
+              12159548
+            ]
+          ],
+          "median_ms": {
+            "open": 0.17493,
+            "load": 2.382787,
+            "render": 12.331782,
+            "total": 14.914005
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 848,
+            "height": 1200,
+            "crc32": 2340427333,
+            "ink_samples": 154,
+            "objects": {
+              "text": 845,
+              "path": 23,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              198744,
+              2496051,
+              12211566
+            ],
+            [
+              239922,
+              2895772,
+              14523188
+            ],
+            [
+              170861,
+              2420178,
+              12756150
+            ],
+            [
+              182684,
+              2337772,
+              12350727
+            ],
+            [
+              170762,
+              2571201,
+              12268943
+            ]
+          ],
+          "median_ms": {
+            "open": 0.182684,
+            "load": 2.496051,
+            "render": 12.350727,
+            "total": 15.010906
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 848,
+            "height": 1200,
+            "crc32": 1101634670,
+            "ink_samples": 165,
+            "objects": {
+              "text": 33,
+              "image": 1,
+              "path": 23
+            }
+          },
+          "samples_ns": [
+            [
+              81414,
+              1119578,
+              3471567
+            ],
+            [
+              121779,
+              785179,
+              3350378
+            ],
+            [
+              182734,
+              837407,
+              3541048
+            ],
+            [
+              86002,
+              782304,
+              3440078
+            ],
+            [
+              99657,
+              782273,
+              3453624
+            ]
+          ],
+          "median_ms": {
+            "open": 0.099657,
+            "load": 0.785179,
+            "render": 3.453624,
+            "total": 4.335554
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "sample3.pdf",
+      "source": "FileSamples",
+      "workload": "text, vector shapes, subpixel dashes",
+      "sha256": "a16cff406a7b806ad3b30803d46c413b13b6036af4947847e0e30655c61b752a",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 849,
+            "height": 1200,
+            "crc32": 619392383,
+            "ink_samples": 308,
+            "objects": {
+              "text": 937,
+              "path": 260,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              5357528,
+              12920630,
+              46025005
+            ],
+            [
+              6732938,
+              13519118,
+              55557758
+            ],
+            [
+              942946,
+              6964113,
+              35776563
+            ],
+            [
+              1083842,
+              6610961,
+              34758227
+            ],
+            [
+              1062902,
+              6870660,
+              35387957
+            ]
+          ],
+          "median_ms": {
+            "open": 1.083842,
+            "load": 6.964113,
+            "render": 35.776563,
+            "total": 43.683622
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 849,
+            "height": 1200,
+            "crc32": 933161879,
+            "ink_samples": 311,
+            "objects": {
+              "path": 260,
+              "text": 142,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              413819,
+              5956636,
+              8560630
+            ],
+            [
+              352474,
+              4927909,
+              5568947
+            ],
+            [
+              305927,
+              5159063,
+              6526689
+            ],
+            [
+              293513,
+              4493153,
+              5368882
+            ],
+            [
+              309443,
+              5249026,
+              9565978
+            ]
+          ],
+          "median_ms": {
+            "open": 0.309443,
+            "load": 5.159063,
+            "render": 6.526689,
+            "total": 11.991679
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 849,
+            "height": 1200,
+            "crc32": 619392383,
+            "ink_samples": 308,
+            "objects": {
+              "text": 937,
+              "path": 260,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              960689,
+              6524025,
+              36766010
+            ],
+            [
+              2556044,
+              6772813,
+              38187689
+            ],
+            [
+              954588,
+              6777501,
+              40691348
+            ],
+            [
+              950199,
+              6509481,
+              34192852
+            ],
+            [
+              1047623,
+              6699647,
+              37313624
+            ]
+          ],
+          "median_ms": {
+            "open": 0.960689,
+            "load": 6.699647,
+            "render": 37.313624,
+            "total": 45.060894
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "pdfbox-tiger.pdf",
+      "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/rendering/tiger-as-form-xobject.pdf",
+      "source": "Apache PDFBox",
+      "workload": "dense vector forms",
+      "sha256": "ab356726b3d0bc0e48d0312a4369aa45d21e68d8db2ac2f61f71d99d52eec68f",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 848,
+            "height": 1200,
+            "crc32": 2893336994,
+            "ink_samples": 254,
+            "objects": {
+              "text": 1,
+              "path": 317,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              144852,
+              1984978,
+              77384563
+            ],
+            [
+              212670,
+              2260016,
+              83395139
+            ],
+            [
+              226557,
+              2255186,
+              79001973
+            ],
+            [
+              143761,
+              1990308,
+              78652735
+            ],
+            [
+              146316,
+              2032408,
+              79289418
+            ]
+          ],
+          "median_ms": {
+            "open": 0.146316,
+            "load": 2.032408,
+            "render": 79.001973,
+            "total": 81.468142
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 848,
+            "height": 1200,
+            "crc32": 581861190,
+            "ink_samples": 255,
+            "objects": {
+              "text": 1,
+              "form": 1
+            }
+          },
+          "samples_ns": [
+            [
+              641108,
+              5621015,
+              23403451
+            ],
+            [
+              151426,
+              2881436,
+              10433197
+            ],
+            [
+              130617,
+              2916712,
+              10352494
+            ],
+            [
+              113363,
+              2937071,
+              10161865
+            ],
+            [
+              141436,
+              2862562,
+              10424783
+            ]
+          ],
+          "median_ms": {
+            "open": 0.141436,
+            "load": 2.916712,
+            "render": 10.424783,
+            "total": 13.428781
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 848,
+            "height": 1200,
+            "crc32": 2893336994,
+            "ink_samples": 254,
+            "objects": {
+              "text": 1,
+              "path": 317,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              145574,
+              1977114,
+              77866690
+            ],
+            [
+              148069,
+              1967264,
+              251614578
+            ],
+            [
+              138431,
+              2054949,
+              75342051
+            ],
+            [
+              151675,
+              1987563,
+              75549251
+            ],
+            [
+              171613,
+              2053217,
+              78687704
+            ]
+          ],
+          "median_ms": {
+            "open": 0.148069,
+            "load": 1.987563,
+            "render": 77.86669,
+            "total": 79.989378
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "pdfbox-jpeg.pdf",
+      "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/merge/jpegrgb.pdf",
+      "source": "Apache PDFBox",
+      "workload": "RGB JPEG photograph",
+      "sha256": "e4777c29ec90646d4e3c98f260926050badba2d19dc26f9cff565e47927f2565",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3271523228,
+            "ink_samples": 259,
+            "objects": {
+              "image": 2
+            }
+          },
+          "samples_ns": [
+            [
+              47009,
+              44553,
+              2748516
+            ],
+            [
+              56667,
+              66305,
+              2823177
+            ],
+            [
+              50605,
+              44234,
+              2784162
+            ],
+            [
+              40086,
+              37971,
+              2814720
+            ],
+            [
+              53621,
+              44815,
+              3033733
+            ]
+          ],
+          "median_ms": {
+            "open": 0.050605,
+            "load": 0.044553,
+            "render": 2.81472,
+            "total": 2.892777
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1998880538,
+            "ink_samples": 260,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 2
+            }
+          },
+          "samples_ns": [
+            [
+              121529,
+              826446,
+              33593451
+            ],
+            [
+              125306,
+              962042,
+              36737302
+            ],
+            [
+              115638,
+              965488,
+              35884120
+            ],
+            [
+              404351,
+              2069988,
+              41258631
+            ],
+            [
+              121519,
+              973734,
+              36477510
+            ]
+          ],
+          "median_ms": {
+            "open": 0.121529,
+            "load": 0.965488,
+            "render": 36.47751,
+            "total": 37.572763
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1998880538,
+            "ink_samples": 260,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 2
+            }
+          },
+          "samples_ns": [
+            [
+              126418,
+              832157,
+              33839575
+            ],
+            [
+              180841,
+              1431656,
+              45882423
+            ],
+            [
+              118372,
+              991257,
+              36701740
+            ],
+            [
+              110799,
+              804054,
+              35335086
+            ],
+            [
+              111300,
+              2954544,
+              35425599
+            ]
+          ],
+          "median_ms": {
+            "open": 0.118372,
+            "load": 0.991257,
+            "render": 35.425599,
+            "total": 37.811369
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "pdfbox-ligatures.pdf",
+      "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox-layout-awt/src/test/resources/pdf/GlyphLayoutLigaturesAndKerning.pdf",
+      "source": "Apache PDFBox",
+      "workload": "ligatures and embedded fonts",
+      "sha256": "b00f9d515e0ba59180432fa51be96343085492bc66cbdb5fcdef8782f3a609be",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4120541098,
+            "ink_samples": 22,
+            "objects": {
+              "text": 43,
+              "path": 2,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              228140,
+              1026342,
+              7971682
+            ],
+            [
+              190759,
+              1061409,
+              8180986
+            ],
+            [
+              147628,
+              1020121,
+              6888601
+            ],
+            [
+              141687,
+              1025050,
+              6747516
+            ],
+            [
+              152457,
+              1060768,
+              7157682
+            ]
+          ],
+          "median_ms": {
+            "open": 0.152457,
+            "load": 1.026342,
+            "render": 7.157682,
+            "total": 8.370907
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4120541098,
+            "ink_samples": 22,
+            "objects": {
+              "text": 43,
+              "path": 2,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              280849,
+              1302733,
+              7684060
+            ],
+            [
+              160683,
+              1029479,
+              7819594
+            ],
+            [
+              155192,
+              1061609,
+              6912947
+            ],
+            [
+              175330,
+              1046540,
+              6700528
+            ],
+            [
+              151215,
+              1168711,
+              6986791
+            ]
+          ],
+          "median_ms": {
+            "open": 0.160683,
+            "load": 1.061609,
+            "render": 6.986791,
+            "total": 8.306717
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1330908773,
+            "ink_samples": 25,
+            "objects": {
+              "text": 19,
+              "path": 2
+            }
+          },
+          "samples_ns": [
+            [
+              148659,
+              880258,
+              2117367
+            ],
+            [
+              142359,
+              1015261,
+              2076280
+            ],
+            [
+              147999,
+              874376,
+              2030554
+            ],
+            [
+              146375,
+              932436,
+              1973126
+            ],
+            [
+              184498,
+              826116,
+              2220392
+            ]
+          ],
+          "median_ms": {
+            "open": 0.147999,
+            "load": 0.880258,
+            "render": 2.07628,
+            "total": 3.146284
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "pdfbox-rotation.pdf",
+      "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/rotation.pdf",
+      "source": "Apache PDFBox",
+      "workload": "rotated page and inherited resources",
+      "sha256": "5087c2afe763d145537d652bb3bc6c321ace3a267b2679ae2c178add3ba7f1d9",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3098487423,
+            "ink_samples": 7,
+            "objects": {
+              "text": 8
+            }
+          },
+          "samples_ns": [
+            [
+              304754,
+              355570,
+              610359
+            ],
+            [
+              191781,
+              348477,
+              946231
+            ],
+            [
+              311537,
+              366710,
+              917338
+            ],
+            [
+              152437,
+              291429,
+              518657
+            ],
+            [
+              150333,
+              344499,
+              479744
+            ]
+          ],
+          "median_ms": {
+            "open": 0.191781,
+            "load": 0.348477,
+            "render": 0.610359,
+            "total": 1.270683
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 556749203,
+            "ink_samples": 6,
+            "objects": {
+              "text": 13,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              126318,
+              98315,
+              6700909
+            ],
+            [
+              282702,
+              184918,
+              4331356
+            ],
+            [
+              236895,
+              98055,
+              5654437
+            ],
+            [
+              113374,
+              141426,
+              3727829
+            ],
+            [
+              143210,
+              95930,
+              3887102
+            ]
+          ],
+          "median_ms": {
+            "open": 0.14321,
+            "load": 0.098315,
+            "render": 4.331356,
+            "total": 4.798976
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 556749203,
+            "ink_samples": 6,
+            "objects": {
+              "text": 13,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              129384,
+              208252,
+              4610102
+            ],
+            [
+              211418,
+              109235,
+              4474937
+            ],
+            [
+              119175,
+              145904,
+              4279959
+            ],
+            [
+              125656,
+              97624,
+              3959657
+            ],
+            [
+              114506,
+              98315,
+              4082741
+            ]
+          ],
+          "median_ms": {
+            "open": 0.125656,
+            "load": 0.109235,
+            "render": 4.279959,
+            "total": 4.545038
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "pdfbox-scan.pdf",
+      "url": "https://raw.githubusercontent.com/apache/pdfbox/d74ddf04c6a9d8e1fd58a42d90ab7ce2b62a9b8d/pdfbox/src/test/resources/input/merge/multitiff.pdf",
+      "source": "Apache PDFBox",
+      "workload": "scanned pages",
+      "sha256": "c1b465746f17204420348015845c8979c6bdbdaaf07616d122ab6ffec00eaf15",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 849,
+            "height": 1200,
+            "crc32": 3974366804,
+            "ink_samples": 86,
+            "objects": {
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              39234,
+              35467,
+              1463636
+            ],
+            [
+              115418,
+              39644,
+              1443258
+            ],
+            [
+              50996,
+              34696,
+              1532115
+            ],
+            [
+              43552,
+              34374,
+              1434071
+            ],
+            [
+              125967,
+              36048,
+              1490377
+            ]
+          ],
+          "median_ms": {
+            "open": 0.050996,
+            "load": 0.035467,
+            "render": 1.463636,
+            "total": 1.59832
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 849,
+            "height": 1200,
+            "crc32": 989753727,
+            "ink_samples": 86,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              111510,
+              3635045,
+              43058022
+            ],
+            [
+              117601,
+              3713263,
+              47647282
+            ],
+            [
+              200628,
+              3986085,
+              48592204
+            ],
+            [
+              110809,
+              3879134,
+              43316155
+            ],
+            [
+              96331,
+              3933147,
+              48012471
+            ]
+          ],
+          "median_ms": {
+            "open": 0.11151,
+            "load": 3.879134,
+            "render": 47.647282,
+            "total": 51.478146
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 849,
+            "height": 1200,
+            "crc32": 989753727,
+            "ink_samples": 86,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              120417,
+              312759,
+              43717364
+            ],
+            [
+              162226,
+              407106,
+              49793163
+            ],
+            [
+              158709,
+              582366,
+              54270816
+            ],
+            [
+              118994,
+              327507,
+              42750740
+            ],
+            [
+              123643,
+              369446,
+              51329276
+            ]
+          ],
+          "median_ms": {
+            "open": 0.123643,
+            "load": 0.369446,
+            "render": 49.793163,
+            "total": 50.362495
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "tracemonkey.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/tracemonkey.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "real research paper, text, tables and plots",
+      "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2112370132,
+            "ink_samples": 161,
+            "objects": {
+              "text": 949,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              727320,
+              2756611,
+              15037768
+            ],
+            [
+              787022,
+              2737415,
+              15263634
+            ],
+            [
+              675442,
+              2708149,
+              18098551
+            ],
+            [
+              787763,
+              3123912,
+              15827584
+            ],
+            [
+              745925,
+              2681751,
+              15559749
+            ]
+          ],
+          "median_ms": {
+            "open": 0.745925,
+            "load": 2.737415,
+            "render": 15.559749,
+            "total": 18.987425
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2019709696,
+            "ink_samples": 145,
+            "objects": {
+              "text": 151
+            }
+          },
+          "samples_ns": [
+            [
+              201369,
+              3704376,
+              5837032
+            ],
+            [
+              161914,
+              3748911,
+              6011971
+            ],
+            [
+              243839,
+              4066508,
+              6180438
+            ],
+            [
+              219103,
+              5653576,
+              6975595
+            ],
+            [
+              217490,
+              3757527,
+              5982438
+            ]
+          ],
+          "median_ms": {
+            "open": 0.21749,
+            "load": 3.757527,
+            "render": 6.011971,
+            "total": 9.957455
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2112370132,
+            "ink_samples": 161,
+            "objects": {
+              "text": 949,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              668840,
+              2868020,
+              16517725
+            ],
+            [
+              823731,
+              3210517,
+              15583676
+            ],
+            [
+              6726957,
+              6231344,
+              38906864
+            ],
+            [
+              1279369,
+              3426753,
+              19360286
+            ],
+            [
+              700099,
+              3022753,
+              15781466
+            ]
+          ],
+          "median_ms": {
+            "open": 0.823731,
+            "load": 3.210517,
+            "render": 16.517725,
+            "total": 20.054585
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "tracemonkey.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/tracemonkey.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "real research paper, text, tables and plots",
+      "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113",
+      "page": 6,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4231745796,
+            "ink_samples": 212,
+            "objects": {
+              "text": 155,
+              "form": 2,
+              "path": 2
+            }
+          },
+          "samples_ns": [
+            [
+              285347,
+              11968809,
+              9503466
+            ],
+            [
+              228921,
+              10484464,
+              7578031
+            ],
+            [
+              230323,
+              8190143,
+              6038260
+            ],
+            [
+              273726,
+              8115816,
+              5851441
+            ],
+            [
+              262264,
+              9785520,
+              7076877
+            ]
+          ],
+          "median_ms": {
+            "open": 0.262264,
+            "load": 9.78552,
+            "render": 7.076877,
+            "total": 17.124661
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1642969375,
+            "ink_samples": 205,
+            "objects": {
+              "text": 1293,
+              "path": 136,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              642239,
+              3468502,
+              17698118
+            ],
+            [
+              693937,
+              3919561,
+              20765675
+            ],
+            [
+              682545,
+              3370507,
+              18827463
+            ],
+            [
+              684299,
+              3644645,
+              17474002
+            ],
+            [
+              739934,
+              3902960,
+              17479189
+            ]
+          ],
+          "median_ms": {
+            "open": 0.684299,
+            "load": 3.644645,
+            "render": 17.698118,
+            "total": 22.122083
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1642969375,
+            "ink_samples": 205,
+            "objects": {
+              "text": 1293,
+              "path": 136,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              677216,
+              3785498,
+              17566580
+            ],
+            [
+              865259,
+              3687093,
+              18524374
+            ],
+            [
+              653701,
+              3428015,
+              18928673
+            ],
+            [
+              944980,
+              5575651,
+              21572933
+            ],
+            [
+              651567,
+              3787503,
+              17870546
+            ]
+          ],
+          "median_ms": {
+            "open": 0.677216,
+            "load": 3.785498,
+            "render": 18.524374,
+            "total": 23.010389
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "tracemonkey.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/tracemonkey.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "real research paper, text, tables and plots",
+      "sha256": "3662ff519e485810520552bf301d8c3b2b917fd2f83303f4965d7abed367e113",
+      "page": 9,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1126275785,
+            "ink_samples": 216,
+            "objects": {
+              "text": 1492,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              697333,
+              2687300,
+              11273200
+            ],
+            [
+              851214,
+              2714782,
+              14090823
+            ],
+            [
+              773426,
+              2602942,
+              13403228
+            ],
+            [
+              847977,
+              2478288,
+              11318178
+            ],
+            [
+              819294,
+              2868604,
+              11983554
+            ]
+          ],
+          "median_ms": {
+            "open": 0.819294,
+            "load": 2.6873,
+            "render": 11.983554,
+            "total": 15.671452
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1126275785,
+            "ink_samples": 216,
+            "objects": {
+              "text": 1492,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              691342,
+              2482815,
+              11863580
+            ],
+            [
+              1329483,
+              3209083,
+              12683965
+            ],
+            [
+              662457,
+              2693923,
+              13451629
+            ],
+            [
+              647781,
+              2677312,
+              11551287
+            ],
+            [
+              717612,
+              2738438,
+              11218424
+            ]
+          ],
+          "median_ms": {
+            "open": 0.691342,
+            "load": 2.693923,
+            "render": 11.86358,
+            "total": 15.037737
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1694910747,
+            "ink_samples": 242,
+            "objects": {
+              "text": 136
+            }
+          },
+          "samples_ns": [
+            [
+              210406,
+              2529354,
+              5572683
+            ],
+            [
+              195668,
+              3212740,
+              6278413
+            ],
+            [
+              259720,
+              3458181,
+              5623820
+            ],
+            [
+              193935,
+              2630655,
+              5183303
+            ],
+            [
+              226827,
+              2651095,
+              5810957
+            ]
+          ],
+          "median_ms": {
+            "open": 0.210406,
+            "load": 2.651095,
+            "render": 5.62382,
+            "total": 8.688879
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_paths_operators.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_operators.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "repeated graphics operators",
+      "sha256": "13e0dd366ca953b342405dd882f62e47288a840e56d6a92bd10f58c59a0523a4",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 993726660,
+            "ink_samples": 694,
+            "objects": {
+              "path": 8500
+            }
+          },
+          "samples_ns": [
+            [
+              75271,
+              12805334,
+              56314308
+            ],
+            [
+              86272,
+              16720296,
+              72549850
+            ],
+            [
+              88367,
+              12976084,
+              51821975
+            ],
+            [
+              78108,
+              12590804,
+              54620989
+            ],
+            [
+              83597,
+              12971677,
+              52011501
+            ]
+          ],
+          "median_ms": {
+            "open": 0.083597,
+            "load": 12.971677,
+            "render": 54.620989,
+            "total": 67.289901
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1550357477,
+            "ink_samples": 680,
+            "objects": {
+              "text": 0,
+              "path": 8500,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              196269,
+              15449404,
+              323724921
+            ],
+            [
+              190669,
+              17706292,
+              283090340
+            ],
+            [
+              1449049,
+              38910752,
+              301168330
+            ],
+            [
+              188505,
+              15771586,
+              293671551
+            ],
+            [
+              194466,
+              16165774,
+              275622329
+            ]
+          ],
+          "median_ms": {
+            "open": 0.194466,
+            "load": 16.165774,
+            "render": 293.671551,
+            "total": 309.631642
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1550357477,
+            "ink_samples": 680,
+            "objects": {
+              "text": 0,
+              "path": 8500,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              325052,
+              27430125,
+              342956724
+            ],
+            [
+              303231,
+              18350456,
+              329632248
+            ],
+            [
+              204404,
+              16491265,
+              282526818
+            ],
+            [
+              310935,
+              15816691,
+              293087330
+            ],
+            [
+              190048,
+              15575942,
+              299945901
+            ]
+          ],
+          "median_ms": {
+            "open": 0.303231,
+            "load": 16.491265,
+            "render": 299.945901,
+            "total": 315.711891
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_paths_polygons.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_polygons.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "dense polygons",
+      "sha256": "29fc8f0396d43a68243a1f80af9a623237288cd2b1eb9f12dadfc7bdd2475312",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1681072055,
+            "ink_samples": 953,
+            "objects": {
+              "path": 12000
+            }
+          },
+          "samples_ns": [
+            [
+              76213,
+              19130352,
+              83927887
+            ],
+            [
+              137289,
+              21399047,
+              93735297
+            ],
+            [
+              95099,
+              24927087,
+              95150522
+            ],
+            [
+              94077,
+              19707430,
+              75388146
+            ],
+            [
+              135285,
+              19151314,
+              70230253
+            ]
+          ],
+          "median_ms": {
+            "open": 0.095099,
+            "load": 19.70743,
+            "render": 83.927887,
+            "total": 103.134452
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3769668270,
+            "ink_samples": 954,
+            "objects": {
+              "text": 0,
+              "path": 12000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              1409985,
+              23791880,
+              233391216
+            ],
+            [
+              607584,
+              25669520,
+              251390733
+            ],
+            [
+              393982,
+              24303585,
+              250331101
+            ],
+            [
+              364526,
+              24609250,
+              227796243
+            ],
+            [
+              354027,
+              23859925,
+              225064473
+            ]
+          ],
+          "median_ms": {
+            "open": 0.393982,
+            "load": 24.303585,
+            "render": 233.391216,
+            "total": 258.593081
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3769668270,
+            "ink_samples": 954,
+            "objects": {
+              "text": 0,
+              "path": 12000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              396847,
+              23389413,
+              312021978
+            ],
+            [
+              360158,
+              22340941,
+              451630373
+            ],
+            [
+              383031,
+              23519731,
+              399835449
+            ],
+            [
+              325122,
+              23299273,
+              359486666
+            ],
+            [
+              313150,
+              22502328,
+              212430919
+            ]
+          ],
+          "median_ms": {
+            "open": 0.360158,
+            "load": 23.299273,
+            "render": 359.486666,
+            "total": 383.111061
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_paths_curves.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_curves.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "dense cubic curves",
+      "sha256": "63646063d2f4dfb147c6732c4f4c11c72719bedc2019731ded56a935d5fb336c",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1596257986,
+            "ink_samples": 1004,
+            "objects": {
+              "path": 4000
+            }
+          },
+          "samples_ns": [
+            [
+              517114,
+              14887075,
+              280710809
+            ],
+            [
+              414661,
+              15697069,
+              279186618
+            ],
+            [
+              116580,
+              13393049,
+              245380117
+            ],
+            [
+              88897,
+              15941279,
+              242905926
+            ],
+            [
+              138491,
+              12307455,
+              239167765
+            ]
+          ],
+          "median_ms": {
+            "open": 0.138491,
+            "load": 14.887075,
+            "render": 245.380117,
+            "total": 258.936102
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1833446996,
+            "ink_samples": 998,
+            "objects": {
+              "text": 0,
+              "path": 4000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              222479,
+              12831103,
+              1812019597
+            ],
+            [
+              1025742,
+              15070080,
+              2009735372
+            ],
+            [
+              527393,
+              13818741,
+              1659426380
+            ],
+            [
+              232838,
+              12909710,
+              1636952718
+            ],
+            [
+              298543,
+              13119936,
+              1784899751
+            ]
+          ],
+          "median_ms": {
+            "open": 0.298543,
+            "load": 13.119936,
+            "render": 1784.899751,
+            "total": 1798.31823
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1833446996,
+            "ink_samples": 998,
+            "objects": {
+              "text": 0,
+              "path": 4000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              242557,
+              13430141,
+              1500428693
+            ],
+            [
+              583208,
+              13731178,
+              1700895252
+            ],
+            [
+              221898,
+              13377060,
+              1661781843
+            ],
+            [
+              230745,
+              13399361,
+              1591609607
+            ],
+            [
+              400004,
+              13106390,
+              1363629284
+            ]
+          ],
+          "median_ms": {
+            "open": 0.242557,
+            "load": 13.399361,
+            "render": 1591.609607,
+            "total": 1605.239713
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_paths_map.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_map.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "map paths",
+      "sha256": "1940d9c7aa586cf92e68b4b4f702615d5bfb8cb8d86296f65b2e1b3e86c1d213",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3839594464,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 1081,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              401546,
+              11028208,
+              325949948
+            ],
+            [
+              272984,
+              10686524,
+              332673709
+            ],
+            [
+              433626,
+              12362538,
+              338299195
+            ],
+            [
+              218491,
+              11181571,
+              318227091
+            ],
+            [
+              818231,
+              12556615,
+              319965659
+            ]
+          ],
+          "median_ms": {
+            "open": 0.401546,
+            "load": 11.181571,
+            "render": 325.949948,
+            "total": 337.379702
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3627498912,
+            "ink_samples": 1024,
+            "objects": {
+              "path": 1081
+            }
+          },
+          "samples_ns": [
+            [
+              79189,
+              12588837,
+              96677177
+            ],
+            [
+              539857,
+              11993003,
+              99477066
+            ],
+            [
+              81293,
+              15675366,
+              116489110
+            ],
+            [
+              79630,
+              10452207,
+              93946919
+            ],
+            [
+              81273,
+              10791561,
+              88074622
+            ]
+          ],
+          "median_ms": {
+            "open": 0.081273,
+            "load": 11.993003,
+            "render": 96.677177,
+            "total": 109.345203
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3839594464,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 1081,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              228079,
+              11921881,
+              352042064
+            ],
+            [
+              269778,
+              10770382,
+              356362136
+            ],
+            [
+              249360,
+              11929744,
+              355593086
+            ],
+            [
+              644985,
+              11658008,
+              322831974
+            ],
+            [
+              219574,
+              10693036,
+              314908677
+            ]
+          ],
+          "median_ms": {
+            "open": 0.24936,
+            "load": 11.658008,
+            "render": 352.042064,
+            "total": 364.192024
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_paths_hairlines.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_hairlines.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "thin vector strokes",
+      "sha256": "b6b7d2f503264659b6959a728b8073699c7f4dc227261c9fed262d25f1d0877b",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 965019847,
+            "ink_samples": 734,
+            "objects": {
+              "text": 0,
+              "path": 20000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              321014,
+              82228036,
+              248512010
+            ],
+            [
+              242387,
+              30182767,
+              226289709
+            ],
+            [
+              214454,
+              29287164,
+              305294038
+            ],
+            [
+              412297,
+              28723397,
+              226474858
+            ],
+            [
+              240733,
+              29213490,
+              271906178
+            ]
+          ],
+          "median_ms": {
+            "open": 0.242387,
+            "load": 29.287164,
+            "render": 248.51201,
+            "total": 301.360401
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3556234534,
+            "ink_samples": 757,
+            "objects": {
+              "path": 20000
+            }
+          },
+          "samples_ns": [
+            [
+              88837,
+              16530961,
+              92707930
+            ],
+            [
+              116198,
+              16581816,
+              94024948
+            ],
+            [
+              92695,
+              19375652,
+              106185306
+            ],
+            [
+              89398,
+              17478633,
+              93763068
+            ],
+            [
+              100189,
+              17288470,
+              91504974
+            ]
+          ],
+          "median_ms": {
+            "open": 0.092695,
+            "load": 17.28847,
+            "render": 93.763068,
+            "total": 110.722962
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 965019847,
+            "ink_samples": 734,
+            "objects": {
+              "text": 0,
+              "path": 20000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              251313,
+              28249588,
+              243674891
+            ],
+            [
+              253317,
+              29101251,
+              232897570
+            ],
+            [
+              251243,
+              31411565,
+              259532413
+            ],
+            [
+              267644,
+              30369476,
+              241673438
+            ],
+            [
+              282702,
+              28299709,
+              232103707
+            ]
+          ],
+          "median_ms": {
+            "open": 0.253317,
+            "load": 29.101251,
+            "render": 241.673438,
+            "total": 272.175792
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_paths_clips.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_paths_clips.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "clipped vector shapes",
+      "sha256": "848caa80670465a474cc4294907b41fbe0efc47d41897fbae69d5607afce21f3",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3016849825,
+            "ink_samples": 470,
+            "objects": {
+              "path": 3600
+            }
+          },
+          "samples_ns": [
+            [
+              84329,
+              7289547,
+              37265786
+            ],
+            [
+              77887,
+              7526535,
+              34534644
+            ],
+            [
+              82416,
+              7349800,
+              35940100
+            ],
+            [
+              70273,
+              6633562,
+              30510732
+            ],
+            [
+              74170,
+              6717873,
+              29788771
+            ]
+          ],
+          "median_ms": {
+            "open": 0.077887,
+            "load": 7.289547,
+            "render": 34.534644,
+            "total": 42.139066
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2015145629,
+            "ink_samples": 468,
+            "objects": {
+              "text": 0,
+              "path": 3600,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              224854,
+              188983029,
+              456568599
+            ],
+            [
+              470897,
+              184062535,
+              485194180
+            ],
+            [
+              178457,
+              195282706,
+              505792916
+            ],
+            [
+              155202,
+              171217548,
+              528690148
+            ],
+            [
+              142739,
+              169637028,
+              423471520
+            ]
+          ],
+          "median_ms": {
+            "open": 0.178457,
+            "load": 184.062535,
+            "render": 485.19418,
+            "total": 669.727612
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2015145629,
+            "ink_samples": 468,
+            "objects": {
+              "text": 0,
+              "path": 3600,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              255511,
+              169673222,
+              405643318
+            ],
+            [
+              363444,
+              182413561,
+              428670499
+            ],
+            [
+              484051,
+              201675024,
+              491951894
+            ],
+            [
+              408840,
+              172617514,
+              396937083
+            ],
+            [
+              206749,
+              168539120,
+              394194804
+            ]
+          ],
+          "median_ms": {
+            "open": 0.363444,
+            "load": 172.617514,
+            "render": 405.643318,
+            "total": 575.572051
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_text_cmap_mixed.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_cmap_mixed.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "mixed text encodings",
+      "sha256": "1802c3dbd062817a17f57a2e2c192a083c01675c5b969f9529b46b4ff57697e3",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4152637074,
+            "ink_samples": 306,
+            "objects": {
+              "text": 101
+            }
+          },
+          "samples_ns": [
+            [
+              52489,
+              3608665,
+              6768146
+            ],
+            [
+              231827,
+              6422815,
+              12785235
+            ],
+            [
+              69080,
+              3760551,
+              7649895
+            ],
+            [
+              104817,
+              3643992,
+              6639251
+            ],
+            [
+              70222,
+              3659974,
+              7085397
+            ]
+          ],
+          "median_ms": {
+            "open": 0.070222,
+            "load": 3.659974,
+            "render": 7.085397,
+            "total": 10.815593
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4189143138,
+            "ink_samples": 0,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              158238,
+              2055150,
+              2610576
+            ],
+            [
+              223771,
+              3126127,
+              4476229
+            ],
+            [
+              203183,
+              2521969,
+              2630864
+            ],
+            [
+              145724,
+              2161020,
+              2694353
+            ],
+            [
+              133833,
+              2052195,
+              2526739
+            ]
+          ],
+          "median_ms": {
+            "open": 0.158238,
+            "load": 2.16102,
+            "render": 2.630864,
+            "total": 5.001097
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4189143138,
+            "ink_samples": 0,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              156125,
+              2041333,
+              2781879
+            ],
+            [
+              284305,
+              3086132,
+              4528688
+            ],
+            [
+              131016,
+              2172130,
+              2450775
+            ],
+            [
+              124956,
+              2179223,
+              2626156
+            ],
+            [
+              126739,
+              2056453,
+              2843656
+            ]
+          ],
+          "median_ms": {
+            "open": 0.131016,
+            "load": 2.17213,
+            "render": 2.781879,
+            "total": 4.979337
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_text_transformed.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_transformed.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "transformed and scaled text",
+      "sha256": "d0d151f230d2d2a04fde55ed49952d2878d5e1dc47848fbd852c0211b2bf454e",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 438458626,
+            "ink_samples": 784,
+            "objects": {
+              "text": 900,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              557950,
+              5580485,
+              950120415
+            ],
+            [
+              229383,
+              5210441,
+              994994442
+            ],
+            [
+              233740,
+              4621533,
+              1003600793
+            ],
+            [
+              844862,
+              6197780,
+              1013512167
+            ],
+            [
+              216217,
+              4603933,
+              1042398379
+            ]
+          ],
+          "median_ms": {
+            "open": 0.23374,
+            "load": 5.210441,
+            "render": 1003.600793,
+            "total": 1008.456066
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 438458626,
+            "ink_samples": 784,
+            "objects": {
+              "text": 900,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              856102,
+              9083215,
+              1034415240
+            ],
+            [
+              189777,
+              4711352,
+              987732106
+            ],
+            [
+              311646,
+              6421151,
+              1102041393
+            ],
+            [
+              178746,
+              4949856,
+              1115636066
+            ],
+            [
+              435501,
+              5349757,
+              963782431
+            ]
+          ],
+          "median_ms": {
+            "open": 0.311646,
+            "load": 5.349757,
+            "render": 1034.41524,
+            "total": 1044.354557
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2869939097,
+            "ink_samples": 779,
+            "objects": {
+              "text": 900
+            }
+          },
+          "samples_ns": [
+            [
+              126007,
+              5736973,
+              169312197
+            ],
+            [
+              117982,
+              4514292,
+              148387459
+            ],
+            [
+              89980,
+              4810618,
+              173535981
+            ],
+            [
+              140315,
+              4846095,
+              287186379
+            ],
+            [
+              382420,
+              6108537,
+              160035416
+            ]
+          ],
+          "median_ms": {
+            "open": 0.126007,
+            "load": 4.846095,
+            "render": 169.312197,
+            "total": 175.175177
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_text_type3_vector.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_type3_vector.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "Type 3 vector glyphs",
+      "sha256": "2ed808d7c9a39c51717be6734afb35f5ce20d7d23b9456ddd1a48ddcca7e739a",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3419766736,
+            "ink_samples": 228,
+            "objects": {
+              "text": 198,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              123232,
+              583750,
+              39889735
+            ],
+            [
+              127891,
+              606332,
+              42748542
+            ],
+            [
+              193505,
+              638211,
+              45796896
+            ],
+            [
+              131567,
+              549204,
+              45309361
+            ],
+            [
+              127319,
+              585804,
+              39762917
+            ]
+          ],
+          "median_ms": {
+            "open": 0.127891,
+            "load": 0.585804,
+            "render": 42.748542,
+            "total": 43.482765
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4105690814,
+            "ink_samples": 164,
+            "objects": {
+              "text": 198
+            }
+          },
+          "samples_ns": [
+            [
+              124154,
+              1456413,
+              35842284
+            ],
+            [
+              143600,
+              1619119,
+              41555164
+            ],
+            [
+              101261,
+              1498592,
+              36300484
+            ],
+            [
+              152748,
+              1904777,
+              39110618
+            ],
+            [
+              117912,
+              1475900,
+              36851353
+            ]
+          ],
+          "median_ms": {
+            "open": 0.124154,
+            "load": 1.498592,
+            "render": 36.851353,
+            "total": 38.445165
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3419766736,
+            "ink_samples": 228,
+            "objects": {
+              "text": 198,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              140294,
+              2646344,
+              44633799
+            ],
+            [
+              170882,
+              705138,
+              51370708
+            ],
+            [
+              180219,
+              557671,
+              41607787
+            ],
+            [
+              135555,
+              596613,
+              45330351
+            ],
+            [
+              121138,
+              699929,
+              40119258
+            ]
+          ],
+          "median_ms": {
+            "open": 0.140294,
+            "load": 0.699929,
+            "render": 44.633799,
+            "total": 46.062519
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_jpeg_large.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_jpeg_large.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "large JPEG downscale",
+      "sha256": "d525f5852cff16a1003f644bc9558e07e0002e0e7cddddc6503ca5033316c60a",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4242822609,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              571035,
+              67783924,
+              99025794
+            ],
+            [
+              640806,
+              76565296,
+              95060424
+            ],
+            [
+              582617,
+              68533248,
+              87030299
+            ],
+            [
+              680502,
+              66523548,
+              86786456
+            ],
+            [
+              507696,
+              67892873,
+              82906303
+            ]
+          ],
+          "median_ms": {
+            "open": 0.582617,
+            "load": 67.892873,
+            "render": 87.030299,
+            "total": 156.146164
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4242822609,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              558081,
+              68791000,
+              125064068
+            ],
+            [
+              791159,
+              72290427,
+              144835803
+            ],
+            [
+              506935,
+              68855586,
+              86098824
+            ],
+            [
+              517865,
+              66555929,
+              86422902
+            ],
+            [
+              555717,
+              66435258,
+              83214652
+            ]
+          ],
+          "median_ms": {
+            "open": 0.555717,
+            "load": 68.791,
+            "render": 86.422902,
+            "total": 155.461345
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 237851143,
+            "ink_samples": 1024,
+            "objects": {
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              66655,
+              228921,
+              98347889
+            ],
+            [
+              182022,
+              413760,
+              101803450
+            ],
+            [
+              78969,
+              259769,
+              107765934
+            ],
+            [
+              118563,
+              260140,
+              97305874
+            ],
+            [
+              77185,
+              272574,
+              93800552
+            ]
+          ],
+          "median_ms": {
+            "open": 0.078969,
+            "load": 0.26014,
+            "render": 98.347889,
+            "total": 98.643465
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_jpeg_thumbnails.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_jpeg_thumbnails.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "JPEG thumbnails",
+      "sha256": "f857f874c5bf5d49c8c6088ddac24d74317a1262fb7a92a045dec959131199ab",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1180430626,
+            "ink_samples": 870,
+            "objects": {
+              "image": 150
+            }
+          },
+          "samples_ns": [
+            [
+              173717,
+              1382354,
+              65808213
+            ],
+            [
+              224543,
+              1381231,
+              66149236
+            ],
+            [
+              111731,
+              1391800,
+              63321118
+            ],
+            [
+              162445,
+              1400357,
+              59216929
+            ],
+            [
+              164179,
+              1549629,
+              76460000
+            ]
+          ],
+          "median_ms": {
+            "open": 0.164179,
+            "load": 1.3918,
+            "render": 65.808213,
+            "total": 67.364284
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 922663495,
+            "ink_samples": 870,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 150
+            }
+          },
+          "samples_ns": [
+            [
+              454236,
+              40116563,
+              88284688
+            ],
+            [
+              433336,
+              41550304,
+              97105009
+            ],
+            [
+              507957,
+              40723989,
+              94599451
+            ],
+            [
+              481407,
+              39086011,
+              85729204
+            ],
+            [
+              968695,
+              40642132,
+              99680155
+            ]
+          ],
+          "median_ms": {
+            "open": 0.481407,
+            "load": 40.642132,
+            "render": 94.599451,
+            "total": 135.831397
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 922663495,
+            "ink_samples": 870,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 150
+            }
+          },
+          "samples_ns": [
+            [
+              478130,
+              44333644,
+              86538851
+            ],
+            [
+              485635,
+              39297882,
+              88670816
+            ],
+            [
+              428827,
+              40140370,
+              88599835
+            ],
+            [
+              431923,
+              44032075,
+              86489155
+            ],
+            [
+              451670,
+              41395383,
+              236556825
+            ]
+          ],
+          "median_ms": {
+            "open": 0.45167,
+            "load": 41.395383,
+            "render": 88.599835,
+            "total": 130.953153
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_repeated.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_repeated.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "reused image XObject",
+      "sha256": "5e23b4eb37ff836298b56e44f5edbe95a44e3f686a7f6fdbde55c68f2eda1a93",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3844355408,
+            "ink_samples": 363,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 3000
+            }
+          },
+          "samples_ns": [
+            [
+              122180,
+              16868335,
+              98806577
+            ],
+            [
+              120317,
+              15480451,
+              101507849
+            ],
+            [
+              254509,
+              15749878,
+              101420898
+            ],
+            [
+              110548,
+              14040409,
+              89285820
+            ],
+            [
+              118443,
+              14065727,
+              87675018
+            ]
+          ],
+          "median_ms": {
+            "open": 0.120317,
+            "load": 15.480451,
+            "render": 98.806577,
+            "total": 115.797092
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3844355408,
+            "ink_samples": 363,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 3000
+            }
+          },
+          "samples_ns": [
+            [
+              115938,
+              14548798,
+              107426509
+            ],
+            [
+              121319,
+              14697176,
+              92275835
+            ],
+            [
+              120116,
+              16260639,
+              107678804
+            ],
+            [
+              182203,
+              16200647,
+              93301131
+            ],
+            [
+              153539,
+              13795678,
+              89100363
+            ]
+          ],
+          "median_ms": {
+            "open": 0.121319,
+            "load": 14.697176,
+            "render": 93.301131,
+            "total": 109.683981
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1920180728,
+            "ink_samples": 350,
+            "objects": {
+              "image": 3000
+            }
+          },
+          "samples_ns": [
+            [
+              69230,
+              3927326,
+              103083390
+            ],
+            [
+              109977,
+              2191206,
+              93123391
+            ],
+            [
+              133762,
+              1867737,
+              72707871
+            ],
+            [
+              73879,
+              1754003,
+              94913278
+            ],
+            [
+              71114,
+              1772057,
+              54136554
+            ]
+          ],
+          "median_ms": {
+            "open": 0.073879,
+            "load": 1.867737,
+            "render": 93.123391,
+            "total": 95.424574
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_scan_gray.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_scan_gray.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "grayscale scan",
+      "sha256": "a2404eebb2dd6f7451009dc8034e0236c03db43d36c5f49f916d0a67257e39e8",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2411044806,
+            "ink_samples": 1024,
+            "objects": {
+              "image": 1,
+              "text": 54
+            }
+          },
+          "samples_ns": [
+            [
+              63690,
+              1295039,
+              31529483
+            ],
+            [
+              97524,
+              1666959,
+              38697234
+            ],
+            [
+              84700,
+              1232480,
+              32242433
+            ],
+            [
+              101180,
+              1386712,
+              33311846
+            ],
+            [
+              90360,
+              1298826,
+              32092482
+            ]
+          ],
+          "median_ms": {
+            "open": 0.09036,
+            "load": 1.298826,
+            "render": 32.242433,
+            "total": 33.559613
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1519695803,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 54,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              725626,
+              51429807,
+              82439155
+            ],
+            [
+              1340434,
+              59692843,
+              93893060
+            ],
+            [
+              689729,
+              52446708,
+              146972022
+            ],
+            [
+              668659,
+              55042395,
+              84624010
+            ],
+            [
+              682044,
+              51935930,
+              83802106
+            ]
+          ],
+          "median_ms": {
+            "open": 0.689729,
+            "load": 52.446708,
+            "render": 84.62401,
+            "total": 140.335064
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1519695803,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 54,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              700680,
+              50914290,
+              82904981
+            ],
+            [
+              1047142,
+              58351487,
+              101348869
+            ],
+            [
+              720086,
+              51379749,
+              83401596
+            ],
+            [
+              663179,
+              54902072,
+              88832023
+            ],
+            [
+              725416,
+              51880404,
+              80462236
+            ]
+          ],
+          "median_ms": {
+            "open": 0.720086,
+            "load": 51.880404,
+            "render": 83.401596,
+            "total": 135.501431
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_scan_bilevel.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_scan_bilevel.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "bilevel scan",
+      "sha256": "3fabd640596805188db89117c50613e1897502329ac16ac4cab8a1049fb86ad8",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1795469041,
+            "ink_samples": 304,
+            "objects": {
+              "text": 54,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              145745,
+              29002395,
+              85578106
+            ],
+            [
+              255892,
+              31032397,
+              88139997
+            ],
+            [
+              147037,
+              30403562,
+              85549283
+            ],
+            [
+              1165254,
+              43414132,
+              83050802
+            ],
+            [
+              167055,
+              29155450,
+              82518238
+            ]
+          ],
+          "median_ms": {
+            "open": 0.167055,
+            "load": 30.403562,
+            "render": 85.549283,
+            "total": 116.099882
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1795469041,
+            "ink_samples": 304,
+            "objects": {
+              "text": 54,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              1937017,
+              381564991,
+              124783094
+            ],
+            [
+              139853,
+              352338862,
+              84731408
+            ],
+            [
+              265520,
+              347487254,
+              101315312
+            ],
+            [
+              149882,
+              315872912,
+              86675577
+            ],
+            [
+              183225,
+              319285418,
+              85193808
+            ]
+          ],
+          "median_ms": {
+            "open": 0.183225,
+            "load": 347.487254,
+            "render": 86.675577,
+            "total": 437.210123
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3927036965,
+            "ink_samples": 336,
+            "objects": {
+              "image": 1,
+              "text": 54
+            }
+          },
+          "samples_ns": [
+            [
+              108314,
+              1425404,
+              35479152
+            ],
+            [
+              77947,
+              908871,
+              23097856
+            ],
+            [
+              118733,
+              917748,
+              23794026
+            ],
+            [
+              98706,
+              945461,
+              24776736
+            ],
+            [
+              85822,
+              975447,
+              24343395
+            ]
+          ],
+          "median_ms": {
+            "open": 0.098706,
+            "load": 0.945461,
+            "render": 24.343395,
+            "total": 25.404664
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_flate_predictor.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_flate_predictor.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "Flate images with predictors",
+      "sha256": "eeb2ff24205f17c0974769a720b6bcd49453ebca8f56d9acd0deba02ea2e76b1",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1233603979,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              825254,
+              66710695,
+              86983091
+            ],
+            [
+              1222292,
+              73383262,
+              93436374
+            ],
+            [
+              4600983,
+              81572101,
+              90349700
+            ],
+            [
+              780269,
+              63177655,
+              80986157
+            ],
+            [
+              3933270,
+              182415397,
+              90998454
+            ]
+          ],
+          "median_ms": {
+            "open": 1.222292,
+            "load": 73.383262,
+            "render": 90.3497,
+            "total": 168.041928
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4279457081,
+            "ink_samples": 1024,
+            "objects": {
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              75622,
+              891669,
+              48091633
+            ],
+            [
+              91472,
+              478111,
+              45683899
+            ],
+            [
+              76413,
+              386178,
+              44949069
+            ],
+            [
+              82726,
+              411024,
+              41902563
+            ],
+            [
+              88186,
+              379806,
+              41179879
+            ]
+          ],
+          "median_ms": {
+            "open": 0.082726,
+            "load": 0.411024,
+            "render": 44.949069,
+            "total": 45.41166
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1233603979,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              1189130,
+              67896347,
+              84146881
+            ],
+            [
+              931785,
+              71791784,
+              97990812
+            ],
+            [
+              730295,
+              67643213,
+              85214680
+            ],
+            [
+              751876,
+              63655444,
+              80307470
+            ],
+            [
+              755193,
+              63846556,
+              81061511
+            ]
+          ],
+          "median_ms": {
+            "open": 0.755193,
+            "load": 67.643213,
+            "render": 84.146881,
+            "total": 153.232358
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_smask.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_smask.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "image soft masks",
+      "sha256": "91e10c78568c8dd3cfb3397612358650ba0418f9c3bb520672da29b9e089dadd",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2520134748,
+            "ink_samples": 938,
+            "objects": {
+              "text": 0,
+              "path": 26,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              962112,
+              30222569,
+              107440140
+            ],
+            [
+              1636391,
+              30395147,
+              103266742
+            ],
+            [
+              1373646,
+              35241470,
+              142906605
+            ],
+            [
+              11486540,
+              43043294,
+              103970422
+            ],
+            [
+              840944,
+              30850469,
+              202733349
+            ]
+          ],
+          "median_ms": {
+            "open": 1.373646,
+            "load": 30.850469,
+            "render": 107.44014,
+            "total": 158.500256
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2520134748,
+            "ink_samples": 938,
+            "objects": {
+              "text": 0,
+              "path": 26,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              969445,
+              30534377,
+              108522818
+            ],
+            [
+              896588,
+              31375774,
+              124289760
+            ],
+            [
+              1023737,
+              33894594,
+              110311468
+            ],
+            [
+              804926,
+              28504164,
+              97618211
+            ],
+            [
+              845713,
+              28601273,
+              97844951
+            ]
+          ],
+          "median_ms": {
+            "open": 0.896588,
+            "load": 30.534377,
+            "render": 108.522818,
+            "total": 140.02664
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1114060628,
+            "ink_samples": 935,
+            "objects": {
+              "path": 26,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              81383,
+              431924,
+              61494812
+            ],
+            [
+              78057,
+              415242,
+              44073354
+            ],
+            [
+              115337,
+              471818,
+              42629031
+            ],
+            [
+              70322,
+              475876,
+              42603375
+            ],
+            [
+              76204,
+              516092,
+              42116891
+            ]
+          ],
+          "median_ms": {
+            "open": 0.078057,
+            "load": 0.471818,
+            "render": 42.629031,
+            "total": 43.216186
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_structure_forms.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_forms.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "repeated Form XObjects",
+      "sha256": "ca5755a52655abc11fbcc8c18bab9cbaea68f285fb9364145700565969b94bd2",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1488893879,
+            "ink_samples": 842,
+            "objects": {
+              "text": 800,
+              "path": 8544,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              310024,
+              79402535,
+              604779692
+            ],
+            [
+              297791,
+              52666899,
+              650773519
+            ],
+            [
+              622322,
+              51847791,
+              331039716
+            ],
+            [
+              171693,
+              51526836,
+              361731612
+            ],
+            [
+              187784,
+              53183853,
+              356499976
+            ]
+          ],
+          "median_ms": {
+            "open": 0.297791,
+            "load": 52.666899,
+            "render": 361.731612,
+            "total": 413.430141
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1488893879,
+            "ink_samples": 842,
+            "objects": {
+              "text": 800,
+              "path": 8544,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              778897,
+              54574785,
+              401616364
+            ],
+            [
+              299844,
+              54843479,
+              427867761
+            ],
+            [
+              139563,
+              50317559,
+              335589274
+            ],
+            [
+              258397,
+              52609524,
+              341745931
+            ],
+            [
+              344148,
+              56158986,
+              354836503
+            ]
+          ],
+          "median_ms": {
+            "open": 0.299844,
+            "load": 54.574785,
+            "render": 354.836503,
+            "total": 411.339637
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3668592908,
+            "ink_samples": 846,
+            "objects": {
+              "form": 806
+            }
+          },
+          "samples_ns": [
+            [
+              108715,
+              68707867,
+              154412779
+            ],
+            [
+              137069,
+              49381943,
+              131471433
+            ],
+            [
+              108054,
+              46690381,
+              109856828
+            ],
+            [
+              633864,
+              46732407,
+              104488864
+            ],
+            [
+              220515,
+              47559751,
+              112657100
+            ]
+          ],
+          "median_ms": {
+            "open": 0.137069,
+            "load": 47.559751,
+            "render": 112.6571,
+            "total": 160.437366
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_transparency_blend_modes.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_transparency_blend_modes.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "transparency and blend modes",
+      "sha256": "6acc9ef1309d383a5deb2dbccab560b0855d0b53234d1f38853796ba0d603ccc",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 196442568,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 1600,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              1689221,
+              21040906,
+              498159468
+            ],
+            [
+              259709,
+              11364180,
+              421018048
+            ],
+            [
+              341393,
+              10645786,
+              369975846
+            ],
+            [
+              224633,
+              10744183,
+              352352881
+            ],
+            [
+              1669825,
+              16191049,
+              372225012
+            ]
+          ],
+          "median_ms": {
+            "open": 0.341393,
+            "load": 11.36418,
+            "render": 372.225012,
+            "total": 390.085886
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 196442568,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 1600,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              219693,
+              10753992,
+              360057358
+            ],
+            [
+              339128,
+              15291305,
+              383862284
+            ],
+            [
+              233129,
+              10676725,
+              550834874
+            ],
+            [
+              295817,
+              10468353,
+              358766033
+            ],
+            [
+              399322,
+              10730092,
+              351601787
+            ]
+          ],
+          "median_ms": {
+            "open": 0.295817,
+            "load": 10.730092,
+            "render": 360.057358,
+            "total": 371.031043
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2080947007,
+            "ink_samples": 1024,
+            "objects": {
+              "image": 1,
+              "path": 1600
+            }
+          },
+          "samples_ns": [
+            [
+              90210,
+              9135001,
+              80929731
+            ],
+            [
+              80952,
+              5832974,
+              85383145
+            ],
+            [
+              90751,
+              5467865,
+              94157519
+            ],
+            [
+              89148,
+              5446318,
+              77085100
+            ],
+            [
+              86222,
+              5797721,
+              76495724
+            ]
+          ],
+          "median_ms": {
+            "open": 0.089148,
+            "load": 5.797721,
+            "render": 80.929731,
+            "total": 90.154942
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_transparency_soft_masks.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_transparency_soft_masks.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "transparency soft masks",
+      "sha256": "3cc075990d51da1f0ee7dc2b6e9621c8ae71586ff7cdd3664c6731e8e641f9a8",
+      "page": 1,
+      "results": {
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 506225389,
+            "ink_samples": 56,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 48
+            }
+          },
+          "samples_ns": [
+            [
+              187162,
+              734165851,
+              174378134
+            ],
+            [
+              159370,
+              733446838,
+              137045123
+            ],
+            [
+              160352,
+              737158338,
+              168023283
+            ],
+            [
+              205708,
+              729812371,
+              119868261
+            ],
+            [
+              203734,
+              738295310,
+              135381885
+            ]
+          ],
+          "median_ms": {
+            "open": 0.187162,
+            "load": 734.165851,
+            "render": 137.045123,
+            "total": 873.880929
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 506225389,
+            "ink_samples": 56,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 48
+            }
+          },
+          "samples_ns": [
+            [
+              165702,
+              857710771,
+              136550777
+            ],
+            [
+              223681,
+              867161601,
+              152131553
+            ],
+            [
+              170211,
+              733495477,
+              149309441
+            ],
+            [
+              269327,
+              758192263,
+              128455421
+            ],
+            [
+              415112,
+              734460030,
+              166008158
+            ]
+          ],
+          "median_ms": {
+            "open": 0.223681,
+            "load": 758.192263,
+            "render": 149.309441,
+            "total": 900.8833
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1088859689,
+            "ink_samples": 720,
+            "objects": {
+              "form": 48
+            }
+          },
+          "samples_ns": [
+            [
+              70793,
+              339750,
+              91784890
+            ],
+            [
+              91032,
+              314241,
+              89518271
+            ],
+            [
+              865069,
+              832418,
+              95659240
+            ],
+            [
+              80211,
+              347043,
+              89610233
+            ],
+            [
+              78358,
+              314993,
+              90095910
+            ]
+          ],
+          "median_ms": {
+            "open": 0.080211,
+            "load": 0.33975,
+            "render": 90.09591,
+            "total": 90.489261
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_patterns_tiling_images.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_patterns_tiling_images.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "tiling patterns",
+      "sha256": "0bd885aef9f8a2a7ebb9f8afdac1bb69a031790caf48f1ed7f34a4786c599fc6",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2623280244,
+            "ink_samples": 873,
+            "objects": {
+              "path": 81
+            }
+          },
+          "samples_ns": [
+            [
+              47369,
+              1565027,
+              30192195
+            ],
+            [
+              172796,
+              528134,
+              34916032
+            ],
+            [
+              126599,
+              405253,
+              33421573
+            ],
+            [
+              94367,
+              404572,
+              29479081
+            ],
+            [
+              146797,
+              408429,
+              28642160
+            ]
+          ],
+          "median_ms": {
+            "open": 0.126599,
+            "load": 0.408429,
+            "render": 30.192195,
+            "total": 31.804591
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4189143138,
+            "ink_samples": 0,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              77456,
+              351842,
+              2445365
+            ],
+            [
+              101982,
+              302961,
+              2982115
+            ],
+            [
+              95199,
+              358215,
+              3226184
+            ],
+            [
+              81383,
+              302519,
+              2353522
+            ],
+            [
+              79890,
+              301188,
+              2352491
+            ]
+          ],
+          "median_ms": {
+            "open": 0.081383,
+            "load": 0.302961,
+            "render": 2.445365,
+            "total": 2.874663
+          }
+        },
+        "baseline": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4189143138,
+            "ink_samples": 0,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              161474,
+              304333,
+              2483366
+            ],
+            [
+              118894,
+              590622,
+              3751054
+            ],
+            [
+              93677,
+              305335,
+              2759827
+            ],
+            [
+              77286,
+              330792,
+              2421470
+            ],
+            [
+              81714,
+              303441,
+              2507514
+            ]
+          ],
+          "median_ms": {
+            "open": 0.093677,
+            "load": 0.305335,
+            "render": 2.507514,
+            "total": 2.949173
+          }
+        }
+      },
+      "same_dimensions": true
+    }
+  ]
+}

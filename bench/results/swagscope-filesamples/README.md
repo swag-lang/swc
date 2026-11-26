@@ -110,6 +110,10 @@ fixtures were included.
 The Swag PDF parse-plus-first-page render path is consistently slower on this corpus. The comparison
 does not time GUI layout, thumbnails, navigation, or later pages.
 
+The [expanded CPU comparison](pdf-raster-linux.md) measures 31 pages across 29 PDFs with
+Swag and PDFium's raw BGRA APIs on one Linux CPU. It includes opening, page loading,
+rendering, and coverage checks for the three original files and 26 public fixtures.
+
 ### Fonts
 
 Swag Scope read the file, parsed a `TrueType.Face`, set 20 px size and loaded glyph `A`. Pillow used

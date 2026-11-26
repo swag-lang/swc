@@ -374,6 +374,22 @@ func representativeIndex(entries: const [..] IconDirEntry)->u32
     return bestIndex
 }
 
+func checkPngEntryGeometry(entry: IconDirEntry, image: const [*] u8, size: u64) fail
+{
+    // PNG validates the full IHDR and its checksum before decoding. Check the
+    // directory geometry as soon as its fixed-size PNG header is available.
+    if size < 33 do
+        return
+    let header = cast(const [*] u32, image + 8)
+    if Math.bigEndianToNative(header[0]) != 13 or Math.bigEndianToNative(header[1]) != 0x49484452 do
+        return
+
+    let width  = Math.bigEndianToNative(header[2])
+    let height = Math.bigEndianToNative(header[3])
+    if width != cast(u32, dimFromByte(entry.width)) or height != cast(u32, dimFromByte(entry.height)) do
+        fail InvalidFormatError{"icon entry dimensions do not match its directory"}
+}
+
 func decodeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEntry)->Image fail
 {
     if cast(u64, entry.imageOffset) + entry.bytesInRes > buffer.count do
@@ -385,6 +401,8 @@ func decodeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEn
     // PNG-compressed entry: delegate to the PNG decoder
     if isPngSignature(imgPtr, imgLen)
     {
+        if options.decodePixels do
+            try checkPngEntryGeometry(entry, imgPtr, imgLen)
         var pngDec: Png.Decoder
         let itf    = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
         var result = #move try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)

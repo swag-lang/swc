@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1'u32, blocks = 1'u32)->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1'u32, blocks = 1'u32, alternate: const [..] u8? = null)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -60,15 +60,19 @@ func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlo
     exrAddU32(&result, Exr.Magic)
     exrAddU32(&result, 2)
     result.addBytes(unwrap header.toSlice())
-    let firstChunk = result.count() + cast(u64, blocks) * 8
-    let chunkBytes = packed.count + 8
-    for block in blocks do
-        exrAddU64(&result, firstChunk + cast(u64, block) * chunkBytes)
+    var chunkOffset = result.count() + cast(u64, blocks) * 8
     for block in blocks
     {
+        let stream = (block & 1) and alternate ? alternate : packed
+        exrAddU64(&result, chunkOffset)
+        chunkOffset += stream.count + 8
+    }
+    for block in blocks
+    {
+        let stream = (block & 1) and alternate ? alternate : packed
         exrAddU32(&result, block * rowsPerBlock)
-        exrAddU32(&result, cast(u32, packed.count))
-        result.addBytes(packed)
+        exrAddU32(&result, cast(u32, stream.count))
+        result.addBytes(stream)
     }
 
     return result
@@ -681,4 +685,31 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     let decoded = expect Image.decode("wide.exr", encoded.toSlice())
     assertImage(decoded, Width, Height, .RGBAF16)
     Swag.require(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
+}
+
+// ZIP chunk reuse handles two alternating packed blocks without mixing their scanlines.
+#test
+{
+    const Width = 129'u32
+    const Rows  = 6'u32
+    var predictor: [2 * Width] u8
+    for i in 1 until predictor.count do
+        predictor[i] = 128
+    var zlib: Compress.ZLib
+    predictor[Width] = 128 + 0x3C
+    let first        = expect zlib.compress(predictor)
+    predictor[Width] = 128 + 0x40
+    let second       = expect zlib.compress(predictor)
+    Swag.require(first.count < predictor.count / 4)
+    Swag.require(second.count < predictor.count / 4)
+    let input  = exrZipFixture(Width, first.toSlice(), blocks: Rows, alternate: second.toSlice())
+    let output = expect Image.decode("alternating.exr", nnBytes(input.toSlice()))
+    assertImage(output, cast(s32, Width), cast(s32, Rows), .GrayF16)
+    let pixels = cast(const [*] u16, output.pixels.storage())
+    for row in Rows
+    {
+        let expected = (Rows - row - 1) & 1 ? 0x4000'u16 : 0x3C00'u16
+        for x in Width do
+            Swag.require(pixels[cast(u64, row) * Width + x] == expected)
+    }
 }

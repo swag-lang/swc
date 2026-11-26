@@ -557,13 +557,19 @@ struct ScanlineChunk
     expected: u64
 }
 
+struct CachedScanlines
+{
+    pixels: const [..] u8?
+    firstRow, rows: s32
+}
+
 struct ScanlineScratch
 {
-    zlib:         Compress.ZLib
-    unpacked:     Array'u8
-    reordered:    Array'u8
-    cachedPixels: const [..] u8?
-    cachedFirstRow, cachedRows: s32
+    zlib:      Compress.ZLib
+    unpacked:  Array'u8
+    reordered: Array'u8
+    cached:    [2] CachedScanlines
+    nextCache: u64
 }
 
 struct Part
@@ -806,27 +812,29 @@ impl Part
     {
         // Comparing only small packed blocks keeps cache misses cheap.
         let cacheable = .compression and chunk.pixels.count < chunk.expected / 4
-        let cached    = scratch.cachedPixels
-        if cacheable and
-           cached and
-           scratch.cachedRows == chunk.rows and
-           cached.count == chunk.pixels.count and
-           Memory.compare(cached.buffer, chunk.pixels.buffer, chunk.pixels.count) == 0
+        if cacheable
         {
-            let rowBytes = cast(u64, image.rowStride)
-            let first    = cast(u64, image.height - chunk.relativeY - chunk.rows) * rowBytes
-            let previous = cast(u64, image.height - scratch.cachedFirstRow - chunk.rows) * rowBytes
-            let output   = image.pixels.storage()
-            Memory.copy(output + first, output + previous, cast(u64, chunk.rows) * rowBytes)
-            return
+            for entry in scratch.cached
+            {
+                let packed = entry.pixels
+                if packed and entry.rows == chunk.rows and packed.count == chunk.pixels.count and
+                   Memory.compare(packed.buffer, chunk.pixels.buffer, chunk.pixels.count) == 0
+                {
+                    let rowBytes = cast(u64, image.rowStride)
+                    let first    = cast(u64, image.height - chunk.relativeY - chunk.rows) * rowBytes
+                    let previous = cast(u64, image.height - entry.firstRow - chunk.rows) * rowBytes
+                    let output   = image.pixels.storage()
+                    Memory.copy(output + first, output + previous, cast(u64, chunk.rows) * rowBytes)
+                    return
+                }
+            }
         }
 
         try .writeScanlineChunk(image, chunk, layout, scratch)
         if cacheable
         {
-            scratch.cachedPixels   = chunk.pixels
-            scratch.cachedFirstRow = chunk.relativeY
-            scratch.cachedRows     = chunk.rows
+            scratch.cached[scratch.nextCache] = {pixels: chunk.pixels, firstRow: chunk.relativeY, rows: chunk.rows}
+            scratch.nextCache ^= 1
         }
     }
 

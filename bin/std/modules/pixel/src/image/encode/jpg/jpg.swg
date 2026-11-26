@@ -46,11 +46,6 @@ private
         bf:   u8
     }
 
-    struct ColorRGB
-    {
-        b, g, r: u8
-    }
-
     struct DQTInfoType
     {
         marker:   u16
@@ -123,22 +118,16 @@ private
     const RedLanes   = cast(Math.Simd.U8x16, [2'u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80])
     const GreenLanes = cast(Math.Simd.U8x16, [1'u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80])
     const BlueLanes  = cast(Math.Simd.U8x16, [0'u8, 0x80, 0x80, 0x80, 3, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80])
-}
 
-impl ColorRGB
-{
-    mtd const opCompare(other: ColorRGB)->s32
-    {
-        let bCmp = .b <=> other.b
-        if bCmp do
-            return bCmp
+    // In a three-byte layout the second read begins eight bytes into the row, so it
+    // ends at the last pixel. Its first four lanes have higher byte offsets.
+    const RedLanesHigh   = cast(Math.Simd.U8x16, [6'u8, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80, 12, 0x80, 0x80, 0x80, 15, 0x80, 0x80, 0x80])
+    const GreenLanesHigh = cast(Math.Simd.U8x16, [5'u8, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 11, 0x80, 0x80, 0x80, 14, 0x80, 0x80, 0x80])
+    const BlueLanesHigh  = cast(Math.Simd.U8x16, [4'u8, 0x80, 0x80, 0x80, 7, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80])
 
-        let gCmp = .g <=> other.g
-        if gCmp do
-            return gCmp
-
-        return .r <=> other.r
-    }
+    const RedLanes4   = cast(Math.Simd.U8x16, [2'u8, 0x80, 0x80, 0x80, 6, 0x80, 0x80, 0x80, 10, 0x80, 0x80, 0x80, 14, 0x80, 0x80, 0x80])
+    const GreenLanes4 = cast(Math.Simd.U8x16, [1'u8, 0x80, 0x80, 0x80, 5, 0x80, 0x80, 0x80, 9, 0x80, 0x80, 0x80, 13, 0x80, 0x80, 0x80])
+    const BlueLanes4  = cast(Math.Simd.U8x16, [0'u8, 0x80, 0x80, 0x80, 4, 0x80, 0x80, 0x80, 8, 0x80, 0x80, 0x80, 12, 0x80, 0x80, 0x80])
 }
 
 // Encodes baseline JPEG images with configurable quality.
@@ -148,14 +137,27 @@ impl ColorRGB
 #[Swag.Opaque]
 internal struct Encoder
 {
-    // Baseline JPEG encoding state: the padded source, the quantization and Huffman tables,
+    // Baseline JPEG encoding state: the source, the quantization and Huffman tables,
     // and the 8x8 block being transformed. Encode through the module entry points.
 
     private
     {
-        imageX:    u16     // Width of the padded source, a multiple of eight.
-        imageY:    u16     // Height of the padded source, a multiple of eight.
-        bufferRGB: Array'ColorRGB     // Padded source pixels.
+        imageX:     u16
+        imageY:     u16
+        pixels:     const [*] u8?
+        pixelSize:  u32
+        stride:     u64
+        redLanes:   Math.Simd.U8x16
+        greenLanes: Math.Simd.U8x16
+        blueLanes:  Math.Simd.U8x16
+
+        redLanesHigh:   Math.Simd.U8x16
+        greenLanesHigh: Math.Simd.U8x16
+        blueLanesHigh:  Math.Simd.U8x16
+        rightOffset:    u32
+
+        redOffset:  u32
+        blueOffset: u32
 
         stream: *ConcatBuffer?     // Output buffer segments are appended to.
 
@@ -182,88 +184,29 @@ internal struct Encoder
 
 impl Encoder
 {
-    mtd loadBitmap(image: Image)
+    mtd setSource(image: const *Image)
     {
         .imageX = cast(u16, image.width)
         .imageY = cast(u16, image.height)
+        .pixels = image.pixels.storage()
 
-        var xDiv8, yDiv8: u32
-        if .imageX % 8 != 0 do
-            xDiv8 = (.imageX / 8) * 8'u32 + 8
-        else do
-            xDiv8 = .imageX
-        if .imageY % 8 != 0 do
-            yDiv8 = (.imageY / 8) * 8'u32 + 8
-        else do
-            yDiv8 = .imageY
-
-        // The conversion reads whole vectors, so the last pixels of the source are followed by
-        // enough slack for a sixteen-byte read that starts on them.
-        .bufferRGB.resize(cast(u64, xDiv8) * yDiv8 + 8)
-        let pdst = .bufferRGB.storage()
-        var pref = image.pixels.storage()
-
-        // The image rows are stored bottom up and a scan is coded top down, so each row is
-        // written straight to its mirrored position instead of being copied and then swapped.
-        for nrline in .imageY
-        {
-            let line = pdst + (cast(u32, .imageY) - 1 - nrline) * xDiv8
-            switch image.pixelFormat
-            {
-            case .BGR8:
-                for column in .imageX
-                {
-                    line[column].b = pref[0]
-                    line[column].g = pref[1]
-                    line[column].r = pref[2]
-                    pref += 3
-                }
-
-            case .RGB8:
-                for column in .imageX
-                {
-                    line[column].b = pref[2]
-                    line[column].g = pref[1]
-                    line[column].r = pref[0]
-                    pref += 3
-                }
-
-            case .BGRA8:
-                for column in .imageX
-                {
-                    line[column].b = pref[0]
-                    line[column].g = pref[1]
-                    line[column].r = pref[2]
-                    pref += 4
-                }
-
-            case .RGBA8:
-                for column in .imageX
-                {
-                    line[column].b = pref[2]
-                    line[column].g = pref[1]
-                    line[column].r = pref[0]
-                    pref += 4
-                }
-
-            default:
-                break
-            }
-
-            let lastcolor = line[.imageX - 1]
-            for var column = .imageX; column < xDiv8; column += 1 do
-                line[column] = lastcolor
-        }
-
-        .imageX = cast(u16, xDiv8)
-
-        // Height completion: the padded rows repeat the last coded row.
-        let dimline  = cast(u64, .imageX) * #sizeof(ColorRGB)
-        let lastLine = pdst + (cast(u32, .imageY) - 1) * cast(u32, .imageX)
-        for var nrLine = cast(u32, .imageY); nrLine < yDiv8; nrLine += 1 do
-            Memory.copy(pdst + nrLine * cast(u32, .imageX), lastLine, dimline)
-
-        .imageY = cast(u16, yDiv8)
+        let hasAlpha = image.pixelFormat == .BGRA8 or image.pixelFormat == .RGBA8
+        let redFirst = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8
+        .pixelSize = hasAlpha ? 4 : 3
+        .stride    = cast(u64, .imageX) * .pixelSize
+        let redLanes  = hasAlpha ? RedLanes4 : RedLanes
+        let blueLanes = hasAlpha ? BlueLanes4 : BlueLanes
+        .greenLanes = hasAlpha ? GreenLanes4 : GreenLanes
+        .redLanes   = redFirst ? blueLanes : redLanes
+        .blueLanes  = redFirst ? redLanes : blueLanes
+        let redLanesHigh  = hasAlpha ? RedLanes4 : RedLanesHigh
+        let blueLanesHigh = hasAlpha ? BlueLanes4 : BlueLanesHigh
+        .greenLanesHigh = hasAlpha ? GreenLanes4 : GreenLanesHigh
+        .redLanesHigh   = redFirst ? blueLanesHigh : redLanesHigh
+        .blueLanesHigh  = redFirst ? redLanesHigh : blueLanesHigh
+        .rightOffset    = hasAlpha ? 16 : 8
+        .redOffset      = redFirst ? 0 : 2
+        .blueOffset     = 2 - .redOffset
     }
 
     mtd encoder()
@@ -271,17 +214,20 @@ impl Encoder
         var dcy:  s16 = 0
         var dccb: s16 = 0
         var dccr: s16 = 0
+        let pixels    = unwrap .pixels
         for var ypos = 0'u16; ypos < .imageY; ypos += 8
         {
+            let line = pixels + (cast(u32, .imageY) - 1 - ypos) * .stride
+            let rows = Math.min(8'u32, cast(u32, .imageY) - ypos)
             for var xpos = 0'u16; xpos < .imageX; xpos += 8
             {
-                let stride = cast(u64, .imageX)
-                let source = .bufferRGB.storage() + cast(u64, ypos) * stride + xpos
-                if flatColorBlock(source, stride)
+                let source  = line + cast(u64, xpos) * .pixelSize
+                let columns = Math.min(8'u32, cast(u32, .imageX) - xpos)
+                if flatColorBlock(source, .stride, .pixelSize, columns, rows)
                 {
-                    let red   = cast(s32, source[0].r)
-                    let green = cast(s32, source[0].g)
-                    let blue  = cast(s32, source[0].b)
+                    let red   = cast(s32, source[.redOffset])
+                    let green = cast(s32, source[1])
+                    let blue  = cast(s32, source[.blueOffset])
                     let y     = componentOf(red, green, blue, CoeffYR, CoeffYG, CoeffYB, 32_768) - 128
                     let cb    = componentOf(red, green, blue, CoeffCbR, CoeffCbG, CoeffCbB, 32_767)
                     let cr    = componentOf(red, green, blue, CoeffCrR, CoeffCrG, CoeffCrB, 32_767)
@@ -291,7 +237,7 @@ impl Encoder
                     continue
                 }
 
-                .loadFromRGB(xpos, ypos)
+                .loadFromRGB(source, columns, rows)
                 .processDU(.duY, .fdtblY, &dcy, LumaDcCodes, LumaAcCodes)
                 .processDU(.duCb, .fdtblCb, &dccb, ChromaDcCodes, ChromaAcCodes)
                 .processDU(.duCr, .fdtblCb, &dccr, ChromaDcCodes, ChromaAcCodes)
@@ -325,7 +271,7 @@ internal impl IImageEncoder for Encoder
         .stream      = result
         .scaleFactor = cast(u8, (100 - Math.clamp(opt.quality, 1'u8, 100'u8)))
 
-        .loadBitmap(image)
+        .setSource(&image)
 
         .setDQTinfo()
         .setDHTinfo()

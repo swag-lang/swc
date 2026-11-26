@@ -299,6 +299,22 @@ private struct PaintIndex
     bins: Array'PaintBin
 }
 
+private struct SvgTextMeasure
+{
+    font:    *Font?
+    metrics: StringMetrics
+    letterSpacing, wordSpacing: u32
+}
+
+private const TextMeasureCacheSize = 128
+
+private struct SvgTextScratch
+{
+    shaped:           ShapedRun
+    measurements:     HashTable'(string, SvgTextMeasure)
+    remainingLookups: u32 = TextMeasureCacheSize
+}
+
 private struct SvgTextRun
 {
     text:          String
@@ -5301,7 +5317,7 @@ impl Drawing
     }
 
     // Paints one text block and returns the drawing-space rectangle its runs covered.
-    private mtd const paintText(painter: *Painter, text: const *SvgText, shaped: *ShapedRun, visible: Rectangle, clipRuns: bool)->Rectangle
+    private mtd const paintText(painter: *Painter, text: const *SvgText, scratch: *SvgTextScratch, visible: Rectangle, clipRuns: bool)->Rectangle
     {
         // The pen is a point plus a distance along the baseline, because a rotated element
         // runs its text along a direction rather than along the drawing's x axis. With no
@@ -5328,11 +5344,46 @@ impl Drawing
             let size = cast(u32, Math.max(Math.round(run.fontSize), 1.0'f32))
             let font = painter.renderer().fontCache().createFont(run.typeFace, size, forceBold: run.forceBold, forceItalic: run.forceItalic)
 
-            // Shape once: the anchor needs the advance the spacing produces, and drawing
-            // the same run keeps the glyphs on the positions that width was measured from.
-            Painter.shapeRunInto(shaped, run.text.toString(), font, letterSpacing: run.letterSpacing, wordSpacing: run.wordSpacing)
-            let metrics = Painter.measureString(shaped)
-            var offset  = advance
+            // Repeated labels can be measured without shaping their glyphs again. The cache
+            // lives for this paint and only keeps runs which use one font for every glyph.
+            let authored      = run.text.toString()
+            let canCache      = clipRuns and scratch.remainingLookups and authored.count <= 96
+            let letterSpacing = cast #bit(u32, run.letterSpacing)
+            let wordSpacing   = cast #bit(u32, run.wordSpacing)
+            let cached        = canCache ? scratch.measurements.tryFind(authored) : null
+            let reuse         = cached and
+                                cached.value.font == font and
+                                cached.value.letterSpacing == letterSpacing and
+                                cached.value.wordSpacing == wordSpacing
+
+            // Stop probing after a long run of labels with no reusable measurements.
+            if canCache do
+                scratch.remainingLookups = reuse ? TextMeasureCacheSize : scratch.remainingLookups - 1
+
+            var metrics: StringMetrics
+            if reuse
+            {
+                metrics = cached!.value.metrics
+            }
+            else
+            {
+                Painter.shapeRunInto(&scratch.shaped, authored, font, letterSpacing: run.letterSpacing, wordSpacing: run.wordSpacing)
+                metrics = Painter.measureString(&scratch.shaped)
+                if canCache and (cached or scratch.measurements.count < TextMeasureCacheSize)
+                {
+                    var primary = true
+                    for glyph in scratch.shaped.glyphs where glyph.font and glyph.font != font
+                    {
+                        primary = false
+                        break
+                    }
+
+                    if primary do
+                        scratch.measurements.add(authored, SvgTextMeasure{font, metrics, letterSpacing, wordSpacing})
+                }
+            }
+
+            var offset = advance
             if run.anchor == .Middle do
                 offset -= metrics.width * 0.5
             elif run.anchor == .End do
@@ -5381,7 +5432,9 @@ impl Drawing
             }
 
             let color = run.color.withAlphaF32(run.opacity)
-            painter.drawShapedRun(origin.x + offset, origin.y - font.ascent, shaped, font, Brush.createSolid(color))
+            if reuse do
+                Painter.shapeRunInto(&scratch.shaped, authored, font, letterSpacing: run.letterSpacing, wordSpacing: run.wordSpacing)
+            painter.drawShapedRun(origin.x + offset, origin.y - font.ascent, &scratch.shaped, font, Brush.createSolid(color))
             if rotated do
                 painter.popState()
         }
@@ -5515,10 +5568,10 @@ impl Drawing
 
         let axisAligned  = tr.m12 == 0 and tr.m21 == 0
         let useBlocks    = .paintBlocks.count and painter.hasClippingRect()
-        var candidates: Array'u64
+        var candidates:  Array'u64
         let useBins      = useBlocks and .collectPaintCandidates(tr, visible, axisAligned, &candidates)
         let useRuns      = useBlocks and not useBins
-        var shapedText: ShapedRun
+        var textScratch: SvgTextScratch
         var measuredText = false
         for blockIndex in (useRuns ? .paintBlocks.count : 1'u64)
         {
@@ -5574,7 +5627,7 @@ impl Drawing
                     }
 
                 case .Text:
-                    let inked = .paintText(painter, &.texts[item.index], &shapedText, visible, painter.hasClippingRect())
+                    let inked = .paintText(painter, &.texts[item.index], &textScratch, visible, painter.hasClippingRect())
 
                     // Where the runs landed is what the block covers, and it is the same at every
                     // scale because a run is shaped in its own upright space.

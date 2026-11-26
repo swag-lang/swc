@@ -111,9 +111,21 @@ private const BgrToBgra = cast(Math.Simd.U8x16, [0'u8, 1, 2, 128, 3, 4, 5, 128, 
 
 func hasDibAlpha(pixels: const [*] u32, count: u64)->bool
 {
+    if count and (pixels[0] & DibAlpha) do
+        return true
+
     let alpha = Math.Simd.splat(DibAlpha)
     let zero  = Math.Simd.splat(0'u32)
     var x     = 0'u64
+    while count - x >= 16
+    {
+        let first  = Math.Simd.load(pixels + x) | Math.Simd.load(pixels + x + 4)
+        let second = Math.Simd.load(pixels + x + 8) | Math.Simd.load(pixels + x + 12)
+        if Math.Simd.anyTrue(((first | second) & alpha) != zero) do
+            return true
+        x += 16
+    }
+
     while count - x >= 4
     {
         if Math.Simd.anyTrue((Math.Simd.load(pixels + x) & alpha) != zero) do
@@ -191,15 +203,16 @@ func(BIT_COUNT: u16) loadDibIndices(source: const [*] u8)->Math.Simd.U16x8
     }
 }
 
-func(BIT_COUNT: u16) decodeFullPaletteDib(result: *Image, palette, xorData, andData: const [*] u8, xorStride, andStride: u64, hasAndMask: bool)
+func(BIT_COUNT: u16, CHECK_INDEX: bool) decodeIndexedDib(result: *Image, palette, xorData, andData: const [*] u8, xorStride, andStride: u64, hasAndMask: bool, paletteCount: u32) fail
 {
     let colors     = Math.Simd.splat(DibColors)
     let alpha      = Math.Simd.splat(DibAlpha)
     let zero       = Math.Simd.splat(0'u32)
     let entries    = cast(const [*] s32, palette)
     let words      = cast(const [*] u32, palette)
-    let first      = Math.Simd.splat(words[0] & DibColors)
-    let difference = Math.Simd.splat((words[0] ^ words[1]) & DibColors)
+    let first      = Math.Simd.splat(BIT_COUNT == 1 ? words[0] & DibColors : 0'u32)
+    let difference = Math.Simd.splat(BIT_COUNT == 1 ? (words[0] ^ words[1]) & DibColors : 0'u32)
+    let limit      = Math.Simd.splat(CHECK_INDEX ? cast(u16, paletteCount) : 0'u16)
     let width      = result.width
     let output     = cast([*] u32, result.pixels.storage())
     for y in result.height
@@ -223,7 +236,13 @@ func(BIT_COUNT: u16) decodeFullPaletteDib(result: *Image, palette, xorData, andD
             }
             else
             {
-                let indexes     = loadDibIndices'(BIT_COUNT)(source + x * BIT_COUNT / 8)
+                let indexes = loadDibIndices'(BIT_COUNT)(source + x * BIT_COUNT / 8)
+                #static if CHECK_INDEX
+                {
+                    if Math.Simd.anyTrue(indexes >= limit) do
+                        fail InvalidFormatError{"invalid palette index"}
+                }
+
                 let firstColors = cast #bit(Math.Simd.U32x4, Math.Simd.gather(entries, Math.Simd.widenLow(indexes))) & colors
                 let lastColors  = cast #bit(Math.Simd.U32x4, Math.Simd.gather(entries, Math.Simd.widenHigh(indexes))) & colors
                 Math.Simd.store(target + x, firstColors | firstAlpha)
@@ -236,6 +255,8 @@ func(BIT_COUNT: u16) decodeFullPaletteDib(result: *Image, palette, xorData, andD
         for i in x until width
         {
             let index = packedIndex(source, BIT_COUNT, i)
+            if CHECK_INDEX and index >= paletteCount do
+                fail InvalidFormatError{"invalid palette index"}
             target[i] = (words[index] & DibColors) | (hasAndMask and maskBit(mask, i) ? 0'u32 : DibAlpha)
         }
     }
@@ -305,17 +326,32 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
         return
     }
 
-    // A full palette covers every value representable at the entry's bit depth.
-    if paletteCount >= 1'u32 << dib.bitCount and width >= 8
+    if width >= 8
     {
+        let fullPalette = paletteCount >= 1'u32 << dib.bitCount
         switch dib.bitCount
         {
-        case 1: decodeFullPaletteDib'(1)(result, palette, xorData, andData, xorStride, andStride, hasAndMask)
-        case 4: decodeFullPaletteDib'(4)(result, palette, xorData, andData, xorStride, andStride, hasAndMask)
-        case 8: decodeFullPaletteDib'(8)(result, palette, xorData, andData, xorStride, andStride, hasAndMask)
-        }
+        case 1:
+            if fullPalette
+            {
+                try decodeIndexedDib'(1, false)(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+                return
+            }
 
-        return
+        case 4:
+            if fullPalette do
+                try decodeIndexedDib'(4, false)(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            else do
+                try decodeIndexedDib'(4, true)(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            return
+
+        case 8:
+            if fullPalette do
+                try decodeIndexedDib'(8, false)(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            else do
+                try decodeIndexedDib'(8, true)(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+            return
+        }
     }
 
     let words  = cast(const [*] u32, palette)

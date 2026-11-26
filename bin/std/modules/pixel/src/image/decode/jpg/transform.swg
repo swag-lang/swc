@@ -198,12 +198,29 @@ private
         v[7] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(cast #bit(Math.Simd.U64x2, b3), cast #bit(Math.Simd.U64x2, b7)))
     }
 
+    // Only the first four frequencies survive the first pass of a low-frequency block.
+    func transposeFirstFour(v: [*] Math.Simd.S16x8)
+    {
+        let first  = cast #bit(Math.Simd.U32x4, pairLow(v[0], v[1]))
+        let second = cast #bit(Math.Simd.U32x4, pairLow(v[2], v[3]))
+        let third  = cast #bit(Math.Simd.U32x4, pairLow(v[4], v[5]))
+        let fourth = cast #bit(Math.Simd.U32x4, pairLow(v[6], v[7]))
+        let low0   = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveLow(first, second))
+        let low1   = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveLow(third, fourth))
+        let high0  = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveHigh(first, second))
+        let high1  = cast #bit(Math.Simd.U64x2, Math.Simd.interleaveHigh(third, fourth))
+        v[0] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(low0, low1))
+        v[1] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(low0, low1))
+        v[2] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveLow(high0, high1))
+        v[3] = cast #bit(Math.Simd.S16x8, Math.Simd.interleaveHigh(high0, high1))
+    }
+
     // Transforms four lines, and leaves their eight results unscaled: the caller owns the rounding
     // and the width, which is what separates the two passes.
-    func transformHalf(pair04, pair26, pair13, pair57: Math.Simd.S16x8, result: [*] Math.Simd.S32x4)
+    func(LowBand: bool) transformHalf(pair04, pair26, pair13, pair57: Math.Simd.S16x8, result: [*] Math.Simd.S32x4)
     {
         let tmp0 = Math.Simd.mulAddPairs(pair04, EvenSum)
-        let tmp1 = Math.Simd.mulAddPairs(pair04, EvenDifference)
+        let tmp1 = LowBand ? tmp0 : Math.Simd.mulAddPairs(pair04, EvenDifference)
         let tmp3 = Math.Simd.mulAddPairs(pair26, EvenUpper)
         let tmp2 = Math.Simd.mulAddPairs(pair26, EvenLower)
 
@@ -212,10 +229,11 @@ private
         let tmp11 = tmp1 + tmp2
         let tmp12 = tmp1 - tmp2
 
-        let odd0 = Math.Simd.mulAddPairs(pair13, Odd0From13) + Math.Simd.mulAddPairs(pair57, Odd0From57)
-        let odd1 = Math.Simd.mulAddPairs(pair13, Odd1From13) + Math.Simd.mulAddPairs(pair57, Odd1From57)
-        let odd2 = Math.Simd.mulAddPairs(pair13, Odd2From13) + Math.Simd.mulAddPairs(pair57, Odd2From57)
-        let odd3 = Math.Simd.mulAddPairs(pair13, Odd3From13) + Math.Simd.mulAddPairs(pair57, Odd3From57)
+        let zero = Math.Simd.splat(0's32)
+        let odd0 = Math.Simd.mulAddPairs(pair13, Odd0From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd0From57))
+        let odd1 = Math.Simd.mulAddPairs(pair13, Odd1From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd1From57))
+        let odd2 = Math.Simd.mulAddPairs(pair13, Odd2From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd2From57))
+        let odd3 = Math.Simd.mulAddPairs(pair13, Odd3From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd3From57))
 
         result[0] = tmp10 + odd3
         result[7] = tmp10 - odd3
@@ -230,8 +248,17 @@ private
     // Runs one pass over the eight lines held in `v`, into the two halves of the result.
     func transformLines(v: [*] Math.Simd.S16x8, low, high: [*] Math.Simd.S32x4)
     {
-        transformHalf(pairLow(v[0], v[4]), pairLow(v[2], v[6]), pairLow(v[1], v[3]), pairLow(v[5], v[7]), low)
-        transformHalf(pairHigh(v[0], v[4]), pairHigh(v[2], v[6]), pairHigh(v[1], v[3]), pairHigh(v[5], v[7]), high)
+        transformHalf'false(pairLow(v[0], v[4]), pairLow(v[2], v[6]), pairLow(v[1], v[3]), pairLow(v[5], v[7]), low)
+        transformHalf'false(pairHigh(v[0], v[4]), pairHigh(v[2], v[6]), pairHigh(v[1], v[3]), pairHigh(v[5], v[7]), high)
+    }
+
+    func(Upper: bool) transformLowBandHalf(v: [*] Math.Simd.S16x8, result: [*] Math.Simd.S32x4)
+    {
+        let zero = Math.Simd.splat(0's16)
+        #static if Upper do
+            transformHalf'true(pairHigh(v[0], zero), pairHigh(v[2], zero), pairHigh(v[1], v[3]), zero, result)
+        else do
+            transformHalf'true(pairLow(v[0], zero), pairLow(v[2], zero), pairLow(v[1], v[3]), zero, result)
     }
 }
 
@@ -256,7 +283,7 @@ impl Decoder
         if Math.Simd.allTrue(ac == Math.Simd.splat(0'u16)) do
             idctFlat(data[0], buf)
         else do
-            idctFull(data, buf)
+            idctFull'false(data, buf)
     }
 
     #[Swag.Inline]
@@ -270,25 +297,39 @@ impl Decoder
             Math.Simd.store(buf + i * 16, flat)
     }
 
-    func idctFull(data: [*] s16, buf: [*] u8)
+    func(LowBand: bool) idctFull(data: [*] s16, buf: [*] u8)
     {
         var v:    [8] Math.Simd.S16x8
         var low:  [8] Math.Simd.S32x4
         var high: [8] Math.Simd.S32x4
 
-        for i in 8 do
-            v[i] = Math.Simd.load(cast(const [*] s16, (data + i * 8)))
-
-        transformLines(v, low, high)
-
         // The pass over lines keeps the two extra fraction bits the second pass will remove.
         let linePass  = ConstBits - Pass1Bits
         let lineRound = Math.Simd.splat(1's32 << (linePass - 1))
-        for i in 8 do
-            v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, (high[i] + lineRound) >> linePass)
+        #static if LowBand
+        {
+            for i in 4 do
+                v[i] = Math.Simd.load(data + i * 8)
+            transformLowBandHalf'false(v, low)
+            let zero = Math.Simd.splat(0's32)
+            for i in 8 do
+                v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, zero)
 
-        transpose(v)
-        transformLines(v, low, high)
+            transposeFirstFour(v)
+            transformLowBandHalf'false(v, low)
+            transformLowBandHalf'true(v, high)
+        }
+        else
+        {
+            for i in 8 do
+                v[i] = Math.Simd.load(data + i * 8)
+            transformLines(v, low, high)
+            for i in 8 do
+                v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, (high[i] + lineRound) >> linePass)
+
+            transpose(v)
+            transformLines(v, low, high)
+        }
 
         // The pass over columns leaves eight-bit samples: the level shift of the format, then the
         // saturating narrowing that is exactly its clamp.

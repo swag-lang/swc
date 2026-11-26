@@ -685,7 +685,8 @@ impl Decoder
         if not .defilter(intoResult ? cast([*] u8, result.pixels.storage()) : .safeDstPixels()) do
             fail InvalidFormatError{"invalid PNG row filter"}
 
-        if .header.colorType & .Paletted and .paletteCount < 256
+        // A complete palette covers every index representable by the source samples.
+        if .header.colorType & .Paletted and .paletteCount < (1 << .header.bitDepth)
         {
             let pixelCount = cast(u64, .header.width) * .header.height
             if hasInvalidPaletteIndex(.safeDstPixels(), pixelCount, cast(u8, .paletteCount)) do

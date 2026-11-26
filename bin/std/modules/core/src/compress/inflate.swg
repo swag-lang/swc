@@ -293,37 +293,6 @@ impl Inflate
 
         for
         {
-            if LiteralBits == WideLiteralBits and cur < fastLimit and literalEnd - count >= 4
-            {
-                let input  = unwrap src
-                let output = unwrap buf
-                let end    = literalEnd - 4
-                while cur < fastLimit and count <= end
-                {
-                    let chunk = Math.littleEndianToNative(cast(const [*] u64, input + cur)[0])
-                    cb  |= chunk << #wrap nb
-                    cur += cast(u64, ((63 - nb) >> 3))
-                    nb  |= 56
-
-                    // Four direct literal codes need at most 44 of the buffered bits.
-                    var entry   = repeatHt.fast[cb & LiteralMask]
-                    var emitted = 0
-                    while entry and (entry & SymbolMask) < 256 and emitted < 4
-                    {
-                        output[count] = cast(u8, (entry & 255))
-                        count         += 1
-                        let used = cast(u32, (entry >> SymbolBits))
-                        cb      >>= used
-                        nb      -= #wrap used
-                        emitted += 1
-                        entry   = repeatHt.fast[cb & LiteralMask]
-                    }
-
-                    if emitted != 4 do
-                        break
-                }
-            }
-
             // Refill to at least 56 bits with one unaligned load. Bits above nb are
             // from the next partial source byte. Each lookup masks the bits it needs,
             // and the next refill overlays that same byte.
@@ -404,6 +373,27 @@ impl Inflate
                 let obuf = unwrap buf
                 obuf[count] = cast(u8, value)
                 count       += 1
+
+                #static if LiteralBits == WideLiteralBits
+                {
+                    // Finish a group of four without revisiting the refill and output checks.
+                    if nb >= 3 * LiteralBits and literalEnd - count >= 3
+                    {
+                        for 3
+                        {
+                            let next = repeatHt.fast[cb & LiteralMask]
+                            if not next or (next & SymbolMask) >= 256 do
+                                break
+
+                            let length = cast(u32, (next >> SymbolBits))
+                            obuf[count] = cast(u8, (next & 255))
+                            count       += 1
+                            cb          >>= length
+                            nb          -= #wrap length
+                        }
+                        continue
+                    }
+                }
 
                 // A short literal can reuse the buffered bits. With LiteralBits available,
                 // every occupied entry in the fast table fits in the current window.

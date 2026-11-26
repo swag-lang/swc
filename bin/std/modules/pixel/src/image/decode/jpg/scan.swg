@@ -225,7 +225,11 @@ impl Decoder
                 // Keep the current coefficients hot and reuse their storage for the next block.
                 if ac
                 {
-                    idctFull(p, sample)
+                    // The first ten zigzag positions lie in the low-frequency 4x4 corner.
+                    if k <= 10 do
+                        idctFull'true(p, sample)
+                    else do
+                        idctFull'false(p, sample)
                     Memory.clear(p, 64'u64 * #sizeof(s16))
                 }
                 else

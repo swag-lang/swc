@@ -376,10 +376,10 @@ impl Inflate
 
                 #static if LiteralBits == WideLiteralBits
                 {
-                    // Finish a group of four without revisiting the refill and output checks.
-                    if nb >= 3 * LiteralBits and literalEnd - count >= 3
+                    // Finish a group of five without revisiting the refill and output checks.
+                    if nb >= 4 * LiteralBits and literalEnd - count >= 4
                     {
-                        for 3
+                        for 4
                         {
                             let next = repeatHt.fast[cb & LiteralMask]
                             if not next or (next & SymbolMask) >= 256 do

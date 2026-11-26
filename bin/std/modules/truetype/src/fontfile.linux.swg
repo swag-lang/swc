@@ -3,7 +3,7 @@
 using Swag, Core
 
 private const MaxParallelFontReads = 4'u32
-private const MinParallelFontBytes = 8'u64 * 1024 * 1024
+private const MinParallelFontBytes = 4'u64 * 1024 * 1024
 
 func fontReadWorkers(length: u64)->u32 =>
     length >= MinParallelFontBytes ? Math.min(Swag.workerCount(), MaxParallelFontReads) : 0

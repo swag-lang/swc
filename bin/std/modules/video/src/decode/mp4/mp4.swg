@@ -1791,13 +1791,7 @@ impl IDecoder for Decoder
         try source.seek(frame.offset)
         try source.readExact(.payload.toSlice())
 
-        var decoded = try Image.decode(JpegName, .payload.toSlice())
-        if decoded.width != .info.width or decoded.height != .info.height do
-            fail InvalidFormatError{"MP4 frame does not have the dimensions its track declares"}
-        decoded.convertTo(.RGB8)
-        if target.width != .info.width or target.height != .info.height or target.pixelFormat != .RGB8 do
-            target[] = Image.create(.info.width, .info.height, .RGB8)
-        Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
+        try Jpg.decodeRgbInto(target, .payload.toSlice(), .info.width, .info.height)
         .nextIndex = current + 1
     }
 }

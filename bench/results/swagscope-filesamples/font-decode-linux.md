@@ -1074,3 +1074,69 @@ native font viewer tests and the Scope Release build pass.
 | `LXGWWenKaiTC-Regular.ttf` | 413.10 | 12.66 | 40.579 | 39.104 |
 | `Lato-Regular.ttf` | 273.40 | 1.94 | 0.725 | 0.361 |
 | `SourceCodePro-Regular.otf` | 272.51 | 2.56 | 0.950 | 0.606 |
+
+## Signed-distance field row bounds
+
+Each SDF row keeps the edges that can affect the encoded distance.
+Edges farther away vertically than the spread plus one pixel can
+only produce a saturated byte. Every crossing edge remains available
+for the winding test.
+
+The comparison with `636be06fdf` uses seven interleaved batches of
+three passes. Loading and SDF rendering at 64 px with spread 8 takes
+64–74% less time across seven fonts. The two spread-64 controls take
+16–18% less time. Outline and SDF byte fingerprints match for all
+16 cases. The native scalar reference test also matches every pixel.
+[Raw timings and fingerprints](font-glyph-linux-sdf-rows.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 262.35 | 173.61 |
+| `Lato-Regular.ttf` | 64 | 8 | 1279.63 | 455.43 |
+| `Lato-Regular.ttf` | 24 | 64 | 5530.44 | 4634.59 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 296.63 | 147.87 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 1355.46 | 419.76 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 1831.09 | 890.42 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 10725.92 | 2805.03 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 2778.31 | 1395.63 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 16792.95 | 4350.61 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 746.79 | 421.23 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 3848.19 | 1117.88 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 567.23 | 294.18 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 2774.57 | 800.30 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 8413.82 | 6869.89 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 759.92 | 404.07 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 3956.62 | 1124.58 |
+
+## Medium Linux font reads
+
+The minimum size for parallel positional reads moves from 8 MiB to
+4 MiB. The threshold applies to each read, including compacted ranges
+of a collection member or a default variable instance.
+
+The table uses 33 interleaved batches of first opens from warm
+filesystem caches with four requested workers on four logical CPUs.
+The six newly parallelized cases take 26–41% less time with lazy
+worker startup and 42–47% less time with prestarted workers, with
+small and already-parallel cases included as controls. Glyph
+indices, advances, dimensions and checksums match across builds.
+[Raw timings, initial run, and targeted repeat](font-decode-linux-medium-reads.json)
+
+| Fixture | Lazy before (ms) | After | Prestarted before (ms) | After | FreeType first (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansCJKjp-Regular.otf` | 4.908 | 5.870 | 4.997 | 4.605 | 1.475 |
+| `MaShanZheng-Regular.ttf` | 3.988 | 2.418 | 3.842 | 2.131 | 1.506 |
+| `GowunBatang-Regular.ttf` | 3.199 | 2.803 | 2.874 | 2.721 | 1.129 |
+| `NotoSansJP-Variable.ttf` | 4.146 | 2.676 | 3.982 | 2.275 | 2.266 |
+| `NotoSansSC-Variable.ttf` | 3.959 | 4.154 | 3.752 | 4.223 | 2.429 |
+| `NotoSansHK-Variable.ttf` | 4.235 | 2.771 | 4.340 | 2.533 | 2.088 |
+| `NotoSansJP-Regular.otf` | 3.055 | 2.196 | 3.146 | 1.761 | 0.864 |
+| `NotoSansHK-Regular.otf` | 3.706 | 2.734 | 3.847 | 2.210 | 0.926 |
+| `NotoSerifKR-Regular.otf` | 4.921 | 2.891 | 4.977 | 2.614 | 1.259 |
+| `NotoSerifSC-Regular.otf` | 3.796 | 3.978 | 3.604 | 3.312 | 1.104 |
+| `OpenSans-Regular.ttf` | 0.158 | 0.157 | 0.202 | 0.208 | 0.190 |
+
+The 51-batch targeted repeat measures Noto Sans CJK JP at 4.864 ms
+before and 4.721 ms after for lazy startup. The corresponding
+prestarted results are 5.027 and 5.461 ms. That control already
+qualified for parallel reads at 8 MiB.

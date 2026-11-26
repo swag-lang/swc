@@ -64,8 +64,8 @@ const IndexEntrySize  = 16'u64
 //
 // A Motion JPEG frame is a complete JPEG image, so the picture codec is the Pixel one, selected
 // the way every other caller selects it.
-const JpegName = ".jpg"
 
+const JpegName = ".jpg"
 // Highest stream ordinal a frame chunk identifier can name, since it spells it with two digits.
 private const MaxStreamIndex = 99'u32
 
@@ -1037,19 +1037,7 @@ private impl Decoder
     // Decodes one Motion JPEG frame, which is a complete JPEG image.
     mtd decodeJpegFrame(payload: const [..] u8, target: *Image) fail
     {
-        var decoded = try Image.decode(JpegName, payload)
-        if decoded.width != .info.width or decoded.height != .info.height do
-            fail InvalidFormatError{"AVI frame does not have the dimensions its stream declares"}
-
-        .prepareTarget(target)
-        if decoded.pixelFormat == .BGR8
-        {
-            copyBitmapRows'3(decoded.pixels.storage(), target, decoded.rowStride, false, 0, cast(u64, target.height))
-            return
-        }
-
-        decoded.convertTo(.RGB8)
-        Memory.copy(target.pixels.storage(), decoded.pixels.storage(), target.byteCount)
+        try Jpg.decodeRgbInto(target, payload, .info.width, .info.height)
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.

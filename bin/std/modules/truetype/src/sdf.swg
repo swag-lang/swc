@@ -128,16 +128,29 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     var dst          = bitmapBuffer
     let scale        = 127.0 / cast(f64, safeSpread)
 
+    // Beyond this vertical distance both signs saturate after conversion
+    // to bytes. All edges that cross the row remain available for winding.
+    let distanceLimit = cast(f64, safeSpread) + 1.0
+    var nearby: Array'Edge
+    nearby.reserve(edges.count)
+
     for py in rows
     {
         let sampleY = top - (cast(f64, py) + 0.5)
-        var px      = 0
+        let lowY    = sampleY - distanceLimit
+        let highY   = sampleY + distanceLimit
+        nearby.clear()
+        for edge in edges where edge.maxY >= lowY and edge.minY <= highY do
+            nearby.add(edge)
+        let rowEdges = nearby.toSlice()
+
+        var px = 0
         while px + 2 <= width
         {
             let sampleX   = left + cast(f64, px) + 0.5
             let samples   = cast(Math.Simd.F64x2, [sampleX, sampleX + 1.0])
-            let distances = closestEdgeDistances(edges.toSlice(), samples, sampleY)
-            let inside    = insideMask(edges.toSlice(), samples, sampleY)
+            let distances = closestEdgeDistances(rowEdges, samples, sampleY)
+            let inside    = insideMask(rowEdges, samples, sampleY)
             for lane in 2
             {
                 let signedDistance = inside & (1'u32 << lane) ? distances[lane] : -distances[lane]
@@ -152,8 +165,8 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         while px < width
         {
             let sampleX        = left + cast(f64, px) + 0.5
-            let distance       = closestEdgeDistance(edges.toSlice(), sampleX, sampleY)
-            let signedDistance = isInside(edges.toSlice(), sampleX, sampleY) ? distance : -distance
+            let distance       = closestEdgeDistance(rowEdges, sampleX, sampleY)
+            let signedDistance = isInside(rowEdges, sampleX, sampleY) ? distance : -distance
             let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
             dst[]   = cast(u8, Math.round(value))
             dst, px += 1

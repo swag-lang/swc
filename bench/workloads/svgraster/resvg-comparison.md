@@ -866,3 +866,24 @@ at the same sizes. Times cover rasterization.
 The two Swag builds produce identical RGBA rasters at both sizes.
 All 52 supported PDF corpus checksums match. The 981 Pixel tests
 include a partially covered stencil over a translucent texture.
+
+## Reusing crossing order on dense scanlines
+
+A dense line starts from the previous line's permutation and repairs
+local exchanges within a fixed budget. A larger change falls back to
+radix sorting the current line. Coverage accumulation keeps its original
+order and precision.
+
+Seven alternating Release runs on one AMD EPYC 7763 logical CPU use
+baseline `5d5866d322` and resvg 0.50.0. Times cover rasterization.
+[Timings and raster checksums](resvg-scan-order.json)
+
+| Fixture | Swag before, ms | Swag after, ms | resvg, ms |
+| --- | ---: | ---: | ---: |
+| `dense.svg` | 73.70 | 57.69 | 69.69 |
+| `dense-colored.svg` | 75.31 | 58.31 | 74.27 |
+| `tall-bands.svg` | 363.88 | 177.76 | 77.04 |
+
+All 15 generated and 13 public SVG rasters match. All 52 supported PDF
+corpus checksums match too. The 981 Pixel tests cover a valid reused
+order, a local swap and a full-sort fallback.

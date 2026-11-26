@@ -26,6 +26,16 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the 4:2:0 and 4:2:2 conversion narrows the measured gap and existing RGB pictures
   match byte for byte or an explicit chroma-siting decision explains every changed fixture.
 
+### std.video.042 — Narrow the Motion JPEG decoding gap on textured 4:2:2
+
+- Evidence: [The RGB comparison](../bench/results/video/20261126-decode-comparison/README.md#motion-jpeg-direct-rgb-output)
+  measures 3.05 ms per 720p picture for Swag and 2.66 ms for libjpeg-turbo. Swag leads on
+  the measured 4:2:0 and 4:4:4 inputs using the same RGB destination format.
+- Next: profile the textured 4:2:2 entropy loop and inverse transform after removing the
+  BGR copy. Compare the same packets and chroma sampling mode with libjpeg-turbo.
+- Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
+  across 4:2:0, 4:2:2 and 4:4:4 in the video readers.
+
 ### std.video.004 — An AVI larger than four gigabytes is refused
 
 - Evidence: AVI sizes are 32-bit, so `encode/avi/avi.swg` refuses a stream past four

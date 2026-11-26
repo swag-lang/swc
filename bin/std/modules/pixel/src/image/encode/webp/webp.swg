@@ -32,6 +32,79 @@ private func buildGreenCodes()->[LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES]
     return codes
 }
 
+private const WEBP_ENCODE_RESIDUAL_COLOR_CODES = #run buildResidualCodes'(false, LOSSLESS_LITERAL_CODES)()
+private const WEBP_ENCODE_RESIDUAL_GREEN_CODES = #run buildResidualCodes'(true, LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES)()
+
+private func(GREEN: bool, Count: u32) buildResidualCodes()->[Count] u32
+{
+    // Short codes cover small signed channel differences. Green also carries
+    // the run-length alphabet, whose first few symbols represent short runs.
+    const ColorWidths: [7] u32 = [2, 3, 4, 6, 8, 11, 12]
+    const ColorEnd:    [7] u32 = [1, 3, 7, 15, 31, 62, 256]
+    const GreenWidths: [9] u32 = [3, 4, 5, 6, 7, 8, 10, 14, 15]
+    const GreenEnd:    [9] u32 = [1, 3, 7, 15, 31, 63, 127, 238, 256]
+
+    var widths: [Count] u32
+    for symbol in LOSSLESS_LITERAL_CODES
+    {
+        let rank = symbol < 128 ? 2 * symbol : 2 * (256 - symbol) - 1
+        #static if GREEN
+        {
+            for index in GreenEnd.count
+            {
+                if rank < GreenEnd[index]
+                {
+                    widths[symbol] = GreenWidths[index]
+                    break
+                }
+            }
+        }
+        else
+        {
+            for index in ColorEnd.count
+            {
+                if rank < ColorEnd[index]
+                {
+                    widths[symbol] = ColorWidths[index]
+                    break
+                }
+            }
+        }
+    }
+
+    #static if GREEN
+    {
+        const LengthWidths = [3'u32, 5, 7, 7, 9, 9, 9, 9]
+        for index in LOSSLESS_LENGTH_CODES do
+            widths[LOSSLESS_LITERAL_CODES + index] = index < LengthWidths.count ? LengthWidths[index] : 15
+    }
+
+    var counts, next: [16] u32
+    for width in widths do
+        counts[width] += 1
+    for width in 1 until counts.count do
+        next[width] = (next[width - 1] + counts[width - 1]) << 1
+    Swag.assert(next[15] + counts[15] == 1 << 15)
+
+    var result: #returntype
+    for symbol in result.count
+    {
+        let width = widths[symbol]
+        let bits  = cast(u32, Math.reverse(cast(u16, next[width]))) >> (16 - width)
+        result[symbol] = bits | (width << 16)
+        next[width]    += 1
+    }
+
+    return result
+}
+
+struct EncodeRun
+{
+    symbol: u32
+    extra:  u32
+    width:  u32
+}
+
 struct EncodeBitWriter
 {
     bytes:    Array'u8
@@ -44,7 +117,7 @@ impl EncodeBitWriter
     #[Swag.Inline]
     mtd writeBits(value: u64, count: u32)
     {
-        Swag.assert(count <= 33)
+        Swag.assert(count <= 51)
         let mask = (1'u64 << count) - 1
         .bits     |= (value & mask) << .bitCount
         .bitCount += count
@@ -336,30 +409,43 @@ impl Encoder
         return shift + 8
     }
 
-    func writeLength(writer: *EncodeBitWriter, length: u32)
+    #[Swag.Inline]
+    func encodeRun(length: u32)->EncodeRun
     {
         Swag.assert(length >= 1 and length <= 4096)
         let value = length - 1
-        if length <= 4
-        {
-            writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + value)
-            return
-        }
-
-        let high      = 31 - Math.leadingZeros(value)
-        let extraBits = high - 1
-        let next      = (value >> extraBits) & 1
-        let symbol    = 2 * high + next
-        writeGreenSymbol(writer, LOSSLESS_LITERAL_CODES + symbol)
-        writer.writeBits(value & ((1'u32 << extraBits) - 1), extraBits)
+        if length <= 4 do
+            return {LOSSLESS_LITERAL_CODES + value, 0, 0}
+        let high   = 31 - Math.leadingZeros(value)
+        let width  = high - 1
+        let symbol = 2 * high + ((value >> width) & 1)
+        return {LOSSLESS_LITERAL_CODES + symbol, value & ((1'u32 << width) - 1), width}
     }
 
-    func writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
+    #[Swag.Inline]
+    func(RESIDUAL: bool) writeLength(writer: *EncodeBitWriter, length: u32)
     {
-        var redCodes, blueCodes, alphaCodes: [256] u32
-        let blueShift  = prepareChannel(&redCodes, channels.red, 0)
-        let alphaShift = prepareChannel(&blueCodes, channels.blue, blueShift)
-        let colorWidth = prepareChannel(&alphaCodes, channels.alpha, alphaShift)
+        let run = encodeRun(length)
+        #static if RESIDUAL
+        {
+            let code = WEBP_ENCODE_RESIDUAL_GREEN_CODES[run.symbol]
+            writer.writeBits(code & 0xFFFF, code >> 16)
+        }
+        else do
+            writeGreenSymbol(writer, run.symbol)
+        if run.width do
+            writer.writeBits(run.extra, run.width)
+    }
+
+    func(RESIDUAL: bool) writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels)
+    {
+        #static if not RESIDUAL
+        {
+            var redCodes, blueCodes, alphaCodes: [256] u32
+            let blueShift  = prepareChannel(&redCodes, channels.red, 0)
+            let alphaShift = prepareChannel(&blueCodes, channels.blue, blueShift)
+            let colorWidth = prepareChannel(&alphaCodes, channels.alpha, alphaShift)
+        }
 
         let data = cast(const [*] u32, pixels.storage())
         var index: u64
@@ -377,21 +463,40 @@ impl Encoder
                     length += 4
                 while length < limit and data[index + length] == color do
                     length += 1
-                writeLength(writer, length)
+                writeLength'(RESIDUAL)(writer, length)
                 index += length
                 continue
             }
 
-            let pixel      = data[index]
-            let red        = cast(u8, (pixel & 0xFF))
-            let green      = cast(u8, ((pixel >> 8) & 0xFF))
-            let blue       = cast(u8, ((pixel >> 16) & 0xFF))
-            let alpha      = cast(u8, (pixel >> 24))
-            let greenCode  = WEBP_ENCODE_GREEN_CODES[green]
-            let greenWidth = cast(u32, greenCode >> 9)
-            let colorCode  = redCodes[red] | blueCodes[blue] | alphaCodes[alpha]
-            let bits       = cast(u64, greenCode & 0x1FF) | (cast(u64, colorCode) << greenWidth)
-            writer.writeBits(bits, greenWidth + colorWidth)
+            let pixel = data[index]
+            let red   = cast(u8, (pixel & 0xFF))
+            let green = cast(u8, ((pixel >> 8) & 0xFF))
+            let blue  = cast(u8, ((pixel >> 16) & 0xFF))
+            let alpha = cast(u8, (pixel >> 24))
+            #static if RESIDUAL
+            {
+                let greenCode  = WEBP_ENCODE_RESIDUAL_GREEN_CODES[green]
+                let redCode    = WEBP_ENCODE_RESIDUAL_COLOR_CODES[red]
+                let blueCode   = WEBP_ENCODE_RESIDUAL_COLOR_CODES[blue]
+                let alphaCode  = channels.alpha.count == 1 ? 0 : WEBP_ENCODE_RESIDUAL_COLOR_CODES[alpha]
+                let redShift   = greenCode >> 16
+                let blueShift  = redShift + (redCode >> 16)
+                let alphaShift = blueShift + (blueCode >> 16)
+                let bits       = cast(u64, greenCode & 0xFFFF) |
+                                 (cast(u64, redCode & 0xFFFF) << redShift) |
+                                 (cast(u64, blueCode & 0xFFFF) << blueShift) |
+                                 (cast(u64, alphaCode & 0xFFFF) << alphaShift)
+                writer.writeBits(bits, alphaShift + (alphaCode >> 16))
+            }
+            else
+            {
+                let greenCode  = WEBP_ENCODE_GREEN_CODES[green]
+                let greenWidth = cast(u32, greenCode >> 9)
+                let colorCode  = redCodes[red] | blueCodes[blue] | alphaCodes[alpha]
+                let bits       = cast(u64, greenCode & 0x1FF) | (cast(u64, colorCode) << greenWidth)
+                writer.writeBits(bits, greenWidth + colorWidth)
+            }
+
             index += 1
         }
     }
@@ -466,9 +571,8 @@ impl Encoder
         return true
     }
 
-    func writeSolidImage(writer: *EncodeBitWriter, color: u32)
+    func writeConstantTrees(writer: *EncodeBitWriter, color: u32)
     {
-        writer.writeBits(0, 3)     // End transforms, no color cache or Huffman group map.
         var channel = EncodeChannel{count: 1}
         for lane in [1, 0, 2, 3]
         {
@@ -491,7 +595,183 @@ impl Encoder
         writeByteTree(writer, channels.blue)
         writeByteTree(writer, channels.alpha)
         writeDistanceTree(writer)
-        writePixels(writer, pixels, channels)
+        writePixels'(false)(writer, pixels, channels)
+    }
+
+    #[Swag.Inline]
+    func predictedResidual(pixel, prediction: Math.Simd.U8x16)->Math.Simd.U8x16
+    {
+        using Math.Simd
+
+        const Green = cast(U8x16, [1'u8, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13, 0x80])
+        let difference = pixel - prediction
+        return difference - shuffle(difference, Green)
+    }
+
+    #[Swag.Inline]
+    func predictedPixel(pixel, prediction: u32)->u32
+    {
+        using Math.Simd
+
+        let residual = predictedResidual(cast #bit(U8x16, splat(pixel)), cast #bit(U8x16, splat(prediction)))
+        return cast #bit(U32x4, residual)[0]
+    }
+
+    func applyVerticalPrediction(pixels: [*] u32, width, height: s32)
+    {
+        using Math.Simd
+
+        // Work upwards so that the previous row still holds original pixels.
+        var y = height - 1
+        while y > 0
+        {
+            let row = pixels + cast(u64, y) * width
+            let top = row - width
+            var x: s32
+            while width - x >= 4
+            {
+                let pixel      = cast #bit(U8x16, load(row + x))
+                let prediction = cast #bit(U8x16, load(top + x))
+                store(row + x, cast #bit(U32x4, predictedResidual(pixel, prediction)))
+                x += 4
+            }
+
+            for column in x until width do
+                row[column] = predictedPixel(row[column], top[column])
+            y -= 1
+        }
+
+        // VP8L predicts the very first pixel from opaque black and the
+        // remainder of the first row from the pixel to the left.
+        var x = width - 1
+        while x > 0
+        {
+            pixels[x] = predictedPixel(pixels[x], pixels[x - 1])
+            x         -= 1
+        }
+
+        pixels[0] = predictedPixel(pixels[0], 0xFF000000)
+    }
+
+    #[Swag.Inline]
+    func channelWidth(channel: EncodeChannel)->u32
+    {
+        return channel.count < 3 ? channel.count - 1 : 8
+    }
+
+    #[Swag.Inline]
+    func(RESIDUAL: bool) repeatCost(length: u32)->u32
+    {
+        if length == 0 do
+            return 0
+        let run = encodeRun(length)
+        #static if RESIDUAL do
+            return (WEBP_ENCODE_RESIDUAL_GREEN_CODES[run.symbol] >> 16) + run.width
+        else do
+            return cast(u32, WEBP_ENCODE_GREEN_CODES[run.symbol] >> 9) + run.width
+    }
+
+    func preferVerticalPrediction(pixels: const [..] u32, channels: EncodeChannels, width: s32, hasAlpha: bool)->bool
+    {
+        const Windows    = 32'u32
+        const WindowSize = 32'u32
+        if pixels.count < 65536 do
+            return false
+
+        let stride    = cast(u64, width)
+        let data      = pixels.buffer
+        let step      = (pixels.count - stride - WindowSize - 1) / Windows
+        let rawColors = channelWidth(channels.red) + channelWidth(channels.blue) + channelWidth(channels.alpha)
+        var rawCost, predictedCost: u32
+        for window in Windows
+        {
+            let offset        = stride + 1 + window * step
+            var previous      = data[offset - 1]
+            var priorResidual = predictedPixel(previous, data[offset - 1 - stride])
+            var rawRun, predictedRun: u32
+            for index in offset until offset + WindowSize
+            {
+                let pixel    = data[index]
+                let residual = predictedPixel(pixel, data[index - stride])
+                if pixel == previous
+                {
+                    rawRun += 1
+                }
+                else
+                {
+                    let green = (pixel >> 8) & 0xFF
+                    rawCost += repeatCost'(false)(rawRun) + rawColors + (WEBP_ENCODE_GREEN_CODES[green] >> 9)
+                    rawRun  = 0
+                }
+
+                if residual == priorResidual
+                {
+                    predictedRun += 1
+                }
+                else
+                {
+                    predictedCost += repeatCost'(true)(predictedRun)
+                    predictedCost += WEBP_ENCODE_RESIDUAL_GREEN_CODES[(residual >> 8) & 0xFF] >> 16
+                    predictedCost += WEBP_ENCODE_RESIDUAL_COLOR_CODES[residual & 0xFF] >> 16
+                    predictedCost += WEBP_ENCODE_RESIDUAL_COLOR_CODES[(residual >> 16) & 0xFF] >> 16
+                    if hasAlpha do
+                        predictedCost += WEBP_ENCODE_RESIDUAL_COLOR_CODES[residual >> 24] >> 16
+                    predictedRun = 0
+                }
+
+                previous      = pixel
+                priorResidual = residual
+            }
+
+            rawCost       += repeatCost'(false)(rawRun)
+            predictedCost += repeatCost'(true)(predictedRun)
+        }
+
+        // The sampled reduction must cover the larger tree headers and
+        // short-scale variation between sampled rows.
+        return predictedCost * 8 < rawCost * 7
+    }
+
+    func writeResidualTree(writer: *EncodeBitWriter, codes: const [..] u32)
+    {
+        writer.writeBits(0, 1)
+        writer.writeBits(WEBP_ENCODE_CODE_LENGTH_ORDER.count - 4, 4)
+        for symbol in WEBP_ENCODE_CODE_LENGTH_ORDER do
+            writer.writeBits(symbol < 16 ? 4 : 0, 3)
+        writer.writeBits(0, 1)
+        for code in codes do
+            writer.writeHuffman(code >> 16, 4)
+    }
+
+    func writePredictedImage(writer: *EncodeBitWriter, pixels: *Array'u32, width, height: s32, hasAlpha: bool)
+    {
+        writer.writeBits(1, 1)
+        writer.writeBits(LOSSLESS_TRANSFORM_PREDICTOR, 2)
+        writer.writeBits(7, 3)     // All 512-pixel tiles use predictor 2, the pixel above.
+        writer.writeBits(0, 1)     // No color cache in the predictor map.
+        writeConstantTrees(writer, 2 << 8)
+
+        writer.writeBits(1, 1)
+        writer.writeBits(LOSSLESS_TRANSFORM_SUBTRACT_GREEN, 2)
+        writer.writeBits(0, 3)     // End transforms, no color cache or Huffman group map.
+        writeResidualTree(writer, WEBP_ENCODE_RESIDUAL_GREEN_CODES)
+        writeResidualTree(writer, WEBP_ENCODE_RESIDUAL_COLOR_CODES)
+        writeResidualTree(writer, WEBP_ENCODE_RESIDUAL_COLOR_CODES)
+        var channels: EncodeChannels
+        if hasAlpha
+        {
+            writeResidualTree(writer, WEBP_ENCODE_RESIDUAL_COLOR_CODES)
+        }
+        else
+        {
+            channels.alpha.count = 1
+            writeSimpleTree(writer, channels.alpha)
+        }
+
+        writeDistanceTree(writer)
+
+        applyVerticalPrediction(cast([*] u32, pixels.storage()), width, height)
+        writePixels'(true)(writer, pixels[], channels)
     }
 
     func writePalette(writer: *EncodeBitWriter, palette: *EncodePalette)
@@ -745,7 +1025,7 @@ impl Encoder
 
                 if length
                 {
-                    writeLength(writer, cast(u32, length))
+                    writeLength'(false)(writer, cast(u32, length))
                     writeMatchDistance(writer, cast(u32, distance), cast(u32, width))
                     index += length
                     continue
@@ -804,10 +1084,19 @@ impl Encoder
 
         if indexed
         {
-            if palette.count == 1 do
-                writeSolidImage(&writer, palette.colors[0])
-            else do
+            if palette.count == 1
+            {
+                writer.writeBits(0, 3)     // End transforms, no color cache or Huffman group map.
+                writeConstantTrees(&writer, palette.colors[0])
+            }
+            else
+            {
                 writeIndexedImage(&writer, &palette, pixels, image.width, image.height)
+            }
+        }
+        elif preferVerticalPrediction(pixels.toSlice(), channels, image.width, hasAlpha)
+        {
+            writePredictedImage(&writer, &pixels, image.width, image.height, hasAlpha)
         }
         else
         {

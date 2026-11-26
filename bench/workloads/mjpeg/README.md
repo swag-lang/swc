@@ -24,3 +24,18 @@ PSNR and SSIM use decoded raw RGB in frame order. A lossless shifted-timestamp c
 checks the RGB orientation and metric agreement. JPEG quality and FFmpeg QP use different
 scales. Compare packet bytes at shared measured RGB PSNR instead of matching settings.
 `--library-bin` selects the library source snapshot used to build the Swag driver.
+
+## Motion JPEG decoding
+
+Use the [video RGB workload](../videodecode/README.md) to compare decoding and conversion
+to RGB24. `decode_native.c` reads the same AVI or MP4 packets through libavformat and
+uses libjpeg-turbo with nearest-neighbour chroma sampling and a reused RGB24 buffer.
+
+```sh
+cc -O2 bench/workloads/mjpeg/decode_native.c -o /tmp/jpeg_turbo_decode \
+    $(pkg-config --cflags --libs libavformat libavcodec libavutil libjpeg)
+python3 bench/workloads/videodecode/generate.py --rgb --output /tmp/video-rgb
+taskset -c 0 python3 bench/workloads/videodecode/compare.py --rgb --warmup 6 \
+    --compiler /absolute/build/release/swc --jpeg-reference /tmp/jpeg_turbo_decode \
+    --output /tmp/mjpeg-decode-results /tmp/video-rgb/mjpeg-*.avi
+```

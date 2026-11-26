@@ -244,7 +244,7 @@ impl Decoder
             Memory.set(sample, 128, cast(u64, missing) * 64)
     }
 
-    mtd decodeScanLine(destination: [*] u8? = null)->[*] u8 fail
+    mtd(Rgb: bool) decodeScanLine(destination: [*] u8? = null)->[*] u8 fail
     {
         if .mcuLinesLeft == 0
         {
@@ -272,9 +272,9 @@ impl Decoder
                 let second = destination and .totalLinesLeft > 1 ?
                              first - cast(u64, .realDestBytesPerScanLine) : .scanLine1.storage()
                 if .scanType == YH2V2 do
-                    .convertH2V2(first, second)
+                    .convertH2V2'Rgb(first, second)
                 else do
-                    .convertH1V2(first, second)
+                    .convertH1V2'Rgb(first, second)
             }
             else
             {
@@ -282,19 +282,19 @@ impl Decoder
             }
 
         case YH2V1:
-            .convertH2V1(first)
+            .convertH2V1'Rgb(first)
 
         case YH1V1:
-            .convertH1V1(first)
+            .convertH1V1'Rgb(first)
 
         case RGBH1V1:
-            .convertRgbH1V1(first)
+            .convertRgbH1V1'Rgb(first)
 
         case CmykH1V1:
-            .convertCmykH1V1(first)
+            .convertCmykH1V1'Rgb(first)
 
         case YGeneric:
-            .convertGeneric(first)
+            .convertGeneric'Rgb(first)
 
         case GrayScale:
             .convertGrayscale(first)

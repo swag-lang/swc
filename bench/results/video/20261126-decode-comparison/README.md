@@ -115,6 +115,25 @@ No Motion JPEG decoder code changed in this pass. Its 216 pictures also matched 
 two Swag builds. The 19 Y4M Release tests passed, and the planar workload still matched FFmpeg
 on 69 AVC and RealVideo pictures.
 
+### Motion JPEG direct RGB output
+
+AVI and MP4 now decode JPEG scanlines into the reader's reusable RGB buffer. The packed
+colour kernels select the component order before writing, and subsampled JPEG uses one
+eight-lane chroma correction for each sixteen-pixel span. The three AVI fixtures kept
+identical RGB throughout all 216 pictures. The focused native Release run passed 44 Pixel
+and 51 Video tests, covering grayscale, progressive, CMYK/YCCK, unusual sampling factors,
+dimension validation and overlapping input and output storage.
+
+The following single-CPU medians use nine rotated runs. FFmpeg 9.1 and libjpeg-turbo
+3.2.1 use the same libavformat and both produce nearest-neighbour RGB24. FFmpeg 7.1.5
+was the independent picture reference. [Timing samples](mjpeg-direct-rgb.json)
+
+| Stream | Before, ms/picture | Direct RGB, ms/picture | Paired time change | FFmpeg 9.1 | libjpeg-turbo 3.2.1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 4:2:0, 1080p | 2.584 | 1.982 | −18.5% | 3.552 | 2.815 |
+| 4:2:2 texture, 720p | 3.363 | 3.054 | −6.4% | 3.174 | 2.659 |
+| 4:4:4, 720p | 1.818 | 1.704 | −4.6% | 8.233 | 1.865 |
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

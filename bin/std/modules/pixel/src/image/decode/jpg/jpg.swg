@@ -289,7 +289,7 @@ impl Decoder
             try .initFirstScan()
     }
 
-    mtd doit(buf: [*] u8) fail
+    mtd(Rgb: bool) decodePixels(buf: [*] u8) fail
     {
         let stride      = cast(u64, .imageSizeX) * 3
         var destination = buf + cast(u64, .imageSizeY - 1) * stride
@@ -297,7 +297,7 @@ impl Decoder
         {
             for .imageSizeY
             {
-                let source = try .decodeScanLine()
+                let source = try .decodeScanLine'Rgb()
                 expandGrayRow(destination, source, .imageSizeX)
                 destination -= stride
             }
@@ -309,12 +309,58 @@ impl Decoder
         let direct = .destBytesPerScanLine == .realDestBytesPerScanLine
         for .imageSizeY
         {
-            let source = try .decodeScanLine(direct ? destination : null)
+            let source = try .decodeScanLine'Rgb(direct ? destination : null)
             if source != destination do
                 Memory.copy(destination, source, stride)
             destination -= stride
         }
     }
+}
+
+// Decodes JPEG pixel data into a tightly packed [[Pixel.PixelFormat.RGB8]] image.
+//
+// A matching destination reuses its pixel storage. Nonzero `expectedWidth` and
+// `expectedHeight` require the corresponding dimensions in pixels before decoding starts.
+// The input is borrowed for the call. If it overlaps the destination pixels, the
+// decoder replaces the pixel storage after success. The operation discards image
+// metadata and uses the default limits of
+// [[Pixel.DecodeOptions]], and fails on invalid, truncated or unsupported input. If
+// decoding fails after pixels have been written, a reused destination may be incomplete.
+public func decodeRgbInto(target: *Image, bytes: const [..] u8, expectedWidth: s32 = 0, expectedHeight: s32 = 0) fail
+{
+    let options = DecodeOptions{decodeMetadata: false}
+    if expectedWidth < 0 or expectedHeight < 0 do
+        fail BadParameterError{"expected JPEG dimensions must be nonnegative"}
+    if bytes.count > options.maxInputBytes do
+        fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+
+    var decoder: Decoder
+    try decoder.init(bytes, options)
+    if (expectedWidth and expectedWidth != decoder.imageSizeX) or
+       (expectedHeight and expectedHeight != decoder.imageSizeY) do
+        fail InvalidFormatError{"JPEG dimensions do not match the expected image"}
+    try options.checkImage(decoder.imageSizeX, decoder.imageSizeY, .RGB8)
+    try decoder.start()
+
+    if target.width == decoder.imageSizeX and
+       target.height == decoder.imageSizeY and
+       target.pixelFormat == .RGB8 and
+       target.isValid()
+    {
+        let source      = cast(u64, bytes.buffer)
+        let destination = cast(u64, target.pixels.buffer)
+        let overlaps    = source <= destination ? destination - source < bytes.count : source - destination < target.byteCount
+        if not overlaps
+        {
+            try decoder.decodePixels'true(target.pixels.storage())
+            target.metadata.clear()
+            return
+        }
+    }
+
+    var result = Image.create(decoder.imageSizeX, decoder.imageSizeY, .RGB8)
+    try decoder.decodePixels'true(result.pixels.storage())
+    target[] = #move result
 }
 
 internal impl IImageDecoder for Decoder
@@ -345,7 +391,7 @@ internal impl IImageDecoder for Decoder
 
         result.allocPixels()
 
-        try .doit(cast([*] u8, result.pixels.storage()))
+        try .decodePixels'false(cast([*] u8, result.pixels.storage()))
         result.metadata = #move .metadata
 
         return result

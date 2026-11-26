@@ -533,6 +533,40 @@ func assertEncodedWebpRoundtrip(source: Image)
     }
 }
 
+// Prediction preserves wrapped channel differences, transparency and odd tile tails.
+#test
+{
+    const Width  = 517
+    const Height = 129
+    var image  = Image.create(Width, Height, .RGBA8)
+    let pixels = cast([*] u32, image.pixels.storage())
+    for y in Height
+    {
+        for x in Width
+        {
+            let red   = cast(u32, ((x + y) & 255))
+            let green = cast(u32, ((3 * x + 2 * y) & 255))
+            let blue  = cast(u32, (((x >> 2) + 5 * y) & 255))
+            let alpha = cast(u32, ((x + 3 * y) & 255))
+            pixels[y * Width + x] = red | (green << 8) | (blue << 16) | (alpha << 24)
+        }
+    }
+
+    for layout in [PixelFormat.RGB8, PixelFormat.BGRA8]
+    {
+        let source  = image.convertedTo(layout)
+        let encoded = expect source.encodeToBytes("predicted.webp")
+        Swag.require(encoded.count >= 26 and encoded.count < Width * Height / 8)
+        Swag.require((encoded[25] & 7) == 1)
+
+        let decoded  = expect Image.decode("predicted.webp", encoded.toSlice())
+        let expected = source.convertedTo(.RGBA8)
+        Swag.require(decoded.width == Width and decoded.height == Height)
+        Swag.require(decoded.pixelFormat == .RGBA8)
+        Swag.require(Hash.Crc64.compute(decoded.pixels.toSlice()) == Hash.Crc64.compute(expected.pixels.toSlice()))
+    }
+}
+
 // A uniform image uses four single-symbol trees, including for fully transparent RGB.
 #test
 {

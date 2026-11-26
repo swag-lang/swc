@@ -74,9 +74,9 @@ private impl DeferredContours
 
 private struct DeferredGeometry
 {
-    kind:     DeferredKind
-    min, max: Vector2
-    contours: DeferredContours
+    kind:          DeferredKind
+    first, second: Vector2     // Corners, ellipse center and radii, or ordered line endpoints.
+    contours:      DeferredContours
 }
 
 private struct InstanceBounds
@@ -191,7 +191,7 @@ struct Drawing
     gradientStops:   Array'Array'GradientStop     // Stops shared by placements of the same gradient.
     scanFills:       Array'ScanFill               // Raster caches for dense solid fills.
     instances:       Array'DeferredInstance       // Affine placements materialized only when used.
-    primitives:      Array'DeferredGeometry       // Bounds of primitives without contour lists.
+    primitives:      Array'DeferredGeometry       // Geometry of primitives without contour lists.
     contours:        Array'Array'LinePathList     // Geometry constructed during parsing, in fixed-capacity chunks.
     contourCount:    u64
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
@@ -2610,19 +2610,10 @@ private impl Parser
             let radii  = Vector2{rx * scale.x, ry * scale.y}
             if state.canDeferPrimitive()
             {
-                let min = center - radii
-                let max = center + radii
-                if finitePoint(min) and finitePoint(max)
+                if finitePoint(center - radii) and finitePoint(center + radii)
                 {
-                    // Require exact recovery of the ellipse from its bounds.
-                    let restoredRadii  = (max - min) * 0.5
-                    let restoredCenter = min + restoredRadii
-                    if Memory.compare(&radii, &restoredRadii, #sizeof(Vector2)) == 0 and
-                       Memory.compare(&center, &restoredCenter, #sizeof(Vector2)) == 0
-                    {
-                        .emitShapeOne(#move list, state, geometry: DeferredGeometry{.Ellipse, min, max})
-                        return
-                    }
+                    .emitShapeOne(#move list, state, geometry: DeferredGeometry{.Ellipse, center, radii})
+                    return
                 }
             }
 
@@ -4611,8 +4602,8 @@ private impl Parser
         if shape.deferred == .Rect
         {
             let rect = &.drawing.primitives[shape.geometry - 1]
-            min = rect.min
-            max = rect.max
+            min = rect.first
+            max = rect.second
         }
         elif gradient.userSpace
         {
@@ -4961,24 +4952,22 @@ private impl Drawing
         let primitive = &.primitives[shape.geometry - 1]
         if not primitive.contours.paths
         {
-            let paths = Memory.new'LinePathList()
-            let min   = primitive.min
-            let max   = primitive.max
-            let path  = paths.newPath()
+            let paths  = Memory.new'LinePathList()
+            let first  = primitive.first
+            let second = primitive.second
+            let path   = paths.newPath()
             if shape.deferred == .Rect
             {
-                path.setRectCornersRaw(min.x, min.y, max.x, max.y)
+                path.setRectCornersRaw(first.x, first.y, second.x, second.y)
             }
             elif shape.deferred == .Ellipse
             {
-                let radii  = (max - min) * 0.5
-                let center = min + radii
-                path.setEllipseRaw(center.x, center.y, radii.x, radii.y)
+                path.setEllipseRaw(first.x, first.y, second.x, second.y)
             }
             else
             {
-                path.start(min.x, min.y)
-                path.lineTo(max.x, max.y)
+                path.start(first.x, first.y)
+                path.lineTo(second.x, second.y)
             }
 
             primitive.contours.paths = paths
@@ -5009,12 +4998,19 @@ private impl Drawing
             else
             {
                 let primitive = &.primitives[shape.geometry - 1]
-                min = primitive.min
-                max = primitive.max
+                let first     = primitive.first
+                let second    = primitive.second
+                min = first
+                max = second
                 if shape.deferred == .Line
                 {
-                    min = Vector2.min(primitive.min, primitive.max)
-                    max = Vector2.max(primitive.min, primitive.max)
+                    min = Vector2.min(first, second)
+                    max = Vector2.max(first, second)
+                }
+                elif shape.deferred == .Ellipse
+                {
+                    min = first - second
+                    max = first + second
                 }
             }
 

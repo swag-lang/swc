@@ -378,13 +378,19 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8)-
     {
         for y in height - 1
         {
-            let row = cast(u64, (y + 1)) * width
-            data[row] = losslessWrap8(data[row] + data[row - width])
-            for x in width - 1
+            let row   = data + cast(u64, (y + 1)) * width
+            let above = row - width
+            row[0] += #wrap above[0]
+            var left    = cast(s32, row[0])
+            var topLeft = cast(s32, above[0])
+            for x in 1 until width
             {
-                let offset     = row + x + 1
-                let prediction = vp8Clip(cast(s32, data[offset - 1]) + data[offset - width] - data[offset - width - 1], 0, 255)
-                data[offset] = losslessWrap8(data[offset] + prediction)
+                let top        = cast(s32, above[x])
+                let prediction = vp8Clip(left + top - topLeft, 0, 255)
+                let sample     = losslessWrap8(row[x] + prediction)
+                row[x]  = sample
+                left    = sample
+                topLeft = top
             }
         }
     }

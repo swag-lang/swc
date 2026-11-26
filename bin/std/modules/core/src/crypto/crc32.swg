@@ -23,8 +23,12 @@ private impl Crc32
         // into the running vector. The slicing table handles shorter inputs.
         #static if not BIG_ENDIAN
         {
-            if length >= 36 and Swag.hasCpuFeature(.CarrylessMultiply) do
+            if length >= 36 and Swag.hasCpuFeature(.CarrylessMultiply)
+            {
+                if length < 80 do
+                    return ~foldShort(cur, current, length)
                 return ~foldClmul(cur, current, length)
+            }
         }
 
         while length >= 8
@@ -195,6 +199,14 @@ private
     }
 
     #[Swag.Inline]
+    func collapseFourBlocks(first, second, third, fourth: Math.Simd.U64x2)->Math.Simd.U64x2
+    {
+        let earlier = advanceBlock'384(first) ^ advanceBlock'256(second)
+        let later   = advanceBlock'128(third) ^ fourth
+        return earlier ^ later
+    }
+
+    #[Swag.NoInline]
     func foldShort(crcReg: u32, buffer: const [*] u8, length: u64)->u32
     {
         let seed   = cast(Math.Simd.U64x2, [cast(u64, crcReg), 0'u64])
@@ -206,18 +218,59 @@ private
         if length < 64 do
             return finishFold(advanceBlock'256(first) ^ advanceBlock'128(second) ^ third, buffer + length, length & 15)
         let fourth = Math.Simd.load(cast(const [*] u64, buffer + 48))
-        let earlier = advanceBlock'384(first) ^ advanceBlock'256(second)
-        let later = advanceBlock'128(third) ^ fourth
-        return finishFold(earlier ^ later, buffer + length, length & 15)
+        let value  = collapseFourBlocks(first, second, third, fourth)
+        return finishFold(value, buffer + length, length & 15)
     }
 
-    // Folds at least 36 bytes into the inverted CRC-32 register. Longer buffers
+    #[Swag.Inline]
+    func foldBlock(value, powers, next: Math.Simd.U64x2)->Math.Simd.U64x2
+        => Math.Simd.clmulLowLow(value, powers) ^ Math.Simd.clmulHighHigh(value, powers) ^ next
+
+    // Reflect x^(8 * distance + 32) and x^(8 * distance - 32) into 33-bit factors.
+    const PairLow  = (#run reflectedFoldPower(288)) >> 31
+    const PairHigh = (#run reflectedFoldPower(224)) >> 31
+    const WideLow  = (#run reflectedFoldPower(1056)) >> 31
+    const WideHigh = (#run reflectedFoldPower(992)) >> 31
+    const FoldNextPair = cast(Math.Simd.U64x2, [PairLow, PairHigh])
+    const FoldNextWide = [WideLow, WideHigh, WideLow, WideHigh]
+
+    func foldWideClmul(crcReg: u32, bytes: const [*] u8, length: u64)->u32
+    {
+        alias Pair = [4] u64
+        let powers = FoldNextWide
+        var lanes: [4] Pair
+        Memory.copy(cast([*] void, &lanes), cast(const [*] void, bytes), #sizeof(lanes))
+        lanes[0, 0] ^= cast(u64, crcReg)
+
+        var offset = 128'u64
+        while length - offset >= 128
+        {
+            let next = bytes + offset
+            Swag.vecCarrylessMul2XorPair(&lanes[0], &powers, cast(const *Pair, next), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorPair(&lanes[1], &powers, cast(const *Pair, next + 32), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorPair(&lanes[2], &powers, cast(const *Pair, next + 64), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorPair(&lanes[3], &powers, cast(const *Pair, next + 96), 0x00, 0x11)
+            offset += 128
+        }
+
+        let words  = cast(const [*] u64, &lanes)
+        let first  = foldBlock(Math.Simd.load(words), FoldK3K4, Math.Simd.load(words + 2))
+        let second = foldBlock(Math.Simd.load(words + 4), FoldK3K4, Math.Simd.load(words + 6))
+        let third  = foldBlock(Math.Simd.load(words + 8), FoldK3K4, Math.Simd.load(words + 10))
+        let fourth = foldBlock(Math.Simd.load(words + 12), FoldK3K4, Math.Simd.load(words + 14))
+        let low    = foldBlock(first, FoldNextPair, second)
+        let high   = foldBlock(third, FoldNextPair, fourth)
+        let value  = foldBlock(low, FoldK1K2, high)
+        return finishClmul(value, bytes + offset, length - offset)
+    }
+
+    // Folds at least 80 bytes into the inverted CRC-32 register. Longer buffers
     // advance four 16-byte lanes in parallel before the final Barrett reduction.
     #[Swag.NoInline]
     func foldClmul(crcReg: u32, buffer: const [*] u8, length: u64)->u32
     {
-        if length < 80 do
-            return foldShort(crcReg, buffer, length)
+        if length >= 1024 and Swag.hasCpuFeature(.WideCarrylessMultiply) do
+            return foldWideClmul(crcReg, buffer, length)
 
         var seed: [2] u64 = [cast(u64, crcReg), 0]
 
@@ -231,7 +284,7 @@ private
 
         x1 ^= Math.Simd.load(cast(const [*] u64, &seed[0]))
 
-        var k = FoldK1K2
+        let k = FoldK1K2
         buf += 8
         len -= 64
 
@@ -256,28 +309,22 @@ private
             len -= 64
         }
 
-        // Fold the four lanes into one.
-        k = FoldK3K4
-        var x5 = Math.Simd.clmulLowLow(x1, k)
-        x1 = Math.Simd.clmulHighHigh(x1, k)
-        x1 ^= x2 ^ x5
-        x5 = Math.Simd.clmulLowLow(x1, k)
-        x1 = Math.Simd.clmulHighHigh(x1, k)
-        x1 ^= x3 ^ x5
-        x5 = Math.Simd.clmulLowLow(x1, k)
-        x1 = Math.Simd.clmulHighHigh(x1, k)
-        x1 ^= x4 ^ x5
+        let value = collapseFourBlocks(x1, x2, x3, x4)
+        return finishClmul(value, cast(const [*] u8, buf), len)
+    }
 
-        while len >= 16
+    #[Swag.Inline]
+    func finishClmul(block: Math.Simd.U64x2, buffer: const [*] u8, length: u64)->u32
+    {
+        var value  = block
+        var offset = 0'u64
+        while length - offset >= 16
         {
-            x5  = Math.Simd.clmulLowLow(x1, k)
-            x1  = Math.Simd.clmulHighHigh(x1, k)
-            x1  ^= Math.Simd.load(buf) ^ x5
-            buf += 2
-            len -= 16
+            value   = foldBlock(value, FoldK3K4, Math.Simd.load(cast(const [*] u64, buffer + offset)))
+            offset += 16
         }
 
-        return finishFold(x1, buffer + length, len)
+        return finishFold(value, buffer + length, length - offset)
     }
 }
 

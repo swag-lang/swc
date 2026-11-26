@@ -165,8 +165,59 @@ private impl Crc64
         return reduceFolded'(Polynomial, Reflected)((first ^ second) ^ (third ^ fourth))
     }
 
+    // Fold eight 128-bit lanes in pairs using the reflected representation.
+    func(Polynomial: u64) foldWideBlocks(bytes: const [*] u8, length, initial: u64)->u64
+    {
+        const LowPower  = #run foldPower(1088, Polynomial, reflected: true)
+        const HighPower = #run foldPower(1024, Polynomial, reflected: true)
+        let powers: [4] u64 = [LowPower, HighPower, LowPower, HighPower]
+
+        alias Pair = [4] u64
+        var lanes: [4] Pair
+        Memory.copy(cast([*] void, &lanes), cast(const [*] void, bytes), #sizeof(lanes))
+        lanes[0, 0] ^= initial
+
+        var offset = 128'u64
+        while length - offset >= 128
+        {
+            let next = bytes + offset
+            Swag.vecCarrylessMul2XorPair(&lanes[0], &powers, cast(const *Pair, next), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorPair(&lanes[1], &powers, cast(const *Pair, next + 32), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorPair(&lanes[2], &powers, cast(const *Pair, next + 64), 0x00, 0x11)
+            Swag.vecCarrylessMul2XorPair(&lanes[3], &powers, cast(const *Pair, next + 96), 0x00, 0x11)
+            offset += 128
+        }
+
+        const NextBlock = cast(Simd.U64x2, [#run foldPower(192, Polynomial, reflected: true), #run foldPower(128, Polynomial, reflected: true)])
+        const NextPair  = cast(Simd.U64x2, [#run foldPower(320, Polynomial, reflected: true), #run foldPower(256, Polynomial, reflected: true)])
+        const NextGroup = cast(Simd.U64x2, [#run foldPower(576, Polynomial, reflected: true), #run foldPower(512, Polynomial, reflected: true)])
+        let words       = cast(const [*] u64, &lanes)
+        let first       = multiplyHalves(Simd.load(words), NextBlock) ^ Simd.load(words + 2)
+        let second      = multiplyHalves(Simd.load(words + 4), NextBlock) ^ Simd.load(words + 6)
+        let third       = multiplyHalves(Simd.load(words + 8), NextBlock) ^ Simd.load(words + 10)
+        let fourth      = multiplyHalves(Simd.load(words + 12), NextBlock) ^ Simd.load(words + 14)
+        let low         = multiplyHalves(first, NextPair) ^ second
+        let high        = multiplyHalves(third, NextPair) ^ fourth
+        var value       = multiplyHalves(low, NextGroup) ^ high
+
+        while offset < length
+        {
+            value   = multiplyHalves(value, NextBlock) ^ readFoldBlock'true(bytes + offset)
+            offset += 16
+        }
+
+        const FinalPowers = cast(Simd.U64x2, [#run foldPower(128, Polynomial, reflected: true), #run foldPower(64, Polynomial, reflected: true)])
+        return reduceFolded'(Polynomial, true)(multiplyHalves(value, FinalPowers))
+    }
+
     func(Polynomial: u64, Reflected: bool) foldBlocks(bytes: const [*] u8, length, initial: u64)->u64
     {
+        #static if Reflected
+        {
+            if length >= 1024 and Swag.hasCpuFeature(.WideCarrylessMultiply) do
+                return foldWideBlocks'Polynomial(bytes, length, initial)
+        }
+
         const LowDegree  = Reflected ? 64'u64 : 0'u64
         const HighDegree = 64 - LowDegree
         const NextBlock  = cast(Simd.U64x2, [#run foldPower(128 + LowDegree, Polynomial, Reflected),

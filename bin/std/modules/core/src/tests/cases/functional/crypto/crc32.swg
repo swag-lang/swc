@@ -100,3 +100,20 @@ func fillCrc32Pattern(buffer: [..] u8)
     seeded.update(data[128 until 257])
     Swag.require(seeded.value() == crc32Reference(data, 0x12345678))
 }
+
+#test
+{
+    let seed = 0x1234_5678'u32
+    var data: [2081] u8
+    fillCrc32Pattern(data)
+
+    for size in [1023, 1024, 1025, 1151, 1152, 1153, 2048, 2063] do
+        assertCrc32(data[7 until 7 + size], seed)
+
+    let input = data[1 until]
+    var split: Hash.Crc32
+    split.reset(seed)
+    split.update(input[until 37])
+    split.update(input[37 until])
+    Swag.require(split.value() == crc32Reference(input, seed))
+}

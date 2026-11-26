@@ -149,3 +149,4 @@ optimizations moved each result.
 - [Interleaved AES-GCM counter encryption and GHASH](aes-gcm-interleaved.md)
 - [P-256 verification in Jacobian coordinates](p256-projective-verify.md)
 - [Explicit Poly1305 limb reduction](poly1305-five-limb-carries.md)
+- [CRC-32 and reflected CRC-64 with paired 256-bit products](crc-wide-instructions.md)

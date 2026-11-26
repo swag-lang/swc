@@ -156,3 +156,18 @@ func fillCrc64Pattern(buffer: [..] u8)
     split.update(data[129 until])
     Swag.require(split.value() == Hash.Crc64.compute(data, Hash.Crc64Kind.IsoXz))
 }
+
+#test
+{
+    const message = #run
+    {
+        var data: [1281] u8
+        fillCrc64Pattern(data)
+        return data
+    }
+
+    #assert(Hash.Crc64.compute(message, .IsoXz) == #run crc64Reference(message, .IsoXz))
+
+    for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279] do
+        assertCrc64(message[1 until 1 + size])
+}

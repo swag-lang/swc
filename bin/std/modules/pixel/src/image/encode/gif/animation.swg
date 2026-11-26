@@ -152,14 +152,40 @@ private impl AnimationWriter
         let opaque = image.pixelFormat == .BGRA8 ? PixelFormat.BGR8 : image.pixelFormat == .RGBA8 ? PixelFormat.RGB8 : image.pixelFormat
         .pending = Image.create(w, h, opaque)
 
-        let sourcePixel = cast(u64, image.bytesPerPixel)
-        let targetPixel = cast(u64, .pending.bytesPerPixel)
-        for row in h
+        let sourcePixel = image.bytesPerPixel
+        let targetBytes = cast(u64, .pending.rowStride)
+        let sourceRow   = image.pixels.storage() + cast(u64, image.height - y - h) * image.rowStride + cast(u64, x) * sourcePixel
+        let targetRow   = .pending.pixels.storage()
+        if sourcePixel == 3 and w == image.width
         {
-            let source = image.pixels.storage() + cast(u64, (image.height - 1 - (y + row)) * image.rowStride + x * image.bytesPerPixel)
-            let target = .pending.pixels.storage() + cast(u64, (h - 1 - row) * .pending.rowStride)
-            for column in cast(u64, w) do
-                Memory.copy(target + column * targetPixel, source + column * sourcePixel, 3)
+            Memory.copy(targetRow, sourceRow, .pending.byteCount)
+        }
+        else
+        {
+            const PackRGB = [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80]
+            let groups = cast(u64, w) / 4
+            for row in h
+            {
+                let source = sourceRow + cast(u64, row) * image.rowStride
+                let target = targetRow + cast(u64, row) * targetBytes
+                if sourcePixel == 3
+                {
+                    Memory.copy(target, source, targetBytes)
+                    continue
+                }
+
+                for group in groups
+                {
+                    let bytes  = Math.Simd.load(source + group * 16)
+                    let packed = Math.Simd.shuffle(bytes, cast(Math.Simd.U8x16, PackRGB))
+                    let output = target + group * 12
+                    Math.Simd.storeLow8(output, packed)
+                    cast([*] u32, output + 8)[0] = cast #bit(Math.Simd.U32x4, packed)[2]
+                }
+
+                for column in groups * 4 until cast(u64, w) do
+                    Memory.copy(target + column * 3, source + column * 4, 3)
+            }
         }
 
         .pendingX        = x
@@ -229,15 +255,47 @@ private impl AnimationWriter
         .pending.release()
     }
 
-    // Returns the smallest rectangle holding every pixel whose colour differs between two frames
-    // of the same size and format, alpha ignored; an empty rectangle when they look the same.
+    // Finds the first and last byte of a changed RGB channel in one packed row.
+    func changedPackedRow(first, second: const [*] u8, rowBytes: s32, alpha: bool)->{ left, right: s32 }
+    {
+        let channels  = alpha ? 0x7777'u32 : 0xFFFF'u32
+        let vectorEnd = rowBytes & ~15
+        var left      = rowBytes
+        var right     = -1
+        for group in vectorEnd / 16
+        {
+            let offset  = group * 16
+            let equal   = Math.Simd.load(first + offset) == Math.Simd.load(second + offset)
+            let changed = ~Math.Simd.bitmask(equal) & channels
+            if not changed do
+                continue
+            if right < 0 do
+                left = offset + cast(s32, Math.trailingZeros(changed))
+            right = offset + 31 - cast(s32, Math.leadingZeros(changed))
+        }
+
+        for offset in vectorEnd until rowBytes
+        {
+            if (alpha and (offset & 3) == 3) or first[offset] == second[offset] do
+                continue
+            if right < 0 do
+                left = offset
+            right = offset
+        }
+
+        return {left, right}
+    }
+
+    // Returns the smallest rectangle holding every pixel whose colour differs, alpha ignored.
     func changedArea(before, after: Image)->{ x: s32, y: s32, width: s32, height: s32 }
     {
-        let pixelBytes = cast(u64, after.bytesPerPixel)
-        let first      = before.pixels.storage()
-        let second     = after.pixels.storage()
-
-        func sameColor(a, b: const [*] u8)->bool => a[0] == b[0] and a[1] == b[1] and a[2] == b[2]
+        let first        = before.pixels.storage()
+        let second       = after.pixels.storage()
+        let sameFormat   = before.pixelFormat == after.pixelFormat
+        let beforeBgr    = before.pixelFormat == .BGR8 or before.pixelFormat == .BGRA8
+        let afterBgr     = after.pixelFormat == .BGR8 or after.pixelFormat == .BGRA8
+        let firstChannel = beforeBgr == afterBgr ? 0 : 2
+        let lastChannel  = 2 - firstChannel
 
         var left   = after.width
         var right  = -1
@@ -245,21 +303,40 @@ private impl AnimationWriter
         var bottom = -1
         for y in after.height
         {
-            let offset   = cast(u64, (after.height - 1 - y) * after.rowStride)
-            var rowLeft  = -1
-            var rowRight = -1
-            for x in after.width
+            let row       = after.height - 1 - y
+            let firstRow  = first + cast(u64, row) * before.rowStride
+            let secondRow = second + cast(u64, row) * after.rowStride
+            var rowLeft   = after.width
+            var rowRight  = -1
+            if sameFormat
             {
-                let at = offset + cast(u64, x) * pixelBytes
-                if sameColor(first + at, second + at) do
+                let changed = changedPackedRow(firstRow, secondRow, after.rowStride, after.bytesPerPixel == 4)
+                if changed.right < 0 do
                     continue
-                if rowLeft < 0 do
-                    rowLeft = x
-                rowRight = x
+                rowLeft  = changed.left / after.bytesPerPixel
+                rowRight = changed.right / after.bytesPerPixel
+            }
+            else
+            {
+                var a = firstRow
+                var b = secondRow
+                for x in after.width
+                {
+                    if a[0] != b[firstChannel] or a[1] != b[1] or a[2] != b[lastChannel]
+                    {
+                        if rowRight < 0 do
+                            rowLeft = x
+                        rowRight = x
+                    }
+
+                    a += before.bytesPerPixel
+                    b += after.bytesPerPixel
+                }
+
+                if rowRight < 0 do
+                    continue
             }
 
-            if rowLeft < 0 do
-                continue
             if top < 0 do
                 top = y
             bottom = y

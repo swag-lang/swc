@@ -306,3 +306,44 @@ func sameColors(decoded: Image, source: Image)->bool
     Swag.require(plainBytes.count != ditherBytes.count or
                  Memory.compare(plainBytes.storage(), ditherBytes.storage(), plainBytes.count) != 0)
 }
+
+// A change of channel layout alone still extends the previous frame's delay.
+#test
+{
+    let name = Format.toString("gif-channel-layout-%.gif", Guid64.random())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    let baseColor   = Color.fromArgb(255, 20, 45, 99)
+    let changeColor = Color.fromArgb(255, 130, 19, 211)
+    var rgb         = Image.create(17, 3, .RGB8)
+    var bgra        = Image.create(17, 3, .BGRA8)
+    var rgba        = Image.create(17, 3, .RGBA8)
+    var bgr         = Image.create(17, 3, .BGR8)
+    rgb.fill(baseColor)
+    bgra.fill(baseColor)
+    rgba.fill(baseColor)
+    bgr.fill(baseColor)
+    let rgbaTail = rgba.pixels.storage() + 16 * 4
+    rgbaTail[0] = changeColor.r
+    rgbaTail[1] = changeColor.g
+    rgbaTail[2] = changeColor.b
+    let bgrFirst = bgr.pixels.storage() + 2 * bgr.rowStride
+    bgrFirst[0] = changeColor.b
+    bgrFirst[1] = changeColor.g
+    bgrFirst[2] = changeColor.r
+
+    var writer = expect Gif.AnimationWriter.create(path, 17, 3)
+    expect writer.addFrame(rgb, 50_000)
+    expect writer.addFrame(bgra, 50_000)
+    expect writer.addFrame(rgba, 50_000)
+    expect writer.addFrame(bgr, 50_000)
+    expect writer.end()
+
+    var reader = expect ImageReader.load(path)
+    Swag.require(reader.info.frames.count == 3)
+    Swag.require(Math.abs(reader.info.frames[0].durationSeconds - 0.1) < 0.001)
+    Swag.require(sameColors(expect reader.read(0), rgb))
+    Swag.require(sameColors(expect reader.read(1), rgba))
+    Swag.require(sameColors(expect reader.read(2), bgr))
+}

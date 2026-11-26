@@ -282,7 +282,7 @@ impl Encoder
     func histogramIndex(red, green, blue: u8)->u32 =>
         (cast(u32, red >> 3) << 10) | (cast(u32, green >> 3) << 5) | (blue >> 3)
 
-    func occupiedBox(region: ColorBox, histogram: const [*] HistogramCell)->ColorBox
+    func(T) occupiedBox(region: ColorBox, histogram: const [*] HistogramCell'T)->ColorBox
     {
         var result = ColorBox{32, -1, 32, -1, 32, -1}
 
@@ -301,10 +301,10 @@ impl Encoder
                     result.maxGreen   = Math.max(result.maxGreen, green)
                     result.minBlue    = Math.min(result.minBlue, blue)
                     result.maxBlue    = Math.max(result.maxBlue, blue)
-                    result.pixels     += cell.count
-                    result.redTotal   += cell.red
-                    result.greenTotal += cell.green
-                    result.blueTotal  += cell.blue
+                    result.pixels     += cast(u64, cell.count)
+                    result.redTotal   += cast(u64, cell.red)
+                    result.greenTotal += cast(u64, cell.green)
+                    result.blueTotal  += cast(u64, cell.blue)
                 }
             }
         }
@@ -312,7 +312,7 @@ impl Encoder
         return result
     }
 
-    func splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell)->bool
+    func(T) splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell'T)->bool
     {
         var selected = -1
         var best     = 0'u64
@@ -363,7 +363,7 @@ impl Encoder
                 for blue in box.minBlue to box.maxBlue
                 {
                     let axisValue = axis == 0 ? red : axis == 1 ? green : blue
-                    slices[axisValue] += histogram[(red << 10) | (green << 5) | blue].count
+                    slices[axisValue] += cast(u64, histogram[(red << 10) | (green << 5) | blue].count)
                 }
             }
         }
@@ -397,18 +397,18 @@ impl Encoder
             right.minBlue = cut + 1
         }
 
-        boxes[][selected] = occupiedBox(left, histogram)
-        boxes[][boxCount] = occupiedBox(right, histogram)
+        boxes[][selected] = occupiedBox'T(left, histogram)
+        boxes[][boxCount] = occupiedBox'T(right, histogram)
         return true
     }
 
-    func buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent, dither: bool)
+    func(T) buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent, dither: bool)
     {
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
         // Five bits per channel keep the histogram bounded independently of image size.
-        var histogram: Array'HistogramCell
+        var histogram: Array'(HistogramCell'T)
         histogram.resize(32 * 32 * 32)
         let offsets = pixelChannelOffsets(image)
         for y in image.height
@@ -422,10 +422,19 @@ impl Encoder
                     let g    = pix[offsets.green]
                     let b    = pix[offsets.blue]
                     let cell = &histogram[histogramIndex(r, g, b)]
-                    cell.count += 1
-                    cell.red   += r
-                    cell.green += g
-                    cell.blue  += b
+                    #static if T == u32
+                    {
+                        let counters = cast([*] u32, cell)
+                        let add      = cast(Math.Simd.U32x4, [1'u32, cast(u32, r), cast(u32, g), cast(u32, b)])
+                        Math.Simd.store(counters, Math.Simd.load(counters) + add)
+                    }
+                    else
+                    {
+                        cell.count += 1
+                        cell.red   += r
+                        cell.green += g
+                        cell.blue  += b
+                    }
                 }
 
                 pix += image.bytesPerPixel
@@ -433,10 +442,10 @@ impl Encoder
         }
 
         var boxes: [256] ColorBox
-        boxes[0] = occupiedBox(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
+        boxes[0] = occupiedBox'T(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
         var boxCount  = 1'u32
         let maxColors = MaxPaletteColors - (hasTransparent ? 1'u32 : 0'u32)
-        while boxCount < maxColors and splitBox(&boxes, boxCount, histogram.storage()) do
+        while boxCount < maxColors and splitBox'T(&boxes, boxCount, histogram.storage()) do
             boxCount += 1
 
         let firstColor = hasTransparent ? 1'u32 : 0'u32
@@ -572,8 +581,14 @@ impl Encoder
     {
         let hasTransparent = imageHasTransparentPixels(image)
         var result: #returntype
-        if not tryBuildExactPalette(&result, image, hasTransparent) do
-            buildQuantizedPalette(&result, image, hasTransparent, dither)
+        if not tryBuildExactPalette(&result, image, hasTransparent)
+        {
+            // An individual cell's channel totals are bounded by 255 per pixel.
+            if cast(u64, image.width) * image.height <= Swag.U32.Max / 255 do
+                buildQuantizedPalette'u32(&result, image, hasTransparent, dither)
+            else do
+                buildQuantizedPalette'u64(&result, image, hasTransparent, dither)
+        }
         return result
     }
 

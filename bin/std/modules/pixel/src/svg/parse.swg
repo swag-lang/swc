@@ -1965,19 +1965,24 @@ private func hasPathCurveCommand(data: string)->bool
 }
 
 #[Swag.Inline]
-private func appendPathLine(path: *LinePath, target: Vector2, linear: bool)
+private func appendPathLine(path: *LinePath, target: Vector2, linear: bool, segments: *u64)
 {
-    if linear do
-        discard path.appendLinear(target)
-    else do
+    if linear
+    {
+        if path.appendLinear(target) do
+            segments[] += 1
+    }
+    else
+    {
         path.lineTo(target.x, target.y)
+    }
 }
 
 // Parses one `d` attribute into subpath contours, transformed by `state`.
 //
 // `vertices` collects the authored vertices markers are placed on; pass null when the element
 // carries none, which is the common case and skips the bookkeeping entirely.
-private func parsePathData(list: *LinePathList, data: string, state: *GroupState, vertices: *Array'MarkerVertex?, linear: bool)
+private func parsePathData(list: *LinePathList, data: string, state: *GroupState, vertices: *Array'MarkerVertex?, linear: bool, segments: *u64)
 {
     let len = data.count
     var pos = 0'u64
@@ -2036,10 +2041,15 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                     return
                 if started
                 {
-                    if linear do
-                        discard path.closeLinear()
-                    else do
+                    if linear
+                    {
+                        if path.closeLinear() do
+                            segments[] += 1
+                    }
+                    else
+                    {
                         path.close()
+                    }
                 }
 
                 curX      = begX
@@ -2105,7 +2115,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             if Math.abs(x - curX) > 0.0005 or Math.abs(y - curY) > 0.0005
             {
                 let target = mapPoint(state, x, y)
-                appendPathLine(unwrap path, target, linear)
+                appendPathLine(unwrap path, target, linear, segments)
                 addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - curX, y - curY}, Vector2{x - curX, y - curY})
             }
 
@@ -2119,7 +2129,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             if rel do
                 x += curX
             let target = mapPoint(state, x, curY)
-            appendPathLine(unwrap path, target, linear)
+            appendPathLine(unwrap path, target, linear, segments)
             addMarkerVertex(vertices, Vector2{x, curY}, Vector2{x - curX, 0}, Vector2{x - curX, 0})
             curX = x
 
@@ -2130,7 +2140,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             if rel do
                 y += curY
             let target = mapPoint(state, curX, y)
-            appendPathLine(unwrap path, target, linear)
+            appendPathLine(unwrap path, target, linear, segments)
             addMarkerVertex(vertices, Vector2{curX, y}, Vector2{0, y - curY}, Vector2{0, y - curY})
             curY = y
 
@@ -3899,15 +3909,13 @@ private impl Parser
                         var list:     LinePathList
                         var vertices: Array'MarkerVertex
 
-                        // These paths are painted directly, and stroked paths bypass the
-                        // scan-fill heuristic that counts authored elements.
                         let linear = d.value.count >= 1024 and
-                                     state.hasStroke and
                                      not hasMarkers and
                                      state.canDeferPrimitive() and
                                      not hasPathCurveCommand(d.value)
-                        parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null, linear)
-                        .emitShape(#move list, &state)
+                        var segments: u64
+                        parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null, linear, &segments)
+                        .emitShape(#move list, &state, segments)
                         if hasMarkers do
                             .applyMarkers(&state, vertices.toSlice())
                     }

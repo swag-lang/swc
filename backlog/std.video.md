@@ -64,12 +64,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.039 — Reduce the measured serial cost of MPEG-4 Part 2 decoding
 
-- Evidence: [the single-lane comparison](../bench/results/video/20261126-decode-comparison/README.md#mpeg-4-part-2-coefficient-decoding-and-reconstruction)
-  measures Simple Profile at 3.59× native single-threaded FFmpeg and textured intra pictures
-  at 3.86×. The profile still spends 22% in the inverse transform and 19% reading bits or
-  walking variable-length codes.
-- Next: measure a bounded word read and SIMD inverse quantization separately on Simple
-  Profile, textured intra and MPEG-quantized B pictures.
+- Evidence: [the inverse quantization comparison](../bench/results/video/20261126-decode-comparison/README.md#mpeg-4-part-2-inverse-quantization)
+  measures Simple Profile at 2.92× native single-threaded FFmpeg, textured intra at 3.43×
+  and MPEG matrix B pictures at 2.50×. The preceding profile spent 22% in the inverse
+  transform and 19% reading bits or walking variable-length codes.
+- Next: isolate one-bit reads from wider reads and profile the coefficient loop again.
 - Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
   the measured sample-error bounds and the MPEG-4 conformance tests.
 

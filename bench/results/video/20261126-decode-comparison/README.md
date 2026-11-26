@@ -138,6 +138,29 @@ The same comparison also matched all 42 RealVideo 4.0 pictures from four inputs 
 180 AVC and HEVC pictures. The focused native Release selection passed 94 tests.
 [Raw timings, picture quality, profile counts and fixture commands](mpeg4.json).
 
+## MPEG-4 Part 2 inverse quantization
+
+Inverse quantization now scales four coefficients at a time for H.263 and for MPEG
+with a five-bit quantizer. MPEG restores signs after division, preserves intra DC,
+and folds the inter-block mismatch parity across the packed coefficients. The
+focused native Release selection passed 82 tests, including a scalar reference
+for rounding, clipping and parity.
+
+The medians of five repetitions on one logical CPU compare against `9a5108a037`.
+Times are in milliseconds per picture.
+
+| MPEG-4 Part 2 stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Simple Profile 720p | 1.927 | 1.572 | 0.538 | -18.4% | 2.92× |
+| Textured intra 640×360 | 2.467 | 2.241 | 0.653 | -9.2% | 3.43× |
+| B pictures with MPEG matrices | 1.078 | 0.897 | 0.358 | -16.8% | 2.50× |
+| P pictures with MPEG matrices, 720p | 1.682 | 1.403 | 0.548 | -16.6% | 2.56× |
+
+All 420 pictures were byte-exact against the previous Swag build. The maximum sample
+difference from FFmpeg was three on Simple Profile, one on textured intra, two on
+the B-picture clip and four on the new 720p matrix fixture.
+[Raw observations and fixture command](quantization.json).
+
 ## Matroska timing coverage
 
 The picture check established a dense display timeline before timing the file-backed

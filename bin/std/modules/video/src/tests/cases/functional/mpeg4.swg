@@ -151,6 +151,67 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
     check(94_162)
 }
 
+// Packed inverse quantization must preserve intra DC, signed truncation, clipping and mismatch.
+#test
+{
+    var layer: Mpeg4.Layer
+    for index in 64'u64
+    {
+        layer.intraMatrix[index] = cast(u8, (1 + index * 4))
+        layer.interMatrix[index] = cast(u8, (255 - index * 4))
+    }
+
+    let inputs = [-2048's32, -201, -5, -1, 0, 1, 5, 201, 2047]
+    for quantType in 2'u32
+    {
+        layer.quantType = quantType
+        for intra in [false, true]
+        {
+            for quant in [1'u32, 2, 17, 31, 32]
+            {
+                for first in inputs.count
+                {
+                    var actual, expected: [64] s32
+                    var sum = 0's32
+                    for index in 64'u64
+                    {
+                        let level = inputs[(first + index) % inputs.count]
+                        actual[index] = level
+                        var value = 0's32
+                        if intra and not index
+                        {
+                            value = level
+                        }
+                        elif level
+                        {
+                            let sign = level < 0 ? -1 : 1
+                            let step = cast(s32, quant)
+                            if quantType
+                            {
+                                let weight = intra ? layer.intraMatrix[index] : layer.interMatrix[index]
+                                value = ((2 * level + (intra ? 0 : sign)) * step * cast(s32, weight)) / 16
+                            }
+                            else
+                            {
+                                value = sign * (step * (2 * Math.abs(level) + 1) - (quant & 1 ? 0 : 1))
+                            }
+                        }
+
+                        expected[index] = Math.clamp(value, Mpeg4.CoefficientFloor, Mpeg4.CoefficientCeil)
+                        sum += expected[index]
+                    }
+
+                    if quantType and not intra and not (sum & 1) do
+                        expected[63] ^= 1
+                    Mpeg4.dequantise(&actual, &layer, quant, intra)
+                    for index in 64'u64 do
+                        Swag.require(actual[index] == expected[index])
+                }
+            }
+        }
+    }
+}
+
 // Simple Profile: intra and predicted planes, the H.263 quantiser, half-sample motion, and four
 // motion vectors where the encoder chose them.
 #test

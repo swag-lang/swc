@@ -332,7 +332,8 @@ namespace
             if (!inserted)
                 return true;
 
-            std::ranges::sort(relocations, {}, &DataSegmentRelocation::offset);
+            // copyRelocations merges the segment's indexed prefix and tail in offset order.
+            SWC_ASSERT(std::ranges::is_sorted(relocations, {}, &DataSegmentRelocation::offset));
             out.appendLe32(allocation.align);
             out.appendLe32(allocation.size);
             const size_t payloadOffset = out.size();

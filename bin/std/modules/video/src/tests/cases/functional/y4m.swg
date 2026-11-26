@@ -189,6 +189,33 @@ func y4mAspectBytes(aspect: string)->Array'u8
     videoAssertColor(frame.pixelColor(6, 0), 0, 0, 255, tolerance: 0)
 }
 
+// The last column and row keep their own chroma sample in an odd 4:2:0 picture.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "YUV4MPEG2 W9 H3 F1:1 Ip C420jpeg\nFRAME\n"))
+    for 27 do
+        bytes.add(128)
+    bytes.add([16'u8, 240, 16, 240, 16, 240, 16, 240, 16, 240])
+    for 10 do
+        bytes.add(128)
+
+    var reader  = expect Reader.openMemory("odd-420.y4m", bytes.toSlice())
+    let picture = expect reader.decodeFrame(0)
+    Swag.require(picture.pixelFormat == .RGB8 and picture.width == 9 and picture.height == 3)
+    for row in 3'u64
+    {
+        for column in 9'u64
+        {
+            let offset = ((2 - row) * 9 + column) * 3
+            let low    = (column / 2) % 2 == row / 2
+            Swag.require(picture.pixels[offset] == 130)
+            Swag.require(picture.pixels[offset + 1] == (low ? 174 : 87))
+            Swag.require(picture.pixels[offset + 2] == (low ? 0 : 255))
+        }
+    }
+}
+
 // A frame marker may carry per-frame parameters. They move every payload that follows, so the
 // stream is walked instead of being addressed, and its frame count is reported as unknown.
 #test

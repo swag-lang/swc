@@ -134,6 +134,24 @@ was the independent picture reference. [Timing samples](mjpeg-direct-rgb.json)
 | 4:2:2 texture, 720p | 3.363 | 3.054 | −6.4% | 3.174 | 2.659 |
 | 4:4:4, 720p | 1.818 | 1.704 | −4.6% | 8.233 | 1.865 |
 
+### Y4M shared chroma correction
+
+The subsampled path computes a colour correction for eight pixels at a time and reuses
+it for both luma rows in 4:2:0. It packs 24 RGB bytes and handles the last column or row
+with the same matrix. The final source matched all 216 RGB pictures from the preceding
+Swag decoder. The 20 native Release tests include a 9×3 frame with a distinct chroma row
+and a one-pixel tail.
+
+The single-CPU results use nine rotated runs and FFmpeg 9.1 with libswscale.
+[Timing samples](y4m-shared-chroma.json)
+
+| Stream | Before, ms/picture | Shared chroma, ms/picture | Paired time change | FFmpeg 9.1, ms/picture |
+| --- | ---: | ---: | ---: | ---: |
+| 4:2:0 full range, 651×371 | 0.344 | 0.184 | −46.5% | 0.984 |
+| 4:2:0 limited range, 1080p | 2.768 | 1.798 | −35.3% | 1.192 |
+| 4:2:2 limited range, 720p | 1.345 | 0.980 | −27.6% | 0.634 |
+| 4:4:4, 720p control | 1.698 | 1.355 | −2.9% | 5.008 |
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

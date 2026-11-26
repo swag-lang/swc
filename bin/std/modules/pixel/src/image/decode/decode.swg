@@ -8,8 +8,9 @@ using Swag, Core, Core.Errors
 // One registered decoder: the format it reads, and the type that reads it.
 struct ImageDecoder
 {
-    format: ImageFormat
-    type:   const *TypeInfoStruct
+    format:         ImageFormat
+    type:           const *TypeInfoStruct
+    checksGeometry: bool
 }
 
 // Controls which parts of an encoded image are materialized.
@@ -98,28 +99,30 @@ impl Image
         return null
     }
 
+    func registerDecoderEntry(type: const *TypeInfoStruct, checksGeometry: bool)
+    {
+        for &decoder in decoders where decoder.type == type do
+            return
+
+        let itf = unwrap Swag.makeInterface(null, type, IImageDecoder)
+        decoders.add(ImageDecoder{itf.format(), type, checksGeometry})
+    }
+
     // Decodes a buffer with one registered decoder type, enforcing the limits of `options`.
-    func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
+    func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions, checksGeometry: bool)->Image fail
     {
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
 
-        // JPEG, PNG, and OpenEXR and ICO check geometry limits before allocating decoded pixels.
-        if decoderType != #typeof(Png.Decoder) and
-           decoderType != #typeof(Jpg.Decoder) and
-           decoderType != #typeof(Exr.Decoder) and
-           decoderType != #typeof(Ico.Decoder) and
-           decoderType != #typeof(Dds.Decoder) and
-           decoderType != #typeof(Ktx2.Decoder) and
-           decoderType != #typeof(Qoi.Decoder) and
-           decoderType != #typeof(Tga.Decoder) and
+        // Custom decoders may need a separate probe before they allocate pixels.
+        if not checksGeometry and
            options.decodePixels and
            (options.maxPixels or options.maxDecodedBytes)
         {
             var probeOptions = options
             probeOptions.decodePixels   = false
             probeOptions.decodeMetadata = false
-            let probe = try decode(decoderType, bytes, probeOptions)
+            let probe = try decode(decoderType, bytes, probeOptions, checksGeometry)
             try options.checkImage(probe.width, probe.height, probe.pixelFormat)
         }
 
@@ -160,11 +163,7 @@ public impl Image
     // a decoding already in progress keeps using its selected type, including its metadata probe.
     func registerDecoder(type: const *TypeInfoStruct)
     {
-        for &decoder in decoders where decoder.type == type do
-            return
-
-        let itf = unwrap Swag.makeInterface(null, type, IImageDecoder)
-        decoders.add(ImageDecoder{itf.format(), type})
+        registerDecoderEntry(type, false)
     }
 
     // Returns the format read by each registered decoder, in registration order.
@@ -197,7 +196,7 @@ public impl Image
             fail UnsupportedFormatError{"no matching image decoder"}
 
         // Both the metadata probe and decoding may register more codec types.
-        return try decode(found.type, bytes, options)
+        return try decode(found.type, bytes, options, found.checksGeometry)
     }
 
     // Loads and decodes an image file, selecting the decoder by its extension.
@@ -210,12 +209,13 @@ public impl Image
         let found = getDecoder(fileName)
         if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        let decoderType = found.type
-        var file        = File.MappedFile.open(fileName)
+        let decoderType    = found.type
+        let checksGeometry = found.checksGeometry
+        var file           = File.MappedFile.open(fileName)
         if options.maxInputBytes and file.size() > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
         let region = file.mapAll()
-        var result = #move decode(decoderType, region.bytes(), options)
+        var result = #move decode(decoderType, region.bytes(), options, checksGeometry)
         return #move result
     }
 
@@ -258,17 +258,17 @@ public impl Image
 // Initialize predefined decoders
 #init
 {
-    Image.registerDecoder'(Bmp.Decoder)()
-    Image.registerDecoder'(Tga.Decoder)()
-    Image.registerDecoder'(Jpg.Decoder)()
-    Image.registerDecoder'(Png.Decoder)()
-    Image.registerDecoder'(Gif.SetDecoder)()
-    Image.registerDecoder'(Tiff.Decoder)()
-    Image.registerDecoder'(Ico.Decoder)()
-    Image.registerDecoder'(Webp.Decoder)()
-    Image.registerDecoder'(Qoi.Decoder)()
-    Image.registerDecoder'(Psd.Decoder)()
-    Image.registerDecoder'(Dds.Decoder)()
-    Image.registerDecoder'(Ktx2.Decoder)()
-    Image.registerDecoder'(Exr.Decoder)()
+    Image.registerDecoderEntry(#typeof(Bmp.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Tga.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Jpg.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Png.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Gif.SetDecoder), true)
+    Image.registerDecoderEntry(#typeof(Tiff.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Ico.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Webp.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Qoi.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Psd.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Dds.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Ktx2.Decoder), true)
+    Image.registerDecoderEntry(#typeof(Exr.Decoder), true)
 }

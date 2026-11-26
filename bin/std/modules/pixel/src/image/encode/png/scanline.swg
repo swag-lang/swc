@@ -145,18 +145,17 @@ impl Encoder
             return try .encodeScanLine(cast([*] u8, scanline))
         }
 
-        for k in .subimage[pass].width
+        let inputStep = Adam7DeltaX[pass] * .pixelSize
+        var src       = row + Adam7StartX[pass] * .pixelSize
+        var dst       = unwrap .scanline
+        for .subimage[pass].width
         {
-            let ioffset = (Adam7StartX[pass] + k * Adam7DeltaX[pass]) * .pixelSize
-            let src     = row + ioffset
-            let dst     = unwrap .scanline + k * .pixelSize
             if .encodeFlags.toBigEndian
             {
-                for sample in .pixelSize / 2
-                {
-                    dst[sample * 2]     = src[sample * 2 + 1]
-                    dst[sample * 2 + 1] = src[sample * 2]
-                }
+                let input  = cast(const [*] u16, src)
+                let output = cast([*] u16, dst)
+                for sample in .pixelSize / 2 do
+                    output[sample] = Swag.byteSwap(input[sample])
             }
             elif .swapRB
             {
@@ -170,9 +169,12 @@ impl Encoder
             {
                 Memory.copy(dst, src, .pixelSize)
             }
+
+            src += inputStep
+            dst += .pixelSize
         }
 
-        return try .encodeScanLine(cast([*] u8, unwrap .scanline))
+        return try .encodeScanLine(.scanline)
     }
 
     mtd encodeScanLine(sl: [*] u8)->bool fail

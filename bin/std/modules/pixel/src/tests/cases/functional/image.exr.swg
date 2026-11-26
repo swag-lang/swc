@@ -652,10 +652,16 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         var input    = Image.create(257, 256, format)
         let samples  = cast([*] u16, input.pixels.storage())
         let channels = cast(u64, format.channels())
-        for pixel in 257'u64 * 256
+        for row in 256'u64
         {
-            for channel in channels do
-                samples[pixel * channels + channel] = cast(u16, (pixel + channel * 3179) & 65535)
+            for column in 257'u64
+            {
+                // Keep the full range in vector lanes and place rounding boundaries in the tail.
+                let value = column < 256 ? row * 256 + column : (row & 1 ? 65199 : 65487)
+                let pixel = row * 257 + column
+                for channel in channels do
+                    samples[pixel * channels + channel] = cast(u16, (value + channel * 3179) & 65535)
+            }
         }
 
         var halfFormat: PixelFormat

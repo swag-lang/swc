@@ -58,37 +58,27 @@ func closestEdgeDistances(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->M
     return Math.sqrt(distSquared)
 }
 
-func insideMask(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->u32
+// Each crossing contributes winding to the sample centers strictly to its left.
+private func sdfWindingChanges(edges: const [..] Edge, changes: [..] s32, left, y: f64)
 {
-    var winding0 = 0
-    var winding1 = 0
+    let width = cast(s32, changes.count)
+    Memory.clear(changes.buffer, changes.count * #sizeof(s32))
     for edge in edges
     {
         if y < edge.minY or y >= edge.maxY do
             continue
 
-        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
-        var mask  = 0'u32
-        if edge.y0 <= y and edge.y1 > y
-        {
-            mask     = Math.Simd.bitmask(cross > Math.Simd.splat(0.0'f64))
-            winding0 += mask & 1
-            winding1 += (mask >> 1) & 1
-        }
-        elif edge.y1 <= y and edge.y0 > y
-        {
-            mask     = Math.Simd.bitmask(cross < Math.Simd.splat(0.0'f64))
-            winding0 -= mask & 1
-            winding1 -= (mask >> 1) & 1
-        }
-    }
+        let dy   = edge.y1 - edge.y0
+        let x    = edge.x0 + (edge.x1 - edge.x0) * (y - edge.y0) / dy
+        let stop = cast(s32, Math.ceil(x - left - 0.5))
+        if stop <= 0 do
+            continue
 
-    var result = 0'u32
-    if winding0 do
-        result |= 1
-    if winding1 do
-        result |= 2
-    return result
+        let winding = dy > 0.0 ? 1 : -1
+        changes[0] += winding
+        if stop < width do
+            changes[stop] -= winding
+    }
 }
 
 func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
@@ -133,6 +123,9 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     let distanceLimit = cast(f64, safeSpread) + 1.0
     var nearby: Array'Edge
     nearby.reserve(edges.count)
+    var changes: Array's32
+    changes.resize(cast(u64, width))
+    let windingChanges = changes.toSlice()
 
     for py in rows
     {
@@ -143,17 +136,19 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         for edge in edges where edge.maxY >= lowY and edge.minY <= highY do
             nearby.add(edge)
         let rowEdges = nearby.toSlice()
+        sdfWindingChanges(rowEdges, windingChanges, left, sampleY)
 
-        var px = 0
+        var winding = 0
+        var px      = 0
         while px + 2 <= width
         {
             let sampleX   = left + cast(f64, px) + 0.5
             let samples   = cast(Math.Simd.F64x2, [sampleX, sampleX + 1.0])
             let distances = closestEdgeDistances(rowEdges, samples, sampleY)
-            let inside    = insideMask(rowEdges, samples, sampleY)
             for lane in 2
             {
-                let signedDistance = inside & (1'u32 << lane) ? distances[lane] : -distances[lane]
+                winding += windingChanges[px + lane]
+                let signedDistance = winding ? distances[lane] : -distances[lane]
                 let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
                 dst[] = cast(u8, Math.round(value))
                 dst   += 1
@@ -164,10 +159,11 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
 
         while px < width
         {
-            let sampleX        = left + cast(f64, px) + 0.5
-            let distance       = closestEdgeDistance(rowEdges, sampleX, sampleY)
-            let signedDistance = isInside(rowEdges, sampleX, sampleY) ? distance : -distance
-            let value          = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
+            let sampleX  = left + cast(f64, px) + 0.5
+            let distance = closestEdgeDistance(rowEdges, sampleX, sampleY)
+            winding += windingChanges[px]
+            let signedDistance = winding ? distance : -distance
+            let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
             dst[]   = cast(u8, Math.round(value))
             dst, px += 1
         }

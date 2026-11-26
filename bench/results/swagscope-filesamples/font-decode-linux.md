@@ -1140,3 +1140,35 @@ The 51-batch targeted repeat measures Noto Sans CJK JP at 4.864 ms
 before and 4.721 ms after for lazy startup. The corresponding
 prestarted results are 5.027 and 5.461 ms. That control already
 qualified for parallel reads at 8 MiB.
+
+## Signed-distance field row winding
+
+A crossing contributes winding up to the first pixel center it
+excludes. The rasterizer accumulates those changes while visiting
+the row. Each crossing is evaluated once per row.
+
+Seven interleaved batches compare with `94962d20e1` on the same
+seven fonts. At 64 px and spread 8, loading and rendering takes
+8–22% less time. The spread-64 controls improve by 11–14%. Every
+sample has the same outline and bitmap fingerprint as the baseline.
+The native tests also compare the complete SDF with scalar winding.
+[Raw timings and fingerprints](font-glyph-linux-sdf-winding.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 164.89 | 135.45 |
+| `Lato-Regular.ttf` | 64 | 8 | 511.51 | 398.01 |
+| `Lato-Regular.ttf` | 24 | 64 | 4643.11 | 4149.07 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 155.78 | 131.05 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 427.59 | 354.04 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 906.32 | 742.67 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 2684.02 | 2213.27 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 1417.40 | 1192.63 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 4261.30 | 3522.97 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 403.45 | 336.36 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 1119.48 | 930.20 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 274.56 | 254.22 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 812.19 | 748.31 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 6737.09 | 5819.02 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 399.34 | 352.41 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 1105.43 | 929.19 |

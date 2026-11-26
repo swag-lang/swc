@@ -306,6 +306,7 @@ internal impl IImageDecoder for Decoder
         if pixelData < dataof do
             fail InvalidFormatError{"invalid source buffer"}
 
+        try options.checkImage(result.width, result.height, result.pixelFormat)
         if not options.decodePixels do
             return result
         result.allocPixels()

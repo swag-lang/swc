@@ -57,3 +57,24 @@ at `3f81024a37`. The 12-page vector document has 9,600 marks.
 The vector, opaque-image, and PDFBox JPEG outputs all retain their byte
 counts and CRC-32, with the same PDFium rasters. The 134 PDF tests
 include positive and negative half-way coordinates.
+
+
+## Packing bilevel image streams
+
+Black-and-white gray samples are packed most-significant bit first in
+each row. Deflate processes one eighth of the original sample bytes
+before row padding. The writer keeps a separate eight-bit soft mask
+when the source has partial alpha. Native Gray8 and GrayAlpha8 images
+write their luminance channel directly.
+
+Seven interleaved Release runs on one AMD EPYC 7763 logical CPU use
+`7d19843433` as the baseline. The two builds use Core at `3f81024a37`.
+[Raw samples, image sizes, and raster comparisons](pdf-write-linux-bilevel.json)
+
+| Input | Save before, ms | Save after, ms | Bytes before | Bytes after |
+| --- | ---: | ---: | ---: | ---: |
+| `pdfbox-scan.pdf` | 3.94 | 1.80 | 4,223 | 3,660 |
+| `perf_images_scan_bilevel.pdf` | 125.36 | 50.50 | 112,377 | 35,466 |
+
+All six saved scenarios keep their PDFium rasters. The 135 PDF tests
+include odd-width rows, asymmetric samples and a partial alpha channel.

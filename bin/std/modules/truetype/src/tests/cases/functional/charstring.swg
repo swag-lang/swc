@@ -213,10 +213,32 @@ using Swag, Core
     font.defaultPrivate.subrs = expect readCffIndex(Local, 0)
     font.globalSubrs = expect readCffIndex(Global, 0)
     Swag.require(expect runType2Charstring(&font, 0, null) == 50)
+    Swag.require(expect type2CharstringWidth(&font, 0) == 50)
 
     var face:  FaceImpl
     var builder = OutlineBuilder.create(&face, 1000, 1000, 1000)
     var error: Swag.Error
     discard catch runType2Charstring(&font, 0, &builder) as error
     Swag.require(error.value() != null)
+}
+
+// Literal widths and fallback arithmetic agree with the full interpreter.
+#test
+{
+    const Glyphs: [27] u8 = [
+        0, 4, 1, 1, 2, 6, 12, 20,
+        14,     // default width
+        28, 0xFF, 0xCE, 14,         // short -50, endchar
+        255, 0, 50, 128, 0, 14,     // fixed 50.5, endchar
+        239, 141, 12, 12, 139, 139, 21, 14]     // 100 2 div, rmoveto, endchar
+
+    var font: CffFont
+    font.block                       = Glyphs
+    font.charStrings                 = expect readCffIndex(Glyphs, 0)
+    font.defaultPrivate.nominalWidth = 10
+    font.defaultPrivate.defaultWidth = 500
+    Swag.require(expect type2CharstringWidth(&font, 0) == 500)
+    Swag.require(expect type2CharstringWidth(&font, 1) == -40)
+    Swag.require(expect type2CharstringWidth(&font, 2) == 60.5)
+    Swag.require(expect type2CharstringWidth(&font, 3) == 60)
 }

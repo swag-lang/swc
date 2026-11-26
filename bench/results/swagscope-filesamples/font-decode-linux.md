@@ -1369,3 +1369,27 @@ that the last face releases the program.
 | `NimbusMonoPS-Regular.t1` | U+0069 | 1315.26 | 964.01 |
 | `P052-Roman.t1` | U+0067 | 1401.91 | 1100.58 |
 | `P052-Roman.t1` | U+0045 | 1501.79 | 1089.82 |
+
+## Literal width prefixes in bare CFF
+
+The width reader handles literal operands and local or global subroutine
+calls up to the operator that sets the advance. Arithmetic and other
+commands use the full interpreter. Glyph drawing uses the existing
+outline interpreter.
+
+Thirteen interleaved batches with 61 pathname opens on one CPU compare
+with `191b224582`. The six cases take 16–19% less time to open and
+render, and all six are ahead of Pillow in this run. The Swag builds
+agree on every reported glyph fingerprint and on all 4,188 advances
+in the three programs. The native tests cover nested calls, signed
+literals, fixed point, default widths and arithmetic fallback.
+[Raw timings, fingerprints and advance checksums](font-decode-linux-cff-width-prefix.json)
+
+| Fixture | Character | Open and render before (µs) | After | Pillow |
+| --- | ---: | ---: | ---: | ---: |
+| `NimbusSans-Regular.cff` | U+0041 | 225.61 | 181.97 | 276.49 |
+| `NimbusSans-Regular.cff` | U+0067 | 227.61 | 191.14 | 309.80 |
+| `NimbusMonoPS-Regular.cff` | U+0057 | 217.29 | 177.87 | 317.16 |
+| `NimbusMonoPS-Regular.cff` | U+0069 | 223.63 | 182.28 | 290.46 |
+| `SourceSans3-Regular.cff` | U+0043 | 723.97 | 594.05 | 618.90 |
+| `SourceSans3-Regular.cff` | U+0045 | 709.19 | 592.83 | 613.85 |

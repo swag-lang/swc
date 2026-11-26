@@ -743,6 +743,121 @@ func execType2Escape(state: *Type2State, op: u8) fail
     }
 }
 
+private enum Type2WidthResult
+{
+    Resume
+    Default
+    Explicit
+    Interpret
+}
+
+private struct Type2WidthStack
+{
+    values: [MaxCharstringStack] f64
+    count:  u32
+}
+
+// Reads the literal operators and subroutine calls that introduce most glyph widths.
+// Programs that compute operands use the full interpreter.
+private func resolveType2Width(code: const [..] u8, localSubrs, globalSubrs: const *CffIndex, stack: *Type2WidthStack, depth: u32)->Type2WidthResult
+{
+    if depth >= MaxCharstringDepth do
+        return .Interpret
+
+    let bytes = code.buffer
+    var pos   = 0'u64
+    while pos < code.count
+    {
+        let first = bytes[pos]
+        pos += 1
+        if first >= 32 or first == 28
+        {
+            if stack.count >= MaxCharstringStack do
+                return .Interpret
+
+            var value: f64
+            if first >= 32 and first <= 246
+            {
+                value = cast(f64, (cast(s32, first) - 139))
+            }
+            elif first >= 247 and first <= 254
+            {
+                if pos == code.count do
+                    return .Interpret
+                let tail = cast(s32, bytes[pos]) + 108
+                value = first <= 250 ? cast(f64, (cast(s32, first) - 247) * 256 + tail) :
+                        cast(f64, (251 - cast(s32, first)) * 256 - tail)
+                pos += 1
+            }
+            else
+            {
+                let length = first == 28 ? 2'u64 : 4'u64
+                if length > code.count - pos do
+                    return .Interpret
+                let packed = readPackedOffset(bytes + pos, cast(u8, length))
+                value = first == 28 ? cast(f64, cast #bit (s16, cast(u16, packed))) :
+                        cast(f64, cast #bit (s32, packed)) / 65536.0
+                pos += length
+            }
+
+            stack.values[stack.count] = value
+            stack.count += 1
+            continue
+        }
+
+        switch first
+        {
+        case 1, 3, 18, 19, 20, 23:
+            return stack.count & 1 ? .Explicit : .Default
+
+        case 4, 22:
+            return stack.count > 1 ? .Explicit : .Default
+
+        case 21:
+            return stack.count > 2 ? .Explicit : .Default
+
+        case 14:
+            return stack.count == 1 or stack.count == 5 ? .Explicit : .Default
+
+        case 10, 29:
+            if not stack.count do
+                continue
+            stack.count -= 1
+            let table = first == 10 ? localSubrs : globalSubrs
+            let index = cast(s32, stack.values[stack.count]) + subrBias(table.count())
+            if index < 0 or cast(u32, index) >= table.count() do
+                return .Interpret
+            let answer = resolveType2Width(table.item(cast(u32, index)), localSubrs, globalSubrs, stack, depth + 1)
+            if answer != .Resume do
+                return answer
+
+        case 11:
+            return .Resume
+
+        default:
+            return .Interpret
+        }
+    }
+
+    return .Resume
+}
+
+func type2CharstringWidth(font: *CffFont, gid: u32)->f64 fail
+{
+    if gid >= font.charStrings.count() do
+        try fault(0x10)
+
+    let privateDict = font.privateFor(gid)
+    var stack: Type2WidthStack
+    let answer      = resolveType2Width(font.charStrings.item(gid), &privateDict.subrs, &font.globalSubrs, &stack, 0)
+    switch #complete answer
+    {
+    case .Explicit:         return privateDict.nominalWidth + stack.values[0]
+    case .Default, .Resume: return privateDict.defaultWidth
+    case .Interpret:        return try runType2Charstring(font, gid, null)
+    }
+}
+
 // Runs one Type 2 charstring and returns the advance width its font declares for the glyph.
 //
 // Pass a null `builder` to resolve the width alone, which stops at the first stack-clearing

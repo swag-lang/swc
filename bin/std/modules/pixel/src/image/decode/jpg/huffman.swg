@@ -47,6 +47,48 @@ const StdAcChrominanceValues: [?] u8 = [
 
 internal impl Decoder
 {
+    func(BITS: s32, PACK_AMPLITUDE: bool) compileHuffMap(counts, symbols: const [..] u8)->{ lookup: [1 << BITS] s32, tree: [512] s32 }
+    {
+        var result: #returntype
+        buildHuffMap(counts.buffer, symbols.buffer, result.lookup, result.tree, BITS, PACK_AMPLITUDE)
+        return result
+    }
+
+    const DcLuminanceMap   = #run compileHuffMap'(HuffLookupBits, false)(StdDcLuminanceNrCodes, StdDcLuminanceValues)
+    const DcChrominanceMap = #run compileHuffMap'(HuffLookupBits, false)(StdDcChrominanceNrCodes, StdDcChrominanceValues)
+    const AcLuminanceMap   = #run compileHuffMap'(BaselineAcLookupBits, true)(StdAcLuminanceNrCodes, StdAcLuminanceValues)
+    const AcChrominanceMap = #run compileHuffMap'(BaselineAcLookupBits, true)(StdAcChrominanceNrCodes, StdAcChrominanceValues)
+
+    func isStandardHuffMap(counts, symbols: const [*] u8, standardCounts, standardSymbols: const [..] u8)->bool
+    {
+        return Memory.compare(counts, standardCounts.buffer, standardCounts.count) == 0 and
+               Memory.compare(symbols, standardSymbols.buffer, standardSymbols.count) == 0
+    }
+
+    func standardHuffMap(index: s32, counts, symbols: const [*] u8)->{ lookup: const [..] s32?, tree: const [..] s32? }
+    {
+        switch index
+        {
+        case 0:
+            if isStandardHuffMap(counts, symbols, StdDcLuminanceNrCodes, StdDcLuminanceValues) do
+                return {DcLuminanceMap.lookup, DcLuminanceMap.tree}
+
+        case 1:
+            if isStandardHuffMap(counts, symbols, StdDcChrominanceNrCodes, StdDcChrominanceValues) do
+                return {DcChrominanceMap.lookup, DcChrominanceMap.tree}
+
+        case MaxHuffTables / 2:
+            if isStandardHuffMap(counts, symbols, StdAcLuminanceNrCodes, StdAcLuminanceValues) do
+                return {AcLuminanceMap.lookup, AcLuminanceMap.tree}
+
+        case (MaxHuffTables / 2) + 1:
+            if isStandardHuffMap(counts, symbols, StdAcChrominanceNrCodes, StdAcChrominanceValues) do
+                return {AcChrominanceMap.lookup, AcChrominanceMap.tree}
+        }
+
+        return {null, null}
+    }
+
     // Reports whether the stream defined no Huffman table at all.
     //
     // That is the one case the standard tables may be substituted in. A stream defining some

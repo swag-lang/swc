@@ -540,14 +540,41 @@ impl Decoder
 
     mtd makeHuffTable(idx: s32, hs: *HuffTables)
     {
+        let packAmplitude = idx >= MaxHuffTables / 2 and (.decOptions.decodePixels or (.progressiveFlag and .decOptions.decodeMetadata))
+        let wideAc        = packAmplitude and not .progressiveFlag and .decOptions.decodePixels
+        let lookupBits    = wideAc ? BaselineAcLookupBits : HuffLookupBits
+        var lookup        = cast([*] s32, &hs.lookUp[0])
+        if wideAc
+        {
+            hs.baselineAc.resize(BaselineAcLookupCount)
+            lookup = hs.baselineAc.storage()
+        }
+
+        let counts  = .huffNum[idx].storage()
+        let symbols = .huffVal[idx].storage()
+        if not .progressiveFlag
+        {
+            let standard = standardHuffMap(idx, counts, symbols)
+            if standard.lookup.count
+            {
+                Memory.copy(lookup, (unwrap standard.lookup).buffer, standard.lookup.count * #sizeof(s32))
+                Memory.copy(hs.tree, (unwrap standard.tree).buffer, #sizeof(hs.tree))
+                return
+            }
+        }
+
+        buildHuffMap(counts, symbols, lookup, hs.tree, lookupBits, packAmplitude)
+    }
+
+    func buildHuffMap(counts, symbols: const [*] u8, lookup, tree: [*] s32, lookupBits: s32, packAmplitude: bool)
+    {
         var huffSize: [257] u8
         var huffCode: [257] u32
 
         var p = 0
-        let huffNumBuf = .huffNum[idx].storage()
         for l in 1 to 16
         {
-            for var i = 1; i <= huffNumBuf[l]; i += 1
+            for var i = 1; i <= counts[l]; i += 1
             {
                 huffSize[p] = cast(u8, l)
                 p += 1
@@ -572,29 +599,18 @@ impl Decoder
             si  += 1
         }
 
-        Memory.clear(hs.tree, #sizeof(hs.tree))
-
-        let packAmplitude = idx >= MaxHuffTables / 2 and (.decOptions.decodePixels or (.progressiveFlag and .decOptions.decodeMetadata))
-        let wideAc        = packAmplitude and not .progressiveFlag and .decOptions.decodePixels
-        let lookupBits    = wideAc ? BaselineAcLookupBits : HuffLookupBits
-        let lookupCount   = 1 << lookupBits
-        var lookup        = cast([*] s32, &hs.lookUp[0])
-        if wideAc
-        {
-            hs.baselineAc.resize(BaselineAcLookupCount)
-            lookup = hs.baselineAc.storage()
-        }
+        Memory.clear(tree, 512 * #sizeof(s32))
 
         // A prefix that no code covers only appears in a malformed stream. Reading it as a
         // one-bit symbol keeps the scan moving, where an entry consuming no bit would not.
+        let lookupCount = 1 << lookupBits
         repeatHuffEntry(lookup, lookupCount, 1 << 8)
 
         var nextFreeEntry = -1
-        let huffValBuf    = .huffVal[idx].storage()
         p = 0
         while p < lastp
         {
-            let i = huffValBuf[p]
+            let i = symbols[p]
             cde = huffCode[p]
             let codeSize = huffSize[p]
             if codeSize <= lookupBits
@@ -639,15 +655,15 @@ impl Decoder
                     if (cde & 0x8000) == 0 do
                         currentEntry -= 1
 
-                    if hs.tree[-currentEntry - 1] == 0
+                    if tree[-currentEntry - 1] == 0
                     {
-                        hs.tree[-currentEntry - 1] = nextFreeEntry
+                        tree[-currentEntry - 1] = nextFreeEntry
                         currentEntry  = nextFreeEntry
                         nextFreeEntry -= 2
                     }
                     else
                     {
-                        currentEntry = hs.tree[-currentEntry - 1]
+                        currentEntry = tree[-currentEntry - 1]
                     }
 
                     cde <<= 1
@@ -655,7 +671,7 @@ impl Decoder
 
                 if (cde & 0x8000) == 0 do
                     currentEntry -= 1
-                hs.tree[-currentEntry - 1] = i
+                tree[-currentEntry - 1] = i
             }
 
             p += 1

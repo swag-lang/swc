@@ -173,6 +173,42 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     }
 }
 
+// Check tile concatenation, including a prior accumulator and a partial final block.
+#[Swag.TestTag("parallel")]
+#test
+{
+    Swag.setWorkerCount(4)
+    const Tile = 128 * 1024
+    var key: [Crypto.Poly1305KeySize] u8
+    for index in key.count do
+        key[index] = cast(u8, (index * 61 + 249) & 255)
+
+    var data: Array'u8
+    data.resize(3 * Tile + 50)
+    Memory.set(data.storage(), 0xFF, data.count)
+    let lengths: [5] u64 = [2 * Tile - 1, 2 * Tile, 2 * Tile + 1, 2 * Tile + 64, 3 * Tile + 49]
+    let expected: [5] Crypto.Poly1305Tag = [
+        [0x46, 0x3B, 0xA4, 0xF8, 0x5D, 0x6C, 0x55, 0x33, 0x10, 0x60, 0xDB, 0xDF, 0x26, 0xDA, 0x16, 0x46],
+        [0xB0, 0x24, 0xC3, 0xAB, 0xC0, 0x55, 0x4C, 0x0E, 0x73, 0x49, 0xAA, 0xE2, 0x89, 0xC3, 0xBD, 0x72],
+        [0xFF, 0x88, 0xF6, 0x60, 0xC9, 0x7A, 0x6C, 0x46, 0xAF, 0xD0, 0x5E, 0xCE, 0x61, 0xA2, 0x14, 0x33],
+        [0x9D, 0xC4, 0xCE, 0xB3, 0x3F, 0x66, 0xB6, 0xC1, 0xE0, 0x89, 0x4A, 0xD8, 0x11, 0xE0, 0x8B, 0xF3],
+        [0x8E, 0x9E, 0x24, 0x36, 0x91, 0x53, 0xE2, 0xB2, 0x5F, 0x36, 0xFB, 0x6D, 0xF6, 0x75, 0xDB, 0xE2]]
+
+    for length, index in lengths
+    {
+        let input = data.toSlice()[1 until length + 1]
+        let direct = expect Crypto.Poly1305.compute(key, input)
+        Swag.require(Crypto.constantTimeEqual(direct, expected[index]))
+
+        var mac = expect Crypto.Poly1305.create(key)
+        mac.update(input[until 17])
+        mac.update(input[17 until length - 5])
+        mac.update(input[length - 5 until length])
+        let streamed = mac.finalize()
+        Swag.require(Crypto.constantTimeEqual(streamed, expected[index]))
+    }
+}
+
 // Reset validation preserves the active one-time key state on failure, while a
 // successful reset starts a fresh message under the replacement key.
 #test

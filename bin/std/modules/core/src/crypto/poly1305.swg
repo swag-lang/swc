@@ -16,6 +16,9 @@ public const Poly1305BlockSize = 16
 public alias Poly1305Tag = [Poly1305TagSize] u8
 
 private const LimbMask = 0x3FF_FFFF'u64
+private const TileBlockBits = 13
+private const TileBlocks = 1 << TileBlockBits
+private const TileSize = TileBlocks * Poly1305BlockSize
 
 #[Swag.Inline]
 private func load32Le(data: const [*] u8)->u64
@@ -86,7 +89,7 @@ private func poly1305LoadPair(words: const [*] u64)->[5] Simd.U64x2
 }
 
 #[Swag.Inline]
-private func poly1305Power(left, right: [5] u64)->[5] u64
+private func poly1305MultiplyReduced(left, right: [5] u64)->[5] u64
 {
     var scratch: struct
     {
@@ -182,6 +185,14 @@ public impl Poly1305
         var blocks = (data.count - offset) / Poly1305BlockSize
         #static if not BIG_ENDIAN
         {
+            if blocks >= 2 * TileBlocks and Swag.workerCount() > 1
+            {
+                let tiles = blocks / TileBlocks
+                .absorbTiles(data.buffer + offset, tiles)
+                offset += tiles * TileSize
+                blocks %= TileBlocks
+            }
+
             // Precompute the powers once for a run of full input blocks.
             const QuadBlockThreshold = 64
             if blocks >= QuadBlockThreshold
@@ -368,9 +379,9 @@ public impl Poly1305
 
         with scratch
         {
-            .squared = poly1305Power(me.r, me.r)
-            .cubed   = poly1305Power(.squared, me.r)
-            .fourth  = poly1305Power(.squared, .squared)
+            .squared = poly1305MultiplyReduced(me.r, me.r)
+            .cubed   = poly1305MultiplyReduced(.squared, me.r)
+            .fourth  = poly1305MultiplyReduced(.squared, .squared)
             for i in 5
             {
                 .firstFactors[i]  = cast(Simd.U64x2, [.fourth[i], .cubed[i]])
@@ -397,5 +408,46 @@ public impl Poly1305
             me.accumulator = .h
         }
         secureClear(Swag.makeSlice(&scratch, 1))
+    }
+    private mtd absorbTiles(bytes: const [*] u8, tileCount: u64)
+    {
+        // A tile can start with zero and run independently. Concatenation
+        // advances the running accumulator by r^TileBlocks, then adds the tile.
+        const MaxTiles = 32
+        let key = &.r
+        var advance = .r
+        for TileBlockBits do
+            advance = poly1305MultiplyReduced(advance, advance)
+
+        var results: [MaxTiles][5] u64
+        var sum: [5] u64
+        var processed = 0'u64
+        while processed < tileCount
+        {
+            let count  = Math.min(tileCount - processed, MaxTiles)
+            let source = bytes + processed * TileSize
+            parallel for |source, key, &results| tile in count
+            {
+                var state: Poly1305
+                state.r = key[]
+                state.absorbQuads(source + tile * TileSize, TileBlocks / 4)
+                results[tile] = state.accumulator
+                state.clear()
+            }
+
+            for tile in count
+            {
+                .accumulator = poly1305MultiplyReduced(.accumulator, advance)
+                for limb in sum.count do
+                    sum[limb] = .accumulator[limb] + results[tile][limb]
+                poly1305Carry(&.accumulator, &sum)
+            }
+
+            processed += count
+        }
+
+        secureClear(results)
+        secureClear(advance)
+        secureClear(sum)
     }
 }

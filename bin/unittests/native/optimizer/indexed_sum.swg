@@ -20,6 +20,15 @@ func sumWords(values: const [*] u32, count: u64, total: u64)->u64
 }
 
 #[Swag.NoInline]
+func sumQwords(values: const [*] u64, count: u64, total: u64)->u64
+{
+    var result = total
+    for index in count do
+        result += values[index]
+    return result
+}
+
+#[Swag.NoInline]
 func sumSignedBytes(values: const [*] u8, origin, count: s32, total: u32)->u32
 {
     var result = total
@@ -30,26 +39,31 @@ func sumSignedBytes(values: const [*] u8, origin, count: s32, total: u32)->u32
 
 #test
 {
-    var bytes: [66] u8
-    var words: [65] u32
+    var bytes:  [66] u8
+    var words:  [65] u32
+    var qwords: [65] u64
     for index in words.count
     {
         bytes[index + 1] = cast(u8, index * 19 + 11)
         words[index]     = 0xFFFF_FFFF'u32 - cast(u32, index * 97)
+        qwords[index]    = 0xFFFF_FFFF_FFFF_0000'u64 + index * 997
     }
 
     const ByteSeed = 0xFFFF_FFE0'u32
     const WordSeed = 0xFFFF_FFFF_FFFF_FFE0'u64
-    var byteSum = ByteSeed
-    var wordSum = WordSeed
+    var byteSum  = ByteSeed
+    var wordSum  = WordSeed
+    var qwordSum = WordSeed
     for count in words.count + 1
     {
         Swag.require(sumBytes(&bytes[0], count, ByteSeed) == byteSum)
         Swag.require(sumWords(&words[0], count, WordSeed) == wordSum)
+        Swag.require(sumQwords(&qwords[0], count, WordSeed) == qwordSum)
         if count < words.count
         {
-            byteSum += bytes[count + 1]
-            wordSum += words[count]
+            byteSum  += bytes[count + 1]
+            wordSum  += words[count]
+            qwordSum += qwords[count]
         }
     }
 }

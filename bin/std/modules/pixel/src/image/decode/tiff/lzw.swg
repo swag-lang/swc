@@ -55,7 +55,7 @@ impl LzwBitReader
 
 // TIFF LZW uses MSB-first codes and the early code-width transition used by
 // Aldus TIFF writers. Each strip owns an independent dictionary.
-func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
+private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
 {
     var reader = LzwBitReader{src, src + srcCount, 0, 0}
 
@@ -67,8 +67,8 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
     dictionary.reserve(LZW_FIRST_CODE + Math.min(expected, cast(u64, LZW_MAX_CODE + 1 - LZW_FIRST_CODE)))
     let words = dictionary.storage()
 
-    var output:         u64
-    var previousWord:   u64
+    var output:       u64
+    var previousWord: u64
     var width = 9'u32
     var mask  = 511'u32
 
@@ -96,6 +96,27 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
         var length = 1'u64
         if code < LZW_CLEAR_CODE
         {
+            #static if LITERAL_PAIRS
+            {
+                // Both literals must use this code width and fit in the output.
+                if reader.available >= width and nextCode + 2 < mask and expected - output >= 2
+                {
+                    let second = cast(u32, ((reader.bits >> (reader.available - width)) & mask))
+                    if second < LZW_CLEAR_CODE
+                    {
+                        let firstWord = output << LengthBits
+                        cast(*u16, target)[] = cast(u16, (code | (second << 8)))
+                        words[nextCode]      = previousWord + 1
+                        words[nextCode + 1]  = firstWord | 2
+                        previousWord         = ((output + 1) << LengthBits) | 1
+                        output               += 2
+                        reader.available     -= width
+                        nextCode             += 2
+                        continue
+                    }
+                }
+            }
+
             target[0] = cast(u8, code)
         }
         else
@@ -155,4 +176,13 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dic
 
     if output != expected do
         fail InvalidFormatError{"invalid lzw stream"}
+}
+
+func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
+{
+    // Significant expansion indicates that few input bytes used dictionary phrases.
+    if expected >= 256 and srcCount > expected + expected / 8 do
+        try unpackLzwStrip'true(dst, expected, src, srcCount, dictionary)
+    else do
+        try unpackLzwStrip'false(dst, expected, src, srcCount, dictionary)
 }

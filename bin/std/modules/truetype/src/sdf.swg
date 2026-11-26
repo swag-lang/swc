@@ -139,6 +139,10 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     var changes: Array's32
     changes.resize(cast(u64, width))
     let windingChanges = changes.toSlice()
+    let tileWidth      = width >= padding * 2 + 48 ? 16 : width
+    var tile: Array'SdfRowEdge
+    if tileWidth < width do
+        tile.reserve(edges.count)
 
     for py in rows
     {
@@ -147,33 +151,57 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         let rowEdges = geometry.toSlice()
 
         var winding = 0
-        var px      = 0
-        while px + 2 <= width
+        var start   = 0
+        while start < width
         {
-            let sampleX   = left + cast(f64, px) + 0.5
-            let samples   = cast(Math.Simd.F64x2, [sampleX, sampleX + 1.0])
-            let distances = closestRowDistances(rowEdges, samples, sampleY)
-            for lane in 2
+            let stop       = Math.min(start + tileWidth, width)
+            var candidates = rowEdges
+            if tileWidth < width
             {
-                winding += windingChanges[px + lane]
-                let signedDistance = winding ? distances[lane] : -distances[lane]
+                // Both lanes in the tile saturate for edges beyond its reach.
+                let minX = left + cast(f64, start) + 0.5 - distanceLimit
+                let maxX = left + cast(f64, stop) - 0.5 + distanceLimit
+                tile.clear()
+                for edge in rowEdges
+                {
+                    let x1 = edge.x0 + edge.vx
+                    if Math.max(edge.x0, x1) >= minX and Math.min(edge.x0, x1) <= maxX do
+                        tile.add(edge)
+                }
+
+                candidates = tile.toSlice()
+            }
+
+            var px = start
+            while px + 2 <= stop
+            {
+                let sampleX   = left + cast(f64, px) + 0.5
+                let samples   = cast(Math.Simd.F64x2, [sampleX, sampleX + 1.0])
+                let distances = closestRowDistances(candidates, samples, sampleY)
+                for lane in 2
+                {
+                    winding += windingChanges[px + lane]
+                    let signedDistance = winding ? distances[lane] : -distances[lane]
+                    let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
+                    dst[] = cast(u8, Math.round(value))
+                    dst   += 1
+                }
+
+                px += 2
+            }
+
+            if px < stop
+            {
+                let sampleX  = left + cast(f64, px) + 0.5
+                let distance = closestRowDistances(candidates, Math.Simd.splat(sampleX), sampleY)[0]
+                winding += windingChanges[px]
+                let signedDistance = winding ? distance : -distance
                 let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
                 dst[] = cast(u8, Math.round(value))
                 dst   += 1
             }
 
-            px += 2
-        }
-
-        while px < width
-        {
-            let sampleX  = left + cast(f64, px) + 0.5
-            let distance = closestRowDistances(rowEdges, Math.Simd.splat(sampleX), sampleY)[0]
-            winding += windingChanges[px]
-            let signedDistance = winding ? distance : -distance
-            let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))
-            dst[]   = cast(u8, Math.round(value))
-            dst, px += 1
+            start = stop
         }
     }
 

@@ -1447,3 +1447,35 @@ Every outline and bitmap fingerprint agrees with `06343223ad`.
 | `NotoSansCJKjp-Regular.otf` | 24 | 64 | 17282.39 | 15295.24 |
 | `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 1826.12 | 1623.72 |
 | `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 8633.64 | 7316.69 |
+
+## Horizontal distance bounds for wide SDF glyphs
+
+Wide glyphs measure distances in 16-pixel spans. A span keeps only
+the row edges whose horizontal bounds can affect its quantized
+distance. All row crossings still contribute to winding.
+
+Seven interleaved batches compare with `06343223ad`. The five
+64 px CJK cases take 29–48% less time, and the Latin cases at
+64 px take 6–10% less time. Narrow cases and spread-64 controls
+show smaller changes in both directions. The complete outline
+and bitmap fingerprints agree in all cases.
+[Raw timings and fingerprints](font-glyph-linux-sdf-tiles.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 117.04 | 110.12 |
+| `Lato-Regular.ttf` | 64 | 8 | 305.88 | 275.68 |
+| `Lato-Regular.ttf` | 24 | 64 | 3802.13 | 3711.24 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 106.16 | 109.10 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 293.42 | 275.01 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 871.46 | 866.04 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 1927.91 | 1374.41 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 1140.53 | 1201.12 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 3231.94 | 2259.91 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 260.63 | 256.80 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 951.14 | 490.79 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 236.99 | 198.30 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 812.88 | 420.09 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 5293.96 | 5265.24 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 265.25 | 283.11 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 724.13 | 499.34 |

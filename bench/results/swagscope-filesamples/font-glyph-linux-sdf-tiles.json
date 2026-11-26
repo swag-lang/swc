@@ -1,0 +1,538 @@
+{
+  "baseline_commit": "06343223ad",
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "workers": 1,
+  "samples": 3,
+  "batches": 7,
+  "cases": [
+    {
+      "file": "Lato-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "df2b989a95bcba598069e96fbc43d591b299029fc322ef5baf53d75bc1098daa",
+      "codepoint_count": 24,
+      "codepoints_sha256": "a2646ebebeacc4703a41d3ea8ae3e8adcc8545702fe43663c652a4e7d15d9ff0",
+      "batches_ns": {
+        "after": [
+          128788,
+          111143,
+          110120,
+          106535,
+          108467,
+          108097,
+          111078
+        ],
+        "before": [
+          533454,
+          346386,
+          117037,
+          344387,
+          106969,
+          108500,
+          108166
+        ]
+      },
+      "fingerprint": [
+        1046,
+        5490556115898697399
+      ]
+    },
+    {
+      "file": "Lato-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "df2b989a95bcba598069e96fbc43d591b299029fc322ef5baf53d75bc1098daa",
+      "codepoint_count": 24,
+      "codepoints_sha256": "a2646ebebeacc4703a41d3ea8ae3e8adcc8545702fe43663c652a4e7d15d9ff0",
+      "batches_ns": {
+        "before": [
+          311056,
+          547292,
+          303953,
+          300950,
+          305885,
+          542655,
+          294144
+        ],
+        "after": [
+          280770,
+          274361,
+          577064,
+          275675,
+          275550,
+          271250,
+          278210
+        ]
+      },
+      "fingerprint": [
+        1046,
+        17807508261937051517
+      ]
+    },
+    {
+      "file": "Lato-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 64,
+      "font_sha256": "df2b989a95bcba598069e96fbc43d591b299029fc322ef5baf53d75bc1098daa",
+      "codepoint_count": 24,
+      "codepoints_sha256": "a2646ebebeacc4703a41d3ea8ae3e8adcc8545702fe43663c652a4e7d15d9ff0",
+      "batches_ns": {
+        "after": [
+          3575984,
+          3727118,
+          3811032,
+          3630827,
+          3685667,
+          3785608,
+          3711245
+        ],
+        "before": [
+          3700535,
+          3707268,
+          4031819,
+          3802132,
+          4435383,
+          3737912,
+          3931077
+        ]
+      },
+      "fingerprint": [
+        1046,
+        4722320111752404625
+      ]
+    },
+    {
+      "file": "OpenSans-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "1f9d93c3d72caba9122fe384cdc35b98bdc6bdc4d5ce98fa564d4d0f9782dde2",
+      "codepoint_count": 24,
+      "codepoints_sha256": "94615ebfbab6129ac9b90db3f0353cbee1dcec57976d9cbc2a220e82b143e2f0",
+      "batches_ns": {
+        "after": [
+          102578,
+          115765,
+          400718,
+          104607,
+          102978,
+          109103,
+          120537
+        ],
+        "before": [
+          105335,
+          116403,
+          113615,
+          105709,
+          106164,
+          110138,
+          102603
+        ]
+      },
+      "fingerprint": [
+        671,
+        17231524472125518440
+      ]
+    },
+    {
+      "file": "OpenSans-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "1f9d93c3d72caba9122fe384cdc35b98bdc6bdc4d5ce98fa564d4d0f9782dde2",
+      "codepoint_count": 24,
+      "codepoints_sha256": "94615ebfbab6129ac9b90db3f0353cbee1dcec57976d9cbc2a220e82b143e2f0",
+      "batches_ns": {
+        "before": [
+          302868,
+          293417,
+          553175,
+          636832,
+          281559,
+          278190,
+          283523
+        ],
+        "after": [
+          275009,
+          290422,
+          264750,
+          265733,
+          276059,
+          254910,
+          571511
+        ]
+      },
+      "fingerprint": [
+        671,
+        6975236189210443495
+      ]
+    },
+    {
+      "file": "GowunBatang-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+      "codepoint_count": 24,
+      "codepoints_sha256": "ec8bdd6b31316648fffa03b58f56c9697d95a06bf178d2c7749deee07b12434b",
+      "batches_ns": {
+        "before": [
+          982314,
+          586505,
+          871461,
+          906943,
+          597497,
+          885556,
+          826758
+        ],
+        "after": [
+          907206,
+          568608,
+          1221083,
+          596599,
+          638735,
+          883542,
+          866039
+        ]
+      },
+      "fingerprint": [
+        5497,
+        3301039559222604835
+      ]
+    },
+    {
+      "file": "GowunBatang-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+      "codepoint_count": 24,
+      "codepoints_sha256": "ec8bdd6b31316648fffa03b58f56c9697d95a06bf178d2c7749deee07b12434b",
+      "batches_ns": {
+        "after": [
+          2441482,
+          1432159,
+          1346008,
+          1374412,
+          1127327,
+          1393453,
+          1355987
+        ],
+        "before": [
+          5289016,
+          2056738,
+          1833276,
+          1885545,
+          1668714,
+          1927908,
+          1938574
+        ]
+      },
+      "fingerprint": [
+        5497,
+        6303942033033188367
+      ]
+    },
+    {
+      "file": "MaShanZheng-Regular.ttf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb",
+      "codepoint_count": 24,
+      "codepoints_sha256": "53ae27f29413f8cd9edae4bd0798b388e45d207f352a5f7c92f8731df18a9f2b",
+      "batches_ns": {
+        "after": [
+          2035560,
+          2248579,
+          1323526,
+          970742,
+          886523,
+          1189858,
+          1201118
+        ],
+        "before": [
+          1297447,
+          912634,
+          1065673,
+          1198604,
+          920493,
+          1165445,
+          1140525
+        ]
+      },
+      "fingerprint": [
+        6642,
+        11117506687706468690
+      ]
+    },
+    {
+      "file": "MaShanZheng-Regular.ttf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb",
+      "codepoint_count": 24,
+      "codepoints_sha256": "53ae27f29413f8cd9edae4bd0798b388e45d207f352a5f7c92f8731df18a9f2b",
+      "batches_ns": {
+        "after": [
+          2570307,
+          1922396,
+          2259911,
+          2343297,
+          1738245,
+          2400557,
+          2048679
+        ],
+        "before": [
+          3260980,
+          3359526,
+          3050462,
+          3231940,
+          3109412,
+          3611284,
+          3036226
+        ]
+      },
+      "fingerprint": [
+        6642,
+        1948066381878285446
+      ]
+    },
+    {
+      "file": "NotoSansJP-Variable.ttf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "codepoint_count": 24,
+      "codepoints_sha256": "cfb072c2b4fdd37ed92bc7231b57a8fe2619430063ffb17d75fab22df5fda8d5",
+      "batches_ns": {
+        "after": [
+          270403,
+          256799,
+          250099,
+          606478,
+          253080,
+          250716,
+          483631
+        ],
+        "before": [
+          286713,
+          267595,
+          258368,
+          280101,
+          259208,
+          257398,
+          260631
+        ]
+      },
+      "fingerprint": [
+        2375,
+        7581263318602881215
+      ]
+    },
+    {
+      "file": "NotoSansJP-Variable.ttf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",
+      "codepoint_count": 24,
+      "codepoints_sha256": "cfb072c2b4fdd37ed92bc7231b57a8fe2619430063ffb17d75fab22df5fda8d5",
+      "batches_ns": {
+        "after": [
+          1207079,
+          491246,
+          481222,
+          764471,
+          473116,
+          471361,
+          490787
+        ],
+        "before": [
+          2393119,
+          939286,
+          705066,
+          951137,
+          729531,
+          1082260,
+          1180767
+        ]
+      },
+      "fingerprint": [
+        2375,
+        14455459562677285485
+      ]
+    },
+    {
+      "file": "NotoSansCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+      "codepoint_count": 24,
+      "codepoints_sha256": "6cac5222814ab31ce713fc242402bb2abe00d5590e2f9fdd21a4db77020d6b97",
+      "batches_ns": {
+        "before": [
+          207045,
+          236991,
+          193407,
+          434534,
+          203981,
+          432367,
+          590182
+        ],
+        "after": [
+          198297,
+          202663,
+          193040,
+          197738,
+          191550,
+          213136,
+          433763
+        ]
+      },
+      "fingerprint": [
+        2631,
+        11593627671677063260
+      ]
+    },
+    {
+      "file": "NotoSansCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+      "codepoint_count": 24,
+      "codepoints_sha256": "6cac5222814ab31ce713fc242402bb2abe00d5590e2f9fdd21a4db77020d6b97",
+      "batches_ns": {
+        "after": [
+          1074490,
+          420088,
+          646857,
+          376269,
+          708053,
+          398681,
+          386760
+        ],
+        "before": [
+          1471863,
+          593883,
+          812877,
+          549463,
+          805908,
+          827698,
+          839432
+        ]
+      },
+      "fingerprint": [
+        2631,
+        10249818349245991615
+      ]
+    },
+    {
+      "file": "NotoSansCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 64,
+      "font_sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+      "codepoint_count": 24,
+      "codepoints_sha256": "6cac5222814ab31ce713fc242402bb2abe00d5590e2f9fdd21a4db77020d6b97",
+      "batches_ns": {
+        "before": [
+          4994794,
+          5372768,
+          5293956,
+          5689331,
+          4138435,
+          4905852,
+          5356886
+        ],
+        "after": [
+          5372899,
+          5477577,
+          5379332,
+          5265243,
+          5143276,
+          5142843,
+          5178779
+        ]
+      },
+      "fingerprint": [
+        2631,
+        8881754962852205308
+      ]
+    },
+    {
+      "file": "NotoSerifCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 24,
+      "spread": 8,
+      "font_sha256": "d9854c7a8ef170b5a7932558856fd64eb8de0b007cd823fed6f9f514ad2803d3",
+      "codepoint_count": 24,
+      "codepoints_sha256": "2ccdc24bc902f0eff9f1de9815881dcc0785825ef872194660045a5bad97d510",
+      "batches_ns": {
+        "after": [
+          663426,
+          410545,
+          476872,
+          271505,
+          258946,
+          283108,
+          264266
+        ],
+        "before": [
+          278482,
+          254729,
+          256761,
+          268449,
+          277786,
+          255557,
+          265254
+        ]
+      },
+      "fingerprint": [
+        3461,
+        5443266020766839876
+      ]
+    },
+    {
+      "file": "NotoSerifCJKjp-Regular.otf",
+      "face": 0,
+      "pixels": 64,
+      "spread": 8,
+      "font_sha256": "d9854c7a8ef170b5a7932558856fd64eb8de0b007cd823fed6f9f514ad2803d3",
+      "codepoint_count": 24,
+      "codepoints_sha256": "2ccdc24bc902f0eff9f1de9815881dcc0785825ef872194660045a5bad97d510",
+      "batches_ns": {
+        "after": [
+          1236482,
+          481226,
+          727096,
+          488628,
+          482058,
+          786923,
+          499340
+        ],
+        "before": [
+          1777344,
+          941347,
+          714311,
+          717750,
+          713331,
+          1016235,
+          724134
+        ]
+      },
+      "fingerprint": [
+        3461,
+        8148699595878903695
+      ]
+    }
+  ]
+}

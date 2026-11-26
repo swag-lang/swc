@@ -727,10 +727,28 @@ private func readNumber(s: string, pos: *u64)->f32
     let len   = s.count
     var i     = pos[]
     let start = i
-    if i < len and (s[i] == '-' or s[i] == '+') do
+    if i >= len do
+        return 0
+    let negative = s[i] == '-'
+    if negative or s[i] == '+' do
         i += 1
-    while i < len and s[i] >= '0' and s[i] <= '9' do
-        i += 1
+
+    let digits   = i
+    let exactEnd = i + Math.min(15'u64, len - i)
+    var integral = 0'u64
+    while i < exactEnd and Latin1.isDigit(s[i])
+    {
+        integral = integral * 10 + cast(u64, s[i] - '0')
+        i        += 1
+    }
+
+    if i == exactEnd
+    {
+        while i < len and Latin1.isDigit(s[i]) do
+            i += 1
+    }
+
+    let integerEnd = i
     if i < len and s[i] == '.'
     {
         i += 1
@@ -754,6 +772,15 @@ private func readNumber(s: string, pos: *u64)->f32
     }
 
     pos[] = i
+
+    // Up to fifteen digits fit exactly in f64, so the f32 conversion rounds exactly
+    // as the general parser does. Decimals and exponents keep the full conversion.
+    if i == integerEnd and i > digits and i <= exactEnd
+    {
+        let value = cast(f32, integral)
+        return negative ? -value : value
+    }
+
     if i == start do
         return 0
     return catch StrConv.toF32(s[start until i]) orelse 0

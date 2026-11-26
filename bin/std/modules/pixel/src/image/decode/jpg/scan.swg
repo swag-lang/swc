@@ -140,6 +140,40 @@ impl Decoder
         return symbol
     }
 
+    // Baseline scans keep their bit cursor in locals between entropy words.
+    #[Swag.Inline]
+    mtd skipLocalEntropyBits(bits: *u64, count: *s32, consumed: s32)
+    {
+        bits[]  <<= consumed
+        count[] -= consumed
+        if count[] < 16
+        {
+            bits[]  |= cast(u64, .readBaselineEntropyWord()) << (32 - count[])
+            count[] += 32
+        }
+    }
+
+    #[Swag.Inline]
+    mtd readLocalEntropyBits(bits: *u64, count: *s32, consumed: s32)->u32
+    {
+        let value = cast(u32, bits[] >> (64 - consumed))
+        .skipLocalEntropyBits(bits, count, consumed)
+        return value
+    }
+
+    #[Swag.NoInline]
+    mtd readLocalLongCode(table: *HuffTables, prefix, prefixBits: s32, bits: *u64, count: *s32)->s32
+    {
+        .skipLocalEntropyBits(bits, count, prefixBits)
+        var value = prefix
+        for
+        {
+            value = table.tree[~value + (1 - .readLocalEntropyBits(bits, count, 1))]
+            if value >= 0 do
+                return value
+        }
+    }
+
     mtd decodeNextRow() fail
     {
         let missing = .maxBlocksPerRow - .mcusPerRow * cast(s32, .blocksPerMcu)
@@ -149,10 +183,16 @@ impl Decoder
         var coefficients: [64] s16
         let p      = cast([*] s16, &coefficients[0])
         var sample = .safeSampleBuf()
+        var bits   = .entropyBits
+        var count  = .entropyCount
         for .mcusPerRow
         {
-            if .restartInterval and (.restartsLeft == 0) do
+            if .restartInterval and (.restartsLeft == 0)
+            {
                 try .restartProcess()
+                bits  = .entropyBits
+                count = .entropyCount
+            }
 
             for mcuBlock in .blocksPerMcu
             {
@@ -160,11 +200,21 @@ impl Decoder
                 let q          = unwrap block.quant
                 let previousDc = unwrap block.previousDc
 
-                var s = .huffDecode(unwrap block.dc)
-                if s != 0
+                let dc   = unwrap block.dc
+                let code = dc.lookUp[bits >> (64 - HuffLookupBits)]
+                var s: s32
+                if code < 0
                 {
-                    s = extendSign(.readEntropyBits(s), s)
+                    s = .readLocalLongCode(dc, code, HuffLookupBits, &bits, &count)
                 }
+                else
+                {
+                    .skipLocalEntropyBits(&bits, &count, code >> 8)
+                    s = code & 255
+                }
+
+                if s != 0 do
+                    s = extendSign(.readLocalEntropyBits(&bits, &count, s), s)
 
                 s += previousDc[]
                 previousDc[] = s
@@ -177,12 +227,12 @@ impl Decoder
                 var ac = 0's16
                 while k < 64
                 {
-                    let entry = lookup[.entropyBits >> (64 - BaselineAcLookupBits)]
+                    let entry = lookup[bits >> (64 - BaselineAcLookupBits)]
                     var run, amplitude: s32
                     if entry >= 1 << 24
                     {
                         // This prefix includes both the code and the amplitude bits.
-                        .skipEntropyBits(entry >> 24)
+                        .skipLocalEntropyBits(&bits, &count, entry >> 24)
                         run       = (entry >> 4) & 0x0F
                         amplitude = (entry << 8) >> 24
                     }
@@ -190,11 +240,11 @@ impl Decoder
                     {
                         if entry < 0
                         {
-                            s = .decodeLongHuffCode(ph, entry, BaselineAcLookupBits)
+                            s = .readLocalLongCode(ph, entry, BaselineAcLookupBits, &bits, &count)
                         }
                         else
                         {
-                            .skipEntropyBits(entry >> 8)
+                            .skipLocalEntropyBits(&bits, &count, entry >> 8)
                             s = entry & 0xFF
                         }
 
@@ -210,7 +260,7 @@ impl Decoder
                             continue
                         }
 
-                        amplitude = extendSign(.readEntropyBits(s), s)
+                        amplitude = extendSign(.readLocalEntropyBits(&bits, &count, s), s)
                     }
 
                     k += run
@@ -242,6 +292,9 @@ impl Decoder
 
             .restartsLeft -= 1
         }
+
+        .entropyBits  = bits
+        .entropyCount = count
 
         // Blocks omitted by a partial scan had zero coefficients in the row buffer.
         if missing do

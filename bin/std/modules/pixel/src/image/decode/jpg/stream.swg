@@ -80,6 +80,16 @@ impl Decoder
     #[Swag.NoInline]
     private mtd refillEntropyBits()
     {
+        .entropyBits  |= cast(u64, .readEntropyWord()) << (32 - .entropyCount)
+        .entropyCount += 32
+    }
+
+    #[Swag.NoInline]
+    mtd readBaselineEntropyWord()->u32 => .readEntropyWord()
+
+    #[Swag.Inline]
+    private mtd readEntropyWord()->u32
+    {
         let input = unwrap .inBufOfs
         var word: u32
         if .inBufLeft >= 4
@@ -91,19 +101,16 @@ impl Decoder
             let lowBits = word & 0x7F7F7F7F'u32
             if ((lowBits + 0x01010101'u32) & word & 0x80808080'u32) == 0
             {
-                .inBufOfs     += 4
-                .inBufLeft    -= 4
-                .entropyBits  |= cast(u64, Math.bigEndianToNative(word)) << (32 - .entropyCount)
-                .entropyCount += 32
-                return
+                .inBufOfs  += 4
+                .inBufLeft -= 4
+                return Math.bigEndianToNative(word)
             }
         }
 
         word = .getOctet()
         for 3 do
             word = (word << 8) | .getOctet()
-        .entropyBits  |= cast(u64, word) << (32 - .entropyCount)
-        .entropyCount += 32
+        return word
     }
 
     mtd getOctet()->u8

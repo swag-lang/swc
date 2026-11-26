@@ -1,0 +1,240 @@
+{
+  "utc": "2026-11-26T12:00:37.919821+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "5b1a5b28eb02cadf78fd23bd651bd7a3ffa5543de84715d39d7551773d44413b",
+  "swag_builds": {
+    "inverse": "0e4358e43d21dae96264b2317f1f7d335802bde73e529206de401a62f3ca6bf7",
+    "wide-portable": "dc4bdf6246dd5038a2eb6533eeeb3a3883a8656dbdb4f737a768a00fe12212b7"
+  },
+  "rounds": 17,
+  "target_ms": 55,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "b83b76408d0c549e362e886b51d9124ffb9ba35e94380e3922f231c2fb99966d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 5090,
+          "wall": [
+            0.220810381,
+            0.219253743,
+            0.211110121,
+            0.239618647,
+            0.146665938,
+            0.151887297,
+            0.150759251,
+            0.152408108,
+            0.127449537,
+            0.156068038,
+            0.150541283,
+            0.132540494,
+            0.131771895,
+            0.131665165,
+            0.130009988,
+            0.137880969,
+            0.154585342
+          ],
+          "cpu": [
+            0.055471301,
+            0.06088243,
+            0.055980437,
+            0.061660476,
+            0.054510058,
+            0.055591011,
+            0.055144251,
+            0.055288147,
+            0.056405159,
+            0.055292592,
+            0.055999328,
+            0.055348215,
+            0.054852148,
+            0.054675061,
+            0.057176239,
+            0.056454224,
+            0.055363059
+          ]
+        },
+        "inverse": {
+          "iterations": 147,
+          "wall": [
+            0.200737387,
+            0.200146266,
+            0.19790807,
+            0.12564806,
+            0.125690578,
+            0.154167902,
+            0.122303695,
+            0.122299449,
+            0.142587938,
+            0.131921981,
+            0.123123942,
+            0.165542907,
+            0.122699542,
+            0.122709217,
+            0.123641793,
+            0.127419816,
+            0.117043693
+          ],
+          "cpu": [
+            0.051948525,
+            0.053934852,
+            0.052164856,
+            0.051206749,
+            0.052160774,
+            0.052363674,
+            0.051461757,
+            0.051661254,
+            0.052139758,
+            0.053354356,
+            0.052028312,
+            0.062568178,
+            0.051531169,
+            0.051477754,
+            0.051337733,
+            0.052359777,
+            0.054560845
+          ]
+        },
+        "wide-portable": {
+          "iterations": 179,
+          "wall": [
+            0.208738855,
+            0.241692775,
+            0.203679083,
+            0.223747311,
+            0.147765686,
+            0.129845941,
+            0.134683416,
+            0.158195456,
+            0.182346972,
+            0.154228173,
+            0.141773319,
+            0.14788089,
+            0.13185516,
+            0.151574991,
+            0.160621225,
+            0.128690318,
+            0.162551005
+          ],
+          "cpu": [
+            0.056536784,
+            0.057078843,
+            0.056203389,
+            0.062327772,
+            0.05572021,
+            0.056059415,
+            0.054959415,
+            0.06128034,
+            0.071337767,
+            0.056797453,
+            0.061220474,
+            0.05521837,
+            0.055765266,
+            0.05455025,
+            0.058561479,
+            0.055663301,
+            0.06043555
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "inverse",
+          "OpenSSL",
+          "wide-portable"
+        ],
+        [
+          "OpenSSL",
+          "inverse",
+          "wide-portable"
+        ],
+        [
+          "OpenSSL",
+          "inverse",
+          "wide-portable"
+        ],
+        [
+          "OpenSSL",
+          "wide-portable",
+          "inverse"
+        ],
+        [
+          "OpenSSL",
+          "wide-portable",
+          "inverse"
+        ],
+        [
+          "wide-portable",
+          "inverse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "inverse",
+          "wide-portable"
+        ],
+        [
+          "wide-portable",
+          "OpenSSL",
+          "inverse"
+        ],
+        [
+          "inverse",
+          "OpenSSL",
+          "wide-portable"
+        ],
+        [
+          "OpenSSL",
+          "inverse",
+          "wide-portable"
+        ],
+        [
+          "OpenSSL",
+          "inverse",
+          "wide-portable"
+        ],
+        [
+          "wide-portable",
+          "OpenSSL",
+          "inverse"
+        ],
+        [
+          "inverse",
+          "wide-portable",
+          "OpenSSL"
+        ],
+        [
+          "inverse",
+          "wide-portable",
+          "OpenSSL"
+        ],
+        [
+          "wide-portable",
+          "inverse",
+          "OpenSSL"
+        ],
+        [
+          "inverse",
+          "OpenSSL",
+          "wide-portable"
+        ],
+        [
+          "inverse",
+          "wide-portable",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

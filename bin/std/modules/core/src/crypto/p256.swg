@@ -48,51 +48,77 @@ private const P256OrderInverseExponent: [8] u32 = [
     0xFC63254F, 0xF3B9CAC2, 0xA7179E84, 0xBCE6FAAD,
     0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF]
 
-private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u32)->[8] u32
+private const P256OrderWordInverse = 0xCCD1C8AAEE00BC4F'u64
+
+#[Swag.Inline]
+private func p256MultiplyAdd(left, right, addend, carry: u64)->{word: u64, carry: u64}
 {
-    var temporary: [9] u32
-    for index in 8
+    let product = Math.mulU64(left, right)
+    let sum     = product.lo + addend
+    let word    = sum + carry
+    let high    = product.hi + cast(u64, sum < product.lo) + cast(u64, word < sum)
+    return {word, high}
+}
+
+private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u64)->[8] u32
+{
+    var leftWords, rightWords, modulusWords: [4] u64
+    for index in 4
+    {
+        leftWords[index]    = left[index * 2] | (cast(u64, left[index * 2 + 1]) << 32)
+        rightWords[index]   = right[index * 2] | (cast(u64, right[index * 2 + 1]) << 32)
+        modulusWords[index] = modulus[index * 2] | (cast(u64, modulus[index * 2 + 1]) << 32)
+    }
+
+    var temporary: [5] u64
+    for multiplier in rightWords
     {
         var carry = 0'u64
-        for word in 8
+        for word in 4
         {
-            let product = cast(u64, left[word]) * right[index] + temporary[word] + carry
-            temporary[word] = cast(u32, product)
-            carry = product >> 32
+            let product = p256MultiplyAdd(leftWords[word], multiplier, temporary[word], carry)
+            temporary[word] = product.word
+            carry = product.carry
         }
 
-        let productTop = cast(u64, temporary[8]) + carry
-        temporary[8] = cast(u32, productTop)
-        let reduction = temporary[0] * n0Inverse
-        carry = 0
-        for word in 8
+        let productTop   = temporary[4] + carry
+        let productCarry = cast(u64, productTop < carry)
+        let reduction    = temporary[0] * n0Inverse
+        carry = p256MultiplyAdd(reduction, modulusWords[0], temporary[0], 0).carry
+        for word in 1 until 4
         {
-            let product = cast(u64, reduction) * modulus[word] + temporary[word] + carry
-            if word do
-                temporary[word - 1] = cast(u32, product)
-            carry = product >> 32
+            let product = p256MultiplyAdd(reduction, modulusWords[word], temporary[word], carry)
+            temporary[word - 1] = product.word
+            carry = product.carry
         }
 
-        let top = cast(u64, temporary[8]) + carry
-        temporary[7] = cast(u32, top)
-        temporary[8] = cast(u32, top >> 32)
+        // Retain the carry from both top-word additions before shifting off word zero.
+        let top = productTop + carry
+        temporary[3] = top
+        temporary[4] = productCarry + cast(u64, top < carry)
     }
 
-    var difference: [8] u32
+    var difference: [4] u64
     var borrow = 0'u64
-    for index in 8
+    for index in 4
     {
-        let subtrahend = cast(u64, modulus[index]) + borrow
-        let word       = cast(u64, temporary[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
+        let word = temporary[index] - modulusWords[index]
+        difference[index] = word - borrow
+        borrow = cast(u64, temporary[index] < modulusWords[index]) | cast(u64, word < borrow)
     }
 
-    let useDifference = cast(u32, temporary[8] != 0) | cast(u32, borrow == 0)
-    let mask = 0'u32 - useDifference
+    let useDifference = cast(u64, temporary[4] != 0) | cast(u64, borrow == 0)
+    let mask = 0'u64 - useDifference
     var result: #returntype
-    for index in 8 do
-        result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
+    for index in 4
+    {
+        let word = (difference[index] & mask) | (temporary[index] & ~mask)
+        result[index * 2]     = cast(u32, word)
+        result[index * 2 + 1] = cast(u32, word >> 32)
+    }
+
+    Crypto.secureClear(leftWords)
+    Crypto.secureClear(rightWords)
     Crypto.secureClear(temporary)
     Crypto.secureClear(difference)
     return result
@@ -294,21 +320,21 @@ private func p256OrderSubtract(left, right: P256Field)->P256Field
 private func p256OrderMultiply(left, right: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs, P256Order, 0xEE00BC4F)
+    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs, P256Order, P256OrderWordInverse)
     return result
 }
 
 private func p256OrderToMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, P256OrderMontgomeryR2, P256Order, 0xEE00BC4F)
+    result.limbs = p256MontgomeryMultiply(value.limbs, P256OrderMontgomeryR2, P256Order, P256OrderWordInverse)
     return result
 }
 
 private func p256OrderFromMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0], P256Order, 0xEE00BC4F)
+    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0], P256Order, P256OrderWordInverse)
     return result
 }
 

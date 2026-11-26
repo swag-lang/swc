@@ -74,3 +74,4 @@ optimizations moved each result.
 - [CityHash32 word loads and state rotation](cityhash32.md)
 - [P-256 field inversion addition chain](p256-inverse.md)
 - [PBKDF2-HMAC prefix reuse](pbkdf2.md)
+- [Four-word P-256 Montgomery products](p256-wide.md)

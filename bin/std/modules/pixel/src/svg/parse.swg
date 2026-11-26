@@ -1926,11 +1926,55 @@ private func readStraightStroke(data: string, state: *GroupState)->DeferredGeome
     return DeferredGeometry{.Line, start, end}
 }
 
+// The compact builder only accepts straight segments. Exponents are consumed by
+// the number reader, so their e and E do not denote curves.
+private func hasPathCurveCommand(data: string)->bool
+{
+    const Width = #sizeof(Simd.U8x16)
+    let lower       = Simd.splat(0x20'u8)
+    let arc         = Simd.splat(cast(u8, 'a'))
+    let cubic       = Simd.splat(cast(u8, 'c'))
+    let quad        = Simd.splat(cast(u8, 'q'))
+    let smoothCubic = Simd.splat(cast(u8, 's'))
+    let smoothQuad  = Simd.splat(cast(u8, 't'))
+    var cursor      = 0'u64
+    while data.count - cursor >= Width
+    {
+        let letters = Simd.load(data.buffer + cursor) | lower
+        let curves  = Simd.bitmask(letters == arc) | Simd.bitmask(letters == cubic) |
+                      Simd.bitmask(letters == quad) | Simd.bitmask(letters == smoothCubic) |
+                      Simd.bitmask(letters == smoothQuad)
+        if curves do
+            return true
+        cursor += Width
+    }
+
+    for pos in cursor until data.count
+    {
+        switch data[pos]
+        {
+        case 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a': return true
+        default: break
+        }
+    }
+
+    return false
+}
+
+#[Swag.Inline]
+private func appendPathLine(path: *LinePath, target: Vector2, linear: bool)
+{
+    if linear do
+        path.appendLinear(target)
+    else do
+        path.lineTo(target.x, target.y)
+}
+
 // Parses one `d` attribute into subpath contours, transformed by `state`.
 //
 // `vertices` collects the authored vertices markers are placed on; pass null when the element
 // carries none, which is the common case and skips the bookkeeping entirely.
-private func parsePathData(list: *LinePathList, data: string, state: *GroupState, vertices: *Array'MarkerVertex? = null)
+private func parsePathData(list: *LinePathList, data: string, state: *GroupState, vertices: *Array'MarkerVertex?, linear: bool)
 {
     let len = data.count
     var pos = 0'u64
@@ -1987,8 +2031,14 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             {
                 if not path do
                     return
-                if started do
-                    path.close()
+                if started
+                {
+                    if linear do
+                        path.closeLinear()
+                    else do
+                        path.close()
+                }
+
                 curX      = begX
                 curY      = begY
                 started   = false
@@ -2021,7 +2071,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
             let start = mapPoint(state, x, y)
             path = list.newPath()
-            path.start(start.x, start.y)
+            if linear do
+                path.startLinear(start)
+            else do
+                path.start(start.x, start.y)
             addMarkerVertex(vertices, Vector2{x, y}, {}, {})
             started = true
             curX    = x
@@ -2049,7 +2102,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             if Math.abs(x - curX) > 0.0005 or Math.abs(y - curY) > 0.0005
             {
                 let target = mapPoint(state, x, y)
-                path!.lineTo(target.x, target.y)
+                appendPathLine(unwrap path, target, linear)
                 addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - curX, y - curY}, Vector2{x - curX, y - curY})
             }
 
@@ -2063,7 +2116,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             if rel do
                 x += curX
             let target = mapPoint(state, x, curY)
-            path!.lineTo(target.x, target.y)
+            appendPathLine(unwrap path, target, linear)
             addMarkerVertex(vertices, Vector2{x, curY}, Vector2{x - curX, 0}, Vector2{x - curX, 0})
             curX = x
 
@@ -2074,7 +2127,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             if rel do
                 y += curY
             let target = mapPoint(state, curX, y)
-            path!.lineTo(target.x, target.y)
+            appendPathLine(unwrap path, target, linear)
             addMarkerVertex(vertices, Vector2{curX, y}, Vector2{0, y - curY}, Vector2{0, y - curY})
             curY = y
 
@@ -3783,7 +3836,15 @@ private impl Parser
                     {
                         var list:     LinePathList
                         var vertices: Array'MarkerVertex
-                        parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null)
+
+                        // These paths are painted directly, and stroked paths bypass the
+                        // scan-fill heuristic that counts authored elements.
+                        let linear = d.value.count >= 1024 and
+                                     state.hasStroke and
+                                     not hasMarkers and
+                                     state.canDeferPrimitive() and
+                                     not hasPathCurveCommand(d.value)
+                        parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null, linear)
                         .emitShape(#move list, &state)
                         if hasMarkers do
                             .applyMarkers(&state, vertices.toSlice())

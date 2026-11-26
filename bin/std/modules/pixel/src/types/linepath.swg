@@ -160,6 +160,40 @@ public impl LinePath
         .endPoint   = .startPoint
     }
 
+    // Builds an authored contour known to contain only straight segments. The points are
+    // already flat, but winding and other polygon metrics can wait for the first paint.
+    internal mtd startLinear(start: Vector2)
+    {
+        .clearCache()
+        .start(start.x, start.y)
+        .isPolyOnly   = true
+        .isDirty      = false
+        .isFlatten    = true
+        .minBounds, .maxBounds = start
+        .endPosBuffer = start
+    }
+
+    #[Swag.Inline]
+    internal mtd appendLinear(point: Vector2)
+    {
+        if point.isEqualEpsilon(.endPoint) do
+            return
+
+        if .polygon.points.isEmpty() do
+            .polygon.points.add(.startPoint)
+        .flattenLine(point)
+        .endPoint = point
+    }
+
+    internal mtd closeLinear()
+    {
+        if .isClosed or .polygon.points.isEmpty() do
+            return
+        if (.endPoint - .startPoint).lengthSquared() >= 0.5 * 0.5 do
+            .appendLinear(.startPoint)
+        .isClosed = true
+    }
+
     // Adds a straight segment from the current endpoint to `(x, y)`.
     //
     // Like every segment method, it adds nothing when `(x, y)` is the current endpoint.
@@ -422,7 +456,8 @@ public impl LinePath
     // Adopts the already-populated polygon cache as the complete path geometry.
     internal mtd adoptGeneratedPolygon()
     {
-        .isPolyOnly = true
+        .isPolyOnly        = true
+        .hasPolygonMetrics = true
         .assumeClosed()
         .isDirty   = false
         .isFlatten = true
@@ -657,7 +692,7 @@ public impl LinePath
     mtd flatten(quality = PaintQuality.Normal, scale = 1.0'f32)
     {
         .flattenPoints(quality, scale)
-        if not .hasPolygonMetrics and not .isPolyOnly and not .elements.isEmpty()
+        if not .hasPolygonMetrics and .polygon.points.count
         {
             .polygon.recompute()
             .hasPolygonMetrics = true

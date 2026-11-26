@@ -268,6 +268,12 @@ public struct Sha224
     private initialized: bool
 }
 
+impl Sha224
+{
+    #[Swag.Inline]
+    mtd const hmacPrefixState()->const *[8] u32 => &.core.state
+}
+
 public impl Sha224
 {
     // Stores a SHA-224 digest as seven 32-bit words in digest order.

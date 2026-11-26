@@ -27,6 +27,64 @@ private func(DigestSize: u64) pbkdf2AccumulateDigest(result, current: [*] u8)
         result[index] ^= current[index]
 }
 
+#[Swag.Inline]
+private func(DigestWords: u64, Accumulate: bool) pbkdf2Sha2Encode(words: const [*] u32, block, result: [*] u32)
+{
+    const VectorWords = 4
+    let low = Math.nativeToBigEndian(Math.Simd.load(words))
+    Math.Simd.store(block, low)
+    #static if Accumulate do
+        Math.Simd.store(result, Math.Simd.load(result) ^ low)
+
+    #static if DigestWords == 8
+    {
+        let high = Math.nativeToBigEndian(Math.Simd.load(words + VectorWords))
+        Math.Simd.store(block + VectorWords, high)
+        #static if Accumulate do
+            Math.Simd.store(result + VectorWords, Math.Simd.load(result + VectorWords) ^ high)
+    }
+    else
+    {
+        for word in VectorWords until DigestWords
+        {
+            let value = Math.nativeToBigEndian(words[word])
+            block[word] = value
+            #static if Accumulate do
+                result[word] ^= value
+        }
+    }
+}
+
+// Each inner and outer MAC after the first PBKDF2 iteration hashes one
+// digest after a precomputed key pad. The final block length is fixed.
+private func(DigestSize: u64) repeatPbkdf2Sha2(inner, outer: const *[8] u32, first: const *[DigestSize] u8, result: *[DigestSize] u8, rounds: u32)
+{
+    const ShaBlockSize = 64
+    const DigestWords  = DigestSize / #sizeof(u32)
+    const FinalLength  = (ShaBlockSize + DigestSize) * 8
+
+    var block: [ShaBlockSize] u8
+    defer secureClear(block)
+    Swag.memcpy(block.buffer, first[].buffer, DigestSize)
+    block[DigestSize] = 0x80
+    cast([*] u64, block.buffer)[7] = Math.nativeToBigEndian(FinalLength)
+
+    var hash: Hash.Sha256
+    defer secureClear(hash.state)
+    let words  = cast([*] u32, block.buffer)
+    let output = cast([*] u32, result[].buffer)
+    for rounds
+    {
+        hash.state = inner[]
+        hash.transformBlocks(block, 1)
+        pbkdf2Sha2Encode'(DigestWords, false)(hash.state.buffer, words, output)
+
+        hash.state = outer[]
+        hash.transformBlocks(block, 1)
+        pbkdf2Sha2Encode'(DigestWords, true)(hash.state.buffer, words, output)
+    }
+}
+
 private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
     if not iterations do
@@ -56,12 +114,25 @@ private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, 
         hmac.update(Swag.makeSlice(cast(const [*] u8, &suffix), #sizeof(u32)))
         var current = hmac.finalize()
         var result  = current
-        for iterations - 1
+        #static if Hmac == HmacSha224
         {
-            restorePbkdf2Hmac(&hmac, &keyed)
-            hmac.update(current)
-            current = hmac.finalize()
-            pbkdf2AccumulateDigest'DigestSize(result.buffer, current.buffer)
+            if iterations > 1 do
+                repeatPbkdf2Sha2'DigestSize(keyed.inner.hmacPrefixState(), keyed.outer.hmacPrefixState(), &current, &result, iterations - 1)
+        }
+        elif Hmac == HmacSha256
+        {
+            if iterations > 1 do
+                repeatPbkdf2Sha2'DigestSize(&keyed.inner.state, &keyed.outer.state, &current, &result, iterations - 1)
+        }
+        else
+        {
+            for iterations - 1
+            {
+                restorePbkdf2Hmac(&hmac, &keyed)
+                hmac.update(current)
+                current = hmac.finalize()
+                pbkdf2AccumulateDigest'DigestSize(result.buffer, current.buffer)
+            }
         }
 
         let count = Math.min(destination.count - outputOffset, DigestSize)

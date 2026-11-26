@@ -86,3 +86,4 @@ optimizations moved each result.
 - [Ed25519 fixed-base comb](ed25519-comb.md)
 - [P-256 deterministic signing and digest reduction](p256-sign.md)
 - [Batched AES-CTR with a 128-bit counter](aes-ctr.md)
+- [PBKDF2 fixed SHA-224 and SHA-256 blocks](pbkdf2-fixed-blocks.md)

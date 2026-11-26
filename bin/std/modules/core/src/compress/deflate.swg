@@ -291,18 +291,17 @@ impl Deflate
     {
         let d = unwrap .state
 
-        let pos      = laPos & LzDictSizeMask
         var matchLen = matchLenAddr[]
-        var probePos = pos
-
-        var numProbesLeft   = d.maxProbes[matchLen >= 32 ? 1 : 0]
-        var current: [*] u8 = &d.dict[0]
-        current += pos
-        var nextByte = d.dict[pos + matchLen]
-        var lastByte = d.dict[pos + matchLen - 1]
-
         if maxMatchLen <= matchLen do
             return
+
+        let pos      = laPos & LzDictSizeMask
+        var probePos = pos
+        var numProbesLeft = d.maxProbes[matchLen >= 32 ? 1 : 0]
+        let current  = cast([*] u8, &d.dict[0]) + pos
+
+        // An improving match must include both bytes at the current boundary.
+        var boundary = cast(const [*] u16, current + matchLen - 1)[0]
 
         for
         {
@@ -325,7 +324,7 @@ impl Deflate
                     if dist > maxDist do
                         return
                     probePos = nextProbePos & LzDictSizeMask
-                    if (d.dict[probePos + matchLen] == nextByte) and (d.dict[probePos + matchLen - 1] == lastByte) do
+                    if cast(const [*] u16, &d.dict[probePos + matchLen - 1])[0] == boundary do
                         break
                 }
 
@@ -366,8 +365,7 @@ impl Deflate
                 matchLen        = probeLen
                 if matchLen == maxMatchLen do
                     return
-                nextByte = d.dict[pos + matchLen]
-                lastByte = d.dict[pos + matchLen - 1]
+                boundary = cast(const [*] u16, current + matchLen - 1)[0]
             }
         }
     }

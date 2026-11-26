@@ -16,6 +16,7 @@ public const Poly1305BlockSize = 16
 public alias Poly1305Tag = [Poly1305TagSize] u8
 
 private const LimbMask = 0x3FF_FFFF'u64
+private const IfmaBlockThreshold = 20
 private const TileBlockBits = 13
 private const TileBlocks = 1 << TileBlockBits
 private const TileSize = TileBlocks * Poly1305BlockSize
@@ -103,6 +104,88 @@ private func poly1305MultiplyReduced(left, right: [5] u64)->[5] u64
     return result
 }
 
+private const Limb44Mask = (1'u64 << 44) - 1
+private const Limb42Mask = (1'u64 << 42) - 1
+private alias Poly44Lanes = [3] Simd.U64x2
+
+private struct Poly44Products
+{
+    low, high: Poly44Lanes
+}
+
+#[Swag.Inline]
+private func poly44FromLimbs(limbs: [5] u64)->[3] u64
+{
+    // Carry bit offsets while changing radix, including any loose limb.
+    let low = limbs[0] + (limbs[1] << 26)
+    let mid = (low >> 44) + (limbs[2] << 8) + (limbs[3] << 34)
+    let top = (mid >> 44) + (limbs[4] << 16)
+    return [low & Limb44Mask, mid & Limb44Mask, top]
+}
+
+#[Swag.Inline]
+private func poly44ToLimbs(limbs: [3] u64)->[5] u64
+{
+    // The carry out of bit 130 after adding five selects the final subtraction.
+    let quotient = (limbs[2] + ((limbs[1] + ((limbs[0] + 5) >> 44)) >> 44)) >> 42
+    let first = limbs[0] + quotient * 5
+    let second = limbs[1] + (first >> 44)
+    let third = (limbs[2] + (second >> 44)) & Limb42Mask
+    let low = first & Limb44Mask
+    let mid = second & Limb44Mask
+    return [low & LimbMask, ((low >> 26) | (mid << 18)) & LimbMask, (mid >> 8) & LimbMask,
+            ((mid >> 34) | (third << 10)) & LimbMask, third >> 16]
+}
+
+#[Swag.Inline]
+private func poly44LoadPair(words: const [*] u64)->Poly44Lanes
+{
+    let first  = Simd.load(words)
+    let second = Simd.load(words + 2)
+    let low    = Simd.interleaveLow(first, second)
+    let high   = Simd.interleaveHigh(first, second)
+    return [low & Limb44Mask, ((low >> 44) | (high << 20)) & Limb44Mask, (high >> 24) | (1'u64 << 40)]
+}
+
+#[Swag.Inline]
+private func poly44Scale(factor: Poly44Lanes)->[2] Simd.U64x2
+{
+    // Base^3 is four times 2^130, so wrapped terms multiply by 20.
+    return [(factor[1] << 4) + (factor[1] << 2), (factor[2] << 4) + (factor[2] << 2)]
+}
+
+#[Swag.Mixin]
+private func poly44Accumulate(index: u64, a0, b0, a1, b1, a2, b2: Simd.U64x2)
+{
+    // Three low or high halves, even summed across both lanes, fit in u64.
+    product.low[index] = Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(zero, a0, b0),
+                                                                           a1, b1), a2, b2)
+    product.high[index] = Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(zero, a0, b0),
+                                                                              a1, b1), a2, b2)
+}
+
+#[Swag.Inline]
+private func poly44Multiply(left, right: Poly44Lanes, scaled: [2] Simd.U64x2, product: *Poly44Products)
+{
+    let zero = Simd.splat(0'u64)
+
+    poly44Accumulate(0, left[0], right[0], left[1], scaled[1], left[2], scaled[0])
+    poly44Accumulate(1, left[0], right[1], left[1], right[0], left[2], scaled[1])
+    poly44Accumulate(2, left[0], right[2], left[1], right[1], left[2], right[0])
+}
+
+#[Swag.Inline]
+private func(T) poly44Carry(low, high: [3] T, result: *[3] T)
+{
+    let mid = low[1] + (low[0] >> 44) + (high[0] << 8)
+    let top = low[2] + (mid >> 44) + (high[1] << 8)
+    let carry = (top >> 42) + (high[2] << 10)
+    let first = (low[0] & Limb44Mask) + carry + (carry << 2)
+    result[][0] = first & Limb44Mask
+    result[][1] = (mid & Limb44Mask) + (first >> 44)
+    result[][2] = top & Limb42Mask
+}
+
 // Authenticates a message under a one-time key, following RFC 8439.
 //
 // A Poly1305 key authenticates exactly one message. Reusing it across two
@@ -184,17 +267,25 @@ public impl Poly1305
         var blocks = (data.count - offset) / Poly1305BlockSize
         #static if not BIG_ENDIAN
         {
+            let useIfma = blocks >= IfmaBlockThreshold and Swag.hasCpuFeature(.MultiplyAdd52)
             if blocks >= 2 * TileBlocks and Swag.workerCount() > 1
             {
                 let tiles = blocks / TileBlocks
-                .absorbTiles(data.buffer + offset, tiles)
+                .absorbTiles(data.buffer + offset, tiles, useIfma)
                 offset += tiles * TileSize
                 blocks %= TileBlocks
             }
 
             // Precompute the powers once for a run of full input blocks.
             const QuadBlockThreshold = 64
-            if blocks >= QuadBlockThreshold
+            if useIfma and blocks >= IfmaBlockThreshold
+            {
+                let pairs = blocks / 2
+                .absorbIfmaPairs(data.buffer + offset, pairs)
+                offset += pairs * 2 * Poly1305BlockSize
+                blocks &= 1
+            }
+            elif blocks >= QuadBlockThreshold
             {
                 let quads = blocks / 4
                 .absorbQuads(data.buffer + offset, quads)
@@ -397,7 +488,64 @@ public impl Poly1305
         }
         secureClear(Swag.makeSlice(&scratch, 1))
     }
-    private mtd absorbTiles(bytes: const [*] u8, tileCount: u64)
+
+    private mtd absorbIfmaPairs(blocks: const [*] u8, count: u64)
+    {
+        // Accumulate alternate blocks independently with r^2. The final
+        // multiplication advances the two lanes by r^2 and r respectively.
+        var scratch: struct
+        {
+            uniform, final, state, message: Poly44Lanes
+            uniformScaled, finalScaled: [2] Simd.U64x2
+            key, initial, low, high, result: [3] u64
+            product: Poly44Products
+        }
+
+        with scratch
+        {
+            .key = poly44FromLimbs(me.r)
+            .initial = poly44FromLimbs(me.accumulator)
+            for limb in 3
+            {
+                .uniform[limb] = Simd.splat(.key[limb])
+                .state[limb] = cast(Simd.U64x2, [.initial[limb], 0'u64])
+            }
+
+            poly44Multiply(.uniform, .uniform, poly44Scale(.uniform), &.product)
+            poly44Carry(.product.low, .product.high, &.uniform)
+            for limb in 3 do
+                .final[limb] = cast(Simd.U64x2, [cast([2] u64, .uniform[limb])[0], .key[limb]])
+            .uniformScaled = poly44Scale(.uniform)
+            .finalScaled = poly44Scale(.final)
+
+            var words = cast(const [*] u64, blocks)
+            for count - 1
+            {
+                .message = poly44LoadPair(words)
+                for limb in 3 do
+                    .state[limb] += .message[limb]
+                poly44Multiply(.state, .uniform, .uniformScaled, &.product)
+                poly44Carry(.product.low, .product.high, &.state)
+                words += 4
+            }
+
+            .message = poly44LoadPair(words)
+            for limb in 3 do
+                .state[limb] += .message[limb]
+            poly44Multiply(.state, .final, .finalScaled, &.product)
+            for limb in 3
+            {
+                .low[limb] = Simd.sum(.product.low[limb])
+                .high[limb] = Simd.sum(.product.high[limb])
+            }
+            poly44Carry(.low, .high, &.result)
+            me.accumulator = poly44ToLimbs(.result)
+        }
+
+        secureClear(Swag.makeSlice(&scratch, 1))
+    }
+
+    private mtd absorbTiles(bytes: const [*] u8, tileCount: u64, useIfma: bool)
     {
         // A tile can start with zero and run independently. Concatenation
         // advances the running accumulator by r^TileBlocks, then adds the tile.
@@ -414,11 +562,14 @@ public impl Poly1305
         {
             let count  = Math.min(tileCount - processed, MaxTiles)
             let source = bytes + processed * TileSize
-            parallel for |source, key, &results| tile in count
+            parallel for |source, key, &results, useIfma| tile in count
             {
                 var state: Poly1305
                 state.r = key[]
-                state.absorbQuads(source + tile * TileSize, TileBlocks / 4)
+                if useIfma do
+                    state.absorbIfmaPairs(source + tile * TileSize, TileBlocks / 2)
+                else do
+                    state.absorbQuads(source + tile * TileSize, TileBlocks / 4)
                 results[tile] = state.accumulator
                 state.clear()
             }

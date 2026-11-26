@@ -197,3 +197,4 @@ optimizations moved each result.
 
 - [RSA Montgomery setup by exponentiating the limb count](rsa-montgomery-setup-power.md)
 - [Packed 52-bit unsigned x64 multiply-add](ifma-instructions.md)
+- [AVX-512 IFMA for Poly1305](poly1305-ifma.md)

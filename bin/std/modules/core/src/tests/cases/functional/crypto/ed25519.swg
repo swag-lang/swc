@@ -73,7 +73,7 @@ func ed25519HexBytes(text: string)->Array'u8
     Swag.require(expect Crypto.ed25519Verify(publicKey, message.toSlice(), signature))
 
     var invalidSignature = signature
-    for index in 32 to 64 do
+    for index in 32 until invalidSignature.count do
         invalidSignature[index] = 0xFF
     Swag.require(not (expect Crypto.ed25519Verify(publicKey, message.toSlice(), invalidSignature)))
     Swag.require(not (expect Crypto.ed25519Verify(publicKey, "wrong message", signature)))
@@ -101,7 +101,7 @@ func ed25519HexBytes(text: string)->Array'u8
         seed[index] = cast(u8, index)
     var message: Array'u8
     for index in 512 do
-        message.add(cast(u8, index))
+        message.add(cast(u8, index & 255))
 
     let expectedPublic    = ed25519HexBytes("03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8")
     let expectedSignature = ed25519HexBytes("2635e190571f5dd9181726441e24f22ade35c30a2dff36626183d1e87cd2b99b3618d46fb5929246962762e392efbef8ef566b3270dc5a10b5435caddd70fc04")

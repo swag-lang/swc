@@ -51,44 +51,77 @@ internal func x25519Subtract(left, right: X25519Field)->X25519Field
     return x25519Normalize(result)
 }
 
+// Folding by 38 reduces coefficients at bit 256 modulo 2^255 - 19.
+private func x25519ReduceProducts(products: const *[32] u64)->X25519Field
+{
+    var result: #returntype
+    for index in 16 do
+        result.limbs[index] = products[][index] + products[][index + 16] * 38
+    return x25519Normalize(result)
+}
+
 internal func x25519Multiply(left, right: X25519Field)->X25519Field
 {
     var products: [32] u64
     for i in 16
     {
+        let leftLimb = left.limbs[i]
         for j in 16 do
-            products[i + j] += left.limbs[i] * right.limbs[j]
+            products[i + j] += leftLimb * right.limbs[j]
     }
 
-    for index in 16 until 32 do
-        products[index - 16] += products[index] * 38
-
-    var result: #returntype
-    for index in 16 do
-        result.limbs[index] = products[index]
-    return x25519Normalize(result)
+    return x25519ReduceProducts(&products)
 }
 
 internal func x25519Square(value: X25519Field)->X25519Field
 {
-    return x25519Multiply(value, value)
+    var products: [32] u64
+    for i in 16
+    {
+        let limb = value.limbs[i]
+        products[2 * i] += limb * limb
+        for j in i + 1 until 16 do
+            products[i + j] += (limb * value.limbs[j]) << 1
+    }
+
+    return x25519ReduceProducts(&products)
+}
+
+private func x25519SquareRepeated(value: X25519Field, count: u32)->X25519Field
+{
+    var result = value
+    for count do
+        result = x25519Square(result)
+    return result
 }
 
 internal func x25519Invert(value: X25519Field)->X25519Field
 {
-    // p - 2 = 2^255 - 21; this fixed exponent has no secret-dependent control flow.
-    var result: X25519Field
-    result.limbs[0] = 1
-    var bit = 255'u32
-    while bit
+    // Build powers 2^n - 1, then append the low five bits of 2^255 - 21.
+    // This fixed addition chain replaces the multiplication after nearly every square.
+    var powers: struct
     {
-        bit    -= 1
-        result = x25519Square(result)
-        if bit >= 8 or ((0xEB'u32 >> bit) & 1) do
-            result = x25519Multiply(result, value)
+        z2, z9, z11: X25519Field
+        p5, p10, p20, p40, p50, p100, p200, p250: X25519Field
     }
 
-    return result
+    with powers
+    {
+        .z2   = x25519Square(value)
+        .z9   = x25519Multiply(x25519SquareRepeated(.z2, 2), value)
+        .z11  = x25519Multiply(.z9, .z2)
+        .p5   = x25519Multiply(x25519Square(.z11), .z9)
+        .p10  = x25519Multiply(x25519SquareRepeated(.p5, 5), .p5)
+        .p20  = x25519Multiply(x25519SquareRepeated(.p10, 10), .p10)
+        .p40  = x25519Multiply(x25519SquareRepeated(.p20, 20), .p20)
+        .p50  = x25519Multiply(x25519SquareRepeated(.p40, 10), .p10)
+        .p100 = x25519Multiply(x25519SquareRepeated(.p50, 50), .p50)
+        .p200 = x25519Multiply(x25519SquareRepeated(.p100, 100), .p100)
+        .p250 = x25519Multiply(x25519SquareRepeated(.p200, 50), .p50)
+    }
+
+    defer Crypto.secureClear(Swag.makeSlice(&powers, 1))
+    return x25519Multiply(x25519SquareRepeated(powers.p250, 5), powers.z11)
 }
 
 internal func x25519Decode(data: const [..] u8)->X25519Field
@@ -187,7 +220,7 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
         x3 = x25519Square(x25519Add(da, cb))
         z3 = x25519Multiply(x1, x25519Square(x25519Subtract(da, cb)))
         x2 = x25519Multiply(aa, bb)
-        z2 = x25519Multiply(e, x25519Add(aa, x25519Multiply(x25519Field121665(), e)))
+        z2 = x25519Multiply(e, x25519Add(aa, x25519MultiplyBy121665(e)))
     }
 
     x25519ConditionalSwap(&x2, &x3, swap)
@@ -206,11 +239,12 @@ private func x25519ScalarMult(privateKey, publicCoordinate: const [..] u8)->[X25
     return result
 }
 
-private func x25519Field121665()->X25519Field
+private func x25519MultiplyBy121665(value: X25519Field)->X25519Field
 {
     var result: #returntype
-    result.limbs[0] = 121665
-    return result
+    for index in 16 do
+        result.limbs[index] = value.limbs[index] * 121665
+    return x25519Normalize(result)
 }
 
 // Computes an X25519 public key from a 32-byte private scalar.

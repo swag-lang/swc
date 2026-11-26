@@ -89,3 +89,36 @@ func x25519HexBytes(text: string)->Array'u8
     discard catch Crypto.x25519PublicKey(shortKey, result) as lengthError
     Swag.require(lengthError.value() is Errors.BadParameterError)
 }
+
+// RFC 7748 section 5.2 iterates X25519 on each previous result.
+#test
+{
+    let first      = x25519HexBytes("422c8e7a6227d7bca1350b3e2bb7279f7897b87bb6854b783c60e80311ae3079")
+    let thousandth = x25519HexBytes("684cf59ba83309552800ef566f2f4d3c1c3887c49360e3875f2eb94d99532c51")
+    var key: [32] u8
+    key[0] = 9
+    var coordinate = key
+    for iteration in 1000
+    {
+        var next: [32] u8
+        expect Crypto.x25519SharedSecret(key, coordinate, next)
+        coordinate = key
+        key        = next
+        if iteration == 0 do
+            Swag.require(Crypto.constantTimeEqual(key, first.toSlice()))
+    }
+
+    Swag.require(Crypto.constantTimeEqual(key, thousandth.toSlice()))
+}
+
+// RFC 7748 accepts an input that is noncanonical modulo 2^255 - 19.
+#test
+{
+    var scalar:   [32] u8
+    let noncanonical = x25519HexBytes("f6ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")
+    var expected: [32] u8
+    var actual:   [32] u8
+    expect Crypto.x25519PublicKey(scalar, expected)
+    expect Crypto.x25519SharedSecret(scalar, noncanonical.toSlice(), actual)
+    Swag.require(Crypto.constantTimeEqual(expected, actual))
+}

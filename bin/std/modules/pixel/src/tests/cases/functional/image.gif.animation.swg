@@ -305,6 +305,8 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
     let ditherBytes = expect File.readAllBytes(ditherPath)
     Swag.require(plainBytes.count != ditherBytes.count or
                  Memory.compare(plainBytes.storage(), ditherBytes.storage(), plainBytes.count) != 0)
+    let decoded = expect Image.decode("dithered.gif", ditherBytes.toSlice())
+    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 148715985'u32)
 }
 
 // A change of channel layout alone still extends the previous frame's delay.

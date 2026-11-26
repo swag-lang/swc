@@ -8,6 +8,7 @@
 using Swag, Core, Core.Errors
 
 // Balanced 4x4 ordered offsets avoid a directional bias in smooth gradients.
+// Each offset moves a color by at most one five-bit histogram bin per channel.
 private const Dither: [16] s32 = [-8, 0, -6, 2, 4, -4, 6, -2, -5, 3, -7, 1, 7, -1, 5, -3]
 
 private const PaletteMapSize = 512'u32
@@ -394,12 +395,43 @@ impl Encoder
             }
         }
 
+        // Each row of the grid tracks occupied blue bins for one red/green pair.
+        // A zero border also makes reads outside the color cube empty.
+        var occupied: [34, 34] u32
+        if dither
+        {
+            for red in 32
+            {
+                for green in 32
+                {
+                    let index = (red << 10) | (green << 5)
+                    var bits: u32
+                    for blue in 32 do
+                        bits |= cast(u32, histogram[index + blue].count != 0) << blue
+                    occupied[red + 1, green + 1] = bits
+                }
+            }
+        }
+
         var mapping: Array'u8
         mapping.resize(histogram.count)
         for red in 32
         {
             for green in 32
             {
+                var needed: u32
+                if dither
+                {
+                    let own = occupied[red + 1, green + 1]
+                    // The same offset in [-8, 7] applies to all three channels. Each output
+                    // bin can also be reached from the adjoining bins in either direction.
+                    let lighter = own | occupied[red, green + 1] | occupied[red + 1, green] | occupied[red, green]
+                    let darker  = own | occupied[red + 2, green + 1] | occupied[red + 1, green + 2] | occupied[red + 2, green + 2]
+                    needed = lighter | (lighter << 1) | darker | (darker >> 1)
+                    if not needed do
+                        continue
+                }
+
                 var rgCosts: [Groups] Math.Simd.S32x4
                 for group in groups do
                     rgCosts[group] = redCosts[red, group] + greenCosts[green, group]
@@ -407,7 +439,7 @@ impl Encoder
                 for blue in 32
                 {
                     let index = (red << 10) | (green << 5) | blue
-                    if not dither and not histogram[index].count do
+                    if dither ? not (needed & (1'u32 << blue)) : not histogram[index].count do
                         continue
 
                     var best = Math.Simd.splat(Swag.S32.Max)

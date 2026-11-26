@@ -380,37 +380,35 @@ func decode16(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
     }
 }
 
-private struct FieldScale
+private func fieldMultiplier(bits, fractionBits: u8)->u64
 {
-    mask:        u32
-    sourceShift: u8
-    resultShift: u8
-    scale:       u32
-    bias:        u32
+    let range = 1'u64 << bits
+    let max   = range - 1
+    return ((255'u64 << fractionBits) * range + max / 2) / max
 }
 
-private func prepareField(mask: Mask)->FieldScale
+private struct FieldScale32
+{
+    mask:        Math.Simd.U32x4
+    scale:       Math.Simd.U32x4
+    sourceShift: u8
+}
+
+private func prepareField32(mask: Mask)->FieldScale32
 {
     if not mask.value do
         return {}
 
-    let bits = cast(u32, mask.bits)
-
-    // Repeating a field's bits keeps its normalized value while making its maximum at least 255.
-    let resultBits  = bits < 8 ? (7 / bits + 1) * bits : bits
-    let sourceMax   = (1'u32 << bits) - 1
-    let repeatedMax = (1'u32 << resultBits) - 1
-    return FieldScale{mask.value, mask.shift, cast(u8, resultBits), (repeatedMax / sourceMax) * 255, repeatedMax / 2}
+    // Left alignment preserves 23 fractional bits in the high product.
+    let scale = cast(u32, fieldMultiplier(mask.bits, 23))
+    return {Math.Simd.splat(mask.value), Math.Simd.splat(scale), cast(u8, (32 - mask.bits - mask.shift))}
 }
 
 #[Swag.Inline]
-private func expandField(pixels: Math.Simd.U32x4, field: FieldScale)->Math.Simd.U32x4
+private func expandField32(pixels: Math.Simd.U32x4, field: FieldScale32)->Math.Simd.U32x4
 {
-    let samples  = (pixels & field.mask) >> field.sourceShift
-    let weighted = samples * field.scale + field.bias
-
-    // Each quotient is at most 255. In this range the second shift divides exactly by 2^bits - 1.
-    return (weighted + 1 + (weighted >> field.resultShift)) >> field.resultShift
+    let aligned = (pixels & field.mask) << field.sourceShift
+    return (Math.Simd.mulHigh(aligned, field.scale) + (1'u32 << 22)) >> 23
 }
 
 struct FieldScale16
@@ -422,12 +420,9 @@ struct FieldScale16
 
 private func prepareField16(mask: Mask)->FieldScale16
 {
-    let range = 1'u32 << mask.bits
-    let max   = range - 1
-
     // Left-align the field so the high product keeps seven fractional bits.
     // The rounded multiplier preserves exact 8-bit normalization for fields up to 15 bits.
-    let scale = cast(u16, ((255 * 128 * range + max / 2) / max))
+    let scale = cast(u16, fieldMultiplier(mask.bits, 7))
     return {Math.Simd.splat(cast(u16, mask.value)), Math.Simd.splat(scale), cast(u8, (16 - mask.bits - mask.shift))}
 }
 
@@ -476,17 +471,12 @@ func decode32(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
                   masks.b.bits == 8 and
                   (not masks.a.value or masks.a.bits == 8) and
                   ((masks.r.shift | masks.g.shift | masks.b.shift | masks.a.shift) & 7) == 0
-    let packed = not aligned and
-                 masks.r.bits <= 24 and
-                 masks.g.bits <= 24 and
-                 masks.b.bits <= 24 and
-                 masks.a.bits <= 24
     let order  = aligned ? byteFieldOrder(masks) : Math.Simd.splat(0'u8)
     let opaque = Math.Simd.splat(masks.a.value ? 0'u32 : 0xFF00_0000'u32)
-    let blue   = packed ? prepareField(masks.b) : FieldScale{}
-    let green  = packed ? prepareField(masks.g) : FieldScale{}
-    let red    = packed ? prepareField(masks.r) : FieldScale{}
-    let alpha  = packed ? prepareField(masks.a) : FieldScale{}
+    let blue   = aligned ? FieldScale32{} : prepareField32(masks.b)
+    let green  = aligned ? FieldScale32{} : prepareField32(masks.g)
+    let red    = aligned ? FieldScale32{} : prepareField32(masks.r)
+    let alpha  = aligned ? FieldScale32{} : prepareField32(masks.a)
 
     let rows        = topDown ? result.height : 1
     let pixelCount  = cast(u64, result.width) * (topDown ? 1 : cast(u64, result.height))
@@ -508,15 +498,15 @@ func decode32(result: *Image, src, last: const [*] u8, masks: Masks, topDown: bo
                 count  -= 4
             }
         }
-        elif packed
+        else
         {
             while count >= 4
             {
                 let pixels = Math.Simd.load(cast(const [*] u32, srcPix))
-                let b      = expandField(pixels, blue)
-                let g      = expandField(pixels, green) << 8
-                let r      = expandField(pixels, red) << 16
-                let a      = masks.a.value ? expandField(pixels, alpha) << 24 : opaque
+                let b      = expandField32(pixels, blue)
+                let g      = expandField32(pixels, green) << 8
+                let r      = expandField32(pixels, red) << 16
+                let a      = masks.a.value ? expandField32(pixels, alpha) << 24 : opaque
                 Math.Simd.store(cast([*] u32, dst), b | g | r | a)
                 srcPix += 16
                 dst    += 16

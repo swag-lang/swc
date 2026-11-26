@@ -2235,7 +2235,14 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             let target   = mapPoint(state, x, y)
             let control1 = mapPoint(state, c1x, c1y)
             let control2 = mapPoint(state, c2x, c2y)
-            path!.bezierTo(target.x, target.y, control1.x, control1.y, control2.x, control2.y)
+            // A number following a cubic parameter group repeats the command.
+            if not path!.elements.capacity
+            {
+                let following = skipNumberSeparators(data, pos)
+                if following < len and isNumberStart(data[following]) do
+                    path.reserveSegments(4)
+            }
+            path.bezierTo(target.x, target.y, control1.x, control1.y, control2.x, control2.y)
             addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - c2x, y - c2y}, Vector2{c1x - curX, c1y - curY})
             ctlX      = c2x
             ctlY      = c2y

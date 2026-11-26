@@ -201,11 +201,13 @@ ships; history lives in Git, not here.
   reduce the 16,000-shape fixture from 233 to 120 ms and the stroke fixture from
   64 to 44 ms at four workers with unchanged pixels.
 - Evidence: [parallel single-ink bitmap rendering](../bench/workloads/svgraster/resvg-comparison.md#parallelizing-the-single-ink-bitmap-path)
-  reduces the largest original from 184 to 136 ms at four workers with the same
-  pixels. Its four-worker thumbnail drops from 146 to 118 ms.
-- Next: measure crossing order, short path allocations and paint sampling.
-  Rerun the original
-  Windows comparison at one worker and at the runtime default.
+  reduces the largest original from 203 to 152 ms at four workers with the same
+  pixels. Its four-worker thumbnail drops from 148 to 126 ms.
+- Evidence: [cubic allocations and control bounds](../bench/workloads/svgraster/resvg-comparison.md#preparing-repeated-cubic-commands-and-control-bounds)
+  reduce parsing the largest original from 61 to 48 ms at four workers with
+  unchanged raster CRC-64s.
+- Next: profile interpolated paint and the remaining stroke and clip costs.
+  Rerun the original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

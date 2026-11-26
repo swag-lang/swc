@@ -22,7 +22,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width 9 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1 %", decode)
         let bilevel    = imageDocument(dictionary.toString(), oneBit)
         let image      = unwrap onlyItem(bilevel.pages[0], .Image).imageValue()
-        Swag.require(image.width == 9 and image.height == 2)
+        Swag.require(image.width == 9 and image.height == 2 and image.pixelFormat == .Gray8)
         for y in 2
         {
             for x in 9

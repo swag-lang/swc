@@ -703,6 +703,8 @@ private impl RenderCpu
     {
         #static if Format == .BGRA8 do
             return loadBgra8(row, x)
+        elif Format == .Gray8 do
+            return cast(u32, row[x]) * 0x0001_0101'u32 | 0xFF00_0000'u32
         elif Format == .RGB16 or Format == .RGBA16
         {
             #[Swag.Inline]
@@ -757,6 +759,7 @@ private impl RenderCpu
             case .RGBA8: return sampleColor8Bilinear'(.RGBA8)(image, x0, x1, y0, y1, wx, wy)
             case .BGR8:  return sampleColor8Bilinear'(.BGR8)(image, x0, x1, y0, y1, wx, wy)
             case .RGB8:  return sampleColor8Bilinear'(.RGB8)(image, x0, x1, y0, y1, wx, wy)
+            case .Gray8: return sampleColor8Bilinear'(.Gray8)(image, x0, x1, y0, y1, wx, wy)
             case .RGB16: return sampleColor8Bilinear'(.RGB16)(image, x0, x1, y0, y1, wx, wy)
             case .RGBA16: return sampleColor8Bilinear'(.RGBA16)(image, x0, x1, y0, y1, wx, wy)
             default:     break
@@ -2394,6 +2397,10 @@ private impl RenderCpu
                     drawLinearImageTriangle'(.RGB8)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
+                case .Gray8:
+                    drawLinearImageTriangle'(.Gray8)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
+                    return
+
                 case .RGB16:
                     drawLinearImageTriangle'(.RGB16)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
@@ -2729,7 +2736,7 @@ private impl RenderCpu
     #[Swag.Inline]
     func(const Format: PixelFormat) writeLinearTexturePixel(pixel: [*] u8, ink: Color)
     {
-        #static if Format == .BGR8 or Format == .RGB8 or Format == .RGB16
+        #static if Format == .Gray8 or Format == .BGR8 or Format == .RGB8 or Format == .RGB16
         {
             pixel[0] = ink.b
             pixel[1] = ink.g
@@ -2898,7 +2905,7 @@ private impl RenderCpu
                         let ink    = twoRows ? lerpBgra8x4(a, Math.Simd.load(savedB + offset), weight, upper) : a
                         let target = row + cast(u64, x) * 4
                         let old    = Math.Simd.load(target)
-                        #static if Format == .BGR8 or Format == .RGB8 or Format == .RGB16
+                        #static if Format == .Gray8 or Format == .BGR8 or Format == .RGB8 or Format == .RGB16
                         {
                             Math.Simd.store(target, Math.Simd.select(CpuBgraRgbMask, ink, old))
                             if white

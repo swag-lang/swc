@@ -44,6 +44,7 @@ private enum DeferredKind: u8
     None
     Rect
     Ellipse
+    Line
     Instance
 }
 
@@ -1818,6 +1819,80 @@ private func addMarkerVertex(vertices: *Array'MarkerVertex?, point, inDir, previ
     vertices.add(MarkerVertex{point, inDir, Vector2{}})
 }
 
+private func readPathNumber(data: string, pos: *u64, valid: *bool)->f32
+{
+    if not valid[] do
+        return 0
+
+    let start = skipNumberSeparators(data, pos[])
+    if start >= data.count or not isNumberStart(data[start])
+    {
+        valid[] = false
+        return 0
+    }
+
+    pos[] = start
+    return readNumber(data, pos)
+}
+
+// A single open segment can keep its two endpoints until it is painted.
+private func readStraightStroke(data: string, state: *GroupState)->DeferredGeometry
+{
+    var pos = skipNumberSeparators(data, 0)
+    if pos >= data.count or data[pos] != 'M' do
+        return {}
+    pos += 1
+
+    var valid  = true
+    let startX = readPathNumber(data, &pos, &valid)
+    let startY = readPathNumber(data, &pos, &valid)
+    pos = skipNumberSeparators(data, pos)
+    if not valid or pos >= data.count do
+        return {}
+
+    let command = data[pos]
+    pos += 1
+    var endX = startX
+    var endY = startY
+    switch command
+    {
+    case 'H', 'h':
+        endX = readPathNumber(data, &pos, &valid)
+        if command == 'h' do
+            endX += startX
+
+    case 'V', 'v':
+        endY = readPathNumber(data, &pos, &valid)
+        if command == 'v' do
+            endY += startY
+
+    case 'L', 'l':
+        endX = readPathNumber(data, &pos, &valid)
+        endY = readPathNumber(data, &pos, &valid)
+        if command == 'l'
+        {
+            endX += startX
+            endY += startY
+        }
+
+        if Math.abs(endX - startX) <= 0.0005 and Math.abs(endY - startY) <= 0.0005 do
+            return {}
+
+    default:
+        return {}
+    }
+
+    if not valid or skipNumberSeparators(data, pos) != data.count do
+        return {}
+
+    let start = mapPoint(state, startX, startY)
+    let end   = mapPoint(state, endX, endY)
+    if not start.isFinite() or not end.isFinite() or not (end - start).isFinite() do
+        return {}
+
+    return DeferredGeometry{.Line, start, end}
+}
+
 // Parses one `d` attribute into subpath contours, transformed by `state`.
 //
 // `vertices` collects the authored vertices markers are placed on; pass null when the element
@@ -1835,22 +1910,6 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
     var path:    *LinePath?
     var started: bool
-
-    func number(data: string, pos: *u64, valid: *bool)->f32
-    {
-        if not valid[] do
-            return 0
-
-        let start = skipNumberSeparators(data, pos[])
-        if start >= data.count or not isNumberStart(data[start])
-        {
-            valid[] = false
-            return 0
-        }
-
-        pos[] = start
-        return readNumber(data, pos)
-    }
 
     func flag(data: string, pos: *u64, valid: *bool)->bool
     {
@@ -1917,8 +1976,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         switch cmd
         {
         case 'M', 'm':
-            var x = number(data, &pos, &valid)
-            var y = number(data, &pos, &valid)
+            var x = readPathNumber(data, &pos, &valid)
+            var y = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel
@@ -1941,8 +2000,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             cmd = rel ? cast(u8, 'l') : cast(u8, 'L')
 
         case 'L', 'l':
-            var x = number(data, &pos, &valid)
-            var y = number(data, &pos, &valid)
+            var x = readPathNumber(data, &pos, &valid)
+            var y = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel
@@ -1965,7 +2024,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             curY = y
 
         case 'H', 'h':
-            var x = number(data, &pos, &valid)
+            var x = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel do
@@ -1976,7 +2035,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             curX = x
 
         case 'V', 'v':
-            var y = number(data, &pos, &valid)
+            var y = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel do
@@ -1990,8 +2049,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             var c1x, c1y: f32
             if cmd == 'C' or cmd == 'c'
             {
-                c1x = number(data, &pos, &valid)
-                c1y = number(data, &pos, &valid)
+                c1x = readPathNumber(data, &pos, &valid)
+                c1y = readPathNumber(data, &pos, &valid)
                 if rel
                 {
                     c1x += curX
@@ -2010,10 +2069,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 }
             }
 
-            var c2x = number(data, &pos, &valid)
-            var c2y = number(data, &pos, &valid)
-            var x   = number(data, &pos, &valid)
-            var y   = number(data, &pos, &valid)
+            var c2x = readPathNumber(data, &pos, &valid)
+            var c2y = readPathNumber(data, &pos, &valid)
+            var x   = readPathNumber(data, &pos, &valid)
+            var y   = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel
@@ -2040,8 +2099,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             var c1x, c1y: f32
             if cmd == 'Q' or cmd == 'q'
             {
-                c1x = number(data, &pos, &valid)
-                c1y = number(data, &pos, &valid)
+                c1x = readPathNumber(data, &pos, &valid)
+                c1y = readPathNumber(data, &pos, &valid)
                 if rel
                 {
                     c1x += curX
@@ -2059,8 +2118,8 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 }
             }
 
-            var x = number(data, &pos, &valid)
-            var y = number(data, &pos, &valid)
+            var x = readPathNumber(data, &pos, &valid)
+            var y = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel
@@ -2081,13 +2140,13 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             continue
 
         case 'A', 'a':
-            let rx       = number(data, &pos, &valid)
-            let ry       = number(data, &pos, &valid)
-            let rotation = number(data, &pos, &valid)
+            let rx       = readPathNumber(data, &pos, &valid)
+            let ry       = readPathNumber(data, &pos, &valid)
+            let rotation = readPathNumber(data, &pos, &valid)
             let largeArc = flag(data, &pos, &valid)
             let sweepF   = flag(data, &pos, &valid)
-            var x        = number(data, &pos, &valid)
-            var y        = number(data, &pos, &valid)
+            var x        = readPathNumber(data, &pos, &valid)
+            var y        = readPathNumber(data, &pos, &valid)
             if not valid do
                 return
             if rel
@@ -2984,7 +3043,7 @@ private impl Parser
             for i in count
             {
                 let shape = &.drawing.shapes[first + i]
-                if shape.deferred == .Rect do
+                if shape.deferred == .Rect or shape.deferred == .Line do
                     continue
                 let paths = .drawing.materializeShape(shape)
                 for path in paths.paths where path.hasCurves() do
@@ -3643,12 +3702,27 @@ private impl Parser
                 let hasMarkers = state.hasMarkers()
                 if d and (state.drawsShape() or hasMarkers)
                 {
-                    var list:     LinePathList
-                    var vertices: Array'MarkerVertex
-                    parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null)
-                    .emitShape(#move list, &state)
-                    if hasMarkers do
-                        .applyMarkers(&state, vertices.toSlice())
+                    var segment: DeferredGeometry
+                    if not hasMarkers and
+                       not state.hasFill and
+                       state.hasStroke and
+                       state.canDeferPrimitive() and
+                       d.value.count <= 64 do
+                        segment = readStraightStroke(d.value, &state)
+                    if segment.kind == .Line
+                    {
+                        var list: LinePathList
+                        .emitShapeOne(#move list, &state, geometry: segment)
+                    }
+                    else
+                    {
+                        var list:     LinePathList
+                        var vertices: Array'MarkerVertex
+                        parsePathData(&list, d.value, &state, hasMarkers ? &vertices : null)
+                        .emitShape(#move list, &state)
+                        if hasMarkers do
+                            .applyMarkers(&state, vertices.toSlice())
+                    }
                 }
 
             case "rect":
@@ -3698,14 +3772,24 @@ private impl Parser
                     if drawsLine
                     {
                         var list: LinePathList
-                        let path   = list.newPath()
-                        let from   = mapPoint(&state, x1, y1)
-                        let target = mapPoint(&state, x2, y2)
-                        path.start(from.x, from.y)
-                        path.lineTo(target.x, target.y)
+                        let from       = mapPoint(&state, x1, y1)
+                        let target     = mapPoint(&state, x2, y2)
                         var strokeOnly = state
                         strokeOnly.hasFill = false
-                        .emitShape(#move list, &strokeOnly)
+                        if strokeOnly.canDeferPrimitive() and
+                           from.isFinite() and
+                           target.isFinite() and
+                           (target - from).isFinite()
+                        {
+                            .emitShapeOne(#move list, &strokeOnly, geometry: DeferredGeometry{.Line, from, target})
+                        }
+                        else
+                        {
+                            let path = list.newPath()
+                            path.start(from.x, from.y)
+                            path.lineTo(target.x, target.y)
+                            .emitShape(#move list, &strokeOnly)
+                        }
                     }
 
                     if hasMarkers
@@ -4665,11 +4749,16 @@ private impl Drawing
             {
                 path.setRectCornersRaw(min.x, min.y, max.x, max.y)
             }
-            else
+            elif shape.deferred == .Ellipse
             {
                 let radii  = (max - min) * 0.5
                 let center = min + radii
                 path.setEllipseRaw(center.x, center.y, radii.x, radii.y)
+            }
+            else
+            {
+                path.start(min.x, min.y)
+                path.lineTo(max.x, max.y)
             }
 
             primitive.contours.paths = paths
@@ -4702,6 +4791,11 @@ private impl Drawing
                 let primitive = &.primitives[shape.geometry - 1]
                 min = primitive.min
                 max = primitive.max
+                if shape.deferred == .Line
+                {
+                    min = Vector2.min(primitive.min, primitive.max)
+                    max = Vector2.max(primitive.min, primitive.max)
+                }
             }
 
             let size = max - min

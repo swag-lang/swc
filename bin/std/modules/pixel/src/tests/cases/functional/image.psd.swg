@@ -109,6 +109,28 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     Swag.require(outcome.value() != null)
 }
 
+// Raw 16-bit color and alpha preserve both sample bytes through a SIMD block and its tail.
+#test
+{
+    for channels in [2'u16, 3'u16, 4'u16]
+    {
+        let format = channels == 2 ? PixelFormat.GrayAlpha16 : (channels == 3 ? PixelFormat.RGB16 : PixelFormat.RGBA16)
+        var bytes  = psdHeader(channels, 11, 2, 16, channels == 2 ? 1 : 3)
+        psdAddU16(&bytes, 0)
+        for channel in channels do
+            for index in 22 do
+                psdAddU16(&bytes, cast(u16, (0x1234 + channel * 4099 + index * 257)))
+
+        let image = expect Image.decode("raw-words-odd-width.psd", nnBytes(bytes.toSlice()))
+        assertImage(image, 11, 2, format)
+        let words = cast(const [*] u16, image.pixels.storage())
+        for y in 2 do
+            for x in 11 do
+                for channel in channels do
+                    Swag.require(words[((1 - y) * 11 + x) * channels + channel] == 0x1234 + channel * 4099 + (y * 11 + x) * 257)
+    }
+}
+
 // Sixteen-bit gray rows keep both sample bytes and the last partial vector.
 #test
 {

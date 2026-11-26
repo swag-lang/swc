@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrInvalidZipFixture()->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -45,7 +45,7 @@ func exrInvalidZipFixture()->ConcatBuffer
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
-    exrAddU32(&dataWindow, 3)
+    exrAddU32(&dataWindow, width - 1)
     exrAddU32(&dataWindow, 0)
 
     var header: ConcatBuffer
@@ -60,9 +60,8 @@ func exrInvalidZipFixture()->ConcatBuffer
     result.addBytes(unwrap header.toSlice())
     exrAddU64(&result, result.count() + 8)
     exrAddU32(&result, 0)     // First scanline.
-    exrAddU32(&result, 7)     // Smaller than the raw 4xHALF row, so it must be compressed.
-    for 7 do
-        result.addNative(0xFF'u8)     // Not a valid ZLIB stream.
+    exrAddU32(&result, cast(u32, packed.count))
+    result.addBytes(packed)
     return result
 }
 
@@ -100,7 +99,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
     return result
 }
 
-func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
+func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBuffer
 {
     var channels: ConcatBuffer
     var samples:  ConcatBuffer
@@ -112,19 +111,22 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
         exrAddU32(&channels, 1)
         exrAddU32(&channels, 1)
 
-        switch name
+        for width
         {
-        case "A":
-            samples.addNative(0x3800'u16)     // Half 0.5.
+            switch name
+            {
+            case "A":
+                samples.addNative(0x3800'u16)     // Half 0.5.
 
-        case "B":
-            samples.addNative(0x0001'u16)     // Smallest half subnormal.
+            case "B":
+                samples.addNative(0x0001'u16)     // Smallest half subnormal.
 
-        case "G":
-            exrAddU32(&samples, 0x80000000)     // Float -0.0.
+            case "G":
+                exrAddU32(&samples, 0x80000000)     // Float -0.0.
 
-        case "R", "Y":
-            exrAddU32(&samples, 0x3F800000)     // Float 1.0.
+            case "R", "Y":
+                exrAddU32(&samples, 0x3F800000)     // Float 1.0.
+            }
         }
     }
 
@@ -134,7 +136,7 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
     var dataWindow:  ConcatBuffer
     exrAddU32(&dataWindow, 0)
     exrAddU32(&dataWindow, 0)
-    exrAddU32(&dataWindow, 0)
+    exrAddU32(&dataWindow, width - 1)
     exrAddU32(&dataWindow, 0)
 
     var header: ConcatBuffer
@@ -375,11 +377,25 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
 
 #test
 {
-    let bytes = exrInvalidZipFixture()
+    const InvalidZlib: [7] u8 = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF]
+    let bytes = exrZipFixture(4, InvalidZlib)
     var image:        Image
     var errorOutcome: Swag.Error
     catch { image = try Image.decode("invalid.zip.exr", nnBytes(bytes.toSlice())) } as errorOutcome
     Swag.require(errorOutcome.value() != null)
+}
+
+// ZIP inflation stops at the scanline size declared by the data window.
+#test
+{
+    var oversized: [64] u8
+    var zlib:      Compress.ZLib
+    let packed = expect zlib.compress(oversized)
+    Swag.require(packed.count < 32)
+    let bytes = exrZipFixture(16, packed.toSlice())
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("oversized-zips.exr", nnBytes(bytes.toSlice())) as errorOutcome
+    Swag.require(errorOutcome.value() is Errors.UnsupportedFormatError)
 }
 
 // Error: RGB and Y channels cannot be mapped to one output image without ambiguity.
@@ -403,12 +419,31 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
 
 #test
 {
-    let bytes   = exrUnalignedFloatFixture(["A", "B", "G", "R"])
-    let decoded = expect Image.decode("unaligned-mixed.exr", nnBytes(bytes.toSlice()))
-    assertImage(decoded, 1, 1, .RGBAF32)
-    let samples = cast(const [*] u32, decoded.pixels.storage())
-    Swag.require(samples[0] == 0x3F800000)
-    Swag.require(samples[1] == 0x80000000)
-    Swag.require(samples[2] == 0x33800000)
-    Swag.require(samples[3] == 0x3F000000)
+    for width in [1'u32, 4, 5, 9]
+    {
+        let bytes   = exrUnalignedFloatFixture(["A", "B", "G", "R"], width)
+        let decoded = expect Image.decode("unaligned-mixed.exr", nnBytes(bytes.toSlice()))
+        assertImage(decoded, cast(s32, width), 1, .RGBAF32)
+        let samples = cast(const [*] u32, decoded.pixels.storage())
+        for pixel in width
+        {
+            Swag.require(samples[pixel * 4] == 0x3F800000)
+            Swag.require(samples[pixel * 4 + 1] == 0x80000000)
+            Swag.require(samples[pixel * 4 + 2] == 0x33800000)
+            Swag.require(samples[pixel * 4 + 3] == 0x3F000000)
+        }
+    }
+}
+
+#test
+{
+    var source: [4] u16
+    for block in 16384'u64
+    {
+        for lane in 4'u64 do
+            source[lane] = cast(u16, block * 4 + lane)
+        let wide = cast #bit(Math.Simd.U32x4, Exr.widenHalfSamples(cast(const [*] u8, source.buffer)))
+        for lane in 4'u64 do
+            Swag.require(wide[lane] == cast #bit(u32, halfToFloat(source[lane])))
+    }
 }

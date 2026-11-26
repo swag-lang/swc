@@ -88,7 +88,8 @@ func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
     // each difference after the first is equivalent to flipping the sign bit at odd offsets.
     const Zero = Simd.splat(0'u8)
     const Bias = cast(Simd.U8x16, [0'u8, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128, 0, 128])
-    var carry  = 0'u8
+    const Last = Simd.splat(15'u8)
+    var carry  = Zero
     var offset = 0'u64
     while data.count - offset >= 16
     {
@@ -97,16 +98,17 @@ func undoZipPredictor(data: [..] u8, reordered: *Array'u8)
         values += Simd.align(Zero, values, 14)
         values += Simd.align(Zero, values, 12)
         values += Simd.align(Zero, values, 8)
-        values += Simd.splat(carry)
-        carry  = values[15]
-        Simd.store(data.buffer + offset, values ^ Bias)
+        let nextCarry = carry + Simd.shuffle(values, Last)
+        Simd.store(data.buffer + offset, (values + carry) ^ Bias)
+        carry  = nextCarry
         offset += 16
     }
 
+    var tail = carry[0]
     while offset < data.count
     {
-        carry        += #wrap data[offset]
-        data[offset] = carry ^ (offset & 1 ? 128 : 0)
+        tail         += #wrap data[offset]
+        data[offset] = tail ^ (offset & 1 ? 128 : 0)
         offset       += 1
     }
 
@@ -161,21 +163,6 @@ func loadCanonicalHalves(source: const [*] u8)->Simd.U16x8
     return Simd.select(magnitude > Infinity, (values & 0x8000'u16) | 0x7E00'u16, values)
 }
 
-// Place the samples for one channel in one of the three adjacent RGB output vectors.
-#[Swag.ConstExpr]
-func rgbShuffle(sampleBytes, channel, block: u64)->Simd.U8x16
-{
-    var table: [16] u8
-    for index in table.count
-    {
-        let component = (block * 16 + index) / sampleBytes
-        let pixel     = component / 3
-        table[index] = component % 3 == channel ? cast(u8, pixel * sampleBytes + index % sampleBytes) : 0x80
-    }
-
-    return cast(Simd.U8x16, table)
-}
-
 #[Swag.Inline]
 func(T) loadColorSamples(source: const [*] u8)->Simd.U8x16
 {
@@ -192,23 +179,6 @@ func(T) readColorSample(source: const [*] u8)->T
         return canonicalHalf(readU16(source))
     else do
         return readU32(source)
-}
-
-#[Swag.Inline]
-func(T, Pair) storeRgbaSamples(target: [*] u8, r, g, b, a: Simd.U8x16)
-{
-    let red    = cast #bit(T, r)
-    let green  = cast #bit(T, g)
-    let blue   = cast #bit(T, b)
-    let alpha  = cast #bit(T, a)
-    let rgLow  = cast #bit(Pair, Simd.interleaveLow(red, green))
-    let rgHigh = cast #bit(Pair, Simd.interleaveHigh(red, green))
-    let baLow  = cast #bit(Pair, Simd.interleaveLow(blue, alpha))
-    let baHigh = cast #bit(Pair, Simd.interleaveHigh(blue, alpha))
-    Simd.store(target, cast #bit(Simd.U8x16, Simd.interleaveLow(rgLow, baLow)))
-    Simd.store(target + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgLow, baLow)))
-    Simd.store(target + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(rgHigh, baHigh)))
-    Simd.store(target + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgHigh, baHigh)))
 }
 
 func(T, ALPHA: bool) writePackedColorRow(source: const [*] u8, offsets: [4] u64, target: [*] u8, width: u64)
@@ -232,25 +202,12 @@ func(T, ALPHA: bool) writePackedColorRow(source: const [*] u8, offsets: [4] u64,
         {
             let a = loadColorSamples'T(source + offsets[3] + offset)
             #static if T == u16 do
-                storeRgbaSamples'(Simd.U16x8, Simd.U32x4)(dst, r, g, b, a)
+                PackedPixel.storeQuads'(Simd.U16x8, Simd.U32x4)(dst, r, g, b, a)
             else do
-                storeRgbaSamples'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
+                PackedPixel.storeQuads'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
         }
-        else
-        {
-            const RgbR0 = rgbShuffle(SampleBytes, 0, 0)
-            const RgbG0 = rgbShuffle(SampleBytes, 1, 0)
-            const RgbB0 = rgbShuffle(SampleBytes, 2, 0)
-            const RgbR1 = rgbShuffle(SampleBytes, 0, 1)
-            const RgbG1 = rgbShuffle(SampleBytes, 1, 1)
-            const RgbB1 = rgbShuffle(SampleBytes, 2, 1)
-            const RgbR2 = rgbShuffle(SampleBytes, 0, 2)
-            const RgbG2 = rgbShuffle(SampleBytes, 1, 2)
-            const RgbB2 = rgbShuffle(SampleBytes, 2, 2)
-            Simd.store(dst, Simd.shuffle(r, RgbR0) | Simd.shuffle(g, RgbG0) | Simd.shuffle(b, RgbB0))
-            Simd.store(dst + 16, Simd.shuffle(r, RgbR1) | Simd.shuffle(g, RgbG1) | Simd.shuffle(b, RgbB1))
-            Simd.store(dst + 32, Simd.shuffle(r, RgbR2) | Simd.shuffle(g, RgbG2) | Simd.shuffle(b, RgbB2))
-        }
+        else do
+            PackedPixel.storeTriplets'SampleBytes(dst, r, g, b)
 
         x += BlockPixels
     }
@@ -285,40 +242,94 @@ func(T) writePackedColorChunk(image: *Image, offsets: [4] u64, source: const [..
     }
 }
 
-func writeFloatColorChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstRow, rowCount: s32)
+#[Swag.Inline]
+func widenHalfSamples(source: const [*] u8)->Simd.U8x16
 {
-    let components = cast(u64, image.pixelFormat.channels())
-    var offset     = 0'u64
+    var values: u64
+    Memory.copy(&values, source, 8)
+    let half      = Simd.widenLow(cast #bit(Simd.U16x8, Simd.splat(values)))
+    let exponent  = half & 0x7C00'u32
+    let mantissa  = (half & 0x03FF'u32) << 13
+    let normal    = ((exponent << 13) + 0x3800_0000'u32) | mantissa
+    let nonfinite = 0x7F80_0000'u32 | mantissa
+
+    // Subtract 2^-14 from the biased significand to reconstruct subnormals exactly.
+    let biased    = cast #bit(Simd.F32x4, 0x3880_0000'u32 | mantissa)
+    let subnormal = cast #bit(Simd.U32x4, biased - Simd.splat(1'f32 / 16384.0))
+    let finite    = Simd.select(exponent == Simd.splat(0'u32), subnormal, normal)
+    let bits      = Simd.select(exponent == Simd.splat(0x7C00'u32), nonfinite, finite)
+    return cast #bit(Simd.U8x16, bits | ((half & 0x8000'u32) << 16))
+}
+
+#[Swag.Inline]
+func loadMixedColorSamples(source: const [*] u8, sampleBytes: u64)->Simd.U8x16
+{
+    if sampleBytes == 2 do
+        return widenHalfSamples(source)
+    return Simd.load(source)
+}
+
+#[Swag.Inline]
+func readMixedColorSample(source: const [*] u8, sampleBytes: u64)->u32
+{
+    if sampleBytes == 2 do
+        return cast #bit(u32, halfToFloat(readU16(source)))
+    return readU32(source)
+}
+
+func(ALPHA: bool) writeMixedColorRow(source: const [*] u8, offsets, sampleBytes: [4] u64, target: [*] u8, width: u64)
+{
+    const Stride = ALPHA ? 16'u64 : 12'u64
+    let red   = source + offsets[0]
+    let green = source + offsets[1]
+    let blue  = source + offsets[2]
+
+    var x: u64
+    while width - x >= 4
+    {
+        let dst = target + x * Stride
+        let r   = loadMixedColorSamples(red + x * sampleBytes[0], sampleBytes[0])
+        let g   = loadMixedColorSamples(green + x * sampleBytes[1], sampleBytes[1])
+        let b   = loadMixedColorSamples(blue + x * sampleBytes[2], sampleBytes[2])
+        #static if ALPHA
+        {
+            let a = loadMixedColorSamples(source + offsets[3] + x * sampleBytes[3], sampleBytes[3])
+            PackedPixel.storeQuads'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
+        }
+        else do
+            PackedPixel.storeTriplets'4(dst, r, g, b)
+        x += 4
+    }
+
+    while x < width
+    {
+        let dst = cast([*] u32, target + x * Stride)
+        dst[0] = readMixedColorSample(red + x * sampleBytes[0], sampleBytes[0])
+        dst[1] = readMixedColorSample(green + x * sampleBytes[1], sampleBytes[1])
+        dst[2] = readMixedColorSample(blue + x * sampleBytes[2], sampleBytes[2])
+        #static if ALPHA do
+            dst[3] = readMixedColorSample(source + offsets[3] + x * sampleBytes[3], sampleBytes[3])
+        x += 1
+    }
+}
+
+func writeMixedColorChunk(image: *Image, offsets: [4] u64, halfChannels: u8, source: const [..] u8, firstRow, rowCount: s32, rowBytes: u64)
+{
+    let width    = cast(u64, image.width)
+    let hasAlpha = image.bytesPerPixel == 16
+    var sampleBytes: [4] u64
+    for component in 4'u64 do
+        sampleBytes[component] = halfChannels & (1'u8 << component) ? 2 : 4
+
     for row in rowCount
     {
-        let targetY   = image.height - firstRow - row - 1
-        let targetRow = image.pixels.storage() + cast(u64, targetY) * image.rowStride
-        for channel in channels
-        {
-            let input       = source.buffer + offset
-            let halfInput   = channel.pixelType == 1
-            var targetIndex = cast(u64, channelComponent(channel.name))
-            offset += cast(u64, image.width) * (halfInput ? 2 : 4)
-
-            if halfInput
-            {
-                let target = cast([*] f32, targetRow)
-                for x in image.width
-                {
-                    target[targetIndex] = halfToFloat(readU16(input + cast(u64, x) * 2))
-                    targetIndex         += components
-                }
-            }
-            else
-            {
-                let target = cast([*] u32, targetRow)
-                for x in image.width
-                {
-                    target[targetIndex] = readU32(input + cast(u64, x) * 4)
-                    targetIndex         += components
-                }
-            }
-        }
+        let targetY = image.height - firstRow - row - 1
+        let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
+        let input   = source.buffer + cast(u64, row) * rowBytes
+        if hasAlpha do
+            writeMixedColorRow'true(input, offsets, sampleBytes, target, width)
+        else do
+            writeMixedColorRow'false(input, offsets, sampleBytes, target, width)
     }
 }
 
@@ -540,25 +551,25 @@ impl Part
 
         // Each scanline repeats the same channel planes in file order.
         var channelOffsets: [4] u64
-        var floatColor = not grayscale and not halfColor
-        if halfColor
+        var halfChannels:   u8
+        let floatColor = not grayscale and not halfColor and .rowBytes == cast(u64, result.rowStride)
+        if halfColor or floatColor
         {
-            let planeBytes = cast(u64, result.width) * 2
+            let planeBytes = cast(u64, result.width) * (halfColor ? 2 : 4)
             for channel, position in .channels do
                 channelOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
         }
-        elif floatColor
+        elif not grayscale
         {
-            let planeBytes = cast(u64, result.width) * 4
-            for channel, position in .channels
+            var offset: u64
+            for channel in .channels
             {
-                if channel.pixelType == 1
-                {
-                    floatColor = false
-                    break
-                }
-
-                channelOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
+                let component = cast(u64, channelComponent(channel.name))
+                let bytes     = channel.pixelType == 1 ? 2'u64 : 4'u64
+                channelOffsets[component] = offset
+                if bytes == 2 do
+                    halfChannels |= 1'u8 << component
+                offset += cast(u64, result.width) * bytes
             }
         }
 
@@ -604,7 +615,7 @@ impl Part
             if .compression and packedSize < expected
             {
                 var zlib: Compress.ZLib
-                var unpacked = try zlib.decompress(pixels, expected)
+                var unpacked = try zlib.decompress(pixels, expected, maxOutputSize: expected)
                 if unpacked.count != expected do
                     fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
                 undoZipPredictor(unpacked.toSlice(), &reordered)
@@ -627,7 +638,7 @@ impl Part
             }
             else
             {
-                writeFloatColorChunk(&result, .channels.toSlice(), pixels, cast(s32, relativeY), rows)
+                writeMixedColorChunk(&result, channelOffsets, halfChannels, pixels, cast(s32, relativeY), rows, .rowBytes)
             }
         }
 

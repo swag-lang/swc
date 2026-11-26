@@ -6,7 +6,7 @@
 //
 #global namespace Psd
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 const HeaderSize = 26'u64
 
@@ -115,15 +115,20 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
     }
 }
 
+#[Swag.Inline]
+func loadBigEndianWords(source: const [*] u8)->Simd.U16x8
+{
+    let samples = Simd.load(cast(const [*] u16, source))
+    return (samples >> 8) | (samples << 8)
+}
+
 func copyBigEndianWords(target: [*] u8, source: const [*] u8, count: u64)
 {
     let words = cast([*] u16, target)
-    let input = cast(const [*] u16, source)
-    var x     = 0'u64
+    var x: u64
     while count - x >= 8
     {
-        let samples = Math.Simd.load(input + x)
-        Math.Simd.store(words + x, (samples >> 8) | (samples << 8))
+        Simd.store(words + x, loadBigEndianWords(source + x * 2))
         x += 8
     }
 
@@ -131,6 +136,60 @@ func copyBigEndianWords(target: [*] u8, source: const [*] u8, count: u64)
     {
         words[x] = readU16(source + x * 2)
         x        += 1
+    }
+}
+
+func(CHANNELS: u64) storeRawWords(image: *Image, source: const [*] u8, rowBytes, planeBytes: u64)
+{
+    let width = cast(u64, image.width)
+    for y in image.height
+    {
+        let first  = source + cast(u64, y) * rowBytes
+        let second = first + planeBytes
+        let third  = second + planeBytes
+        let fourth = third + planeBytes
+        var target = cast([*] u16, image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride)
+        var x: u64
+        while width - x >= 8
+        {
+            let offset = x * 2
+            let a      = loadBigEndianWords(first + offset)
+            let b      = loadBigEndianWords(second + offset)
+            #static if CHANNELS == 2
+            {
+                Simd.store(target, Simd.interleaveLow(a, b))
+                Simd.store(target + 8, Simd.interleaveHigh(a, b))
+            }
+            else
+            {
+                let p0  = cast #bit(Simd.U8x16, a)
+                let p1  = cast #bit(Simd.U8x16, b)
+                let p2  = cast #bit(Simd.U8x16, loadBigEndianWords(third + offset))
+                let dst = cast([*] u8, target)
+                #static if CHANNELS == 3 do
+                    PackedPixel.storeTriplets'2(dst, p0, p1, p2)
+                else
+                {
+                    let p3 = cast #bit(Simd.U8x16, loadBigEndianWords(fourth + offset))
+                    PackedPixel.storeQuads'(Simd.U16x8, Simd.U32x4)(dst, p0, p1, p2, p3)
+                }
+            }
+
+            target += 8 * CHANNELS
+            x      += 8
+        }
+
+        for sample in x until width
+        {
+            let offset = sample * 2
+            target[0] = readU16(first + offset)
+            target[1] = readU16(second + offset)
+            #static if CHANNELS >= 3 do
+                target[2] = readU16(third + offset)
+            #static if CHANNELS == 4 do
+                target[3] = readU16(fourth + offset)
+            target += CHANNELS
+        }
     }
 }
 
@@ -207,6 +266,24 @@ func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64, depth
         }
 
         return
+    }
+
+    switch image.pixelFormat
+    {
+    case .GrayAlpha16:
+        storeRawWords'2(image, source, rowBytes, planeBytes)
+        return
+
+    case .RGB16:
+        storeRawWords'3(image, source, rowBytes, planeBytes)
+        return
+
+    case .RGBA16:
+        storeRawWords'4(image, source, rowBytes, planeBytes)
+        return
+
+    default:
+        break
     }
 
     for channel in image.pixelFormat.channels() do

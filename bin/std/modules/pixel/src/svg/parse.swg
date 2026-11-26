@@ -97,7 +97,7 @@ struct Shape
 
         stroke: u64     // Index plus one of authored stroke properties.
 
-        paintTransform: Math.Transform2 = Math.Transform2.Identity     // Element transform retained for user-space paint servers.
+        paintTransform: u64     // Index plus one of the user-space paint transform, or zero for identity.
 
         filterId: u64     // Interned filter identifier, or zero without a reference.
     }
@@ -158,8 +158,15 @@ private enum DrawingItemKind
 #[Swag.Opaque]
 internal struct DrawingItem
 {
-    kind:  DrawingItemKind
-    index: u64
+    kind: DrawingItemKind
+
+    // Whether `bounds` has been established.
+    //
+    // A shape or a picture is measured once the document is parsed. Text is measured the
+    // first time it is painted, because where a run lands depends on the shaping of the runs
+    // before it, and shaping needs the painter's font cache.
+    hasBounds: bool
+    index:     u64
 
     // Shapes the item is clipped by, as a range of the drawing's hidden shapes.
     //
@@ -175,13 +182,6 @@ internal struct DrawingItem
     // a pan or a zoom proportional to what a window shows rather than to what the document
     // holds. The rectangle is never narrower than the ink and may be wider.
     bounds: Rectangle
-
-    // Whether `bounds` has been established.
-    //
-    // A shape or a picture is measured once the document is parsed. Text is measured the
-    // first time it is painted, because where a run lands depends on the shaping of the runs
-    // before it, and shaping needs the painter's font cache.
-    hasBounds: bool
 }
 
 private struct PaintBlock
@@ -430,6 +430,8 @@ private struct Parser
     svgDepth:       u32
     inDefs:         bool     // Whether parsing currently sits inside a `defs` element.
     dimensionsOnly: bool
+
+    paintTransforms: Array'Math.Transform2     // Element transforms used to resolve paint references.
 
     lastInlineStyle:    string = ""
     inlineDeclarations: Array'StyleDeclaration
@@ -2256,6 +2258,7 @@ private impl Parser
             shape.evenOdd     = state.evenOdd
         }
 
+        var hasPaintReference = shape.fillPaintId != 0
         if state.hasStroke
         {
             let stroke = .drawing.strokes.emplaceInitAddress()
@@ -2263,6 +2266,8 @@ private impl Parser
             stroke.color   = state.strokeColor
             stroke.paintId = .internReference(state.strokePaintId)
             stroke.opacity = state.strokeOpacity * state.opacity
+
+            hasPaintReference = hasPaintReference or stroke.paintId != 0
             let geometryScale = transformScale(state.transform)
             stroke.width = state.strokeWidth * geometryScale
             let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
@@ -2274,11 +2279,12 @@ private impl Parser
             stroke.joinStyle = state.joinStyle
         }
 
-        shape.paintTransform = state.transform
-        shape.filterId       = .internReference(state.filterId)
+        if hasPaintReference do
+            shape.paintTransform = .storePaintTransform(&state.transform)
+        shape.filterId = .internReference(state.filterId)
 
         if not shape.hidden do
-            .drawing.items.add(DrawingItem{.Shape, shapeIndex})
+            .drawing.items.add(DrawingItem{kind: .Shape, index: shapeIndex})
     }
 
     mtd emitRect(state: *GroupState, x, y, w, h, rx, ry: f32)
@@ -3164,7 +3170,7 @@ private impl Parser
         item.transform = state.transform
         item.opacity   = state.opacity
         if not state.inDefs do
-            .drawing.items.add(DrawingItem{.Image, index})
+            .drawing.items.add(DrawingItem{kind: .Image, index: index})
     }
 
     // Loads, once per document, the typeface a family class resolves to.
@@ -3301,7 +3307,7 @@ private impl Parser
         {
             let index = .drawing.texts.count
             .drawing.texts.add(#move block)
-            .drawing.items.add(DrawingItem{.Text, index})
+            .drawing.items.add(DrawingItem{kind: .Text, index: index})
         }
     }
 
@@ -4014,6 +4020,25 @@ private impl Parser
         return result
     }
 
+    mtd const paintTransformFor(shape: const *Shape)->Math.Transform2
+    {
+        return shape.paintTransform ? .paintTransforms[shape.paintTransform - 1] : Math.Transform2.Identity
+    }
+
+    mtd storePaintTransform(transform: const *Math.Transform2)->u64
+    {
+        let identity = Math.Transform2.Identity
+        if Memory.compare(transform, &identity, #sizeof(Math.Transform2)) == 0 do
+            return 0
+
+        let count = .paintTransforms.count
+        if count and Memory.compare(transform, &.paintTransforms[count - 1], #sizeof(Math.Transform2)) == 0 do
+            return count
+
+        .paintTransforms.add(transform[])
+        return count + 1
+    }
+
     mtd gradientCoordinate(length: SvgLength, begin, extent, viewportExtent: f32, userSpace: bool)->f32
     {
         if userSpace do
@@ -4021,7 +4046,7 @@ private impl Parser
         return begin + length.value * extent
     }
 
-    mtd gradientPoint(gradient: const *Gradient, shape: const *Shape, x, y: SvgLength, boundsMin, boundsSize: Vector2)->Vector2
+    mtd gradientPoint(gradient: const *Gradient, transform: const *Math.Transform2, x, y: SvgLength, boundsMin, boundsSize: Vector2)->Vector2
     {
         let px = .gradientCoordinate(x, boundsMin.x, boundsSize.x, .drawing.width, gradient.userSpace)
         let py = .gradientCoordinate(y, boundsMin.y, boundsSize.y, .drawing.height, gradient.userSpace)
@@ -4029,7 +4054,7 @@ private impl Parser
         // A user-space stop is a point of the element's own coordinate system, so it goes
         // through the gradient's transform and then through the element's.
         if gradient.userSpace do
-            return shape.paintTransform.transformPoint(gradient.transform.transformPoint(Vector2{px, py}))
+            return transform.transformPoint(gradient.transform.transformPoint(Vector2{px, py}))
 
         // An object-bounding-box stop is a fraction of the shape's extent, and the gradient
         // transform applies in that unit square before it is stretched back over the bounds.
@@ -4037,7 +4062,7 @@ private impl Parser
         return Vector2{boundsMin.x + unit.x * boundsSize.x, boundsMin.y + unit.y * boundsSize.y}
     }
 
-    mtd gradientBrush(gradient: const *Gradient, shape: const *Shape)->Brush
+    mtd gradientBrush(gradient: const *Gradient, shape: const *Shape, transform: const *Math.Transform2)->Brush
     {
         if gradient.stops.isEmpty() do
             return Brush.createSolid(Color.fromArgb(Argb.Zero))
@@ -4052,12 +4077,12 @@ private impl Parser
         {
         case .Linear:
             result.type          = .LinearGradient
-            result.gradientStart = .gradientPoint(gradient, shape, gradient.x1, gradient.y1, min, size)
-            result.gradientEnd   = .gradientPoint(gradient, shape, gradient.x2, gradient.y2, min, size)
+            result.gradientStart = .gradientPoint(gradient, transform, gradient.x1, gradient.y1, min, size)
+            result.gradientEnd   = .gradientPoint(gradient, transform, gradient.x2, gradient.y2, min, size)
 
         case .Radial:
             result.type          = .RadialGradient
-            result.gradientStart = .gradientPoint(gradient, shape, gradient.cx, gradient.cy, min, size)
+            result.gradientStart = .gradientPoint(gradient, transform, gradient.cx, gradient.cy, min, size)
             result.gradientEnd   = result.gradientStart
 
             if gradient.userSpace
@@ -4065,7 +4090,7 @@ private impl Parser
                 let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
                 let radius           = gradient.r.isPercent ? gradient.r.value * viewportDiagonal : gradient.r.value
                 let inner            = gradient.fr.isPercent ? gradient.fr.value * viewportDiagonal : gradient.fr.value
-                let radiusScale      = transformScale(gradient.transform) * transformScale(shape.paintTransform)
+                let radiusScale      = transformScale(gradient.transform) * transformScale(transform[])
                 result.gradientRadius0 = Math.max(inner * radiusScale, 0)
                 result.gradientRadius1 = Math.max(radius * radiusScale, result.gradientRadius0)
             }
@@ -4200,16 +4225,17 @@ private impl Parser
     mtd storeGradient(gradient: *Gradient, shape: *Shape, opacity: f32)->u64
     {
         shape.pathList.flatten(.Normal)
+        let transform = .paintTransformFor(shape)
 
         // User-space coordinates depend on the transform, independently of the shape bounds.
         if gradient.userSpace and
            gradient.cachedBrush and
            gradient.cachedOpacity == opacity and
-           Memory.compare(&gradient.cachedTransform, &shape.paintTransform, #sizeof(Math.Transform2)) == 0 do
+           Memory.compare(&gradient.cachedTransform, &transform, #sizeof(Math.Transform2)) == 0 do
             return gradient.cachedBrush
 
         var entry: SvgGradientBrush
-        entry.brush = .gradientBrush(gradient, shape)
+        entry.brush = .gradientBrush(gradient, shape, &transform)
         entry.brush.multiplyOpacity(opacity)
         if gradient.stops.count
         {
@@ -4227,7 +4253,7 @@ private impl Parser
         if gradient.userSpace
         {
             gradient.cachedBrush     = index
-            gradient.cachedTransform = shape.paintTransform
+            gradient.cachedTransform = transform
             gradient.cachedOpacity   = opacity
         }
 
@@ -4287,7 +4313,7 @@ private impl Parser
             var fillPaintId, filterId, strokeIndex: u64
             var fillOpacity:      f32
             var hasFill, evenOdd: bool
-            var paintTransform:   Math.Transform2
+            var paintTransform:   u64
 
             scope
             {
@@ -4298,12 +4324,14 @@ private impl Parser
                 fillOpacity = src.fillOpacity
                 hasFill     = src.hasFill
                 evenOdd     = src.evenOdd
+                var hasPaintReference = fillPaintId != 0
                 if let original = .drawing.strokeFor(src)
                 {
                     var stroke = original[]
                     let scale  = transformScale(state.transform)
-                    stroke.width  *= scale
-                    stroke.offset *= scale
+                    hasPaintReference = hasPaintReference or stroke.paintId != 0
+                    stroke.width      *= scale
+                    stroke.offset     *= scale
                     if stroke.pattern.count
                     {
                         stroke.sharedPattern = true
@@ -4317,10 +4345,13 @@ private impl Parser
                     strokeIndex = .drawing.strokes.count
                 }
 
-                // The definition's own paint space is composed under the instance's, with the
-                // `use` offset between them.
-                paintTransform = src.paintTransform
-                paintTransform.multiply(state.transform)
+                if hasPaintReference
+                {
+                    // Compose the definition's paint space with the instance's, including its offset.
+                    var transform = .paintTransformFor(src)
+                    transform.multiply(state.transform)
+                    paintTransform = .storePaintTransform(&transform)
+                }
 
                 for srcPath in src.pathList.paths
                 {
@@ -4378,7 +4409,7 @@ private impl Parser
             }
 
             if not shape.hidden do
-                .drawing.items.add(DrawingItem{.Shape, shapeIndex})
+                .drawing.items.add(DrawingItem{kind: .Shape, index: shapeIndex})
         }
 
         result.count = .drawing.shapes.count - result.first

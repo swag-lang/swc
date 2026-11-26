@@ -138,6 +138,26 @@ def fixtures(scratch, filesamples):
         svg.write('</svg>\n')
     yield path, width, height
 
+    width, height = 1600, 900
+    for name, left, top, mask_width, mask_height in (
+            ("mask-band", 0.625, 391.375, 1595.375, 21.125),
+            ("mask-column", 711.625, 0.375, 21.375, 895.125),
+            ("mask-compact", 711.625, 391.375, 21.375, 23.125)):
+        path = scratch / f"{name}.svg"
+        with path.open("w", encoding="ascii", newline="\n") as svg:
+            svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+            svg.write(f'<defs><clipPath id="view"><rect x="{left}" y="{top}" width="{mask_width}" '
+                      f'height="{mask_height}" rx="6"/></clipPath></defs>\n<g clip-path="url(#view)">\n')
+            for index in range(112):
+                x, y = 10 + (index * 91) % 370, 5 + (index * 57) % 360
+                right, bottom = 1550 - (index * 59) % 380, 880 - (index * 71) % 355
+                color = (index * 6439249) % 0x1000000
+                svg.write(f'<path fill="#{color:06x}" fill-opacity=".34" d="M{x}.125 {y}.375'
+                          f'C{(x + right) / 2:.1f} -60.5 {right + 120}.125 {bottom - 90}.25 {right}.625 {bottom}.125'
+                          f'L{x}.875 {bottom - 20}.625Q{x + 75}.625 {y + 135}.125 {x}.125 {y}.375Z"/>\n')
+            svg.write('</g></svg>\n')
+        yield path, width, height
+
 
 def public_fixtures(scratch):
     manifest = json.loads((HERE / "public-fixtures.json").read_text(encoding="utf-8"))

@@ -211,3 +211,66 @@ using Core
     for byte, index in images[0].pixels do
         Swag.require(byte == images[1].pixels[index])
 }
+
+// Clipping a scan band keeps the same fractional coverage as resolving a larger stencil.
+#test
+{
+    const Width  = 194
+    const Height = 430
+    let white = Color.fromArgb(Argb.White)
+    var images: [2] Image
+    for draw in 2
+    {
+        var cpu: RenderCpu
+        cpu.begin(Width, Height)
+        let renderer: IRenderer = &cpu
+        defer renderer.end()
+        var painter = Painter.createScanline(&cpu)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(white)
+        painter.setColorMaskColor()
+        painter.setTransform(Math.Transform2.createTranslation(0.25, 0.25))
+
+        var paths: LinePathList
+        painter.startClippingRegion()
+        if draw
+        {
+            // Two identical contours cancel without leaving coverage in the larger bounds.
+            paths.newPath().setRectRaw(0, 0, Width, Height)
+            paths.newPath().setRectRaw(0, 0, Width, Height)
+            painter.fillPath(&paths, white, .EvenOdd)
+            paths.clear()
+        }
+
+        paths.newPath().setRectRaw(27.25, 278.375, 31.5, 22.25)
+        painter.fillPath(&paths, white, .NonZero)
+        paths.clear()
+        painter.setClippingRegionMode(.Clear)
+        paths.newPath().setRectRaw(15.125, 287.25, 159.5, 5.5)
+        painter.fillPath(&paths, white, .NonZero)
+        paths.clear()
+        painter.endClippingRegion()
+
+        let background = paths.newPath()
+        background.start(0.125, 4.375)
+        background.lineTo(187.625, 18.125)
+        background.lineTo(192.875, 426.625)
+        background.lineTo(18.375, 402.875)
+        background.close()
+        painter.fillPath(&paths, Color.fromArgb(0xB028_4060'u32), .EvenOdd)
+        paths.clear()
+        paths.newPath().setRectRaw(49.125, 2.5, 105.75, 425.75)
+        painter.fillPath(&paths, Color.fromArgb(0x8050_8030'u32), .NonZero)
+        painter.end()
+        expect renderer.draw(&painter)
+        images[draw] = cpu.surfaceImage()
+    }
+
+    Swag.require(images[0].pixelColor(3, 280) == white)
+    Swag.require(images[0].pixelColor(40, 280) != white)
+    Swag.require(images[0].pixelColor(40, 289) == white)
+    Swag.require(images[0].pixelColor(40, 370) == white)
+    for byte, index in images[0].pixels do
+        Swag.require(byte == images[1].pixels[index])
+}

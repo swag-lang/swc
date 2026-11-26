@@ -1262,3 +1262,65 @@ Swag produced 226,578 bytes at 43.876 dB, and libjpeg-turbo produced 224,587 at
 46.832 dB. The speed change retains the prior JPEG pixels. TIFF used the same
 compression and scanline layout and matched LibTIFF pixel checksums on all 21
 profiles. The FileSamples LZW output sizes are 580,698 and 580,486 bytes.
+
+### Follow-up with matched pixels and encoder settings
+
+The cumulative WebP comparison between `06923` and `a15bba58a5` used 13 rotating
+native Release trials on Linux. All four WebP outputs kept their Swag CRC64.
+The two lossless inputs matched libwebp pixel for pixel.
+
+| WebP decode fixture | Earlier Swag (ms) | Current Swag (ms) | libwebp 1.5.0 (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples opaque VP8, 4275 × 2451 | 597.853 | 139.309 | 91.786 |
+| VP8L photo derived from FileSamples | 655.954 | 253.932 | 177.436 |
+| VP8 photo with alpha | 140.208 | 33.132 | 29.031 |
+| VP8L 16-color fixture | 30.144 | 9.874 | 4.498 |
+
+A separate 19-trial comparison of the last VP8 change gave 122.022 to 111.268 ms,
+with libwebp at 88.630 ms. The paired improvement was 2.14%. The photo-detail,
+noise and alpha controls gained 5.12%, 8.35% and 1.15% in the same series.
+
+| Fixture and comparison | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| DDS encode, uncompressed RGBA8 noise, 1601 × 1067 | 3.989 | 0.901 | ImageMagick 7.1.1-43, 36.462 |
+| KTX2 encode, uncompressed RGBA8 noise, 1601 × 1067 | 3.734 | 0.933 | KTX-Software 4.4.2, 1.355 |
+| TGA RLE encode, RGBA8 noise, in-place packet output | 11.263 | 2.340 | Pillow 12.3.0, 8.398 |
+| DDS decode, RGB565, 2051 × 1153 | 16.738 | 1.351 | |
+| DDS decode, A2R10G10B10, 2051 × 1153 | 30.178 | 3.242 | |
+| TIFF decode, LZW RGB noise, multiple strips | 15.983 | 11.074 | LibTIFF 4.7.0, 13.165 |
+| TIFF decode, LZW photo with prediction, multiple strips | 26.025 | 21.052 | LibTIFF 4.7.0, 21.286 |
+| TIFF decode, RGB stripes with three-byte prediction | 5.245 | 3.032 | LibTIFF 4.7.0, 7.808 |
+| PNG decode, RGB noise with Sub | 3.188 | 1.169 | |
+| PNG encode, RGB16 byte order, compression level 0 | 3.557 | 1.470 | |
+| Raw zlib encode, FileSamples rows, compression level 6, packed output | 56.460 | 51.070 | zlib 55.640, zlib-ng 23.630 |
+
+The DDS and KTX2 writers each matched their external reference on four texture
+outputs. The Swag files remain byte-identical. The two DDS packed mask paths
+retain their previously rounded RGBA8 values. ImageMagick produced different
+RGBA8 bytes on those two non-byte-aligned DDS layouts. The original DDS and the
+BMP/TGA paths that share the 16-bit unpacking code were stable in a 37-trial
+control. Thirteen source images produced byte-identical TGA files in the initial
+encoder optimization, and ImageMagick decoded the expected pixels in both raw
+and RLE modes.
+
+The VP8L writer now measures separate palette and direct modes. The structured
+16-color fixture went from 4,644,472 to 1,832 bytes and from 17.487 to 9.345 ms.
+Libwebp used 3,448 bytes and 20.822 ms at lossless speed 0. Its speed-6 setting
+produced 1,312 bytes in 156.586 ms in a separate repeat. The 256-color extension
+reduced the random palette fixture from 625,268 to 158,244 bytes. Swag took
+1.701 ms versus its earlier 1.027 ms, and libwebp took 6.390 ms for 156,338 bytes.
+All three streams produce the same pixels. On the structured 64-color fixture,
+Swag shortened 4,648,222 to 4,832 bytes and 18.647 to 9.007 ms. Libwebp used
+4,382 bytes in 30.953 ms. The 257-color control uses the direct writer and kept
+the original bytes.
+
+After `00964dcfde`, the Q95 JPEG results with the same input pixels, 4:4:4 tables
+and decode reference changed from 43.876 to 46.853 dB for FileSamples JPG. The
+file went from 226,578 to 223,189 bytes. Libjpeg-turbo gives 46.832 dB at
+224,587 bytes. The corresponding JFIF went from 47.885 to 55.308 dB and 160,255
+to 156,142 bytes, with libjpeg-turbo at 55.227 dB and 157,786 bytes.
+
+The integrated raster checkpoint at `f8ab0bce60` passed 376 native Pixel tests
+and 63 native Core tests. The Linux compiler at `e79dcabcda` used its matching
+`Core.Math` 128-bit integer source in that benchmark checkout. The tested
+image, compression and buffer code came from the checkpoint.

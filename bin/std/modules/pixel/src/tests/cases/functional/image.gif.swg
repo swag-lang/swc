@@ -480,6 +480,23 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     Swag.require(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
+// A solid BGRA8 image needs the same binary transparency as an indexed image.
+#test
+{
+    for alpha in [127'u8, 128]
+    {
+        var source = Image.create(7, 37, .BGRA8)
+        source.fill(Color.fromArgb(alpha, 92, 174, 227))
+        let encoded = expect source.encodeToBytes("uniform-bgra.gif")
+        let decoded = expect Image.decode("uniform-bgra.gif", encoded.toSlice())
+        Swag.require(decoded.width == source.width and decoded.height == source.height)
+        if alpha == 127 do
+            assertGifPixelAt(decoded, 6, 36, 0, 0, 0, 0)
+        else do
+            assertGifPixelAt(decoded, 6, 36, 92, 174, 227, 255)
+    }
+}
+
 // All 256 GIF colour slots remain exact, including the highest index.
 #test
 {

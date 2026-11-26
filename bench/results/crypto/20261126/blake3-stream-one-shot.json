@@ -1,0 +1,490 @@
+{
+  "utc": "2026-11-26T12:50:00.061064+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    4
+  ],
+  "workers": {
+    "current": 4,
+    "combined": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "BLAKE3 C 1.8.7 | dispatch width 16",
+  "reference_sha256": "ebef2902c071c78e7e333d4b7b55ad247c765e012517d1eb044dda4c2858a5fb",
+  "swag_builds": {
+    "current": "aeed15545161eaba56457a5fc5c88eaefeb160632984883c73918c46b58a8c45",
+    "combined": "0bbbd8439b183076ca2c63cf908040c2101531f7e4dd6b66ad27e20e014256f9"
+  },
+  "rounds": 11,
+  "target_ms": 25,
+  "clock": "wall",
+  "rows": [
+    {
+      "algorithm": "blake3",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 17,
+          "wall": [
+            0.023008631,
+            0.02284195,
+            0.023023133,
+            0.022871134,
+            0.022255095,
+            0.025931108,
+            0.022310758,
+            0.022295236,
+            0.0223714,
+            0.023084806,
+            0.022525263
+          ],
+          "cpu": [
+            0.022987755,
+            0.022806504,
+            0.022989526,
+            0.022829719,
+            0.02225301,
+            0.025878349,
+            0.022292019,
+            0.022271077,
+            0.022348762,
+            0.023064799,
+            0.022522912
+          ]
+        },
+        "current": {
+          "iterations": 6,
+          "wall": [
+            0.02302711,
+            0.021659907,
+            0.024183433,
+            0.021052131,
+            0.027480587,
+            0.025953894,
+            0.025909246,
+            0.02459276,
+            0.024783938,
+            0.022081734,
+            0.022298851
+          ],
+          "cpu": [
+            0.062887334,
+            0.062273397,
+            0.070942775,
+            0.062212637,
+            0.081266809,
+            0.073237599,
+            0.075828907,
+            0.070697433,
+            0.074116989,
+            0.062441681,
+            0.062218415
+          ]
+        },
+        "combined": {
+          "iterations": 5,
+          "wall": [
+            0.026616242,
+            0.019346128,
+            0.019211975,
+            0.021881873,
+            0.023251858,
+            0.024228461,
+            0.021730033,
+            0.020331944,
+            0.025430224,
+            0.01784923,
+            0.021457262
+          ],
+          "cpu": [
+            0.056579539,
+            0.06276506,
+            0.051644662,
+            0.065900219,
+            0.066368316,
+            0.069399821,
+            0.060174272,
+            0.058748368,
+            0.07180409,
+            0.051803699,
+            0.058288003
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "BLAKE3 C",
+          "current",
+          "combined"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "BLAKE3 C",
+          "current",
+          "combined"
+        ],
+        [
+          "current",
+          "BLAKE3 C",
+          "combined"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "BLAKE3 C",
+          "current",
+          "combined"
+        ],
+        [
+          "BLAKE3 C",
+          "combined",
+          "current"
+        ],
+        [
+          "BLAKE3 C",
+          "current",
+          "combined"
+        ],
+        [
+          "BLAKE3 C",
+          "current",
+          "combined"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "combined",
+          "current"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 4,
+          "wall": [
+            0.027349568,
+            0.029106808,
+            0.027000583,
+            0.027866478,
+            0.026817656,
+            0.029548825,
+            0.030232606,
+            0.027487767,
+            0.026934933,
+            0.026013333,
+            0.026636643
+          ],
+          "cpu": [
+            0.027337742,
+            0.029093757,
+            0.026997155,
+            0.027863546,
+            0.026814803,
+            0.02910266,
+            0.030229358,
+            0.027484991,
+            0.026932468,
+            0.026010335,
+            0.026622417
+          ]
+        },
+        "current": {
+          "iterations": 2,
+          "wall": [
+            0.033038348,
+            0.032141165,
+            0.038660016,
+            0.027508908,
+            0.030735275,
+            0.039873397,
+            0.040578259,
+            0.034530859,
+            0.040751741,
+            0.037750885,
+            0.036411024
+          ],
+          "cpu": [
+            0.089543102,
+            0.08896503,
+            0.109151994,
+            0.085214564,
+            0.085651015,
+            0.100548646,
+            0.094485372,
+            0.084928156,
+            0.119554854,
+            0.099335232,
+            0.108166726
+          ]
+        },
+        "combined": {
+          "iterations": 1,
+          "wall": [
+            0.013759322,
+            0.017002743,
+            0.014305476,
+            0.016140824,
+            0.017140141,
+            0.019337815,
+            0.01662898,
+            0.013676566,
+            0.016061724,
+            0.016612545,
+            0.016942432
+          ],
+          "cpu": [
+            0.042554141,
+            0.042530868,
+            0.044354083,
+            0.042244112,
+            0.042320093,
+            0.054448066,
+            0.042389888,
+            0.042453263,
+            0.052234258,
+            0.044005773,
+            0.042198863
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "current",
+          "BLAKE3 C",
+          "combined"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "BLAKE3 C",
+          "combined",
+          "current"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "current",
+          "combined"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "combined",
+          "current"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "current",
+          "BLAKE3 C",
+          "combined"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 67108864,
+      "offset": 0,
+      "input_sha256": "1bda7c0e7690d289e602e9f416c93049bba272f277179bbc522751483dfd365f",
+      "output_sha256": "c9a6ccfcaceecfa026f3e59c51a64a0a410134b1ff9b45655a0f0cbfe6aacdd8",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 2,
+          "wall": [
+            0.031068076,
+            0.033015399,
+            0.027478242,
+            0.030200948,
+            0.030178885,
+            0.028166189,
+            0.0268799,
+            0.027157889,
+            0.029064885,
+            0.02847203,
+            0.028413062
+          ],
+          "cpu": [
+            0.031065113,
+            0.033012368,
+            0.027445182,
+            0.030197391,
+            0.030175869,
+            0.0281554,
+            0.026877096,
+            0.027154679,
+            0.02906199,
+            0.028467956,
+            0.028410069
+          ]
+        },
+        "current": {
+          "iterations": 1,
+          "wall": [
+            0.044224478,
+            0.031880637,
+            0.027800568,
+            0.033850583,
+            0.034704695,
+            0.028529738,
+            0.02821332,
+            0.033991034,
+            0.031696915,
+            0.036091252,
+            0.032740027
+          ],
+          "cpu": [
+            0.114512574,
+            0.101772676,
+            0.086070859,
+            0.08492971,
+            0.103633905,
+            0.089479193,
+            0.08745404,
+            0.086005563,
+            0.086164799,
+            0.094032905,
+            0.086861367
+          ]
+        },
+        "combined": {
+          "iterations": 1,
+          "wall": [
+            0.033503169,
+            0.033231248,
+            0.027237779,
+            0.026910616,
+            0.03063916,
+            0.033253131,
+            0.033353012,
+            0.02893602,
+            0.02825304,
+            0.033386161,
+            0.026825867
+          ],
+          "cpu": [
+            0.083965002,
+            0.087082767,
+            0.083740439,
+            0.084632996,
+            0.083898924,
+            0.083849817,
+            0.083658548,
+            0.087983367,
+            0.08466134,
+            0.106581926,
+            0.085104952
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "current",
+          "combined",
+          "BLAKE3 C"
+        ],
+        [
+          "current",
+          "BLAKE3 C",
+          "combined"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "current",
+          "BLAKE3 C",
+          "combined"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "combined",
+          "current",
+          "BLAKE3 C"
+        ],
+        [
+          "current",
+          "combined",
+          "BLAKE3 C"
+        ],
+        [
+          "combined",
+          "BLAKE3 C",
+          "current"
+        ],
+        [
+          "current",
+          "BLAKE3 C",
+          "combined"
+        ]
+      ]
+    }
+  ]
+}

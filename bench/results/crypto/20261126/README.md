@@ -109,3 +109,4 @@ optimizations moved each result.
 - [Portable GHASH with persistent field state](ghash-portable-stream.md)
 - [ChaCha20 key and nonce reuse across batches](chacha20-chunk-reuse.md)
 - [Packed BLAKE2 state initialization and feed-forward](blake2-state.md)
+- [BLAKE3 streaming updates and full SIMD batches](blake3-stream-updates.md)

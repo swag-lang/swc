@@ -124,8 +124,18 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     }
 
     // This published vector crosses the parallel threshold and checks multi-level tree merging.
+    const LargeDigest = "bc3e3d41a1146b069abffad3c0d44860cf664390afce4d9661f7902e7943e085"
     let large = blake3Pattern(102400)
-    assertBlake3(large.toSlice(), "bc3e3d41a1146b069abffad3c0d44860cf664390afce4d9661f7902e7943e085")
+    assertBlake3(large.toSlice(), LargeDigest)
+
+    // Resume inside a chunk before feeding enough data for a worker range.
+    var hash = Hash.Blake3.create()
+    hash.update(large.toSlice()[until 1025])
+    hash.update(large.toSlice()[1025 to])
+    var streamed: [32] u8
+    expect hash.finalize(streamed)
+    let reference = blake3HexBytes(LargeDigest)
+    Swag.require(Crypto.constantTimeEqual(streamed, reference.toSlice()))
 }
 
 #test

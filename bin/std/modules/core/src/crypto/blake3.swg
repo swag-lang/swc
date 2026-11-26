@@ -195,9 +195,14 @@ private func blake3ChunkOutput(data: const [..] u8, counter: u64, key: [8] u32, 
 }
 
 private const Blake3ChunksPerBatch = 4
+private const Blake3WordsPerCv     = Blake3KeySize / #sizeof(u32)
+
+// Large updates can amortize worker scheduling across several complete batches.
+private const Blake3ParallelBytes  = 64 * 1024
 private const Blake3BlocksPerChunk = Blake3ChunkSize / Blake3BlockSize
 
-private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32)->[Blake3ChunksPerBatch][8] u32
+// When the final block stays buffered, return the last lane's chaining value before it.
+private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32, keepLastInput = false)->[Blake3ChunksPerBatch][8] u32
 {
     // Each lane keeps one chunk's chaining value across all sixteen blocks.
     var cv: [8] Blake3Vector
@@ -273,8 +278,17 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
         mixRound'4()
         mixRound'5()
         mixRound'6()
-        for index in 8 do
-            cv[index] = state[index] ^ state[index + 8]
+        if keepLastInput and blockIndex == Blake3BlocksPerChunk - 1
+        {
+            const RetainLast = cast(Blake3Vector, [0'u32, 0, 0, Swag.U32.Max])
+            for index in 8 do
+                cv[index] = Math.Simd.select(RetainLast, cv[index], state[index] ^ state[index + 8])
+        }
+        else
+        {
+            for index in 8 do
+                cv[index] = state[index] ^ state[index + 8]
+        }
     }
 
     var result: #returntype
@@ -287,6 +301,16 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
     }
 
     return result
+}
+
+private func blake3HashBatches(input: const [*] u8, output: [*] u32, batches, firstChunk: u64, key: [8] u32, flags: u32)
+{
+    parallel for |input, output, firstChunk, key, flags| batch in batches
+    {
+        let chunk = batch * Blake3ChunksPerBatch
+        let cvs   = blake3FourChunkCvs(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
+        Swag.memcpy(output + chunk * Blake3WordsPerCv, &cvs[0][0], #sizeof(cvs))
+    }
 }
 
 // Stores an incremental BLAKE3 sequence with unkeyed, keyed, or context-derived key state.
@@ -341,6 +365,12 @@ public impl Blake3
     // Includes `data` in the running BLAKE3 sequence.
     mtd update(data: const [..] u8)
     {
+        let useWorkers = data.count >= Blake3ParallelBytes and Swag.workerCount() > 1
+        .updateChunks(data, useWorkers)
+    }
+
+    private mtd updateChunks(data: const [..] u8, useWorkers: bool)
+    {
         Swag.assert(.initialized, "BLAKE3 needs an initialized sequence")
         let input  = data.buffer
         var offset = 0'u64
@@ -366,15 +396,34 @@ public impl Blake3
                 }
             }
 
-            // Keep the last chunk available for root output until following input is known.
+            // Preserve the final chunk's last block for root output.
             const BatchBytes = Blake3ChunksPerBatch * Blake3ChunkSize
-            if .blockSize == 0 and .blocksCompressed == 0 and data.count - offset > BatchBytes
+            let remaining = data.count - offset
+            if .blockSize == 0 and .blocksCompressed == 0 and remaining >= BatchBytes
             {
-                let cvs = blake3FourChunkCvs(input + offset, .chunkCounter, .key, .flags)
-                for cv in cvs
+                if useWorkers and remaining >= Blake3ParallelBytes
                 {
-                    .pushChunkCv(cv)
+                    let batches = (remaining - 1) / BatchBytes
+                    .pushParallelBatches(input + offset, batches)
+                    offset += batches * BatchBytes
+                    continue
+                }
+
+                let retainLast     = remaining == BatchBytes
+                let cvs            = blake3FourChunkCvs(input + offset, .chunkCounter, .key, .flags, retainLast)
+                let completeChunks = retainLast ? Blake3ChunksPerBatch - 1 : Blake3ChunksPerBatch
+                for chunk in completeChunks
+                {
+                    .pushChunkCv(cvs[chunk])
                     .chunkCounter += 1
+                }
+
+                if retainLast
+                {
+                    .chunkCv          = cvs[Blake3ChunksPerBatch - 1]
+                    .blocksCompressed = Blake3BlocksPerChunk - 1
+                    .blockSize        = Blake3BlockSize
+                    Swag.memcpy(&.block[0], input + offset + BatchBytes - Blake3BlockSize, Blake3BlockSize)
                 }
 
                 offset += BatchBytes
@@ -495,47 +544,50 @@ public impl Blake3
         if workers <= 1 or chunkCount < cast(u64, workers) * 2
         {
             var hash = Blake3.createWithKeyAndFlags(key, flags)
-            hash.update(data)
+            hash.updateChunks(data, false)
             try hash.finalize(destination)
             return
         }
 
+        const WordsPerCv = Blake3WordsPerCv
         var chainingValues: Array'u32
-        chainingValues.resize((chunkCount - 1) * 8)
+        chainingValues.resize((chunkCount - 1) * WordsPerCv)
         let input  = data.buffer
         let output = unwrap chainingValues.buffer
 
-        // Workers write disjoint groups in leaf order for the sequential tree fold.
         let batchCount = (chunkCount - 1) / Blake3ChunksPerBatch
-        parallel for |input, output, key, flags| batch in batchCount
-        {
-            let first = batch * Blake3ChunksPerBatch
-            let cvs   = blake3FourChunkCvs(input + first * Blake3ChunkSize, first, key, flags)
-            Swag.memcpy(output + first * 8, &cvs[0][0], #sizeof(cvs))
-        }
-
+        blake3HashBatches(input, output, batchCount, 0, key, flags)
         for chunkIndex in batchCount * Blake3ChunksPerBatch until chunkCount - 1
         {
             let chunk = Swag.makeSlice(input + chunkIndex * Blake3ChunkSize, Blake3ChunkSize)
             let cv    = blake3OutputCv(blake3ChunkOutput(chunk, chunkIndex, key, flags))
-            for word in 8 do
-                output[chunkIndex * 8 + word] = cv[word]
+            Swag.memcpy(output + chunkIndex * WordsPerCv, &cv[0], #sizeof(cv))
         }
 
         var hash = Blake3.createWithKeyAndFlags(key, flags)
-        for chunkIndex in chunkCount - 1
-        {
-            var cv: [8] u32
-            for word in 8 do
-                cv[word] = chainingValues[chunkIndex * 8 + word]
-            hash.chunkCounter = chunkIndex
-            hash.pushChunkCv(cv)
-        }
-
+        hash.pushChunkCvs(chainingValues.toSlice())
         let finalOffset = (chunkCount - 1) * Blake3ChunkSize
-        hash.chunkCounter = chunkCount - 1
-        hash.update(data[finalOffset to])
+        hash.updateChunks(data[finalOffset to], false)
         try hash.finalize(destination)
+    }
+
+    private mtd pushParallelBatches(input: const [*] u8, batches: u64)
+    {
+        var chainingValues: Array'u32
+        chainingValues.resize(batches * Blake3ChunksPerBatch * Blake3WordsPerCv)
+        blake3HashBatches(input, unwrap chainingValues.buffer, batches, .chunkCounter, .key, .flags)
+        .pushChunkCvs(chainingValues.toSlice())
+    }
+
+    private mtd pushChunkCvs(words: const [..] u32)
+    {
+        for chunk in words.count / Blake3WordsPerCv
+        {
+            var cv: [Blake3WordsPerCv] u32
+            Swag.memcpy(&cv[0], words.buffer + chunk * Blake3WordsPerCv, #sizeof(cv))
+            .pushChunkCv(cv)
+            .chunkCounter += 1
+        }
     }
 
     private mtd pushChunkCv(cv: [8] u32)

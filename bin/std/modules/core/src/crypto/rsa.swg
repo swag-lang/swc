@@ -106,9 +106,19 @@ private func rsaMontgomeryCreate(modulus: const [..] u8)->RsaMontgomery fail
         for 32 do
             rsaDoubleModulo(&result.one, &result)
     }
-    result.r2 = result.one
-    for result.limbCount * 64 do
-        rsaDoubleModulo(&result.r2, &result)
+    // Raise 2^64 to the public limb count in the Montgomery domain.
+    var seed = result.one
+    for 64 do
+        rsaDoubleModulo(&seed, &result)
+    result.r2 = seed
+    let highest = 31'u32 - Swag.leadingZeros(result.limbCount)
+    for step in highest
+    {
+        result.r2 = rsaMontgomerySquare(result.r2, &result)
+        let bit = highest - 1 - step
+        if (result.limbCount >> bit) & 1 do
+            result.r2 = rsaMontgomeryMultiply(result.r2, seed, &result)
+    }
     return result
 }
 

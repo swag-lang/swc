@@ -1,0 +1,580 @@
+{
+  "cases": [
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2048,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2048,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2048,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "9d91c2dde69ab735b596d1183dbc39fdedbc73be4816968c3bb965fe6a056a02"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2048,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "76ee1b3d7c897a7c9466ca05dbbd000ea1ffa8823aea1f548fb2ed0c28a6c69d"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2048,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2048,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2048,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "49f7acf573b27530405388dee738ade6f583e025b81ffbf913d723d466f8c7ae"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2048,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "22f98e5473586d84a76f84bd3853804b0c8432e94931760f86bcf2219874a98a"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2048,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2048,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2048,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "4e461c35a98403f32376802ced408815137de63690cef40263fb2ed12f4bd819"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2048,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "518f0f44f3f0fe1f71edf29c0f1d34a3679a91ecb5d342449905dacf907438e3",
+      "output_sha256": "dc69e4468b0f94d69ae06a16c9e767666bb4a5ec2840c6a89585c86c14b2e2b4"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "c5ae9f2d62f50db0bc3807f9eca7daa0cd7ed747bbbf3d4d56c2f663693b1403"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "7c3ef9ad5602c5de71e72b4f9213c9ff0e3142b8aac42bba8b10618b701d1155"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "fa98a1e2ccea0989cf83ce669d54337e7f5d09669a3a51c013074f7b12350951"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "f01ba0deaac8dcdd90938d692d7cd2278ea469bf465d064f64fd2fc7d0a02b0e"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "06391ff7d23ca514315c9b0974929b6ceb853f054dbbc875741dc1a7b6e24ce7"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "770aa3c1fb7fb0597be13d49d58c23be95cb53b1b42b30be78b98379529cd101",
+      "output_sha256": "9feee9ea72d2792cbdd75318f41125cb97c7c776d16dba9d09fe3d98ff050d69"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 3072,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 3072,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 3072,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "eb3f6edeb584dbe54359c7573cf96b57e53ff0ebf885033273c6c50f0b135bff"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 3072,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "b6923a79a84386438add897855451e8b902ae2b72c207dd9b20b5f6eb3017b18"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 3072,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 3072,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 3072,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "1fc3d75d6df3452049fa93986dc414e2a3ae60c65185e51efb335fe142a83aad"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 3072,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "f6d170ef4eb59d9a7d2d36f71ff48520938109a7775a0eaefbcf3eb0c4c01a2e"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 3072,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 3072,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 3072,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "bde3f7037105505725f4419bebfa9151ece3e2f6fc7b1af94008f62720be1a88"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 3072,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "39b6ee5fbd246407968bcc96e9a6d3b95e1038d424f414858a69bd4919cd767b",
+      "output_sha256": "26d6287071c45a140198c6f11fa3e1d58d63bcceebb70ae8e600c2ebaf3c2a50"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 4096,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 4096,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 4096,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "048558c873582a100855a03aa07eaa68e7e2d940848a061464fcb134bde860ed"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 4096,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "9899ae0b7dc466620d79c7420b58249110472623c714bdbb2bde01dbd6c0080f"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 4096,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 4096,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 4096,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "2aced83a8acc3a19e01c96c2ee5b5dd0c8f5c6dc5c86ebda47f2daac3dc97800"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 4096,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "291ed94617995ada96bfd8b295e8ae3b9c5fbe3825ffefe429f9bda473d08f83"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 4096,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 4096,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "a6250da1e7ca144af7fdac8fd737c2e88e87cc08e232b16b53452227a56d5dde"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 4096,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "83744297e1e83e1c1534826f5f34fbba5271f8df73bc4ecc4067fd1ff8ff4d50"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 4096,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "9e1673bbd454a1dbe4c05f81f7a56d73f86e42a20a8641e0b31e3e1cd5309797",
+      "output_sha256": "30e2444ec626f882fe478a5f1e231ad0649521b9827345a70b0f4a9e394bc379"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "6d03c2fad22e85a44ede9aedef508b7d5a45954a0f71a4edb7434b271fed2333"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2080,
+      "offset": 0,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "40438e871de07f26a8c791582d007000233b0948a470dc43fb621180b65f5f33"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "c12131fd2a6b3d1cd6f7c35a17dda3982d428843c13756ba432ddbe1cf342548"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2080,
+      "offset": 1,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "4e6fad629767901cfe1bd07083dfd0d11c253155bb1a4f1735b6107e8d0f312c"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "b938d57ce95669fad6814f2ee8e514b6e85d30fe783fce831d7b3768fa50b0e0"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 2080,
+      "offset": 7,
+      "public_exponent": 3,
+      "fixture_sha256": "afab37a68382d82b9716accf7721b0c2a3bd24e4a8072b8ee10bd55ffd2136e8",
+      "output_sha256": "e794cc7464caee9ead1167f4f4318a3ebe405cac00a5f39b09ec3fcd6a5dacdf"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 4064,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 4064,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 4064,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "57e2d9346a9fe883845c77faf727436e8417c232cda03d0e4f140f7e34e8faae"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 4064,
+      "offset": 0,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "f8dd21073c858526e3623ec26a14bad2a5117e945c2a6ef93b1f3f35a87fef3a"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 4064,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 4064,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 4064,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "5aea080ad7b7d5665700b3c33ffa189a4f93a0f1bc0841ba4a97b49a08a9021b"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 4064,
+      "offset": 1,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "479d0f1384586e3650420ca994335c7e9a5f58f09a169bad5e71e29d0817a11c"
+    },
+    {
+      "operation": "rsa-pss-verify",
+      "bits": 4064,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a"
+    },
+    {
+      "operation": "rsa-oaep-decrypt",
+      "bits": 4064,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "29af2686fd53374a36b0846694cc342177e428d1647515f078784d69cdb9e488"
+    },
+    {
+      "operation": "rsa-pss-sign",
+      "bits": 4064,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "f5a39b2d8814138a284c20a0649163372203ab31ddd6b011601631dea245cd72"
+    },
+    {
+      "operation": "rsa-oaep-encrypt",
+      "bits": 4064,
+      "offset": 7,
+      "public_exponent": 65537,
+      "fixture_sha256": "b62428fd2866dbe813cde5c241e00bcc1b86cc27cb12f2acc3b8b9031133b149",
+      "output_sha256": "ae97020615cfdb5420095c9944908b951a212ce22dc1e00a5e2ba857a2bc72f7"
+    }
+  ]
+}

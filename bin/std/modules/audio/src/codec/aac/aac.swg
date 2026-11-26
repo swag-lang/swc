@@ -11,6 +11,14 @@ private const FrameSamples = 1024
 private const MaxBands     = 8 * 52
 private const MaxChannels  = 6
 
+// A nonzero lookup entry packs four biased six-bit coefficients followed by the number
+// of bits consumed. Long words, and prefixes near the end of the packet, use the tree.
+private const SpectralPrefixBits = 11
+private const SpectralValueBias  = 16
+private const SpectralValueBits  = 6
+private const SpectralValueMask  = (1'u32 << SpectralValueBits) - 1
+private const SpectralCountShift = 4 * SpectralValueBits
+
 private struct BitReader
 {
     data:    const [*] u8
@@ -62,6 +70,24 @@ private impl BitReader
         }
 
         return (cast(u32, .data[pos >> 3]) >> (7 - (pos & 7))) & 1
+    }
+
+    mtd readEscapeMagnitude()->s32 fail
+    {
+        var leading = 0's32
+        while .get1() do
+            leading += 1
+        if leading > 11 do
+            fail InvalidFormatError{"AAC escape coefficient is too large"}
+        let bits = leading + 4
+        return (1 << bits) + cast(s32, .get(bits))
+    }
+
+    // The caller has checked that a complete 32-bit word remains.
+    mtd const peekSpectralPrefix()->u32
+    {
+        let word = Math.bigEndianToNative(cast(const [*] u32, .data + (.bitPos >> 3))[0])
+        return (word >> (32 - SpectralPrefixBits - (.bitPos & 7))) & ((1'u32 << SpectralPrefixBits) - 1)
     }
 
     // The caller has checked that eight bits remain.
@@ -172,10 +198,10 @@ private struct ImdctPlan
     size:    s32
     quarter: s32
     reverse: [512] u32
-    fftReal: [512] f64
-    fftImag: [512] f64
-    twReal:  [512] f64
-    twImag:  [512] f64
+    fftReal: [512] f32
+    fftImag: [512] f32
+    twReal:  [512] f32
+    twImag:  [512] f32
 }
 
 private impl ImdctPlan
@@ -198,8 +224,8 @@ private impl ImdctPlan
             for j in butterfly
             {
                 let angle = 2.0 * pi * cast(f64, j * stride) / cast(f64, quarter)
-                .fftReal[butterfly + j] = Math.cos(angle)
-                .fftImag[butterfly + j] = Math.sin(angle)
+                .fftReal[butterfly + j] = cast(f32, Math.cos(angle))
+                .fftImag[butterfly + j] = cast(f32, Math.sin(angle))
             }
 
             stride    >>= 1
@@ -210,44 +236,53 @@ private impl ImdctPlan
         for i in cast(u64, .quarter)
         {
             let angle = pi * (cast(f64, i) + 0.125) / cast(f64, half)
-            .twReal[i] = Math.cos(angle)
-            .twImag[i] = -Math.sin(angle)
+            .twReal[i] = cast(f32, Math.cos(angle))
+            .twImag[i] = -cast(f32, Math.sin(angle))
         }
     }
 
-    mtd const run(spectrum: const [*] f64, output: [*] f64)
+    mtd const run(spectrum: const [*] f64, output: [*] f32)
     {
         let half    = .size / 2
         let quarter = .quarter
-        var real: [512] f64
-        var imag: [512] f64
-        let re      = cast([*] f64, &real[0])
-        let im      = cast([*] f64, &imag[0])
-        let cos     = cast(const [*] f64, &.fftReal[0])
-        let sin     = cast(const [*] f64, &.fftImag[0])
+        var real: [512] f32
+        var imag: [512] f32
+        let re      = cast([*] f32, &real[0])
+        let im      = cast([*] f32, &imag[0])
+        let cos     = cast(const [*] f32, &.fftReal[0])
+        let sin     = cast(const [*] f32, &.fftImag[0])
         for k in cast(u64, quarter)
         {
-            let a     = spectrum[2 * k] * 0.5
-            let b     = -spectrum[cast(u64, half) - 1 - 2 * k] * 0.5
+            let a     = cast(f32, spectrum[2 * k]) * 0.5
+            let b     = -cast(f32, spectrum[cast(u64, half) - 1 - 2 * k]) * 0.5
             let index = .reverse[k]
             re[index] = a * .twReal[k] + b * .twImag[k]
             im[index] = -a * .twImag[k] + b * .twReal[k]
         }
 
-        // The first stage has one butterfly per group.
-        for group in cast(u64, quarter) / 2
+        // The first two stages have fewer than four butterflies per group.
+        for stage in 2
         {
-            let a  = 2 * group
-            let b  = a + 1
-            let xr = re[b] * cos[1] - im[b] * sin[1]
-            let xi = re[b] * sin[1] + im[b] * cos[1]
-            re[b] = re[a] - xr
-            im[b] = im[a] - xi
-            re[a] += xr
-            im[a] += xi
+            let span   = 1'u32 << stage
+            let length = 2 * span
+            for group in cast(u32, quarter) / length
+            {
+                let base = group * length
+                for j in span
+                {
+                    let a  = base + j
+                    let b  = a + span
+                    let xr = re[b] * cos[span + j] - im[b] * sin[span + j]
+                    let xi = re[b] * sin[span + j] + im[b] * cos[span + j]
+                    re[b] = re[a] - xr
+                    im[b] = im[a] - xi
+                    re[a] += xr
+                    im[a] += xi
+                }
+            }
         }
 
-        var butterfly = 2'u32
+        var butterfly = 4'u32
         while butterfly < quarter
         {
             let length = 2 * butterfly
@@ -271,7 +306,7 @@ private impl ImdctPlan
                     Simd.store(im + b, ai - xi)
                     Simd.store(re + a, ar + xr)
                     Simd.store(im + a, ai + xi)
-                    j += 2
+                    j += 4
                 }
 
                 base += length
@@ -280,36 +315,64 @@ private impl ImdctPlan
             butterfly = length
         }
 
-        var folded: [1024] f64
-        let inverse = 2.0 / cast(f64, quarter)
-        for i in cast(u64, quarter)
+        let inv   = cast(f32, (1.0 / cast(f64, quarter)))
+        let rotRe = cast(const [*] f32, &.twReal[0])
+        let rotIm = cast(const [*] f32, &.twImag[0])
+        let span  = cast(u64, quarter)
+        for group in span / 4
         {
-            let realValue = real[i] * inverse
-            let imagValue = imag[i] * inverse
-            folded[2 * i] = realValue * .twReal[i] + imagValue * .twImag[i]
-            folded[cast(u64, half) - 1 - 2 * i] = -realValue * .twImag[i] + imagValue * .twReal[i]
+            let i       = 4 * group
+            let c       = Simd.load(rotRe + i)
+            let sn      = Simd.load(rotIm + i)
+            let r       = Simd.load(re + i) * inv
+            let imValue = Simd.load(im + i) * inv
+            Simd.store(re + i, r * c + imValue * sn)
+            Simd.store(im + i, imValue * c - r * sn)
         }
 
-        for i in cast(u64, quarter)
+        // Each FFT half supplies four even lanes and four reflected odd lanes.
+        const FirstTwo = cast(Simd.U32x4, [0'u32, 7, 1, 6])
+        const LastTwo  = cast(Simd.U32x4, [2'u32, 5, 3, 4])
+        for group in span / 8
         {
-            let b = folded[cast(u64, quarter) + i] * 0.5
-            let a = -folded[i] * 0.5
-            output[i] = b
-            output[cast(u64, (2 * quarter)) - 1 - i] = -b
-            output[cast(u64, (3 * quarter)) + i]     = a
-            output[cast(u64, (3 * quarter)) - 1 - i] = a
+            let i             = 4 * group
+            let j             = i + span / 2
+            let lowMirror     = span / 2 - 4 - i
+            let highMirror    = span - 4 - i
+            let lowRe         = Simd.load(re + i)
+            let lowIm         = Simd.load(im + i)
+            let highRe        = Simd.load(re + j)
+            let highIm        = Simd.load(im + j)
+            let reverseLowRe  = Simd.load(re + lowMirror)
+            let reverseLowIm  = Simd.load(im + lowMirror)
+            let reverseHighRe = Simd.load(re + highMirror)
+            let reverseHighIm = Simd.load(im + highMirror)
+            let first         = output + 2 * i
+            let second        = first + span
+            let third         = second + span
+            let fourth        = third + span
+            Simd.store(first, Simd.permute2(highRe, reverseLowIm, FirstTwo))
+            Simd.store(first + 4, Simd.permute2(highRe, reverseLowIm, LastTwo))
+            Simd.store(second, -Simd.permute2(lowIm, reverseHighRe, FirstTwo))
+            Simd.store(second + 4, -Simd.permute2(lowIm, reverseHighRe, LastTwo))
+            Simd.store(third, -Simd.permute2(highIm, reverseLowRe, FirstTwo))
+            Simd.store(third + 4, -Simd.permute2(highIm, reverseLowRe, LastTwo))
+            Simd.store(fourth, -Simd.permute2(lowRe, reverseHighIm, FirstTwo))
+            Simd.store(fourth + 4, -Simd.permute2(lowRe, reverseHighIm, LastTwo))
         }
     }
 }
 
 private var g_SpectralTrees:     [11] HuffTree
+private var g_SpectralPrefixes:  [11, 1 << SpectralPrefixBits] u32
+private var g_SignedPowers:      [2 * SpectralValueBias + 1] f64
 private var g_SpectralValues:    [11, 289, 4] s32
 private var g_ScaleTree:         HuffTree
 private var g_ImdctLong:         ImdctPlan
 private var g_ImdctShort:        ImdctPlan
-private var g_LongWindows:       [2, 1024] f64
-private var g_TransitionWindows: [2, 1024] f64
-private var g_ShortWindows:      [2, 128] f64
+private var g_LongWindows:       [2, 1024] f32
+private var g_TransitionWindows: [2, 1024] f32
+private var g_ShortWindows:      [2, 128] f32
 private var g_QuantizedPowers:   [1024] f64
 
 private const BandGainBias = 256
@@ -327,6 +390,46 @@ private func requantize(value: s32, gain: f64)->f64
     let power     = magnitude < g_QuantizedPowers.count ? g_QuantizedPowers[magnitude] :
                     Math.pow(cast(f64, magnitude), 4.0 / 3.0)
     return (value < 0 ? -power : power) * gain
+}
+
+// A primary entry contains the entire tuple and consumes the codeword and its sign bits.
+private func buildSpectralPrefixes(book: u64, code: u32, bits: u8, values: const *[4] s32)
+{
+    let dimension = BookDim[book]
+    let signed    = BookSigned[book] != 0
+    var signCount = 0'u32
+    if not signed
+    {
+        for item in dimension where values[][item] do
+            signCount += 1
+    }
+
+    let bitCount = cast(u32, bits) + signCount
+    if bitCount > SpectralPrefixBits do
+        return
+
+    let remaining = SpectralPrefixBits - bitCount
+    for signs in 1'u32 << signCount
+    {
+        var at     = signCount
+        var packed = bitCount << SpectralCountShift
+        for item in dimension
+        {
+            var coefficient = values[][item]
+            if not signed and coefficient
+            {
+                at -= 1
+                if (signs >> at) & 1 do
+                    coefficient = -coefficient
+            }
+
+            packed |= cast(u32, coefficient + SpectralValueBias) << (item * SpectralValueBits)
+        }
+
+        let first = ((code << signCount) | cast(u32, signs)) << remaining
+        for suffix in 1'u32 << remaining do
+            g_SpectralPrefixes[book, first + suffix] = packed
+    }
 }
 
 private func initializeTables()
@@ -351,6 +454,8 @@ private func initializeTables()
                 g_SpectralValues[book, index, dimension - 1 - component] = packed % radix - bias
                 packed /= radix
             }
+
+            buildSpectralPrefixes(book, codes[index], bits[index], &g_SpectralValues[book, index])
         }
 
         g_SpectralTrees[book].buildPrefixes()
@@ -364,6 +469,9 @@ private func initializeTables()
     for magnitude in g_QuantizedPowers.count do
         g_QuantizedPowers[magnitude] = Math.pow(cast(f64, magnitude), 4.0 / 3.0)
 
+    for value in g_SignedPowers.count do
+        g_SignedPowers[value] = requantize(cast(s32, value) - SpectralValueBias, 1.0)
+
     for index in g_BandGains.count do
         g_BandGains[index] = Math.pow(2.0, 0.25 * cast(f64, (cast(s32, index) - BandGainBias)))
 
@@ -371,9 +479,9 @@ private func initializeTables()
     g_ImdctShort.init(256)
 
     for index in 1024 do
-        g_LongWindows[0, index] = Math.sin(Math.ConstF64.Pi / 2048.0 * (cast(f64, index) + 0.5))
+        g_LongWindows[0, index] = cast(f32, Math.sin(Math.ConstF64.Pi / 2048.0 * (cast(f64, index) + 0.5)))
     for index in 128 do
-        g_ShortWindows[0, index] = Math.sin(Math.ConstF64.Pi / 256.0 * (cast(f64, index) + 0.5))
+        g_ShortWindows[0, index] = cast(f32, Math.sin(Math.ConstF64.Pi / 256.0 * (cast(f64, index) + 0.5)))
     initializeKbdWindow(&g_LongWindows[1, 0], 4.0, 1024)
     initializeKbdWindow(&g_ShortWindows[1, 0], 6.0, 128)
 
@@ -387,7 +495,7 @@ private func initializeTables()
     }
 }
 
-private func initializeKbdWindow(window: [*] f64, alpha: f64, half: s32)
+private func initializeKbdWindow(window: [*] f32, alpha: f64, half: s32)
 {
     var cumulative: [1024] f64
     let scaled = alpha * Math.ConstF64.Pi / cast(f64, half)
@@ -410,7 +518,7 @@ private func initializeKbdWindow(window: [*] f64, alpha: f64, half: s32)
 
     sum += 1.0
     for index in cast(u64, half) do
-        window[index] = Math.sqrt(cumulative[index] / sum)
+        window[index] = cast(f32, Math.sqrt(cumulative[index] / sum))
 }
 
 private struct Ics
@@ -446,7 +554,7 @@ private struct AacCodec
     pairStart:       [MaxChannels] bool
     usesMs:          [MaxChannels] bool
     msUsed:          [MaxChannels, MaxBands] u8
-    overlap:         [MaxChannels, FrameSamples] f64
+    overlap:         [MaxChannels, FrameSamples] f32
     previousShape:   [MaxChannels] s32
     pnsState:        u32
 }
@@ -635,7 +743,7 @@ private impl AacCodec
         }
     }
 
-    mtd imdctChannel(channel: s32, output: [*] f64)
+    mtd imdctChannel(channel: s32, output: [*] f32)
     {
         let value         = &.ics[channel]
         let currentShape  = value.windowShape
@@ -643,24 +751,32 @@ private impl AacCodec
 
         if value.windowSequence != 2
         {
-            var transformed: [2048] f64
+            var transformed: [2048] f32
             g_ImdctLong.run(&.coefficients[channel, 0], &transformed)
-            let leftWindow = value.windowSequence == 3 ? cast(const [*] f64, &g_TransitionWindows[previousShape, 0]) :
-                             cast(const [*] f64, &g_LongWindows[previousShape, 0])
-            let rightWindow = value.windowSequence == 1 ? cast(const [*] f64, &g_TransitionWindows[currentShape, 0]) :
-                              cast(const [*] f64, &g_LongWindows[currentShape, 0])
-            for index in FrameSamples
+            let leftWindow = value.windowSequence == 3 ? cast(const [*] f32, &g_TransitionWindows[previousShape, 0]) :
+                             cast(const [*] f32, &g_LongWindows[previousShape, 0])
+            let rightWindow = value.windowSequence == 1 ? cast(const [*] f32, &g_TransitionWindows[currentShape, 0]) :
+                              cast(const [*] f32, &g_LongWindows[currentShape, 0])
+            let raw     = cast(const [*] f32, &transformed[0])
+            let overlap = cast([*] f32, &.overlap[channel, 0])
+            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+            for group in FrameSamples / 4
             {
-                output[index] = (transformed[index] * leftWindow[index] + .overlap[channel, index]) / 32768.0
-                .overlap[channel, index] = transformed[FrameSamples + index] * rightWindow[FrameSamples - 1 - index]
+                let index    = 4 * group
+                let left     = Simd.load(raw + index) * Simd.load(leftWindow + index)
+                let right    = Simd.load(raw + FrameSamples + index)
+                let reversed = Simd.load(rightWindow + FrameSamples - index - 4)
+                let tail     = Simd.permute(reversed, Reverse)
+                Simd.store(output + index, left + Simd.load(overlap + index))
+                Simd.store(overlap + index, right * tail)
             }
         }
         else
         {
-            var time: [2048] f64
+            var time: [2048] f32
             for window in 8
             {
-                var transformed: [256] f64
+                var transformed: [256] f32
                 g_ImdctShort.run(&.coefficients[channel, 128 * window], &transformed)
                 let leftShape = window == 0 ? previousShape : currentShape
                 let base      = 448 + 128 * window
@@ -673,7 +789,7 @@ private impl AacCodec
 
             for index in FrameSamples
             {
-                output[index] = (time[index] + .overlap[channel, index]) / 32768.0
+                output[index] = (time[index] + .overlap[channel, index])
                 .overlap[channel, index] = time[FrameSamples + index]
             }
         }
@@ -791,6 +907,65 @@ private impl AacCodec
         }
     }
 
+    mtd(Dimension: s32, Escape: bool) decodeSpectralBand(reader: *BitReader, book: s32, dest: [*] f64, count: s32, gain: f64) fail
+    {
+        let prefixes = cast(const [*] u32, &g_SpectralPrefixes[book, 0])
+        var index    = 0's32
+        while index < count
+        {
+            var packed = 0'u32
+            if reader.left() >= 32 do
+                packed = prefixes[reader.peekSpectralPrefix()]
+
+            if packed
+            {
+                reader.bitPos += cast(s32, packed >> SpectralCountShift)
+                for component in Dimension
+                {
+                    let value       = (packed >> (component * SpectralValueBits)) & SpectralValueMask
+                    var samplePower = g_SignedPowers[value]
+                    #static if Escape
+                    {
+                        if value == 0 or value == 2 * SpectralValueBias
+                        {
+                            let magnitude = try reader.readEscapeMagnitude()
+                            samplePower = requantize(value == 0 ? -magnitude : magnitude, 1.0)
+                        }
+                    }
+
+                    dest[index + component] = samplePower * gain
+                }
+            }
+            else
+            {
+                let symbol = g_SpectralTrees[book].decode(reader)
+                if symbol < 0 or reader.overrun do
+                    fail InvalidFormatError{"AAC spectral Huffman code is invalid"}
+                var values = g_SpectralValues[book, symbol]
+                if not BookSigned[book]
+                {
+                    for component in Dimension where values[component] != 0 do
+                        if reader.get1() do
+                            values[component] = -values[component]
+                }
+
+                #static if Escape
+                {
+                    for component in Dimension where Math.abs(values[component]) == SpectralValueBias
+                    {
+                        let magnitude = try reader.readEscapeMagnitude()
+                        values[component] = values[component] < 0 ? -magnitude : magnitude
+                    }
+                }
+
+                for component in Dimension do
+                    dest[index + component] = requantize(values[component], gain)
+            }
+
+            index += Dimension
+        }
+    }
+
     mtd decodeSpectral(reader: *BitReader, channel, bandCount: s32) fail
     {
         Memory.set(&.coefficients[channel, 0], 0, #sizeof(.coefficients[0]))
@@ -818,43 +993,17 @@ private impl AacCodec
                 continue
             }
 
-            let gain      = bandGain(.scaleFactors[channel, band] - 100)
-            let dimension = cast(s32, BookDim[book - 1])
-            let signed    = BookSigned[book - 1] != 0
-            let end       = line + width
-            var index     = line
-            while index < end
-            {
-                let symbol = g_SpectralTrees[book - 1].decode(reader)
-                if symbol < 0 or reader.overrun do
-                    fail InvalidFormatError{"AAC spectral Huffman code is invalid"}
-                var values = g_SpectralValues[book - 1, symbol]
-                if not signed
-                {
-                    for item in dimension where values[item] != 0 do
-                        if reader.get1() do
-                            values[item] = -values[item]
-                    if book == 11
-                    {
-                        for item in dimension where Math.abs(values[item]) == 16
-                        {
-                            var leading = 0's32
-                            while reader.get1() do
-                                leading += 1
-                            if leading > 11 do
-                                fail InvalidFormatError{"AAC escape coefficient is too large"}
-                            let magnitude = (1 << (leading + 4)) + cast(s32, reader.get(leading + 4))
-                            values[item] = values[item] < 0 ? -magnitude : magnitude
-                        }
-                    }
-                }
+            let gain = bandGain(.scaleFactors[channel, band] - 100)
+            let dest = cast([*] f64, &.coefficients[channel, line])
 
-                for item in dimension where index + item < end do
-                    .coefficients[channel, index + item] = requantize(values[item], gain)
-                index += dimension
-            }
-
-            line = end
+            // AAC's band boundaries are multiples of four for both window sizes.
+            if book <= 4 do
+                try .decodeSpectralBand'(4, false)(reader, book - 1, dest, width, gain)
+            elif book == 11 do
+                try .decodeSpectralBand'(2, true)(reader, book - 1, dest, width, gain)
+            else do
+                try .decodeSpectralBand'(2, false)(reader, book - 1, dest, width, gain)
+            line += width
         }
     }
 
@@ -993,6 +1142,13 @@ private impl AacCodec
         }
     }
 
+    mtd synthesizeChannel(channel: s32, output: [*] f32)
+    {
+        .deinterleaveShort(channel)
+        .applyTns(channel)
+        .imdctChannel(channel, output)
+    }
+
     mtd reconstruct(destination: [*] s16)
     {
         // Advance the noise generator only after the complete access unit has been validated.
@@ -1001,20 +1157,37 @@ private impl AacCodec
         for channel in .channels where .pairStart[channel] do
             .applyStereoPair(channel)
 
+        if .channels == 2
+        {
+            var left, right: [FrameSamples] f32
+            .synthesizeChannel(0, &left)
+            .synthesizeChannel(1, &right)
+            let leftPcm  = cast(const [*] f32, &left[0])
+            let rightPcm = cast(const [*] f32, &right[0])
+            let half     = Simd.splat(0.5'f32)
+            for group in FrameSamples / 4
+            {
+                let index = 4 * group
+                let l     = Simd.load(leftPcm + index)
+                let r     = Simd.load(rightPcm + index)
+                let li    = cast #bit (Simd.U32x4, Simd.truncateToS32(l + Math.copysign(half, l)))
+                let ri    = cast #bit (Simd.U32x4, Simd.truncateToS32(r + Math.copysign(half, r)))
+                let low   = cast #bit (Simd.S32x4, Simd.interleaveLow(li, ri))
+                let high  = cast #bit (Simd.S32x4, Simd.interleaveHigh(li, ri))
+                Simd.store(destination + 2 * index, Simd.packSigned(low, high))
+            }
+
+            return
+        }
+
         for channel in .channels
         {
-            let source = .sourceChannel(channel)
-            .deinterleaveShort(source)
-            .applyTns(source)
-            var pcm: [FrameSamples] f64
-            .imdctChannel(source, &pcm)
-
+            var pcm: [FrameSamples] f32
+            .synthesizeChannel(.sourceChannel(channel), &pcm)
             let output = destination + channel
             for frame in FrameSamples
             {
-                let scaled = pcm[frame] * 32768.0
-
-                // Truncate after adding a half with the sample's sign to round ties away from zero.
+                let scaled  = pcm[frame]
                 let rounded = Math.trunc(scaled + Math.copysign(0.5, scaled))
                 output[frame * .channels] = cast(s16, Math.clamp(cast(s32, rounded), -32768, 32767))
             }

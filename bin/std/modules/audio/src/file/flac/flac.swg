@@ -174,17 +174,35 @@ private func frameHeaderSize(bytes: const [..] u8, offset: u64)->u64
 private func findFrameSync(bytes: const [..] u8, start, end: u64)->u64
 {
     const VectorBytes = #sizeof(Math.Simd.U8x16)
-    let first  = Math.Simd.splat(0xFF'u8)
-    let second = Math.Simd.splat(0xF8'u8)
-    let mask   = Math.Simd.splat(0xFC'u8)
-    let limit  = Math.min(end, bytes.count - 1)
-    let data   = bytes.buffer
-    var scan   = start
+
+    #[Swag.Inline]
+    func syncMask(data: const [*] u8)->Math.Simd.U8x16
+    {
+        let leading  = Math.Simd.load(data) == Math.Simd.splat(0xFF'u8)
+        let trailing = (Math.Simd.load(data + 1) & Math.Simd.splat(0xFC'u8)) == Math.Simd.splat(0xF8'u8)
+        return leading & trailing
+    }
+
+    let limit = Math.min(end, bytes.count - 1)
+    let data  = bytes.buffer
+    var scan  = start
+
+    // Reject four vectors at once. The byte order matters only within a group with a match.
+    while limit - scan >= 4 * VectorBytes
+    {
+        let at       = data + scan
+        let combined = syncMask(at) |
+                       syncMask(at + VectorBytes) |
+                       syncMask(at + 2 * VectorBytes) |
+                       syncMask(at + 3 * VectorBytes)
+        if Math.Simd.bitmask(combined) do
+            break
+        scan += 4 * VectorBytes
+    }
+
     while limit - scan >= VectorBytes
     {
-        let leading  = Math.Simd.load(data + scan) == first
-        let trailing = (Math.Simd.load(data + scan + 1) & mask) == second
-        let matches  = Math.Simd.bitmask(leading & trailing)
+        let matches = Math.Simd.bitmask(syncMask(data + scan))
         if matches do
             return scan + Math.trailingZeros(matches)
         scan += VectorBytes

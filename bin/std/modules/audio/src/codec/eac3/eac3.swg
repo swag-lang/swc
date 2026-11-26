@@ -61,7 +61,6 @@ private struct Eac3Codec
     block:        Ac3Block
     imdct:        [MaxChannels] Imdct
     coefficients: [MaxChannels, SamplesPerBlock] f64
-    pcm:          [MaxChannels, SamplesPerBlock] f64
     ditherState:  u32 = 0x6E624EB7
 }
 
@@ -269,7 +268,6 @@ private impl Eac3Codec
     {
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
-        Memory.set(&.pcm, 0, #sizeof(.pcm))
         for channel in MaxChannels do
             .imdct[channel].reset()
         .ditherState = 0x6E624EB7
@@ -372,7 +370,7 @@ private impl Eac3Codec
                     let exponent = block.couplingCoordExp[channel, coordinateBand]
                     let mantissa = block.couplingCoordMant[channel, coordinateBand]
                     coordinate = exponent == 15 ? cast(f64, mantissa) / 16.0 : cast(f64, (mantissa + 16)) / 32.0
-                    coordinate /= Math.pow(2.0, cast(f64, (exponent + 3 * block.couplingMaster[channel])))
+                    coordinate *= mantissaScale(cast(s32, (exponent + 3 * block.couplingMaster[channel])))
                     if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordinateBand] do
                         coordinate = -coordinate
                     coordinateBand += 1
@@ -592,16 +590,19 @@ private impl Eac3Codec
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in cast(u64, block.channelEnd[channel])
             {
-                let bap   = block.channelBap[channel, bin]
-                let value = bap or not block.dither[channel] ? mantissas.get(bap) : .ditherValue()
-                .coefficients[channel, bin] = value * mantissaScale(block.channelExponents[channel, bin])
+                let bap      = block.channelBap[channel, bin]
+                let exponent = block.channelExponents[channel, bin]
+                if bap do
+                    .coefficients[channel, bin] = mantissas.getScaled(bap, exponent)
+                elif block.dither[channel] do
+                    .coefficients[channel, bin] = .ditherValue() * mantissaScale(exponent)
             }
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
                 let count = cast(u64, (block.couplingEndMantissa - block.couplingStart))
-                for bin in count do
-                    couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * mantissaScale(block.couplingExponents[bin])
+                for bin in count where block.couplingBap[bin] do
+                    couplingMantissas[bin] = mantissas.getScaled(block.couplingBap[bin], block.couplingExponents[bin])
                 couplingRead = true
             }
         }
@@ -611,7 +612,7 @@ private impl Eac3Codec
             let channel = bsi.nfchans
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in 7 do
-                .coefficients[channel, bin] = mantissas.get(block.lfeBap[bin]) * mantissaScale(block.lfeExponents[bin])
+                .coefficients[channel, bin] = mantissas.getScaled(block.lfeBap[bin], block.lfeExponents[bin])
         }
 
         if block.coupling
@@ -694,18 +695,12 @@ private impl Eac3Codec
             if reader.overrun do
                 fail InvalidFormatError{"E-AC-3 audio block is truncated"}
 
-            for channel in bsi.nfchans do
-                .imdct[channel].process(&.coefficients[channel, 0], .block.blockSwitch[channel], &.pcm[channel, 0])
-            if bsi.lfeon do
-                .imdct[bsi.nfchans].process(&.coefficients[bsi.nfchans, 0], false, &.pcm[bsi.nfchans, 0])
-            for sample in SamplesPerBlock
+            let target = destination + blockIndex * SamplesPerBlock * .channels
+            for channel in .channels
             {
-                for channel in .channels
-                {
-                    let source = .sourceChannel(channel, &bsi)
-                    let scaled = Math.clamp(.pcm[source, sample] * 32767.0, -32768.0, 32767.0)
-                    destination[(blockIndex * SamplesPerBlock + sample) * .channels + channel] = cast(s16, scaled)
-                }
+                let source     = .sourceChannel(channel, &bsi)
+                let shortBlock = source < bsi.nfchans and .block.blockSwitch[source]
+                .imdct[source].process(&.coefficients[source, 0], shortBlock, target + channel, .channels)
             }
         }
     }

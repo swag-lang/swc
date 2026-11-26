@@ -15,6 +15,39 @@ private const CodeExtra  = 7'u32
 private const WindowBits = 32'u32
 private const UintBits   = 8'u32
 
+// Ceiling of the 32-bit reciprocal, allowing one exact correction after multiplication.
+private const RangeReciprocals: [257] u32 = #run
+{
+    var result: [257] u32
+    for divisor in 2 until result.count do
+        result[divisor] = cast(u32, ((1'u64 << 32) + divisor - 1) / divisor)
+    return result
+}
+
+// Each interval of 4096 normalized range values has one possible eighth-bit correction.
+private const TellBoundaries: [8] u32 = #run
+{
+    var boundaries: [8] u32
+    for initial in 32768 until 65536
+    {
+        var normalized = cast(u32, initial)
+        var fraction   = 0'u32
+        for 3
+        {
+            normalized = (normalized * normalized) >> 15
+            let next = normalized >> 16
+            fraction   = (fraction << 1) | next
+            normalized >>= next
+        }
+
+        let region = (initial >> 12) - 8
+        if fraction == region do
+            boundaries[region] = cast(u32, initial)
+    }
+
+    return boundaries
+}
+
 // Bit counts the allocation logic works in are scaled by this many fractional bits.
 internal const BitRes = 3'u32
 
@@ -90,8 +123,20 @@ internal impl RangeDecoder
     // Returns the cumulative frequency of the next symbol out of `total`; [[update]] consumes it.
     mtd decode(total: u32)->u32
     {
-        .extent = .range / total
-        let scaledValue = .value / .extent
+        var extent: u32
+        if total >= 2 and total < RangeReciprocals.count
+        {
+            // The estimate can only be one above the exact quotient.
+            extent = cast(u32, (cast(u64, .range) * RangeReciprocals[total]) >> 32)
+            extent -= cast(u32, extent * total > .range)
+        }
+        else
+        {
+            extent = .range / total
+        }
+
+        .extent = extent
+        let scaledValue = .value / extent
         return total - Math.min(scaledValue + 1, total)
     }
 
@@ -203,16 +248,10 @@ internal impl RangeDecoder
     mtd const tellFrac()->u32
     {
         let totalFractionalBits = cast(u32, .bitsTotal) << BitRes
-        var logRange            = ilog(.range)
-        var normalizedRange     = .range >> (logRange - 16)
-        for BitRes
-        {
-            normalizedRange = (normalizedRange * normalizedRange) >> 15
-            let nextBit = normalizedRange >> 16
-            logRange        = (logRange << 1) | nextBit
-            normalizedRange >>= nextBit
-        }
-
-        return totalFractionalBits - logRange
+        let logRange   = ilog(.range)
+        let normalized = .range >> (logRange - 16)
+        let region     = (normalized >> 12) - 8
+        let fraction   = region + cast(u32, normalized > TellBoundaries[region])
+        return totalFractionalBits - ((logRange << BitRes) + fraction)
     }
 }

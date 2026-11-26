@@ -263,40 +263,42 @@ private impl Codebook
         }
     }
 
-    // Reads one codeword and returns its entry, or -1 when the packet ends or the code is invalid.
+    // Reads a common codeword from its prefix, falling back to the tree for longer ones.
+    #[Swag.Inline]
     mtd const decode(reader: *BitReader)->s32
     {
-        if not .usedEntries do
-            return -1
-
-        var node  = 0'u32
-        var depth = 0'u32
-
-        // Two remaining bytes suffice for the lookup at any bit alignment. The tree also
-        // handles packet tails and incomplete trees without consuming any extra bits.
-        if reader.remainingBits() >= 16
+        let position = reader.bitPos
+        let offset   = position >> 3
+        if reader.size - offset >= 2
         {
-            let data   = unwrap reader.data
-            let offset = reader.bitPos >> 3
-            let window = cast(u32, Math.make16(data[offset + 1], data[offset]))
-            let prefix = (window >> cast(u32, reader.bitPos & 7)) & PrefixMask
+            let data = unwrap reader.data
+            var window: u16
+            Memory.copy(&window, data + offset, #sizeof(u16))
+            let prefix = (cast(u32, Math.littleEndianToNative(window)) >> cast(u32, position & 7)) & PrefixMask
             let child  = .prefixes[prefix]
             if child < 0
             {
                 let leaf = -child
-                reader.bitPos += cast(u64, leaf & LeafMask)
+                reader.bitPos = position + cast(u64, leaf & LeafMask)
                 return leaf >> LeafBits
             }
 
             if child
             {
-                reader.bitPos += PrefixBits
-                node          = cast(u32, child)
-                depth         = PrefixBits
+                reader.bitPos = position + PrefixBits
+                return .decodeTree(reader, cast(u32, child), PrefixBits)
             }
         }
 
+        return .decodeTree(reader, 0, 0)
+    }
+
+    mtd const decodeTree(reader: *BitReader, startNode, depth: u32)->s32
+    {
+        if not .usedEntries do
+            return -1
         let children = .children.storage()
+        var node     = startNode
         for depth until MaxCodewordBits
         {
             let bit = reader.read(1)
@@ -592,7 +594,8 @@ private struct Residue
     classifications: u32
     classbook:       u32
     stages:          u32     // Passes the cascade of any class needs.
-    cascade:         [64] u32
+    partitionValues: u64
+    classDigits:     Array'u8
     books:           [64, 8] s32
 }
 
@@ -611,13 +614,14 @@ private impl Residue
         if .classbook >= codebooks.count do
             fail InvalidFormatError{"Vorbis residue names a codebook that does not exist"}
 
+        var cascade: [64] u32
         for cls in .classifications
         {
             var bits = reader.read(3)
             if reader.readFlag() do
                 bits |= reader.read(5) << 3
-            .cascade[cls] = bits
-            .stages       = Math.max(.stages, ilog(bits))
+            cascade[cls] = bits
+            .stages      = Math.max(.stages, ilog(bits))
         }
 
         for cls in .classifications
@@ -625,7 +629,7 @@ private impl Residue
             for stage in 8
             {
                 .books[cls, stage] = -1
-                if .cascade[cls] & (1'u32 << stage)
+                if cascade[cls] & (1'u32 << stage)
                 {
                     let book = reader.read(8)
                     if book >= codebooks.count do
@@ -639,6 +643,35 @@ private impl Residue
 
         if reader.overran do
             fail InvalidFormatError{"Vorbis setup header is truncated"}
+
+        let book = &codebooks[.classbook]
+        .partitionValues = 1
+        for book.dimensions
+        {
+            if .partitionValues > Swag.U32.Max do
+                break
+            .partitionValues *= .classifications
+        }
+
+        // Decode small classification words once. Large sparse books use the same base
+        // conversion while reading the packet, keeping setup allocation bounded.
+        let entries = Math.min(cast(u64, book.entries), .partitionValues)
+        let count   = entries * book.dimensions
+        if count <= 4096
+        {
+            .classDigits.resize(count)
+            for entry in entries
+            {
+                var value   = entry
+                var divisor = .partitionValues / .classifications
+                for digit in book.dimensions
+                {
+                    .classDigits[entry * book.dimensions + digit] = cast(u8, value / divisor)
+                    value   %= divisor
+                    divisor = Math.max(1'u64, divisor / .classifications)
+                }
+            }
+        }
     }
 }
 
@@ -1235,6 +1268,24 @@ private impl Codec
     // Decodes a residue into the channels of `list`, whose nonzero flags select what is coded.
     mtd decodeResidue(residue: *Residue, reader: *BitReader, list: const [..] u32, half: u32) fail
     {
+        switch residue.kind
+        {
+        case 0:
+            try .decodeResidueKind'(0, false)(residue, reader, list, half)
+
+        case 1:
+            try .decodeResidueKind'(1, false)(residue, reader, list, half)
+
+        default:
+            if list.count == 2 do
+                try .decodeResidueKind'(2, true)(residue, reader, list, half)
+            else do
+                try .decodeResidueKind'(2, false)(residue, reader, list, half)
+        }
+    }
+
+    mtd(Kind: u32, Stereo: bool) decodeResidueKind(residue: *Residue, reader: *BitReader, list: const [..] u32, half: u32) fail
+    {
         var active: [MaxChannels] u32
         var used = 0'u32
         for channel in list
@@ -1248,15 +1299,14 @@ private impl Codec
 
         if not used do
             return
-        var vectors = used
-        if residue.kind == 2
+        let vectors = Kind == 2 ? 1'u32 : used
+        #static if Kind == 2
         {
             for channel, index in list do
                 active[index] = channel
-            vectors = 1
         }
 
-        let width      = residue.kind == 2 ? cast(u64, list.count) : 1
+        let width      = Stereo ? 2'u64 : (Kind == 2 ? cast(u64, list.count) : 1)
         let actualSize = cast(u64, half) * width
         let limitBegin = Math.min(cast(u64, residue.begin), actualSize)
         let limitEnd   = Math.min(cast(u64, residue.end), actualSize)
@@ -1266,15 +1316,11 @@ private impl Codec
         let classbook       = &.codebooks[residue.classbook]
         let wordSize        = cast(u64, classbook.dimensions)
         let words           = (partitions + wordSize - 1) / wordSize
-        var partitionValues = 1'u64
-        for wordSize
-        {
-            if partitionValues > Swag.U32.Max do
-                break
-            partitionValues *= residue.classifications
-        }
+        let partitionValues = residue.partitionValues
 
         .classes.resize(vectors * words * wordSize)
+        let classes     = .classes.storage()
+        let classDigits = residue.classDigits.storage()
         for pass in residue.stages
         {
             var partition = 0'u64
@@ -1288,15 +1334,23 @@ private impl Codec
                         let decoded = classbook.decode(reader)
                         if decoded < 0 or cast(u64, decoded) >= partitionValues do
                             return
-                        var value   = cast(u64, decoded)
-                        var divisor = partitionValues / residue.classifications
-                        for digit in wordSize
+                        let target = classes + (vector * words + word) * wordSize
+                        if residue.classDigits.count
                         {
-                            .classes[(vector * words + word) * wordSize + digit] = cast(u32, (value / divisor))
-                            value   %= divisor
-                            divisor /= residue.classifications
-                            if not divisor do
-                                divisor = 1
+                            let digits = classDigits + cast(u64, decoded) * wordSize
+                            for digit in wordSize do
+                                target[digit] = digits[digit]
+                        }
+                        else
+                        {
+                            var value   = cast(u64, decoded)
+                            var divisor = partitionValues / residue.classifications
+                            for digit in wordSize
+                            {
+                                target[digit] = cast(u32, value / divisor)
+                                value         %= divisor
+                                divisor       = Math.max(1'u64, divisor / residue.classifications)
+                            }
                         }
                     }
                 }
@@ -1305,19 +1359,19 @@ private impl Codec
                 {
                     for vector in vectors
                     {
-                        let cls  = .classes[(vector * words + word) * wordSize + digit]
+                        let cls  = classes[(vector * words + word) * wordSize + digit]
                         let book = residue.books[cls, pass]
-                        if (residue.cascade[cls] & (1'u32 << pass)) and book >= 0
+                        if book >= 0
                         {
                             let offset   = limitBegin + partition * residue.partitionSize
                             let codebook = &.codebooks[cast(u32, book)]
                             var complete: bool
-                            if residue.kind == 0 do
+                            #static if Kind == 0 do
                                 complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
-                            elif residue.kind == 1 do
+                            elif Kind == 1 do
                                 complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
                             else do
-                                complete = .decodeAcrossChannels(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
+                                complete = .decodeAcrossChannels'Stereo(codebook, reader, active, cast(u32, list.count), offset, residue.partitionSize)
                             if not complete do
                                 return
                         }
@@ -1377,18 +1431,69 @@ private impl Codec
     }
 
     // Residue type 2: the channels are interleaved into one vector before partitioning.
-    mtd decodeAcrossChannels(book: *Codebook, reader: *BitReader, active: const [MaxChannels] u32, width: u32, offset: u64, count: u32)->bool
+    mtd(Stereo: bool) decodeAcrossChannels(book: *Codebook, reader: *BitReader, active: const [MaxChannels] u32, width: u32, offset: u64, count: u32)->bool
     {
-        let limit  = (offset + count) / width
-        var index  = offset / width
-        let values = book.values.storage()
+        let channels = Stereo ? 2'u32 : width
+        let limit    = (offset + count) / channels
+        var index    = offset / channels
+        let values   = book.values.storage()
 
         // A stereo codeword with an even dimension contains whole left/right pairs.
-        if width == 2 and (book.dimensions & 1) == 0
+        if Stereo and (book.dimensions & 1) == 0
         {
             let left  = .spectrum[active[0]].storage()
             let right = .spectrum[active[1]].storage()
             let pairs = book.dimensions / 2
+            if pairs == 1
+            {
+                while index < limit
+                {
+                    let entry = book.decode(reader)
+                    if entry < 0 do
+                        return false
+                    let vector = values + cast(u64, entry) * 2
+                    left[index]  += vector[0]
+                    right[index] += vector[1]
+                    index        += 1
+                }
+
+                return true
+            }
+
+            if pairs == 2
+            {
+                while index + 2 <= limit
+                {
+                    let entry = book.decode(reader)
+                    if entry < 0 do
+                        return false
+                    let vector = values + cast(u64, entry) * 4
+                    left[index]      += vector[0]
+                    right[index]     += vector[1]
+                    left[index + 1]  += vector[2]
+                    right[index + 1] += vector[3]
+                    index            += 2
+                }
+            }
+
+            if pairs == 4
+            {
+                while index + 4 <= limit
+                {
+                    let entry = book.decode(reader)
+                    if entry < 0 do
+                        return false
+                    let vector      = values + cast(u64, entry) * 8
+                    let first       = cast #bit(Simd.U32x4, Simd.load(vector))
+                    let second      = cast #bit(Simd.U32x4, Simd.load(vector + 4))
+                    let leftValues  = cast #bit(Simd.F32x4, Simd.deinterleaveEven(first, second))
+                    let rightValues = cast #bit(Simd.F32x4, Simd.deinterleaveOdd(first, second))
+                    Simd.store(left + index, Simd.load(left + index) + leftValues)
+                    Simd.store(right + index, Simd.load(right + index) + rightValues)
+                    index += 4
+                }
+            }
+
             while index < limit
             {
                 let entry = book.decode(reader)
@@ -1551,35 +1656,29 @@ private impl Codec
         let outputFrames = .previousSize ? cast(u64, .previousSize) / 4 + n / 4 : 0
         let base         = .output.count / .channels
         .output.resize((base + outputFrames) * .channels)
-        let time = .timeDomain.storage()
+        let time      = .timeDomain.storage()
+        let stereo    = .channels == 2
+        let fusedLeft = stereo and .previousSize == n and leftStart == 0 and leftEnd == half
+        let left      = .slopes[leftSlope].storage()
+        let right     = .slopes[rightSlope].storage()
+        const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
         for channel in .channels
         {
             .transforms[which].inverse(.spectrum[channel].storage(), time)
-            if leftStart do
-                Memory.clear(time, cast(u64, leftStart) * #sizeof(f32))
-            if rightEnd < n do
-                Memory.clear(time + rightEnd, cast(u64, n - rightEnd) * #sizeof(f32))
-
-            // Every window boundary is a multiple of four. The right slope runs in reverse.
-            let left  = .slopes[leftSlope].storage()
-            let right = .slopes[rightSlope].storage()
-            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
-            var index = leftStart
-            while index < leftEnd
+            let saved = .saved[channel].storage()
+            if not fusedLeft
             {
-                let samples = Simd.load(time + index)
-                let gain    = Simd.load(left + (index - leftStart))
-                Simd.store(time + index, samples * gain)
-                index += 4
-            }
+                if leftStart do
+                    Memory.clear(time, cast(u64, leftStart) * #sizeof(f32))
 
-            index = rightStart
-            while index < rightEnd
-            {
-                let samples = Simd.load(time + index)
-                let gain    = Simd.load(right + (rightEnd - index - 4))
-                Simd.store(time + index, samples * Simd.permute(gain, Reverse))
-                index += 4
+                var index = leftStart
+                while index < leftEnd
+                {
+                    let samples = Simd.load(time + index)
+                    let gain    = Simd.load(left + (index - leftStart))
+                    Simd.store(time + index, samples * gain)
+                    index += 4
+                }
             }
 
             if outputFrames
@@ -1593,7 +1692,6 @@ private impl Codec
                     return cast(s16, Math.clamp(biased, -32768.0, 32767.0))
                 }
 
-                let saved  = .saved[channel].storage()
                 let slot   = ChannelSlots[.channels, channel]
                 let output = .output.storage() + base * .channels + slot
 
@@ -1602,15 +1700,96 @@ private impl Codec
                 let shift        = cast(s64, n) / 4 - cast(s64, .previousSize) / 4
                 let overlapStart = shift < 0 ? cast(u64, -shift) : 0
                 let overlapEnd   = Math.min(cast(u64, .previousSize) / 2, outputFrames)
-                for frame in overlapStart do
-                    output[frame * .channels] = toPcm16(saved[frame])
-                for frame in overlapStart until overlapEnd do
-                    output[frame * .channels] = toPcm16(saved[frame] + time[cast(u64, cast(s64, frame) + shift)])
-                for frame in overlapEnd until outputFrames do
-                    output[frame * .channels] = toPcm16(time[cast(u64, cast(s64, frame) + shift)])
+                if fusedLeft
+                {
+                    // The steady overlap covers the entire left window. Multiply and
+                    // overlap in one pass while saving this channel's PCM plane.
+                    let plane = .spectrum[channel].storage()
+                    var frame = 0'u32
+                    while frame < half
+                    {
+                        let current = Simd.load(time + frame) * Simd.load(left + frame)
+                        Simd.store(plane + frame, current + Simd.load(saved + frame))
+                        frame += 4
+                    }
+                }
+                elif stereo
+                {
+                    // The spectrum is dead after the inverse transform. Reuse it as one
+                    // PCM plane until both channels are ready to interleave.
+                    let plane = .spectrum[channel].storage()
+                    if overlapStart do
+                        Memory.copy(plane, saved, overlapStart * #sizeof(f32))
+                    if overlapEnd < outputFrames
+                    {
+                        let tail = cast(u64, cast(s64, overlapEnd) + shift)
+                        Memory.copy(plane + overlapEnd, time + tail, (outputFrames - overlapEnd) * #sizeof(f32))
+                    }
+
+                    let current = time + cast(u64, cast(s64, overlapStart) + shift)
+                    var frame   = overlapStart
+                    while frame < overlapEnd
+                    {
+                        let sum = Simd.load(saved + frame) + Simd.load(current + (frame - overlapStart))
+                        Simd.store(plane + frame, sum)
+                        frame += 4
+                    }
+                }
+                else
+                {
+                    for frame in overlapStart do
+                        output[frame * .channels] = toPcm16(saved[frame])
+                    for frame in overlapStart until overlapEnd do
+                        output[frame * .channels] = toPcm16(saved[frame] + time[cast(u64, cast(s64, frame) + shift)])
+                    for frame in overlapEnd until outputFrames do
+                        output[frame * .channels] = toPcm16(time[cast(u64, cast(s64, frame) + shift)])
+                }
             }
 
-            Memory.copy(.saved[channel].storage(), time + half, cast(u64, half) * #sizeof(f32))
+            // The right half is only used by the next packet. Apply its window while
+            // writing it to the overlap buffer rather than modifying it in timeDomain.
+            if rightStart > half do
+                Memory.copy(saved, time + half, cast(u64, rightStart - half) * #sizeof(f32))
+            if rightEnd < n do
+                Memory.clear(saved + (rightEnd - half), cast(u64, n - rightEnd) * #sizeof(f32))
+
+            var index = rightStart
+            while index < rightEnd
+            {
+                let samples = Simd.load(time + index)
+                let gain    = Simd.load(right + (rightEnd - index - 4))
+                Simd.store(saved + (index - half), samples * Simd.permute(gain, Reverse))
+                index += 4
+            }
+        }
+
+        if stereo and outputFrames
+        {
+            #[Swag.Inline]
+            func toPcm32(value: Simd.F32x4)->Simd.S32x4
+            {
+                let scaled  = value * 32767.0'f32
+                let biased  = scaled + Math.copysign(Simd.splat(0.5'f32), scaled)
+                let clamped = Math.min(Math.max(biased, Simd.splat(-32768.0'f32)), Simd.splat(32767.0'f32))
+                return Simd.truncateToS32(clamped)
+            }
+
+            let left   = .spectrum[0].storage()
+            let right  = .spectrum[1].storage()
+            let output = cast([*] u16, .output.storage() + base * 2)
+            var frame  = 0'u64
+            while frame < outputFrames
+            {
+                let leftLow   = toPcm32(Simd.load(left + frame))
+                let leftHigh  = toPcm32(Simd.load(left + frame + 4))
+                let rightLow  = toPcm32(Simd.load(right + frame))
+                let rightHigh = toPcm32(Simd.load(right + frame + 4))
+                let leftPcm   = cast #bit(Simd.U16x8, Simd.packSigned(leftLow, leftHigh))
+                let rightPcm  = cast #bit(Simd.U16x8, Simd.packSigned(rightLow, rightHigh))
+                Simd.store(output + 2 * frame, Simd.interleaveLow(leftPcm, rightPcm))
+                Simd.store(output + 2 * frame + 8, Simd.interleaveHigh(leftPcm, rightPcm))
+                frame += 8
+            }
         }
 
         .previousSize = n
@@ -1746,35 +1925,59 @@ private func renderPoint(x0, x1, y0, y1, x: s32)->s32
 // table indices before the interpolation, so every intermediate value is in range.
 private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 {
-    let dy   = y1 - y0
-    let adx  = cast(s32, (x1 - x0))
-    var ady  = Math.abs(dy)
-    let base = dy / adx
-    let sy   = dy < 0 ? base - 1 : base + 1
-    var x    = x0
-    var y    = y0
-    var err  = 0
-    ady -= Math.abs(base * adx)
-
     let end = Math.min(limit, x1)
-    if x < end do
-        target[x] *= Floor1InverseDb[cast(u32, y)]
-    x += 1
-    while x < end
+    if end <= x0 do
+        return
+
+    if y0 == y1
     {
-        err += ady
-        if err >= adx
+        let gain  = Floor1InverseDb[cast(u32, y0)]
+        let gain4 = Simd.splat(gain)
+        var line  = x0
+        while line + 4 <= end
         {
-            err -= adx
-            y   += sy
-        }
-        else
-        {
-            y += base
+            Simd.store(target + line, Simd.load(target + line) * gain4)
+            line += 4
         }
 
-        target[x] *= Floor1InverseDb[cast(u32, y)]
-        x         += 1
+        for tail in line until end do
+            target[tail] *= gain
+        return
+    }
+
+    let span      = x1 - x0
+    let dy        = y1 - y0
+    let delta     = cast(u32, Math.abs(dy))
+    let wholeStep = delta / span
+    let remainder = delta % span
+    let sign      = dy < 0 ? -1 : 1
+    var x         = x0
+    if end - x >= 4
+    {
+        // The ceiling of the Q32 step gives the same floor as the integer walk:
+        // a span is at most 32768 and accumulating its error stays below 1/span.
+        let fraction   = cast(u32, ((cast(u64, remainder) << 32) + span - 1) / span)
+        let base       = Simd.splat(y0)
+        let direction  = Simd.splat(sign)
+        let whole      = Simd.splat(wholeStep)
+        let step       = Simd.splat(fraction)
+        let amplitudes = cast(const [*] s32, &Floor1InverseDb[0])
+        var offsets    = cast(Simd.U32x4, [0'u32, 1, 2, 3])
+        while x + 4 <= end
+        {
+            let distance = cast #bit(Simd.S32x4, whole * offsets + Simd.mulHigh(offsets, step))
+            let indices  = cast #bit(Simd.U32x4, base + distance * direction)
+            let gain     = cast #bit(Simd.F32x4, Simd.gather(amplitudes, indices))
+            Simd.store(target + x, Simd.load(target + x) * gain)
+            offsets += Simd.splat(4'u32)
+            x       += 4
+        }
+    }
+
+    for line in x until end
+    {
+        let distance = cast(s32, ((line - x0) * delta) / span)
+        target[line] *= Floor1InverseDb[cast(u32, y0 + sign * distance)]
     }
 }
 

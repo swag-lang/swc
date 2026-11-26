@@ -55,26 +55,56 @@ private impl BitReader
     {
         if packet.count < 4 do
             fail InvalidFormatError{"DTS packet header is truncated"}
-        let bigEndian16    = packet[0] == 0x7F and packet[1] == 0xFE and packet[2] == 0x80 and packet[3] == 0x01
-        let littleEndian16 = packet[0] == 0xFE and packet[1] == 0x7F and packet[2] == 0x01 and packet[3] == 0x80
-        let bigEndian14    = packet[0] == 0x1F and packet[1] == 0xFF and packet[2] == 0xE8 and packet[3] == 0x00
-        let littleEndian14 = packet[0] == 0xFF and packet[1] == 0x1F and packet[2] == 0x00 and packet[3] == 0xE8
-        if not bigEndian16 and not littleEndian16 and not bigEndian14 and not littleEndian14 do
-            fail InvalidFormatError{"DTS packet has no core sync word"}
+        var word: u32
+        Memory.copy(&word, packet.buffer, #sizeof(u32))
+        var result: #returntype = {data: packet.buffer, byteSize: packet.count}
+        switch Math.bigEndianToNative(word)
+        {
+        case 0x7FFE8001:
+            break
 
-        return {data: packet.buffer, byteSize: packet.count, littleEndianWords: littleEndian16 or littleEndian14, packed14: bigEndian14 or littleEndian14}
+        case 0xFE7F0180:
+            result.littleEndianWords = true
+
+        case 0x1FFFE800:
+            result.packed14 = true
+
+        case 0xFF1F00E8:
+            result.packed14 = true
+            result.littleEndianWords = true
+
+        default:
+            fail InvalidFormatError{"DTS packet has no core sync word"}
+        }
+
+        return result
     }
 
     // Keep the next bits at the low end of the buffer, in stream order. Packed words contribute
     // only their low fourteen bits. Only an unpacked big-endian stream can end in a single byte.
     mtd refill(count: u32)
     {
+        // An unpacked big-endian stream can refill seven bytes at any byte boundary.
+        // Leave room for the bits still buffered when loading the next word.
+        if not .packed14 and
+           not .littleEndianWords and
+           .bitsBuffered <= 7 and
+           .byteSize - .bytePosition >= 8
+        {
+            var word: u64
+            Memory.copy(&word, .data + .bytePosition, #sizeof(u64))
+            .buffer       = (.buffer << 56) | (Math.bigEndianToNative(word) >> 8)
+            .bitsBuffered += 56
+            .bytePosition += 7
+            return
+        }
+
         if not .packed14 and .byteSize - .bytePosition >= 4
         {
             var bytes: u32
             Memory.copy(&bytes, .data + .bytePosition, #sizeof(u32))
             let word = .littleEndianWords ? Math.rol(Math.littleEndianToNative(bytes), 16) : Math.bigEndianToNative(bytes)
-            .buffer        = (.buffer << 32) | word
+            .buffer       = (.buffer << 32) | word
             .bitsBuffered += 32
             .bytePosition += 4
             return
@@ -135,9 +165,57 @@ private impl BitReader
         return cast(s32, raw)
     }
 
+    // Read the eight signed values of one directly coded subband group.
+    mtd readDirectBand(width: u32, output: *[SamplesPerSubband] s32)
+    {
+        let position     = .bytePosition * 8 - .bitsBuffered
+        let lastPairByte = (position + 6 * width) >> 3
+        if .packed14 or .littleEndianWords or .overrun or lastPairByte + 8 > .byteSize
+        {
+            for index in SamplesPerSubband do
+                output[][index] = .readSigned(width)
+            return
+        }
+
+        // Even at a nonzero bit offset, two values of at most 23 bits fit in one word.
+        let shift       = 64 - width
+        let doubled     = 2 * width
+        var bitPosition = position
+        for pair in SamplesPerSubband / 2
+        {
+            var word: u64
+            Memory.copy(&word, .data + (bitPosition >> 3), #sizeof(word))
+            let bits = Math.bigEndianToNative(word) << cast(u32, (bitPosition & 7))
+            output[][2 * pair]     = cast(s32, ((cast #bit(s64, bits)) >> shift))
+            output[][2 * pair + 1] = cast(s32, ((cast #bit(s64, (bits << width))) >> shift))
+            bitPosition            += doubled
+        }
+
+        // Resume small reads with the remainder of the last consumed byte.
+        .bytePosition = (bitPosition + 7) >> 3
+        .bitsBuffered = cast(u32, (.bytePosition * 8 - bitPosition))
+        .buffer       = .data[.bytePosition - 1]
+    }
+
     mtd readHuffman(root: u32)->s32 fail
     {
+        if .bitsBuffered < HuffmanPrefixBits do
+            .refill(HuffmanPrefixBits)
         var node = cast(s32, root)
+        if .bitsBuffered >= HuffmanPrefixBits and not .overrun
+        {
+            let prefix = (.buffer >> (.bitsBuffered - HuffmanPrefixBits)) & ((1 << HuffmanPrefixBits) - 1)
+            let entry  = HuffmanCodes.prefixes[HuffmanCodes.rows[root] - 1, prefix]
+            if entry >= 0
+            {
+                .bitsBuffered -= cast(u32, (entry & 7))
+                return cast(s32, (entry >> 3))
+            }
+
+            .bitsBuffered -= HuffmanPrefixBits
+            node = -1 - cast(s32, entry)
+        }
+
         while node >= 0
         {
             let bit = .read(1)
@@ -151,15 +229,14 @@ private impl BitReader
 
     mtd readScale(selector: u32, index: *s32)->f64 fail
     {
+        if selector == 6 do
+            return ScaleFactors[.read(7)]
         if selector < 5 do
             index[] += (try .readHuffman(ScaleBookRoots[selector])) - 64
         else do
-            index[] = cast(s32, .read(selector + 1))
-        let entries = selector == 6 ? 128 : 64
-        if index[] < 0 or index[] >= entries do
+            index[] = cast(s32, .read(6))
+        if index[] < 0 or index[] >= 64 do
             fail InvalidFormatError{"DTS scale-factor index exceeds its table"}
-        if selector == 6 do
-            return ScaleFactors[index[]]
         if index[] == 63 do
             return 0
         return ScaleFactors[index[] * 2]
@@ -280,7 +357,7 @@ private struct Codec
 
     sampleRate:        u32
     channels:          u32
-    history:           [MaxPrimaryChannels, 2 * HistorySamples] f64
+    history:           [MaxPrimaryChannels, 2 * HistorySamples] f32
     historyStart:      [MaxPrimaryChannels] u32
     predictionHistory: [MaxPrimaryChannels, MaxSubbands, 4] f64
     lfeHistory:        [8] f64
@@ -297,44 +374,16 @@ private impl Codec
         Memory.set(&.lfeHistory, 0, #sizeof(.lfeHistory))
     }
 
-    mtd decodeTransition(reader: *BitReader, selector: u32)->u32 fail
+    mtd decodeTransition(reader: *BitReader, selector: u32)->u32
     {
         if selector == 3 do
             return reader.read(2)
-        var code: u32
-        for length in 1'u32 until 4
-        {
-            code = (code << 1) | reader.read(1)
-            if selector == 0
-            {
-                if length == 1 and code == 0 do
-                    return 0
-                if length == 2 and code == 2 do
-                    return 1
-                if length == 3 and code >= 6 do
-                    return code - 4
-            }
-            elif selector == 1
-            {
-                if length == 1 and code == 0 do
-                    return 3
-                if length == 2 and code == 2 do
-                    return 0
-                if length == 3 and code >= 6 do
-                    return code - 5
-            }
-            else
-            {
-                if length == 1 and code == 0 do
-                    return 2
-                if length == 2 and code == 2 do
-                    return 3
-                if length == 3 and code >= 6 do
-                    return code - 6
-            }
-        }
 
-        fail InvalidFormatError{"DTS transition-mode code is invalid"}
+        // The three variable-length books share the unary code order and rotate its symbols.
+        var code: u32
+        while code < 3 and reader.read(1) do
+            code += 1
+        return (4 + code - selector) & 3
     }
 
     mtd sourceDestination(mode, source, lfe: u32)->u32
@@ -372,50 +421,38 @@ private impl Codec
 
     mtd synthesize(destination: [*] s16, header: const *FrameHeader, subbands: const [*] f64, samplesPerBand: u32)
     {
-        let filter = header.perfectFilter ? BandFirPerfect : BandFirNonPerfect
+        let filter = synthesisFilter(header.perfectFilter)
         for channel in header.primaryChannels
         {
             let outputChannel = .sourceDestination(header.mode, channel, header.lfe)
             var historyStart  = .historyStart[channel]
             let channelBands  = subbands + channel * MaxSubbands * samplesPerBand
-            for sample in samplesPerBand
+            for block in samplesPerBand / 2
             {
-                var transformed: [32] f64
-                synthesisDct(channelBands + sample, samplesPerBand, &transformed)
-
-                // Mirror each block so the FIR can read a contiguous 512-sample window.
-                historyStart = (historyStart + HistorySamples - 32) & (HistorySamples - 1)
-                let history = cast([*] f64, &.history[channel, historyStart])
-                for index in 16
+                // The header requires a multiple of eight blocks. Each vector lane
+                // runs the DCT of one of two consecutive blocks independently.
+                var transformed: [32, 2] f64
+                let bands = cast(const [*] Simd.F64x2, channelBands + 2 * block)
+                synthesisDct(bands, samplesPerBand / 2, cast(*[32] Simd.F64x2, &transformed))
+                for lane in 2
                 {
-                    let first  = transformed[index] - transformed[31 - index]
-                    let second = transformed[index] + transformed[31 - index]
-                    history[index]                       = first
-                    history[16 + index]                  = second
-                    history[HistorySamples + index]      = first
-                    history[HistorySamples + 16 + index] = second
-                }
+                    let sample = 2 * block + lane
 
-                for index in 16
-                {
-                    let reverse = 15 - index
-                    var first, second: f64
-                    for phase in 8
+                    // Mirror each block so the FIR can read a contiguous 512-sample window.
+                    historyStart = (historyStart + HistorySamples - 32) & (HistorySamples - 1)
+                    let history = cast([*] f32, &.history[channel, historyStart])
+                    for index in 16
                     {
-                        let tap = phase * 64
-                        first  += history[index + tap] * filter[index + tap]
-                        second += history[reverse + tap] * filter[16 + index + tap]
+                        let first  = cast(f32, (transformed[index, lane] - transformed[31 - index, lane]))
+                        let second = cast(f32, (transformed[index, lane] + transformed[31 - index, lane]))
+                        history[index]                       = first
+                        history[16 + index]                  = second
+                        history[HistorySamples + index]      = first
+                        history[HistorySamples + 16 + index] = second
                     }
 
-                    for phase in 8
-                    {
-                        let tap = 32 + phase * 64
-                        first  += history[16 + index + tap] * filter[index + tap]
-                        second += history[16 + reverse + tap] * filter[16 + index + tap]
-                    }
-
-                    destination[(sample * 32 + index) * header.channels + outputChannel]      = pcm16(first)
-                    destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = pcm16(second)
+                    let pcm = destination + (sample * 32 * header.channels + outputChannel)
+                    synthesisFir(history, filter, pcm, header.channels)
                 }
             }
 
@@ -595,7 +632,7 @@ private impl Codec
                 {
                     for band in Math.min(vqStart[channel], subbandCount[channel]) where allocation[channel, band]
                     {
-                        transition[channel, band] = try .decodeTransition(reader, transitionSelector[channel])
+                        transition[channel, band] = .decodeTransition(reader, transitionSelector[channel])
                     }
                 }
             }
@@ -653,7 +690,7 @@ private impl Codec
                 {
                     for band in Math.min(vqStart[channel], subbandCount[channel])
                     {
-                        let bits = allocation[channel, band]
+                        let bits       = allocation[channel, band]
                         var audio: [SamplesPerSubband] s32
                         var adjustment = 1.0'f64
                         if not bits {}
@@ -684,13 +721,12 @@ private impl Codec
                         }
                         else
                         {
-                            for index in SamplesPerSubband do
-                                audio[index] = reader.readSigned(bits - 3)
+                            reader.readDirectBand(bits - 3, &audio)
                         }
 
                         let scale         = transition[channel, band] and subsubframe >= transition[channel, band] ? scales[channel, band, 1] : scales[channel, band, 0]
                         let step          = header.bitRateIndex == 31 ? StepSizeLossless[bits] : StepSizeLossy[bits]
-                        let adjustedScale = Math.min(Math.floor(scale * adjustment), 8_388_607.0)
+                        let adjustedScale = adjustment == 1.0 ? scale : Math.min(Math.floor(scale * adjustment), 8_388_607.0)
                         let factor        = step * adjustedScale / 4_194_304.0
                         let samples       = subbands + channel * samplesPerChannel + band * samplesPerBand + subbandPosition + subsubframe * SamplesPerSubband
                         for index in SamplesPerSubband do

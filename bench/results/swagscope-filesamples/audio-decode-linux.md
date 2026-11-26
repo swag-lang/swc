@@ -101,3 +101,49 @@ Opus differs from the original Swag PCM by at most 1 PCM16 unit (RMS 0.023).
 The original and final Swag PCM are bit-identical for AAC, AC-3, DTS, FLAC, OGA (FLAC),
 Ogg Vorbis and WAV.
 The native Release audio module passed 304 functional and stress tests.
+
+## Third optimization pass
+
+Baseline commit `32aa206618` and the third pass ran on the same native Linux host
+with the same inputs and decoder APIs. Times are medians of 35 measured repetitions
+per engine. Five rounds rotate engine order on one pinned CPU and discard the warm-up
+of each engine in each round. FFmpeg uses one codec thread. [Raw stage times and PCM
+deltas](audio-decode-linux-round3.json)
+
+| Format | Second pass (ms) | Third pass (ms) | FFmpeg (ms) | Swag / FFmpeg |
+| --- | ---: | ---: | ---: | ---: |
+| AAC | 18.74 | 8.74 | 6.44 | 1.357× |
+| AC-3 | 16.49 | 13.07 | 7.80 | 1.675× |
+| DTS | 26.80 | 13.92 | 14.73 | 0.945× |
+| FLAC | 15.62 | 13.65 | 12.46 | 1.095× |
+| MP3 | 17.92 | 12.65 | 8.14 | 1.553× |
+| OGA (FLAC) | 13.78 | 12.00 | 11.34 | 1.058× |
+| Ogg Vorbis | 12.88 | 8.21 | 7.80 | 1.052× |
+| Opus | 31.34 | 23.91 | 19.43 | 1.230× |
+| WAV | 1.95 | 1.94 | 26.03 | 0.075× |
+
+A second pinned CPU repeats the measurements near parity.
+
+| Format | Swag (ms) | FFmpeg (ms) | Swag / FFmpeg |
+| --- | ---: | ---: | ---: |
+| FLAC | 11.68 | 11.67 | 1.001× |
+| OGA (FLAC) | 10.40 | 10.98 | 0.947× |
+| DTS | 14.39 | 14.55 | 0.989× |
+| Ogg Vorbis | 7.84 | 7.54 | 1.039× |
+
+FLAC predicts groups of four samples from packed LPC history and writes stereo
+decorrelation and PCM together. It falls back to the wide predictor when samples exceed
+the packed range. AAC combines Huffman values and signs in the prefix lookup and uses
+SIMD synthesis. DTS batches direct bitfield decoding and runs the synthesis filters in
+parallel SIMD lanes. AC-3 specializes transform stages and writes PCM during synthesis.
+MP3 caches bit prefixes, fuses signed Huffman tokens and skips zero-spectrum transforms
+while advancing their overlap state. Vorbis improves entropy, floor and the MDCT/PCM
+handoff. Opus shortens the pulse-vector search and pairs the stereo transform work.
+
+AAC differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.030).
+DTS differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.024).
+MP3 differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.221).
+Ogg Vorbis differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.020).
+Opus differs from original Swag PCM by at most 1 PCM16 unit (RMS 0.023).
+The original and current Swag PCM match bit for bit for AC-3, FLAC, OGA (FLAC) and WAV.
+The native Release audio module passed 306 functional and stress tests.

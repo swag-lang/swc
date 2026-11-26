@@ -148,15 +148,14 @@ private impl BitReader
         return value
     }
 
+    #[Swag.Inline]
     mtd readSigned(count: u32)->s32
     {
         let raw = .read(count)
         if not count do
             return 0
-        let sign = 1'u32 << (count - 1)
-        if raw & sign do
-            return cast #bit (s32, (raw | (~0'u32 << count)))
-        return cast(s32, raw)
+        let shift = 32 - count
+        return cast #bit(s32, (raw << shift)) >> shift
     }
 
     internal mtd skip(count: u64)
@@ -182,10 +181,39 @@ private var g_FftReverse:     [128] u8
 private var g_FftTwiddleReal: [128] f64
 private var g_FftTwiddleImag: [128] f64
 
-private func inverseFft(real, imaginary: [*] f64, size: u64)
+// The two supported transform sizes have fixed butterfly strides.
+#[Swag.Inline]
+private func(Size: u64, Half: u64) inverseFftStage(real, imaginary: [*] f64)
+{
+    const Width = Half * 2
+    for group in Size / Width
+    {
+        let base = group * Width
+        for pair in Half / 2
+        {
+            let offset      = pair * 2
+            let left        = base + offset
+            let right       = left + Half
+            let twiddleReal = Simd.load(&g_FftTwiddleReal[Half + offset])
+            let twiddleImag = Simd.load(&g_FftTwiddleImag[Half + offset])
+            let rightReal   = Simd.load(real + right)
+            let rightImag   = Simd.load(imaginary + right)
+            let productReal = twiddleReal * rightReal - twiddleImag * rightImag
+            let productImag = twiddleReal * rightImag + twiddleImag * rightReal
+            let leftReal    = Simd.load(real + left)
+            let leftImag    = Simd.load(imaginary + left)
+            Simd.store(real + right, leftReal - productReal)
+            Simd.store(imaginary + right, leftImag - productImag)
+            Simd.store(real + left, leftReal + productReal)
+            Simd.store(imaginary + left, leftImag + productImag)
+        }
+    }
+}
+
+private func(Size: u64) inverseFft(real, imaginary: [*] f64)
 {
     // The first stage has a unit twiddle and one butterfly per block.
-    for pair in size / 2
+    for pair in Size / 2
     {
         let left      = pair * 2
         let right     = left + 1
@@ -199,40 +227,23 @@ private func inverseFft(real, imaginary: [*] f64, size: u64)
         imaginary[right] = leftImag - rightImag
     }
 
-    var half = 2'u64
-    while half < size
-    {
-        let step = half * 2
-        var base = 0'u64
-        while base < size
-        {
-            for pair in half / 2
-            {
-                let offset      = pair * 2
-                let left        = base + offset
-                let right       = left + half
-                let twiddleReal = Simd.load(&g_FftTwiddleReal[half + offset])
-                let twiddleImag = Simd.load(&g_FftTwiddleImag[half + offset])
-                let rightReal   = Simd.load(real + right)
-                let rightImag   = Simd.load(imaginary + right)
-                let productReal = twiddleReal * rightReal - twiddleImag * rightImag
-                let productImag = twiddleReal * rightImag + twiddleImag * rightReal
-                let leftReal    = Simd.load(real + left)
-                let leftImag    = Simd.load(imaginary + left)
-                Simd.store(real + right, leftReal - productReal)
-                Simd.store(imaginary + right, leftImag - productImag)
-                Simd.store(real + left, leftReal + productReal)
-                Simd.store(imaginary + left, leftImag + productImag)
-            }
-
-            base += step
-        }
-
-        half = step
-    }
+    inverseFftStage'(Size, 2)(real, imaginary)
+    inverseFftStage'(Size, 4)(real, imaginary)
+    inverseFftStage'(Size, 8)(real, imaginary)
+    inverseFftStage'(Size, 16)(real, imaginary)
+    inverseFftStage'(Size, 32)(real, imaginary)
+    if Size == 128 do
+        inverseFftStage'(Size, 64)(real, imaginary)
 }
 
-private func imdctLong(coefficients: const [*] f64, output: [*] f64)
+#[Swag.Inline]
+private func writeSynthesisSample(output: [*] s16, offset: u64, value, window, previous: f64)
+{
+    let scaled = (2.0 * (value * window + previous)) * 32767.0
+    output[offset] = cast(s16, Math.clamp(scaled, -32768.0, 32767.0))
+}
+
+private func imdctLong(coefficients: const [*] f64, output: [*] s16, stride: u32, delay: [*] f64)
 {
     var real, imaginary: [128] f64
     for k in 128
@@ -244,25 +255,30 @@ private func imdctLong(coefficients: const [*] f64, output: [*] f64)
         imaginary[index] = b * g_LongCos[k] + a * g_LongSin[k]
     }
 
-    inverseFft(&real, &imaginary, 128)
-
-    var postReal, postImaginary: [128] f64
-    for index in 128
-    {
-        postReal[index]      = real[index] * g_LongCos[index] - imaginary[index] * g_LongSin[index]
-        postImaginary[index] = imaginary[index] * g_LongCos[index] + real[index] * g_LongSin[index]
-    }
+    inverseFft'128(&real, &imaginary)
 
     for index in 64
     {
-        output[2 * index]       = -postImaginary[64 + index]
-        output[2 * index + 1]   = postReal[63 - index]
-        output[128 + 2 * index] = -postReal[index]
-        output[129 + 2 * index] = postImaginary[127 - index]
-        output[256 + 2 * index] = -postReal[64 + index]
-        output[257 + 2 * index] = postImaginary[63 - index]
-        output[384 + 2 * index] = postImaginary[index]
-        output[385 + 2 * index] = -postReal[127 - index]
+        let upperIndex = index + 64
+        let lowReal    = real[index] * g_LongCos[index] - imaginary[index] * g_LongSin[index]
+        let lowImag    = imaginary[index] * g_LongCos[index] + real[index] * g_LongSin[index]
+        let highReal   = real[upperIndex] * g_LongCos[upperIndex] - imaginary[upperIndex] * g_LongSin[upperIndex]
+        let highImag   = imaginary[upperIndex] * g_LongCos[upperIndex] + real[upperIndex] * g_LongSin[upperIndex]
+
+        let lowEven  = 2 * index
+        let lowOdd   = 127 - lowEven
+        let highEven = 128 + lowEven
+        let highOdd  = 128 + lowOdd
+        writeSynthesisSample(output, lowEven * stride, -highImag, WINDOW[lowEven], delay[lowEven])
+        writeSynthesisSample(output, lowOdd * stride, lowReal, WINDOW[lowOdd], delay[lowOdd])
+        writeSynthesisSample(output, highEven * stride, -lowReal, WINDOW[highEven], delay[highEven])
+        writeSynthesisSample(output, highOdd * stride, highImag, WINDOW[highOdd], delay[highOdd])
+
+        // Save the first half directly and the second with the mirrored window.
+        delay[lowEven]  = -highReal
+        delay[lowOdd]   = lowImag
+        delay[highEven] = lowImag * WINDOW[lowOdd]
+        delay[highOdd]  = -highReal * WINDOW[lowEven]
     }
 }
 
@@ -282,8 +298,8 @@ private func imdctShort(coefficients: const [*] f64, output: [*] f64)
         imagB[index] = b2 * g_ShortCos[k] + a2 * g_ShortSin[k]
     }
 
-    inverseFft(&realA, &imagA, 64)
-    inverseFft(&realB, &imagB, 64)
+    inverseFft'64(&realA, &imagA)
+    inverseFft'64(&realB, &imagB)
     var postRealA, postImagA, postRealB, postImagB: [64] f64
     for index in 64
     {
@@ -310,19 +326,24 @@ impl Imdct
 {
     mtd reset() => Memory.set(&.delay, 0, #sizeof(.delay))
 
-    mtd process(coefficients: const [*] f64, shortBlocks: bool, output: [*] f64)
+    // Write the channel at its interleaved stride after applying the synthesis window.
+    mtd process(coefficients: const [*] f64, shortBlocks: bool, output: [*] s16, stride: u32)
     {
+        if not shortBlocks
+        {
+            imdctLong(coefficients, output, stride, &.delay[0])
+            return
+        }
+
         var time: [512] f64
-        if shortBlocks do
-            imdctShort(coefficients, &time)
-        else do
-            imdctLong(coefficients, &time)
+        imdctShort(coefficients, &time)
         for index in 256
         {
             time[index]       *= WINDOW[index]
             time[511 - index] *= WINDOW[index]
-            output[index]     = 2.0 * (time[index] + .delay[index])
-            .delay[index]     = time[256 + index]
+            let sample = (2.0 * (time[index] + .delay[index])) * 32767.0
+            output[index * stride] = cast(s16, Math.clamp(sample, -32768.0, 32767.0))
+            .delay[index] = time[256 + index]
         }
     }
 }
@@ -522,7 +543,22 @@ impl MantissaReader
 {
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 
-    mtd get(bap: s32)->f64
+    #[Swag.Inline]
+    mtd getScaled(bap, exponent: s32)->f64
+    {
+        if bap >= 6
+        {
+            const Width: [16] u32 = [0, 0, 0, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
+            let width = Width[bap]
+            let raw   = .reader.readSigned(width)
+            return cast(f64, raw) * mantissaScale(exponent + cast(s32, width) - 1)
+        }
+
+        return .getGrouped(bap) * mantissaScale(exponent)
+    }
+
+    #[Swag.Inline]
+    mtd getGrouped(bap: s32)->f64
     {
         switch bap
         {
@@ -577,15 +613,6 @@ impl MantissaReader
         case 5:
             let code = .reader.read(4)
             return code < 15 ? (cast(f64, code) - 7.0) * (2.0 / 15.0) : 0
-
-        case 6, 7, 8, 9, 10, 11, 12, 13:
-            return cast(f64, .reader.readSigned(cast(u32, bap) - 1)) / cast(f64, (1 << (bap - 2)))
-
-        case 14:
-            return cast(f64, .reader.readSigned(14)) / 8192.0
-
-        case 15:
-            return cast(f64, .reader.readSigned(16)) / 32768.0
 
         default:
             return 0

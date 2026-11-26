@@ -507,6 +507,79 @@ private impl Codec
         }
     }
 
+    // Predict four samples together from the existing history. Complete each later
+    // dot product with the newly reconstructed samples before shifting it. Speculative
+    // products can wrap after history leaves the narrow range, so validate before storing.
+    #[Swag.Safety(.Overflow, false)]
+    mtd predictLinearPacked(target, residual: [*] s64, coefficients: const [*] s64, order, blockSize, shift: u32)->u32
+    {
+        var norm:    s64
+        var weights: [4, 8] s16
+        var warmup:  [8] s16
+        for tap in order
+        {
+            let sample = residual[tap]
+            if sample < Swag.S16.Min or sample > Swag.S16.Max do
+                return order
+            warmup[8 - order + tap] = cast(s16, sample)
+            norm += Math.abs(coefficients[tap])
+        }
+
+        if norm > 65535 do
+            return order
+        for pair in 4
+        {
+            for lane in 8
+            {
+                let tap = 7 - 2 * pair - (lane & 1) + (lane >> 1)
+                if tap < order do
+                    weights[pair, lane] = cast(s16, coefficients[tap])
+            }
+        }
+
+        let weight0 = Math.Simd.load(cast(const [*] s16, &weights[0, 0]))
+        let weight1 = Math.Simd.load(cast(const [*] s16, &weights[1, 0]))
+        let weight2 = Math.Simd.load(cast(const [*] s16, &weights[2, 0]))
+        let weight3 = Math.Simd.load(cast(const [*] s16, &weights[3, 0]))
+        var history = Math.Simd.load(cast(const [*] s16, &warmup[0]))
+        let tap0    = coefficients[0]
+        let tap1    = coefficients[1]
+        let tap2    = coefficients[2]
+        const Pair0 = cast(Math.Simd.U16x8, [0'u16, 1, 0, 1, 0, 1, 0, 1])
+        const Pair1 = cast(Math.Simd.U16x8, [2'u16, 3, 2, 3, 2, 3, 2, 3])
+        const Pair2 = cast(Math.Simd.U16x8, [4'u16, 5, 4, 5, 4, 5, 4, 5])
+        const Pair3 = cast(Math.Simd.U16x8, [6'u16, 7, 6, 7, 6, 7, 6, 7])
+
+        var index = order
+        while blockSize - index >= 4
+        {
+            let predictions = Math.Simd.mulAddPairs(weight0, Swag.vecShuffle(history, Pair0)) +
+                              Math.Simd.mulAddPairs(weight1, Swag.vecShuffle(history, Pair1)) +
+                              Math.Simd.mulAddPairs(weight2, Swag.vecShuffle(history, Pair2)) +
+                              Math.Simd.mulAddPairs(weight3, Swag.vecShuffle(history, Pair3))
+            let sample0 = residual[index] + cast(s64, predictions[0] >> shift)
+            let sample1 = residual[index + 1] + ((cast(s64, predictions[1]) + tap0 * sample0) >> shift)
+            let sample2 = residual[index + 2] + ((cast(s64, predictions[2]) + tap1 * sample0 + tap0 * sample1) >> shift)
+            let sample3 = residual[index + 3] + ((cast(s64, predictions[3]) + tap2 * sample0 + tap1 * sample1 + tap0 * sample2) >> shift)
+
+            // The first out-of-range sample is still exact because its input history fits.
+            // If it exists, discard the entire group and let the wide predictor redo it.
+            let outside = cast #bit (u64, (sample0 + 32768)) | cast #bit (u64, (sample1 + 32768)) |
+                          cast #bit (u64, (sample2 + 32768)) | cast #bit (u64, (sample3 + 32768))
+            if outside > 65535 do
+                return index
+            target[index]     = sample0
+            target[index + 1] = sample1
+            target[index + 2] = sample2
+            target[index + 3] = sample3
+            let samples = [cast(s16, sample0), cast(s16, sample1), cast(s16, sample2), cast(s16, sample3), 0, 0, 0, 0]
+            history = Swag.vecAlign(history, Math.Simd.load(cast(const [*] s16, &samples[0])), 8)
+            index   += 4
+        }
+
+        return index
+    }
+
     // Restores the samples of a linear-predictor subframe from its residual.
     //
     // The accumulator is 64-bit because the format allows thirty-two coefficients of fifteen
@@ -517,9 +590,13 @@ private impl Codec
         for index in order do
             target[index] = source[index]
 
+        var start = cast(u32, order)
+        if order >= 3 and order <= 8 and shift >= 0 do
+            start = .predictLinearPacked(target, source, coefficients, cast(u32, order), cast(u32, blockSize), cast(u32, shift))
+
         let groups      = order / 4
         let groupedTaps = groups * 4
-        for index in order until blockSize
+        for index in start until blockSize
         {
             var sum = 0's64
             for group in groups
@@ -619,8 +696,36 @@ private impl Codec
             try .readSubframe(&reader, .channels[channel].storage(), header.blockSize, depth)
         }
 
-        .undecorrelate(header.channelAssignment, header.blockSize)
         return header
+    }
+
+    // Apply stereo decorrelation while interleaving, so the wide scratch is read once.
+    mtd(Assignment: u32) writeStereoPcm16(destination: [*] s16, blockSize: u32)
+    {
+        let first  = .channels[0].storage()
+        let second = .channels[1].storage()
+        for sample in blockSize
+        {
+            var left  = first[sample]
+            var right = second[sample]
+            #static if Assignment == 8
+            {
+                right = left - right
+            }
+            elif Assignment == 9
+            {
+                left += right
+            }
+            elif Assignment == 10
+            {
+                let mid = (left << 1) | (right & 1)
+                left  = (mid + right) >> 1
+                right = (mid - right) >> 1
+            }
+
+            destination[2 * sample]     = cast(s16, Math.clamp(left, -32768's64, 32767's64))
+            destination[2 * sample + 1] = cast(s16, Math.clamp(right, -32768's64, 32767's64))
+        }
     }
 
     // Writes the decoded block as interleaved 16-bit PCM.
@@ -629,17 +734,18 @@ private impl Codec
         let shift = cast(s32, header.bitsPerSample) - 16
         if not shift and header.channels == 2
         {
-            let left  = .channels[0].storage()
-            let right = .channels[1].storage()
-            for sample in header.blockSize
+            switch header.channelAssignment
             {
-                destination[sample * 2]     = cast(s16, Math.clamp(left[sample], -32768's64, 32767's64))
-                destination[sample * 2 + 1] = cast(s16, Math.clamp(right[sample], -32768's64, 32767's64))
+            case 8:  .writeStereoPcm16'8(destination, header.blockSize)
+            case 9:  .writeStereoPcm16'9(destination, header.blockSize)
+            case 10: .writeStereoPcm16'10(destination, header.blockSize)
+            default: .writeStereoPcm16'1(destination, header.blockSize)
             }
 
             return
         }
 
+        .undecorrelate(header.channelAssignment, header.blockSize)
         var index = 0'u64
         for sample in header.blockSize
         {

@@ -85,7 +85,6 @@ private struct Ac3Codec
     block:        Ac3Block
     imdct:        [MaxChannels] Imdct
     coefficients: [MaxChannels, SamplesPerBlock] f64
-    pcm:          [MaxChannels, SamplesPerBlock] f64
     ditherState:  u32 = 0x1234ABCD
 }
 
@@ -215,7 +214,6 @@ private impl Ac3Codec
     {
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
-        Memory.set(&.pcm, 0, #sizeof(.pcm))
         for channel in MaxChannels do
             .imdct[channel].reset()
         .ditherState = 0x1234ABCD
@@ -287,7 +285,7 @@ private impl Ac3Codec
                     let exponent = block.couplingCoordExp[channel, coordBand]
                     let mantissa = block.couplingCoordMant[channel, coordBand]
                     coordinate = exponent == 15 ? cast(f64, mantissa) / 16.0 : cast(f64, (mantissa + 16)) / 32.0
-                    coordinate /= Math.pow(2.0, cast(f64, (exponent + 3 * block.couplingMaster[channel])))
+                    coordinate *= mantissaScale(cast(s32, (exponent + 3 * block.couplingMaster[channel])))
                     if channel == 1 and block.phaseFlagsInUse and block.couplingPhase[coordBand] do
                         coordinate = -coordinate
                     coordBand += 1
@@ -456,17 +454,18 @@ private impl Ac3Codec
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in cast(u64, block.channelEnd[channel])
             {
+                let bap      = block.channelBap[channel, bin]
                 let exponent = block.channelExponents[channel, bin]
-                let value    = block.channelBap[channel, bin] or not block.dither[channel] ?
-                               mantissas.get(block.channelBap[channel, bin]) :
-                               .ditherValue()
-                .coefficients[channel, bin] = value * mantissaScale(exponent)
+                if bap do
+                    .coefficients[channel, bin] = mantissas.getScaled(bap, exponent)
+                elif block.dither[channel] do
+                    .coefficients[channel, bin] = .ditherValue() * mantissaScale(exponent)
             }
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
-                for bin in block.couplingSubbands * 12 do
-                    couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * mantissaScale(block.couplingExponents[bin])
+                for bin in block.couplingSubbands * 12 where block.couplingBap[bin] do
+                    couplingMantissas[bin] = mantissas.getScaled(block.couplingBap[bin], block.couplingExponents[bin])
                 couplingRead = true
             }
         }
@@ -476,7 +475,7 @@ private impl Ac3Codec
             let channel = bsi.nfchans
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in 7 do
-                .coefficients[channel, bin] = mantissas.get(block.lfeBap[bin]) * mantissaScale(block.lfeExponents[bin])
+                .coefficients[channel, bin] = mantissas.getScaled(block.lfeBap[bin], block.lfeExponents[bin])
         }
 
         if block.coupling
@@ -516,7 +515,7 @@ private impl Ac3Codec
         }
     }
 
-    mtd decodeBlock(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32) fail
+    mtd decodeBlock(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32, destination: [*] s16) fail
     {
         let block = &.block
         for channel in bsi.nfchans do
@@ -565,10 +564,12 @@ private impl Ac3Codec
         if reader.overrun do
             fail InvalidFormatError{"AC-3 audio block is truncated"}
 
-        for channel in bsi.nfchans do
-            .imdct[channel].process(&.coefficients[channel, 0], block.blockSwitch[channel], &.pcm[channel, 0])
-        if bsi.lfeon do
-            .imdct[bsi.nfchans].process(&.coefficients[bsi.nfchans, 0], false, &.pcm[bsi.nfchans, 0])
+        for channel in .channels
+        {
+            let source     = .sourceChannel(channel, bsi)
+            let shortBlock = source < bsi.nfchans and block.blockSwitch[source]
+            .imdct[source].process(&.coefficients[source, 0], shortBlock, destination + channel, .channels)
+        }
     }
 
     mtd sourceChannel(destination: u32, bsi: const *Ac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
@@ -586,18 +587,8 @@ private impl Ac3Codec
             fail InvalidFormatError{"AC-3 packet channel layout differs from its container track"}
 
         for blockIndex in BlocksPerAc3Frame
-        {
-            try .decodeBlock(&reader, &bsi, blockIndex)
-            for frame in SamplesPerBlock
-            {
-                for channel in .channels
-                {
-                    let source = .sourceChannel(channel, &bsi)
-                    let scaled = Math.clamp(.pcm[source, frame] * 32767.0, -32768.0, 32767.0)
-                    destination[(blockIndex * SamplesPerBlock + frame) * .channels + channel] = cast(s16, scaled)
-                }
-            }
-        }
+            do
+            try .decodeBlock(&reader, &bsi, blockIndex, destination + blockIndex * SamplesPerBlock * .channels)
     }
 }
 

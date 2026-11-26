@@ -21,6 +21,28 @@ const SampleRates: [3, 3] u32 = [
 const BitRatesMpeg1: [15] u32 = [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320]
 const BitRatesMpeg2: [15] u32 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160]
 
+// Frame lengths vary only with the header's three table indices and padding.
+private func buildFrameBytes()->[3, 3, 15] u16
+{
+    var sizes: #returntype
+    for version in 3'u64
+    {
+        let factor = version == 2 ? 144_000'u32 : 72_000
+        for rate in 3'u64
+        {
+            for bitrate in 15'u64
+            {
+                let kbits = version == 2 ? BitRatesMpeg1[bitrate] : BitRatesMpeg2[bitrate]
+                sizes[version, rate, bitrate] = cast(u16, (factor * kbits / SampleRates[version, rate]))
+            }
+        }
+    }
+
+    return sizes
+}
+
+private const FrameBytes = #run buildFrameBytes()
+
 // What the four bytes of a frame header say.
 struct FrameHeader
 {
@@ -96,9 +118,8 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
     result.granules      = result.isMpeg1 ? 2 : 1
     result.frameSamples  = result.isMpeg1 ? 1152 : 576
 
-    let kbits   = result.isMpeg1 ? BitRatesMpeg1[cast(u64, bitrateIndex)] : BitRatesMpeg2[cast(u64, bitrateIndex)]
     let padding = cast(u64, (bytes[2] >> 1)) & 1
-    result.frameBytes = cast(u64, (result.frameSamples / 8)) * cast(u64, kbits) * 1000 / cast(u64, result.sampleRate) + padding
+    result.frameBytes = cast(u64, FrameBytes[versionRow, rate, bitrateIndex]) + padding
     if result.frameBytes < 4 do
         fail InvalidFormatError{"MP3 frame states a size no frame can have"}
 
@@ -113,33 +134,86 @@ func readHeader(bytes: const [..] u8)->FrameHeader fail
 // Reads syntax elements from the main data, most significant bit first.
 struct BitReader
 {
-    data:   const [*] u8?
-    bitEnd: u64
-    bitPos: u64
+    data:      const [*] u8?
+    bitEnd:    u64
+    bitPos:    u64
+    cache:     u64
+    available: u32
+    nextByte:  u64
 }
 
 impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count * 8, 0}
+    func create(payload: const [..] u8)->BitReader
+        => BitReader{data: payload.buffer, bitEnd: payload.count * 8}
 
-    // Reads `count` bits, at most 24 at a time. Past the end every bit reads as zero, which lets a
-    // truncated granule finish rather than fault; the caller sees it through `overran`.
-    mtd read(count: u32)->u32
+    // Append a big-endian word to the left-justified cache. End-of-payload zeros
+    // occupy ordinary cache slots; bitEnd and bitPos still track a physical overrun.
+    mtd refill()
     {
-        var result = 0'u32
-        for count do
-            result = (result << 1) | .readBit()
-        return result
+        let at        = .nextByte
+        let remaining = .bitEnd >> 3
+        var word: u32
+        if at + 4 <= remaining
+        {
+            let data = unwrap .data
+            word = Math.bigEndianToNative(cast(const [*] u32, data + at)[0])
+        }
+        elif at < remaining
+        {
+            let data = unwrap .data
+            for i in remaining - at do
+                word |= cast(u32, data[at + i]) << cast(u32, (24 - 8 * i))
+        }
+
+        .cache     |= cast(u64, word) << (32 - .available)
+        .available += 32
+        .nextByte  += 4
     }
 
     #[Swag.Inline]
-    mtd readBit()->u32
+    mtd peek(count: u32)->u32
     {
-        let at = .bitPos
-        .bitPos += 1
-        if at >= .bitEnd do
+        if .available < count do
+            .refill()
+        return cast(u32, .cache >> (64 - count))
+    }
+
+    #[Swag.Inline]
+    mtd consume(count: u32)
+    {
+        .cache     <<= count
+        .available -= count
+        .bitPos    += count
+    }
+
+    // Reads up to 24 bits and preserves the old zero padding after a truncated granule.
+    #[Swag.Inline]
+    mtd read(count: u32)->u32
+    {
+        if not count do
             return 0
-        return cast(u32, .data![at >> 3]) >> (7 - cast(u32, (at & 7))) & 1
+        let value = .peek(count)
+        .consume(count)
+        return value
+    }
+
+    #[Swag.Inline]
+    mtd readBit()->u32 => .read(1)
+
+    mtd seek(position: u64)
+    {
+        if position >= .bitPos and position - .bitPos <= .available
+        {
+            .consume(cast(u32, (position - .bitPos)))
+            return
+        }
+
+        .nextByte  = position >> 3
+        .bitPos    = position & ~7'u64
+        .cache     = 0
+        .available = 0
+        discard .read(cast(u32, (position & 7)))
     }
 
     #[Swag.Inline]
@@ -302,16 +376,17 @@ struct Codec
     // Every registered codec starts with the registry's own header.
     using base: Audio.Codec
 
-    sampleRate:   u32
-    channels:     u32
-    reservoir:    Array'u8
-    state:        [2] ChannelState
-    lines:        [2] Granule576
-    scalefac:     [2, 40] u8     // The previous granule's, for the bands `scfsi` shares.
-    intensityPos: [2, 40] u8
-    bandGain:     [2, 40] f32
-    output:       [2, 1152] f32
-    ready:        bool
+    sampleRate:    u32
+    channels:      u32
+    mainData:      Array'u8
+    reservoirSize: u64
+    state:         [2] ChannelState
+    lines:         [2] Granule576
+    scalefac:      [2, 40] u8     // The previous granule's, for the bands `scfsi` shares.
+    intensityPos:  [2, 40] u8
+    bandGain:      [2, 40] f32
+    output:        [2, 1152] f32
+    ready:         bool
 }
 
 // The largest Huffman magnitude is 15 plus a 13-bit escape value.
@@ -347,10 +422,6 @@ private const BandGains = #run buildBandGains()
 
 private const Count1TableA = 25'u32
 private const Count1TableB = 26'u32
-private const PrefixBits   = 8'u32
-private const PrefixCount  = 1'u32 << PrefixBits
-private const LeafBits     = 4'u32
-private const LeafMask     = (1'u32 << LeafBits) - 1
 
 // The decoding tree for a resolved Huffman table number.
 private func codeTree(table: u32)->const [..] s16
@@ -400,40 +471,118 @@ private func codeWidth(table: u32)->u32
 private func packSymbol(symbol, axis: u32)->u32
     => (symbol / axis) << 4 | (symbol % axis)
 
-// Each prefix identifies a leaf and its consumed length, or the node where the
-// ordinary tree walk resumes after all eight bits have been consumed.
-private func buildHuffmanPrefixes()->[Count1TableB + 1, PrefixCount] s16
+// A complete prefix reaches a negative leaf. Otherwise it names the node where
+// the bitwise walk must resume.
+private func walkPrefix(tree: const [..] s16, prefix, bits: u32)->{node: s16, length: u32}
 {
-    var prefixes: #returntype
-    for table in Count1TableB + 1
+    var node = 0's16
+    for length in 1 until bits + 1
     {
-        let tree = codeTree(table)
-        let axis = codeWidth(table)
-        for prefix in PrefixCount
-        {
-            var node = 0's16
-            for depth in 1 until PrefixBits + 1
-            {
-                let bit  = (prefix >> (PrefixBits - depth)) & 1
-                let next = tree[cast(u64, node) * 2 + bit]
-                if next < 0
-                {
-                    let symbol = packSymbol(cast(u32, (-next - 1)), axis)
-                    node = -cast(s16, ((symbol << LeafBits) | depth))
-                    break
-                }
+        let bit = (prefix >> (bits - length)) & 1
+        node = tree[cast(u32, node) * 2 + bit]
+        if node < 0 do
+            return {node, length}
+    }
 
-                node = next
+    return {node, bits}
+}
+
+// Ten bits cover the longest count1 code and all four signs that can follow it.
+private const Count1PrefixBits = 10'u32
+
+private func buildCount1Tokens()->[2, 1 << Count1PrefixBits] u16
+{
+    var tokens: #returntype
+    for table in 2'u32
+    {
+        let tree = codeTree(Count1TableA + table)
+        for prefix in 1'u32 << Count1PrefixBits
+        {
+            let {node, length} = walkPrefix(tree, prefix, Count1PrefixBits)
+            Swag.require(node < 0)
+            let symbol = cast(u32, (-node - 1))
+            var total  = length
+            var values = 0'u32
+            for i in 4'u32 where (symbol & (8'u32 >> i)) != 0
+            {
+                total += 1
+                let sign = (prefix >> (Count1PrefixBits - total)) & 1
+                values |= (1 | (sign << 1)) << (2 * i)
             }
 
-            prefixes[table, prefix] = node
+            tokens[table, prefix] = cast(u16, (values | (length << 8) | (total << 12)))
         }
     }
 
-    return prefixes
+    return tokens
 }
 
-private const HuffmanPrefixes = #run buildHuffmanPrefixes()
+private const Count1Tokens        = #run buildCount1Tokens()
+private const SignedUnit: [4] f32 = [0.0, 1.0, 0.0, -1.0]
+
+private const PairPrefixBits = 10'u32
+
+// Leaf entries carry two five-bit magnitudes with signs, the four-bit code length,
+// and the two-bit sign count. A sign count of three leaves the trailing bits to the
+// reader. A zero code length carries a continuation node instead of magnitudes.
+private func buildSignedPairTokens()->[25, 1 << PairPrefixBits] u16
+{
+    var tokens: #returntype
+    for table in 25'u32
+    {
+        let tree = codeTree(table)
+        let axis = codeWidth(table)
+        for prefix in 1'u32 << PairPrefixBits
+        {
+            let {node, length} = walkPrefix(tree, prefix, PairPrefixBits)
+            if node >= 0
+            {
+                Swag.require(node < 1024)
+                tokens[table, prefix] = cast(u16, node)
+                continue
+            }
+
+            let pair    = packSymbol(cast(u32, (-node - 1)), axis)
+            var left    = pair >> 4
+            var right   = pair & 15
+            let signs   = cast(u32, left != 0) + cast(u32, right != 0)
+            let escapes = (table == 16 or table == 24) and (left == 15 or right == 15)
+            if escapes or length + signs > PairPrefixBits
+            {
+                tokens[table, prefix] = cast(u16, (right | (left << 5) | (length << 10) | (3 << 14)))
+                continue
+            }
+
+            var total = length
+            if left
+            {
+                total += 1
+                left  |= ((prefix >> (PairPrefixBits - total)) & 1) << 4
+            }
+
+            if right
+            {
+                total += 1
+                right |= ((prefix >> (PairPrefixBits - total)) & 1) << 4
+            }
+
+            tokens[table, prefix] = cast(u16, (right | (left << 5) | (length << 10) | (signs << 14)))
+        }
+    }
+
+    return tokens
+}
+
+private func buildSignedPowers()->[32] f32
+{
+    var values: #returntype
+    for value in values.count do
+        values[value] = value & 16 ? -Powers43[value & 15] : Powers43[value & 15]
+    return values
+}
+
+private const SignedPairTokens = #run buildSignedPairTokens()
+private const SignedPowers     = #run buildSignedPowers()
 
 impl Codec
 {
@@ -581,32 +730,12 @@ impl Codec
         }
     }
 
-    // Resolves short codes in one lookup and resumes the tree for longer codes.
+    // Resumes a tree walk after a complete prefix that did not reach a leaf.
     #[Swag.Inline]
-    mtd const decodeSymbol(tree: const [..] s16, table, axis: u32, reader: *BitReader)->s32
+    mtd const decodeSymbolTail(tree: const [..] s16, start, axis: u32, reader: *BitReader)->s32
     {
-        var node  = 0's32
-        var depth = 0'u32
-        if reader.bitPos + 16 <= reader.bitEnd
-        {
-            let data   = unwrap reader.data
-            let at     = reader.bitPos >> 3
-            let word   = cast(u32, data[at]) << 8 | cast(u32, data[at + 1])
-            let prefix = (word >> (8 - cast(u32, (reader.bitPos & 7)))) & (PrefixCount - 1)
-            let next   = HuffmanPrefixes[table, prefix]
-            if next < 0
-            {
-                let leaf = cast(u32, -cast(s32, next))
-                reader.bitPos += cast(u64, (leaf & LeafMask))
-                return cast(s32, (leaf >> LeafBits))
-            }
-
-            reader.bitPos += PrefixBits
-            depth         = PrefixBits
-            node          = cast(s32, next)
-        }
-
-        for depth until 32'u32
+        var node = cast(s32, start)
+        for PairPrefixBits until 32'u32
         {
             let slot = cast(u64, (node * 2)) + cast(u64, reader.readBit())
             if slot >= tree.count do
@@ -681,7 +810,32 @@ impl Codec
 
                 for take
                 {
-                    let symbol = .decodeSymbol(tree, table, axis, reader)
+                    let token = cast(u32, SignedPairTokens[table, reader.peek(PairPrefixBits)])
+                    let bits  = (token >> 10) & 15
+                    if bits
+                    {
+                        if reader.bitPos + bits > limit do
+                            return
+                        let signs = token >> 14
+                        if signs == 3
+                        {
+                            reader.consume(bits)
+                            lines[][line]     = reader.readMagnitude((token >> 5) & 15, escape, gain)
+                            lines[][line + 1] = reader.readMagnitude(token & 15, escape, gain)
+                        }
+                        else
+                        {
+                            reader.consume(bits + signs)
+                            lines[][line]     = SignedPowers[(token >> 5) & 31] * gain
+                            lines[][line + 1] = SignedPowers[token & 31] * gain
+                        }
+
+                        line += 2
+                        continue
+                    }
+
+                    reader.consume(PairPrefixBits)
+                    let symbol = .decodeSymbolTail(tree, token, axis, reader)
                     if symbol < 0 or reader.bitPos > limit do
                         return
 
@@ -693,17 +847,16 @@ impl Codec
             }
         }
 
-        // The count1 region codes four lines at a time until the granule's bits run out.
-        let quadTable = info.count1Table != 0 ? Count1TableB : Count1TableA
-        let quadTree  = codeTree(quadTable)
-
+        // The token includes the signs of both pairs. The code length still bounds
+        // the granule independently of the sign bits.
         while line + 4 <= 576 and reader.bitPos < limit and not ended
         {
-            let symbol = .decodeSymbol(quadTree, quadTable, 16, reader)
-            if symbol < 0 or reader.bitPos > limit do
+            let token = cast(u32, Count1Tokens[info.count1Table, reader.peek(Count1PrefixBits)])
+            if reader.bitPos + ((token >> 8) & 15) > limit do
                 break
+            reader.consume(token >> 12)
 
-            // A quadruple spans two pairs, and the band may change between them.
+            // The scalefactor band can change between the quadruple's two pairs.
             for half in 2'u32
             {
                 if not pairsLeft
@@ -718,27 +871,13 @@ impl Codec
                     gain      = .bandGain[cast(u64, channel), band]
                     band      += 1
                     pairsLeft = cast(u64, width) / 2
-                    if not pairsLeft do
-                        continue
                 }
 
                 pairsLeft -= 1
-                for component in 2'u32
-                {
-                    var sample = 0'f32
-                    if (cast(u32, symbol) & (8 >> (half * 2 + component))) != 0
-                    {
-                        sample = gain
-                        if reader.readBit() != 0 do
-                            sample = -sample
-                    }
-
-                    if line < 576
-                    {
-                        lines[][line] = sample
-                        line += 1
-                    }
-                }
+                let value = token >> (half * 4)
+                lines[][line]     = SignedUnit[value & 3] * gain
+                lines[][line + 1] = SignedUnit[(value >> 2) & 3] * gain
+                line += 2
             }
         }
     }
@@ -922,21 +1061,16 @@ impl Codec
     {
         for channel in 2'u64 do
             .state[channel].reset()
-        .reservoir.clear()
+        .mainData.clear()
+        .reservoirSize = 0
         Memory.set(cast(*void, &.scalefac[0, 0]), 0, 2 * 40)
         Memory.set(cast(*void, &.intensityPos[0, 0]), 0, 2 * 40)
         .ready = false
     }
 
-    // Decodes one frame into `.output`, and returns how many sample frames it produced.
-    mtd decodeFrame(packet: const [..] u8)->u32 fail
+    // Decodes a validated frame into `.output`.
+    mtd decodeFrame(packet: const [..] u8, header: const *FrameHeader) fail
     {
-        let header = try readHeader(packet)
-        if packet.count < header.frameBytes do
-            fail InvalidFormatError{"MP3 frame is shorter than its header states"}
-        if header.sampleRate != .sampleRate or header.channels != .channels do
-            fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
-
         var at = 4'u64
         if header.hasCrc do
             at += 2
@@ -944,25 +1078,25 @@ impl Codec
             fail InvalidFormatError{"MP3 frame is too short for its side information"}
 
         var granules: [2, 2] GranuleInfo
-        let mainDataBegin = try readSideInfo(&header, packet[at until at + header.sideInfoBytes], &granules)
+        let mainDataBegin = try readSideInfo(header, packet[at until at + header.sideInfoBytes], &granules)
         at += header.sideInfoBytes
 
-        // The main data of this frame continues what the frames before it left in the reservoir.
-        let available = Math.min(mainDataBegin, .reservoir.count)
-        var main: Array'u8
-        main.reserve(available + header.frameBytes - at)
-        if available do
-            main.add(.reservoir.toSlice()[.reservoir.count - available until .reservoir.count])
-        main.add(packet[at until header.frameBytes])
+        // Keep only the requested tail from the preceding frame, in the same reusable buffer.
+        let available = Math.min(mainDataBegin, .reservoirSize)
+        if available
+        {
+            let data = .mainData.storage()
+            Memory.copyOverlapping(data, data + .mainData.count - available, available)
+        }
+
+        .mainData.resize(available)
+        .mainData.add(packet[at until header.frameBytes])
 
         // A frame that reaches further back than what was kept cannot be decoded; every frame
         // after it can, so the stream restarts rather than failing.
         let usable = available >= mainDataBegin
+        var reader = BitReader.create(.mainData.toSlice())
 
-        // The history taken is exactly what this frame asked for, so its own data starts at zero.
-        var reader = BitReader.create(main.toSlice())
-
-        var produced = 0'u32
         if usable
         {
             for granule in header.granules
@@ -971,22 +1105,20 @@ impl Codec
                 {
                     let info  = &granules[cast(u64, granule), cast(u64, channel)]
                     let start = reader.bitPos
-                    .readScalefactors(&header, info, &reader, channel)
-                    .decodeSpectrum(&header, info, &reader, channel, start + cast(u64, info.part23Length))
-                    reader.bitPos = start + cast(u64, info.part23Length)
+                    .readScalefactors(header, info, &reader, channel)
+                    .decodeSpectrum(header, info, &reader, channel, start + cast(u64, info.part23Length))
+                    reader.seek(start + cast(u64, info.part23Length))
                 }
 
                 if header.channels == 2 and header.mode == 1
                 {
                     let next = &granules[cast(u64, granule), 1]
-                    .processStereo(&header, &granules[cast(u64, granule), 0], next.scalefacCompress & 1)
+                    .processStereo(header, &granules[cast(u64, granule), 0], next.scalefacCompress & 1)
                 }
 
                 for channel in header.channels do
-                    .synthesizeChannel(&header, &granules[cast(u64, granule), cast(u64, channel)], channel, granule)
+                    .synthesizeChannel(header, &granules[cast(u64, granule), cast(u64, channel)], channel, granule)
             }
-
-            produced = header.frameSamples
         }
         else
         {
@@ -997,27 +1129,21 @@ impl Codec
                 for index in cast(u64, header.frameSamples) do
                     .output[channel, index] = 0
             }
-
-            produced = header.frameSamples
         }
 
-        // What this frame did not consume is what the next one may reach back over.
-        var keptFrom = (reader.bitPos + 7) / 8
-        if keptFrom > main.count do
-            keptFrom = main.count
-        var kept = main.count - keptFrom
-        if kept > ReservoirBytes
-        {
-            keptFrom += kept - ReservoirBytes
-            kept     = ReservoirBytes
-        }
-
-        .reservoir.clear()
-        if kept do
-            .reservoir.add(main.toSlice()[keptFrom until keptFrom + kept])
-
-        return produced
+        // The unused suffix is the reservoir for the next frame.
+        let consumed = Math.min((reader.bitPos + 7) / 8, .mainData.count)
+        .reservoirSize = Math.min(.mainData.count - consumed, ReservoirBytes)
     }
+}
+
+#[Swag.Inline]
+private func packPcm16(source: const [*] f32)->Math.Simd.S16x8
+{
+    using Math.Simd
+    let low  = Math.clamp(load(source) * 32767.0, splat(-32768.0'f32), splat(32767.0'f32))
+    let high = Math.clamp(load(source + 4) * 32767.0, splat(-32768.0'f32), splat(32767.0'f32))
+    return packSigned(truncateToS32(low), truncateToS32(high))
 }
 
 impl IPacketCodec for Codec
@@ -1050,16 +1176,27 @@ impl IPacketCodec for Codec
         if destinationSize < produced do
             fail BadParameterError{"MP3 destination buffer is too small"}
 
-        let frames  = try .decodeFrame(packet)
+        try .decodeFrame(packet, &header)
         let samples = cast([*] s16, destination)
-        var at      = 0'u64
-        for index in cast(u64, frames)
+        let groups  = cast(u64, header.frameSamples) / 8
+        if .channels == 1
         {
-            for channel in cast(u64, .channels)
+            for index in groups
             {
-                let value = .output[channel, index] * 32767.0
-                samples[at] = cast(s16, Math.clamp(value, -32768.0'f32, 32767.0'f32))
-                at += 1
+                let at = index * 8
+                Math.Simd.store(samples + at, packPcm16(&.output[0, at]))
+            }
+        }
+        else
+        {
+            using Math.Simd
+            for index in groups
+            {
+                let at    = index * 8
+                let left  = cast #bit(U16x8, packPcm16(&.output[0, at]))
+                let right = cast #bit(U16x8, packPcm16(&.output[1, at]))
+                store(samples + 2 * at, cast #bit(S16x8, interleaveLow(left, right)))
+                store(samples + 2 * at + 8, cast #bit(S16x8, interleaveHigh(left, right)))
             }
         }
 

@@ -447,6 +447,48 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     audioAssertSamples(cast([..] u8, decoded), [1's16, 0's16])
 }
 
+// A valid 17-bit side sample can outgrow the packed predictor midway through a block.
+#test
+{
+    var config = flac24BitStereoTestConfig()
+    config[3] = 11
+    const Description = (48_000'u64 << 44) | (1'u64 << 41) | (15'u64 << 36) | 11
+    for byte in 8 do
+        config[10 + byte] = cast(u8, (Description >> (56 - byte * 8)) & 0xFF)
+
+    var frame: Array'u8
+    frame.add([0xFF'u8, 0xF8, 0x6A, 0x98, 0, 10])
+    frame.add(flacTestHeaderCrc8(frame.toSlice()))
+    var bits = frame.count * 8
+    flacTestAppendBits(&frame, &bits, 0x44, 8)     // Order-three predictor on the 17-bit side channel.
+    for 3 do
+        flacTestAppendBits(&frame, &bits, 0, 17)
+    flacTestAppendBits(&frame, &bits, 1, 4)     // Two-bit coefficients.
+    flacTestAppendBits(&frame, &bits, 0, 5)     // No prediction shift.
+    flacTestAppendBits(&frame, &bits, 1, 2)
+    flacTestAppendBits(&frame, &bits, 0, 4)
+    flacTestAppendBits(&frame, &bits, 0, 6)      // Rice method 0, one partition.
+    flacTestAppendBits(&frame, &bits, 15, 4)     // Raw residuals.
+    flacTestAppendBits(&frame, &bits, 17, 5)
+    for delta in [1'u64, 1, 1, 1, 32764, 0, 0x18000, 8] do
+        flacTestAppendBits(&frame, &bits, delta, 17)
+    flacTestAppendBits(&frame, &bits, 0, 8)     // Constant right channel.
+    flacTestAppendBits(&frame, &bits, 0xC000, 16)
+
+    var codec: Flac.Codec
+    let itf:   IPacketCodec = &codec
+    expect itf.initialize(config.toSlice(), 48_000, 2)
+    var pcm: [22] s16
+    let produced = expect itf.decodePacket(&pcm[0], #sizeof(pcm), frame.toSlice())
+    Swag.require(produced == #sizeof(pcm))
+    const Left: [11] s16 = [-16384, -16384, -16384, -16383, -16382, -16381, -16380, 16384, 16384, -16384, -16376]
+    for index in Left.count
+    {
+        Swag.require(pcm[2 * index] == Left[index])
+        Swag.require(pcm[2 * index + 1] == -16384)
+    }
+}
+
 // A malformed linear predictor cannot overflow the signed accumulator on a left shift.
 #test
 {

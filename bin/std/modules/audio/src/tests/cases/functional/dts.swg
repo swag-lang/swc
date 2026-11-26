@@ -230,20 +230,27 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 #test
 {
     const Stride = 2
-    var bands:       [32 * Stride] f64
-    var transformed: [32] f64
+    var bands:        [32 * Stride] f64
+    var pairedBands:  [32 * Stride] Math.Simd.F64x2
+    var transformed:  [32] f64
+    var pairedOutput: [32] Math.Simd.F64x2
     for band in 32
     {
-        bands[band * Stride] = 1.0
+        bands[band * Stride]       = 1.0
+        pairedBands[band * Stride] = cast(Math.Simd.F64x2, [1.0'f64, -2.0])
         Dts.synthesisDct(cast(const [*] f64, &bands[0]), Stride, &transformed)
+        Dts.synthesisDct(cast(const [*] Math.Simd.F64x2, &pairedBands[0]), Stride, &pairedOutput)
         for output in 32
         {
             let angle    = Math.ConstF64.Pi * (cast(f64, band) + 0.5) * (cast(f64, output) + 0.5) / 32.0
             let expected = Math.cos(angle) * 0.25
             Swag.require(Math.abs(transformed[output] - expected) < 1e-12)
+            Swag.require(Math.abs(pairedOutput[output][0] - expected) < 1e-12)
+            Swag.require(Math.abs(pairedOutput[output][1] + 2.0 * expected) < 1e-12)
         }
 
-        bands[band * Stride] = 0.0
+        bands[band * Stride]       = 0.0
+        pairedBands[band * Stride] = Math.Simd.splat(0.0'f64)
     }
 }
 

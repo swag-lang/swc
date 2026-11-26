@@ -97,6 +97,9 @@ private func readFrameIndex(source: *ByteSource,
     var totalFrames   = 0'u64
     var hasFirstFrame = false
     var skippedJunk   = false
+    var windowStart   = audioOffset
+    try source.seek(windowStart)
+    var window = try source.peek(Math.min(HeaderBytes, fileBytes - windowStart))
 
     for
     {
@@ -104,9 +107,15 @@ private func readFrameIndex(source: *ByteSource,
             break
         if fileBytes - byteOffset < HeaderBytes do
             break
-        try source.seek(byteOffset)
-        let probe  = try source.peek(HeaderBytes)
-        let header = catch readHeader(probe)
+        if byteOffset - windowStart + HeaderBytes > window.count
+        {
+            windowStart = byteOffset
+            try source.seek(windowStart)
+            window = try source.peek(HeaderBytes)
+        }
+
+        let offset = byteOffset - windowStart
+        let header = catch readHeader(window[offset until offset + HeaderBytes])
         {     // Tags and padding sit between frames often enough that one bad byte is not the end
             // of the stream; a run of them is.
             byteOffset  += 1
@@ -125,8 +134,15 @@ private func readFrameIndex(source: *ByteSource,
         {
             hasFirstFrame = true
             firstHeader[] = header
-            let frame = try source.peek(header.frameBytes)
-            encoderInfo[] = readEncoderInfo(frame[0 until header.frameBytes], &header)
+            if offset + header.frameBytes > window.count
+            {
+                windowStart = byteOffset
+                try source.seek(windowStart)
+                window = try source.peek(header.frameBytes)
+            }
+
+            let frameOffset = byteOffset - windowStart
+            encoderInfo[] = readEncoderInfo(window[frameOffset until frameOffset + header.frameBytes], &header)
             if encoderInfo.isHeaderFrame
             {
                 // The tag frame decodes to silence and belongs to no sample.

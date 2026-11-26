@@ -200,16 +200,17 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 ### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
 
-- Evidence: the native Linux Release comparison measures open and decode separately on the
-  first ten seconds of eight compressed FileSamples fixtures. FLAC and OGA are within 20%
-  of FFmpeg end to end while validating the complete index. Vorbis, Opus and DTS remain
-  about 1.6–1.9× slower. AAC, AC-3 and MP3 have the largest relative gaps.
-  [Linux comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#second-optimization-pass)
-- Next: profile the revised AAC spectrum and synthesis loops first, then AC-3 mantissa
-  reconstruction and MP3 transform and synthesis. Compare the same PCM16 windows and separate
-  codec time from full-file index validation when measuring FLAC or OGA.
-- Done when: the residual gaps are closed or quantified for the required indexing and decode
-  operations, with the reference PCM tolerances preserved.
+- Evidence: native Linux Release timings cover opening and materializing the first ten
+  seconds of all eight compressed FileSamples inputs on one core. DTS leads in both
+  measured series. FLAC and OGA cluster around parity, and Vorbis is within 6%. AAC,
+  AC-3, MP3 and Opus retain larger decode gaps. The report records the PCM comparisons
+  and independent opening and decode times.
+  [Linux comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#third-optimization-pass)
+- Next: profile the remaining AC-3 mantissa and transform work, the MP3 polyphase filter
+  and the AAC spectrum/synthesis split. Recheck the smaller Vorbis, FLAC and OGA gaps
+  with pinned alternating comparisons.
+- Done when: Swag opens and materializes the same PCM16 windows faster than native
+  FFmpeg on all eight inputs with the required format validation and PCM tolerances.
 - Related: app.scope.viewers.009.
 
 ---

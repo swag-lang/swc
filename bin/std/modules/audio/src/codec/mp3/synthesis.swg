@@ -80,17 +80,22 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
 // first subband.
 func reduceAlias(lines: *Granule576, subbandCount: u32)
 {
+    using Math.Simd
+    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
     for subband in 1 until subbandCount
     {
         let boundary = cast(u64, subband) * 18
-        for index in 8'u64
+        for group in 2'u64
         {
-            let below = boundary - 1 - index
-            let above = boundary + index
-            let a     = lines[][below]
-            let b     = lines[][above]
-            lines[][below] = a * AliasCs[index] - b * AliasCa[index]
-            lines[][above] = b * AliasCs[index] + a * AliasCa[index]
+            let i     = group * 4
+            let below = &lines[][boundary - i - 4]
+            let above = &lines[][boundary + i]
+            let a     = permute(load(below), Reverse)
+            let b     = load(above)
+            let cs    = load(&AliasCs[i])
+            let ca    = load(&AliasCa[i])
+            store(below, permute(a * cs - b * ca, Reverse))
+            store(above, b * cs + a * ca)
         }
     }
 }
@@ -124,12 +129,35 @@ private func buildDct9Matrix()->[9, 4] f32
     return matrix
 }
 
+private const Dct9Matrix = #run buildDct9Matrix()
+
+#[Swag.Inline]
+private func(T, K: u64) dct9Bin(pairs: const [*] T, middle: T)->T
+{
+    var sum: T
+    #static if (K & 1) == 0
+    {
+        #static if (K & 2) == 0 do
+            sum = middle
+        else do
+            sum = -middle
+    }
+
+    sum += pairs[0] * Dct9Matrix[K, 0]
+    sum += pairs[1] * Dct9Matrix[K, 1]
+    sum += pairs[2] * Dct9Matrix[K, 2]
+    sum += pairs[3] * Dct9Matrix[K, 3]
+    return sum
+}
+
 // Unnormalized DCT-II: X[k] = sum_i x[i] cos(pi*(i+1/2)*k/N).
 //
 // Pairing opposite input samples separates even and odd outputs. Lee's half-angle factor
 // reduces each half to a DCT-II again. The only odd lengths reached are the MP3 IMDCT
-// leaves of three and nine points. Each lane of a vector follows the same transform.
-private func(N: u64, T) dct(input: const [*] T, output: [*] T)
+// leaves of three and nine points. Each layer exchanges the input and output buffers,
+// so recursion needs no separate arrays for its even and odd branches.
+#[Swag.Inline]
+private func(N: u64, T) dct(input: [*] T, output: [*] T)
 {
     #static if N == 2
     {
@@ -145,8 +173,7 @@ private func(N: u64, T) dct(input: const [*] T, output: [*] T)
     }
     elif N == 9
     {
-        const Half   = N / 2
-        const Matrix = #run buildDct9Matrix()
+        const Half = N / 2
         var sums, differences: [Half] T
         for i in Half
         {
@@ -156,42 +183,39 @@ private func(N: u64, T) dct(input: const [*] T, output: [*] T)
             differences[i] = first - last
         }
 
-        for k in N
-        {
-            let odd   = (k & 1) != 0
-            let pairs = odd ? &differences : &sums
-            var sum: T
-            if not odd do
-                sum = (k & 2) != 0 ? -input[Half] : input[Half]
-            for i in Half do
-                sum += pairs[][i] * Matrix[k, i]
-            output[k] = sum
-        }
+        output[0] = dct9Bin'(T, 0)(&sums[0], input[Half])
+        output[1] = dct9Bin'(T, 1)(&differences[0], input[Half])
+        output[2] = dct9Bin'(T, 2)(&sums[0], input[Half])
+        output[3] = dct9Bin'(T, 3)(&differences[0], input[Half])
+        output[4] = dct9Bin'(T, 4)(&sums[0], input[Half])
+        output[5] = dct9Bin'(T, 5)(&differences[0], input[Half])
+        output[6] = dct9Bin'(T, 6)(&sums[0], input[Half])
+        output[7] = dct9Bin'(T, 7)(&differences[0], input[Half])
+        output[8] = dct9Bin'(T, 8)(&sums[0], input[Half])
     }
     else
     {
         const Half    = N / 2
         const Factors = #run buildCosineReciprocals'Half(cast(f64, N))
-        var sums, differences, even, odd: [Half] T
         for i in Half
         {
             let first = input[i]
             let last  = input[N - 1 - i]
-            sums[i]        = first + last
-            differences[i] = (first - last) * Factors[i]
+            output[i]        = first + last
+            output[Half + i] = (first - last) * Factors[i]
         }
 
-        dct'(Half, T)(&sums[0], &even[0])
-        dct'(Half, T)(&differences[0], &odd[0])
+        dct'(Half, T)(output, input)
+        dct'(Half, T)(output + Half, input + Half)
 
         for i in Half - 1
         {
-            output[2 * i]     = even[i]
-            output[2 * i + 1] = odd[i] + odd[i + 1]
+            output[2 * i]     = input[i]
+            output[2 * i + 1] = input[Half + i] + input[Half + i + 1]
         }
 
-        output[N - 2] = even[Half - 1]
-        output[N - 1] = odd[Half - 1]
+        output[N - 2] = input[Half - 1]
+        output[N - 1] = input[N - 1]
     }
 }
 
@@ -286,17 +310,44 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
     }
 }
 
+// Encoder low-pass filters often leave the top subbands identically zero. Only
+// the preceding window contributes there, so copy the overlap and clear it.
 func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, end, blockType: u32)
 {
+    using Math.Simd
+    var active = end
+    while active > start
+    {
+        let base = cast(u64, (active - 1)) * 18
+        let data = cast(const [*] u32, &lines[][base])
+        let bits = (load(data) | load(data + 4) | load(data + 8) | load(data + 12)) & 0x7FFFFFFF'u32
+        if anyTrue(bits != splat(0'u32)) or lines[][base + 16] != 0 or lines[][base + 17] != 0 do
+            break
+        active -= 1
+    }
+
     var subband = start
-    while subband + 4 <= end
+    while subband + 4 <= end and subband < active
     {
         inverseTransform4(lines, overlap, subband, blockType)
         subband += 4
     }
 
-    for band in subband until end do
-        inverseTransform(lines, overlap, band, blockType)
+    while subband < active
+    {
+        inverseTransform(lines, overlap, subband, blockType)
+        subband += 1
+    }
+
+    for band in subband until end
+    {
+        let base = cast(u64, band) * 18
+        for i in 18'u64
+        {
+            lines[][base + i]  = overlap[][i, band]
+            overlap[][i, band] = 0
+        }
+    }
 }
 
 // Negates every second sample of every second subband, which is what puts the filter bank input
@@ -316,6 +367,17 @@ func invertFrequencies(lines: *Granule576)
 
         subband += 2
     }
+}
+
+#[Swag.Inline]
+private func(Tap: u64) addWindowPair(state: const *ChannelState, at, lane: u64, sum: Math.Simd.F32x4)->Math.Simd.F32x4
+{
+    let filter = (at + Tap * 128) & 1023
+    let first  = Math.Simd.load(&state.filter[filter + lane])
+    let second = Math.Simd.load(&state.filter[((filter + 96) & 1023) + lane])
+    let weight = Tap * 64 + lane
+    return (sum + first * Math.Simd.load(&SynthesisWindow[weight])) +
+           second * Math.Simd.load(&SynthesisWindow[weight + 32])
 }
 
 // Creates the next filter block from one lane of the 32 DCT-II bins and their reflections.
@@ -343,15 +405,14 @@ private func synthesizeBlock(state: *ChannelState, bins: const [*] f32, destinat
     {
         let lane = group * 4
         var sum: Math.Simd.F32x4
-        for tap in 8'u64
-        {
-            let filter = (at + tap * 128) & 1023
-            let first  = Math.Simd.load(&state.filter[filter + lane])
-            let second = Math.Simd.load(&state.filter[((filter + 96) & 1023) + lane])
-            let weight = tap * 64 + lane
-            sum += first * Math.Simd.load(&SynthesisWindow[weight])
-            sum += second * Math.Simd.load(&SynthesisWindow[weight + 32])
-        }
+        sum = addWindowPair'0(state, at, lane, sum)
+        sum = addWindowPair'1(state, at, lane, sum)
+        sum = addWindowPair'2(state, at, lane, sum)
+        sum = addWindowPair'3(state, at, lane, sum)
+        sum = addWindowPair'4(state, at, lane, sum)
+        sum = addWindowPair'5(state, at, lane, sum)
+        sum = addWindowPair'6(state, at, lane, sum)
+        sum = addWindowPair'7(state, at, lane, sum)
 
         Math.Simd.store(destination + lane, sum)
     }

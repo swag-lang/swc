@@ -356,3 +356,31 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     discard catch SoundFile.load(temporary.toString()) as error
     Swag.require(error.value() is InvalidFormatError)
 }
+
+// Lookahead must keep the consumed position while seeking and zero-padding truncated input.
+#test
+{
+    const Bytes: [7] u8 = [0xB4, 0x39, 0xC2, 0x67, 0x85, 0xFA, 0x01]
+    let payload = Swag.makeSlice(&Bytes[0], Bytes.count)
+    var reader  = Mp3.BitReader.create(payload)
+    for start in [3'u64, 31, 5, 53, 57, 16]
+    {
+        reader.seek(start)
+        var position = start
+        for width in [0'u32, 9, 24, 7, 1]
+        {
+            var expected = 0'u32
+            for width
+            {
+                expected <<= 1
+                if position < payload.count * 8 do
+                    expected |= cast(u32, payload[position >> 3] >> cast(u32, (7 - (position & 7)))) & 1
+                position += 1
+            }
+
+            let read = reader.read(width)
+            Swag.require(read == expected)
+            Swag.require(reader.overran() == (position > payload.count * 8))
+        }
+    }
+}

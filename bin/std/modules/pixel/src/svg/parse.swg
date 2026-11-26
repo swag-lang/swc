@@ -1960,7 +1960,7 @@ private func hasPathCurveCommand(data: string)->bool
 private func appendPathLine(path: *LinePath, target: Vector2, linear: bool)
 {
     if linear do
-        path.appendLinear(target)
+        discard path.appendLinear(target)
     else do
         path.lineTo(target.x, target.y)
 }
@@ -2029,7 +2029,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 if started
                 {
                     if linear do
-                        path.closeLinear()
+                        discard path.closeLinear()
                     else do
                         path.close()
                 }
@@ -2253,7 +2253,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
 
 // Dense solid fills can scan-convert their original winding directly, avoiding both the
 // contour-containment walk and the triangulation of regions with thousands of holes.
-private func usesScanFill(list: const *LinePathList, state: const *GroupState)->bool
+private func usesScanFill(list: const *LinePathList, state: const *GroupState, linearSegments: u64)->bool
 {
     if not state.hasFill or
        state.hasStroke or
@@ -2261,9 +2261,9 @@ private func usesScanFill(list: const *LinePathList, state: const *GroupState)->
        state.fillPaintId.count or
        state.filterId.count do
         return false
-    if list.paths.count >= 512 do
+    if list.paths.count >= 512 or linearSegments >= 8192 do
         return true
-    var segments = 0'u64
+    var segments = linearSegments
     for path in list.paths
     {
         segments += path.elements.count
@@ -2391,7 +2391,7 @@ private impl Parser
         }
     }
 
-    mtd emitShape(list: #move LinePathList, state: *GroupState)
+    mtd emitShape(list: #move LinePathList, state: *GroupState, linearSegments = 0'u64)
     {
         if list.paths.isEmpty() do
             return
@@ -2400,7 +2400,7 @@ private impl Parser
 
         // A triangulated fill needs one outer contour followed by its holes. Split separate islands
         // by containment depth, keeping the source order of both islands and holes.
-        let scanFill = usesScanFill(&list, state)
+        let scanFill = usesScanFill(&list, state, linearSegments)
         if state.hasFill and list.paths.count > 1 and not scanFill
         {
             var work  = #move list
@@ -2636,9 +2636,9 @@ private impl Parser
 
         var list:     LinePathList
         var vertices: Array'MarkerVertex
-        let path  = drawsPath ? list.newPath() : null
-        var pos   = 0'u64
-        var count = 0'u64
+        let path   = drawsPath ? list.newPath() : null
+        let linear = path and points.count >= 1024 and not hasMarkers and state.canDeferPrimitive()
+        var pos, count, linearSegments: u64
 
         while pos < points.count
         {
@@ -2648,15 +2648,27 @@ private impl Parser
             if look >= points.count or not isNumberStart(points[look]) do
                 break
 
-            let x = scanNumber(points, &pos)
+            pos = look
+            let x = readNumber(points, &pos)
             let y = scanNumber(points, &pos)
             if path
             {
                 let point = mapPoint(state, x, y)
-                if not count do
+                if linear
+                {
+                    if not count do
+                        path.startLinear(point)
+                    elif path.appendLinear(point) do
+                        linearSegments += 1
+                }
+                elif not count
+                {
                     path.start(point.x, point.y)
-                else do
+                }
+                else
+                {
                     path.lineTo(point.x, point.y)
+                }
             }
 
             if hasMarkers
@@ -2680,8 +2692,17 @@ private impl Parser
         {
             if closeIt
             {
-                path.close()
-                .emitShape(#move list, state)
+                if linear
+                {
+                    if path.closeLinear() do
+                        linearSegments += 1
+                }
+                else
+                {
+                    path.close()
+                }
+
+                .emitShape(#move list, state, linearSegments)
             }
             else
             {

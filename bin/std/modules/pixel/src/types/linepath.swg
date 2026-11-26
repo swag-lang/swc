@@ -174,24 +174,25 @@ public impl LinePath
     }
 
     #[Swag.Inline]
-    internal mtd appendLinear(point: Vector2)
+    internal mtd appendLinear(point: Vector2)->bool
     {
         if point.isEqualEpsilon(.endPoint) do
-            return
+            return false
 
         if .polygon.points.isEmpty() do
             .polygon.points.add(.startPoint)
         .flattenLine(point)
         .endPoint = point
+        return true
     }
 
-    internal mtd closeLinear()
+    internal mtd closeLinear()->bool
     {
         if .isClosed or .polygon.points.isEmpty() do
-            return
-        if (.endPoint - .startPoint).lengthSquared() >= 0.5 * 0.5 do
-            .appendLinear(.startPoint)
+            return false
+        let added = (.endPoint - .startPoint).lengthSquared() >= 0.5 * 0.5 and .appendLinear(.startPoint)
         .isClosed = true
+        return added
     }
 
     // Adds a straight segment from the current endpoint to `(x, y)`.

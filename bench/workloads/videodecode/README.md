@@ -93,7 +93,7 @@ Run scaling comparisons on the same CPU affinity mask and use a freshly built
 `ffmpeg_native`. FFmpeg's CPU measurement totals all threads. Swag can choose fewer
 frame lanes for a small picture or a codec with a smaller supported budget.
 
-Use `--rgb` to compare Y4M and Motion JPEG with both decoders producing RGB24. The reference
+Use `--rgb` to compare Y4M, uncompressed AVI and Motion JPEG with both decoders producing RGB24. The reference
 uses libswscale with nearest-neighbour chroma sampling and a BT.601 matrix. It uses the
 declared range for each input. Timings include colour conversion to a reusable output
 buffer. The comparison reports RGB differences and PSNR because JPEG transforms, chroma
@@ -105,6 +105,10 @@ taskset -c 4 python3 bench/workloads/videodecode/compare.py --rgb --warmup 6 \
     --compiler /absolute/build/release/swc --output /tmp/swag-video-rgb-results \
     /tmp/swag-video-rgb/*.y4m /tmp/swag-video-rgb/*.avi
 ```
+
+`generate.py --raw-avi` provides a BGR24 stream, an odd-size BGRA stream and a packed
+RGB555 stream. Use the same `--rgb` comparison. Chroma sampling and the colour matrix
+apply to YUV inputs. For the packed RGB streams the reference converts the channel layout.
 
 This fixture starts with four HEVC samples that FFmpeg never emits as pictures. The comparison
 still matches all 30 displayed pictures by presentation time.

@@ -239,6 +239,18 @@ the last valid bit of a slice and multi-packet Matroska playback.
 Nine rotated runs were pinned to one logical CPU with two warm-up pictures.
 [Timing samples](rv40-vlc-look-ahead.json)
 
+### Uncompressed AVI to RGB24
+
+All 96 pictures matched FFmpeg 9.1 byte for byte, including RGB555 channel expansion
+and the odd BGRA geometry. Seven one-CPU runs cover container reads and conversion
+to reusable RGB24 buffers. [Fixture commands](raw-avi-fixtures.json) · [Timing samples](raw-avi-decode.json)
+
+| Input | Swag, ms/picture | FFmpeg 9.1, ms/picture | FFmpeg / Swag time |
+| --- | ---: | ---: | ---: |
+| BGR24, 1280×720 | 0.630 | 0.783 | 1.24× |
+| BGRA, 653×371 | 0.190 | 0.364 | 1.91× |
+| RGB555, 960×540 | 0.340 | 1.002 | 2.95× |
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

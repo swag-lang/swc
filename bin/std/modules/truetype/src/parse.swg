@@ -1039,7 +1039,7 @@ func buildCharstringMetrics(faceData: *FaceImpl, advances: *Array'u16) fail
     {
         var width = 0.0'f64
         if faceData.outlineSource == .Cff do
-            width = try runType2Charstring(faceData.cffFont(), gid, null)
+            width = try type2CharstringWidth(faceData.cffFont(), gid)
         else do
             width = try type1CharstringWidth(faceData.type1Font(), gid)
 

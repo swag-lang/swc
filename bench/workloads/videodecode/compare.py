@@ -33,7 +33,7 @@ def arguments():
     parser.add_argument("--warmup", type=int, default=WARMUP,
                         help=f"pictures decoded before the timed window (default {WARMUP})")
     parser.add_argument("--quality-only", action="store_true")
-    parser.add_argument("--rgb", action="store_true", help="compare RGB24 output for Y4M and Motion JPEG")
+    parser.add_argument("--rgb", action="store_true", help="compare RGB24 output for Y4M, raw AVI and Motion JPEG")
     parser.add_argument("--mpeg4-max-sample-difference", type=int, default=0,
                         help="allow this per-sample difference from FFmpeg for MPEG-4 Part 2")
     parser.add_argument("--reference", type=Path, help="prebuilt ffmpeg_native executable")
@@ -105,8 +105,9 @@ def fixture_timeline(path, rgb=False):
     stream, = metadata["streams"]
     pixel_format = stream["pix_fmt"]
     if rgb:
-        if path.suffix.lower() != ".y4m" and stream["codec_name"] != "mjpeg":
-            raise ValueError(f"{path} needs a Y4M or Motion JPEG stream for RGB comparison")
+        raw = stream["codec_name"] == "rawvideo" and path.suffix.lower() in (".avi", ".y4m")
+        if not raw and stream["codec_name"] != "mjpeg":
+            raise ValueError(f"{path} needs Y4M, uncompressed AVI or Motion JPEG for RGB comparison")
     elif stream["codec_name"] not in ("h264", "hevc", "mpeg4", "rv40") or pixel_format not in (
         "yuv420p", "yuv444p", "yuv420p10le"
     ):

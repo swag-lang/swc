@@ -6,6 +6,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavutil/cpu.h>
+#include <libavutil/pixdesc.h>
 #include <libswscale/swscale.h>
 
 struct RgbOutput
@@ -41,9 +42,15 @@ static void convert_rgb(struct RgbOutput *rgb, const AVFrame *frame)
                                     SWS_POINT, NULL, NULL, NULL);
         if (!rgb->scale)
             abort();
-        const int *coefficients = sws_getCoefficients(SWS_CS_ITU601);
-        check(sws_setColorspaceDetails(rgb->scale, coefficients, frame->color_range == AVCOL_RANGE_JPEG,
-                                      coefficients, 1, 0, 1 << 16, 1 << 16));
+        const AVPixFmtDescriptor *layout = av_pix_fmt_desc_get(frame->format);
+        if (!layout)
+            abort();
+        if (!(layout->flags & AV_PIX_FMT_FLAG_RGB))
+        {
+            const int *coefficients = sws_getCoefficients(SWS_CS_ITU601);
+            check(sws_setColorspaceDetails(rgb->scale, coefficients, frame->color_range == AVCOL_RANGE_JPEG,
+                                          coefficients, 1, 0, 1 << 16, 1 << 16));
+        }
         rgb->frame->width = frame->width;
         rgb->frame->height = frame->height;
         rgb->frame->format = AV_PIX_FMT_RGB24;

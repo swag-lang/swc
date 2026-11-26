@@ -332,9 +332,10 @@ ships; history lives in Git, not here.
   and YUV conversion, and dedicated DC-only reconstruction. Lossless decoding uses batched
   Huffman input, packed copies and subtract-green, and reconstructs predictor pixels as packed
   RGBA words. Dispatching the predictor per tile and vectorizing spans further reduced VP8L
-  decode time. The three original VP8L fixtures take 1.6–1.9× libwebp's time in that comparison,
-  and the opaque FileSamples VP8 takes 2.1× libwebp's time.
-  See [the FileSamples report](../bench/results/swagscope-filesamples/README.md#webp-predictor-spans).
+  decode time. The three original VP8L fixtures take 1.6–1.9× libwebp's time in that comparison.
+  Packed VP8 predictor writes reduced thread CPU time on the opaque FileSamples image from
+  220 to 201 ms, against 101 ms for libwebp in the same series.
+  See [the FileSamples report](../bench/results/swagscope-filesamples/README.md#opaque-webp-repeat).
 - Next: profile remaining VP8 entropy and reconstruction work and the VP8L color cache on the
   photo and interface fixtures from the [raster decode workload](../bench/workloads/rasterdecode/README.md).
   Rerun the original Windows comparison.

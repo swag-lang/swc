@@ -543,3 +543,102 @@ and references measured alongside this patch.
 | FileSamples opaque VP8 | 298.471 | 299.539 | 142.243 | 401.082 |
 | VP8L from the expanded corpus, 1009 × 673 | 35.074 | 33.331 | 22.387 | 32.887 |
 | VP8 with gradient alpha, 1281 × 847 | 42.651 | 43.596 | 23.634 | 45.366 |
+
+## Fifth raster decode pass on Linux
+
+The integrated Release runs use `eab46cd563` as the baseline so both builds include the same
+upstream Inflate changes. They measure `Image.load` with one worker and rotate the warmed readers
+on a pinned Xeon Platinum 8573C CPU. The
+[raster decode workload](../../workloads/rasterdecode/README.md) checks dimensions, pixel format,
+and CRC64 between Swag builds. The expanded corpus includes sequential and progressive JPEGs
+with restart markers, Adam7 images at different sample depths, and BC1 through BC5 textures.
+
+| Fixture | Swag before (ms) | Swag after (ms) | Native (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples JPEG | 2.982 | 2.750 | 2.726 | 7.897 |
+| Sequential JPEG 4:4:4, 4275 × 2451 | 91.386 | 80.610 | 68.805 | 290.868 |
+| Sequential JPEG 4:2:0, 4275 × 2451 | 64.388 | 57.317 | 67.461 | 329.960 |
+| Sequential grayscale JPEG | 2.557 | 2.049 | 2.277 | 8.032 |
+| Progressive JPEG, 4275 × 2451 | 191.363 | 188.351 | 168.400 | 496.753 |
+| FileSamples PNG | 6.623 | 6.381 | 8.525 | 15.043 |
+| Grayscale Adam7 PNG, 769 × 513 | 3.894 | 3.784 | 8.231 | 17.867 |
+| RGB16 Adam7 PNG, 639 × 425 | 18.158 | 14.234 | | 31.991 |
+| VP8 with compressed alpha, 1921 × 1081 | 41.342 | 40.207 | 22.786 | 48.785 |
+| VP8 opaque, expanded photo corpus | 38.754 | 36.376 | 20.724 | 53.406 |
+| VP8 with gradient alpha, expanded photo corpus | 44.572 | 40.936 | 21.188 | 30.903 |
+
+The native readers are libjpeg-turbo 2.1.5, libpng 1.6.48, and libwebp 1.5.0.
+The full image export uses ImageMagick 7.1.1-43 Q16-HDRI. The reference implementations
+use their own color conversion.
+
+In 36 paired thread CPU samples, Adam7 Gray8 went from 1.137 to 0.844 ms, Gray1 from
+0.998 to 0.666 ms, Gray4 from 1.736 to 1.395 ms, and RGB8 from 12.111 to 10.920 ms.
+The grain PNG varied between elapsed runs. The targeted repeat gave 17.618 to 16.361 ms
+with libpng at 21.780 ms.
+
+The EXR follow-up against the previous published build measured 6.786 to 1.905 ms thread CPU
+for a 641 × 257 high-entropy HALF grayscale ZIP file. OpenEXR 3.5.5 and NumPy materialized
+the corresponding pixels in 1.524 ms. The two readers agreed on 14 images after Swag's
+HALF NaN normalization, including fixtures that cover every binary16 bit pattern.
+
+### Block-compressed textures
+
+The first SIMD change in `eb7d656f8c` interpolates alpha endpoints and reconstructs four
+pixels at a time. These elapsed medians use seven rotating samples. The inputs include a
+photographic texture and seeded blocks with partial rows and columns.
+
+| Fixture | Swag before (ms) | Swag after (ms) | ImageMagick (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples DDS | 1.553 | 0.522 | 8.812 |
+| BC1 photo DDS, 1537 × 1025 | 6.034 | 2.080 | 31.420 |
+| BC3 photo DDS, 1537 × 1025 | 8.376 | 4.137 | 53.196 |
+| BC2 DDS, 2049 × 1537 | 14.162 | 4.364 | 97.110 |
+| BC5 DDS, 2049 × 1537 | 21.316 | 8.830 | 183.641 |
+| BC1 KTX2, 257 × 193 | 0.241 | 0.112 | |
+
+DDS, KTX2 and the BC4 fixtures kept their Swag pixel CRC64. The follow-up measured RGBA
+endpoint interpolation in 13 rotating samples. It reduced a 2049 × 1537 BC1 texture
+from 4.202 to 3.826 ms and the BC3 photo from 2.688 to 2.548 ms.
+
+### Opaque WebP repeat
+
+The direct libwebp comparison on the original 4275 × 2451 FileSamples VP8 uses 11 rotating
+thread CPU samples. Swag uses the benchmark stopwatch with a thread CPU clock in this run.
+libwebp uses the same clock around the file read and RGBA decode.
+
+| FileSamples opaque VP8 | Swag before (ms) | Swag after (ms) | libwebp (ms) |
+| --- | ---: | ---: | ---: |
+| Thread CPU | 220.192 | 200.565 | 101.121 |
+
+A separate 11-pair repeat on another core measured 298.571 to 276.767 ms thread CPU.
+Elapsed results varied. Two integrated elapsed series gave 191.968 to 198.755 ms and
+236.157 to 252.766 ms, while the separate-core check gave 306.105 to 296.255 ms.
+The original image and the opaque, alpha, filter, and partition controls preserved CRC64.
+
+A 41-pair elapsed repeat of the FileSamples EXR measured 0.560 and 0.569 ms, with a
+median paired time ratio of 0.974.
+
+### TIFF strips and GIF controls
+
+The libtiff 4.7.0 reference opens each file, reads the encoded strips, and materializes
+the same bottom-up pixels. The timed 8-bit fixtures use chunky strips in the standard
+orientation. Dimensions, format, alpha association and CRC64 matched. The table uses
+elapsed time, with libtiff running serially.
+
+| Fixture | Swag before, one worker (ms) | Swag after, one worker (ms) | Swag after, four workers (ms) | libtiff (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| RGB LZW with predictor, 2051 × 1549 | 67.022 | 66.526 | 37.021 | 44.717 |
+| RGB LZW without predictor, 2051 × 1549 | 76.566 | 74.585 | 70.226 | 55.901 |
+| Repetitive RGB PackBits | 3.454 | 2.177 | | 2.542 |
+
+The RGB LZW image without a predictor took 66.465 ms with two Swag workers. The
+one-worker RGBA LZW retest with CPU affinity gave 28.409 to 28.178 ms across 20 pairs.
+The TIFF tests cover a caller already running on the pool, a truncated strip in a
+worker band, and the serial path. A separate native smoke exercised lazy worker startup.
+
+The GIF long-prefix prototype reduced a flat-pattern decode from 12.148 to 5.363 ms CPU.
+The noisy GIF increased from 13.737 to 14.407 ms across repeated measurements. These
+regressions and the controls near the dispatch threshold led to rejecting the prototype.
+
+The final combined build passed 333 targeted native Pixel tests in Release. Independent
+runs passed the 51 JPEG Video tests and the three VP8 Swag Scope goldens.

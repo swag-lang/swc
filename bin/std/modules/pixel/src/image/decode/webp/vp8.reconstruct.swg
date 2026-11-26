@@ -187,13 +187,69 @@ func vp8ParseResidual4(decoder: *Vp8Decoder, partition: *Vp8Partition, plane: s3
 // Returns the position past the last coded coefficient, with one as the coded-block minimum.
 private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, firstProbability: const [*] u8, coefficients: [*] s16, dcQuant, acQuant: u16, first: s32)->u8
 {
+    // Keep the arithmetic state in local scalars until the loop needs to
+    // refill or decode the less frequent large-magnitude branch.
+    var rangeM1  = partition.rangeM1
+    var bits     = partition.bits
+    var bitCount = partition.bitCount
+
+    #[Swag.Mixin]
+    func saveLocal()
+    {
+        partition.rangeM1  = rangeM1
+        partition.bits     = bits
+        partition.bitCount = bitCount
+    }
+
+    #[Swag.Mixin]
+    func loadLocal()
+    {
+        rangeM1  = partition.rangeM1
+        bits     = partition.bits
+        bitCount = partition.bitCount
+    }
+
+    #[Swag.Mixin]
+    func refillLocal()->bool
+    {
+        partition.bits     = bits
+        partition.bitCount = bitCount
+        let #uniq0 = partition.refill()
+        bits     = partition.bits
+        bitCount = partition.bitCount
+        return #uniq0
+    }
+
+    #[Swag.Mixin]
+    func readLocalBit(chance: u8)->bool
+    {
+        if bitCount < 8 and not refillLocal() do
+            return false
+
+        return vp8AdvanceBit(chance)
+    }
+
+    #[Swag.Mixin]
+    func readLocalSign(magnitude: s32)->s32
+    {
+        if bitCount < 8 and not refillLocal() do
+            return magnitude
+
+        return vp8AdvanceSign(magnitude)
+    }
+
+    defer
+    {
+        saveLocal()
+    }
+
     var coefficient  = first
     var probability  = firstProbability
     var decodedCount = 1'u8
     while coefficient < 16
     {
         // A zero uses context zero and is followed by a value token, without an end token.
-        while not partition.readBit(probability[1])
+        while not readLocalBit(probability[1])
         {
             coefficient += 1
             if coefficient == 16 do
@@ -203,9 +259,11 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
 
         let nextBand = probabilities + VP8_BAND_OFFSETS[coefficient + 1]
         var value    = 1
-        if partition.readBit(probability[2])
+        if readLocalBit(probability[2])
         {
-            value       = vp8ReadLargeCoefficient(partition, probability)
+            saveLocal()
+            value = vp8ReadLargeCoefficient(partition, probability)
+            loadLocal()
             probability = nextBand + 2 * VP8_TOKEN_PROBS
         }
         else
@@ -215,10 +273,10 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
 
         let zigzag  = VP8_ZIGZAG[coefficient]
         let decoded = value * (coefficient ? acQuant : dcQuant)
-        coefficients[zigzag] = cast(s16, partition.readCoefficientSign(decoded))
+        coefficients[zigzag] = cast(s16, readLocalSign(decoded))
         coefficient          += 1
         decodedCount         = cast(u8, coefficient)
-        if coefficient == 16 or not partition.readBit(probability[0]) do
+        if coefficient == 16 or not readLocalBit(probability[0]) do
             break
     }
 

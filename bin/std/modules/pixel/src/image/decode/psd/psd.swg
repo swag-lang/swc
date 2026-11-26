@@ -479,6 +479,35 @@ impl Decoder
     }
 }
 
+// Photoshop's 16-bit channel predictor uses modulo-65536 differences.
+private func restorePredictedWords(row: [*] u8, width: u64)
+{
+    const Shift1 = cast(Simd.U8x16, [128'u8, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    const Shift2 = cast(Simd.U8x16, [128'u8, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    const Shift4 = cast(Simd.U8x16, [128'u8, 128, 128, 128, 128, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7])
+    let target = cast([*] u16, row)
+    var carry  = Simd.splat(0'u16)
+    var x: u64
+    while width - x >= 8
+    {
+        var words = loadBigEndianWords(row + x * 2)
+        words += cast #bit(Simd.U16x8, Simd.shuffle(cast #bit(Simd.U8x16, words), Shift1))
+        words += cast #bit(Simd.U16x8, Simd.shuffle(cast #bit(Simd.U8x16, words), Shift2))
+        words += cast #bit(Simd.U16x8, Simd.shuffle(cast #bit(Simd.U8x16, words), Shift4))
+        words += carry
+        carry = Simd.splat(words[7])
+        Simd.store(target + x, (words >> 8) | (words << 8))
+        x += 8
+    }
+
+    var previous = carry[0]
+    for sample in x until width
+    {
+        previous       += #wrap Math.byteSwap(target[sample])
+        target[sample] = Math.byteSwap(previous)
+    }
+}
+
 impl Layer
 {
     mtd decode(depth: u16, options: DecodeOptions)->Image fail
@@ -552,19 +581,10 @@ impl Layer
                     for y in result.height
                     {
                         let row = unpacked.storage() + cast(u64, y) * rowBytes
-                        for x in range(1, result.width)
-                        {
-                            if depth == 8
-                            {
-                                row[x] = cast(u8, ((cast(u32, row[x]) + row[x - 1]) & 255))
-                            }
-                            else
-                            {
-                                let sample = (cast(u32, readU16(row + cast(u64, x) * 2)) + readU16(row + cast(u64, (x - 1)) * 2)) & 65535
-                                row[cast(u64, x) * 2]     = cast(u8, (sample >> 8))
-                                row[cast(u64, x) * 2 + 1] = cast(u8, (sample & 255))
-                            }
-                        }
+                        if depth == 8 do
+                            PackedPixel.restoreHorizontalDeltas(row, row, rowBytes, 1)
+                        else do
+                            restorePredictedWords(row, cast(u64, result.width))
                     }
                 }
                 pixels = unpacked.toSlice()

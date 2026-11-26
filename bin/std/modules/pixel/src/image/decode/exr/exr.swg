@@ -557,6 +557,13 @@ struct ScanlineChunk
     expected: u64
 }
 
+struct ScanlineScratch
+{
+    reordered:    Array'u8
+    cachedPixels: const [..] u8?
+    cachedFirstRow, cachedRows: s32
+}
+
 struct Part
 {
     channels:    Array'Channel
@@ -744,7 +751,7 @@ impl Part
     }
 
     #[Swag.Inline]
-    mtd const decodeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, reordered: *Array'u8) fail
+    mtd const writeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, reordered: *Array'u8) fail
     {
         var pixels = chunk.pixels
 
@@ -792,6 +799,35 @@ impl Part
         }
     }
 
+    #[Swag.Inline]
+    mtd const decodeScanlineChunk(image: *Image, chunk: ScanlineChunk, layout: ScanlineLayout, scratch: *ScanlineScratch) fail
+    {
+        // Comparing only small packed blocks keeps cache misses cheap.
+        let cacheable = .compression and chunk.pixels.count < chunk.expected / 4
+        let cached    = scratch.cachedPixels
+        if cacheable and
+           cached and
+           scratch.cachedRows == chunk.rows and
+           cached.count == chunk.pixels.count and
+           Memory.compare(cached.buffer, chunk.pixels.buffer, chunk.pixels.count) == 0
+        {
+            let rowBytes = cast(u64, image.rowStride)
+            let first    = cast(u64, image.height - chunk.relativeY - chunk.rows) * rowBytes
+            let previous = cast(u64, image.height - scratch.cachedFirstRow - chunk.rows) * rowBytes
+            let output   = image.pixels.storage()
+            Memory.copy(output + first, output + previous, cast(u64, chunk.rows) * rowBytes)
+            return
+        }
+
+        try .writeScanlineChunk(image, chunk, layout, &scratch.reordered)
+        if cacheable
+        {
+            scratch.cachedPixels   = chunk.pixels
+            scratch.cachedFirstRow = chunk.relativeY
+            scratch.cachedRows     = chunk.rows
+        }
+    }
+
     #[Swag.NoInline]
     mtd const decodeZipBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
     {
@@ -815,9 +851,9 @@ impl Part
         let workers = chunks.count >= 2 and compressedBytes >= 512 * 1024 ? Swag.workerCount() : 0
         if workers <= 1
         {
-            var reordered: Array'u8
+            var scratch: ScanlineScratch = {}
             for chunk in chunks do
-                try .decodeScanlineChunk(image, chunk[], layout[], &reordered)
+                try .decodeScanlineChunk(image, chunk[], layout[], &scratch)
             try indexError.raise()
             return
         }
@@ -831,12 +867,12 @@ impl Part
         var errors: [MaxBatches] Swag.Error
         parallel for |part, image, layout, work, batches, &errors| batch in batches
         {
-            var reordered: Array'u8
+            var scratch: ScanlineScratch = {}
             let first = batch * work.count / batches
             let end   = (batch + 1) * work.count / batches
             for chunkIndex in first until end
             {
-                catch part.decodeScanlineChunk(image, work[chunkIndex], layout[], &reordered)
+                catch part.decodeScanlineChunk(image, work[chunkIndex], layout[], &scratch)
                 {
                     errors[batch].capture(Swag.err)
                     break
@@ -914,11 +950,11 @@ impl Part
             return result
         }
 
-        var reordered: Array'u8
+        var scratch: ScanlineScratch = {}
         for chunkIndex in .chunkCount
         {
             let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, linesPerChunk, seenRows.toSlice(), options.maxDecodedBytes)
-            try .decodeScanlineChunk(&result, chunk, layout, &reordered)
+            try .decodeScanlineChunk(&result, chunk, layout, &scratch)
         }
 
         return result

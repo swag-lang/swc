@@ -14,7 +14,6 @@ internal const CeltFrameMax        = 960'u32
 private const CeltMaxLM            = 3'u32
 private const CeltAllocVectors     = 11'u32
 private const CeltPreemphasis      = 0.85000610'f32
-private const CeltDecodeBuffer     = 2048'u32
 private const CeltMdctSize         = 1920'u32
 private const CeltFftMax           = 480'u32
 private const MaxFineBits          = 8's32
@@ -25,6 +24,8 @@ private const AllocSteps           = 6'u32
 private const LogMaxPseudo         = 6'u32
 private const CombMinPeriod        = 15's32
 private const CombMaxPeriod        = 1024'u32
+private const CombHistory          = CombMaxPeriod + 4
+private const CeltDecodeBuffer     = CombHistory + 2 * CeltFrameMax
 private const SpreadNone           = 0'u32
 private const SpreadAggressive     = 3'u32
 private const LaplaceMinP          = 1'u32
@@ -705,6 +706,7 @@ internal struct CeltDecoder
     postfilterTapset:    u32
     postfilterTapsetOld: u32
     preemphasisMemory:   [2] f32
+    decodePosition:      u32
     decodeMemory:        [2] Array'f32     // CeltDecodeBuffer + CeltOverlap samples per channel.
     oldBandE:            [2 * CeltBandCount] f32
     oldLogE:             [2 * CeltBandCount] f32
@@ -743,6 +745,7 @@ internal impl CeltDecoder
     mtd reset()
     {
         .rng = 0
+        .decodePosition       = CombHistory
         .postfilterPeriod     = 0
         .postfilterPeriodOld  = 0
         .postfilterGain       = 0
@@ -2494,12 +2497,21 @@ internal impl CeltDecoder
                                             dec)
         .unquantFineEnergy(&fineQuant[0], dec)
 
-        for c in CC
+        // Append while the two channels still have room for the next frame.
+        // At the end of the buffer keep just the pitch history and MDCT overlap.
+        var decodeAt = .decodePosition
+        if decodeAt + N > CeltDecodeBuffer
         {
-            let memory = .decodeMemory[c].storage()
-            Memory.copyOverlapping(memory, memory + N, cast(u64, CeltDecodeBuffer - N + CeltOverlap) * #sizeof(f32))
+            for c in CC
+            {
+                let memory = .decodeMemory[c].storage()
+                Memory.copyOverlapping(memory, memory + decodeAt - CombHistory, cast(u64, CombHistory + CeltOverlap) * #sizeof(f32))
+            }
+
+            decodeAt = CombHistory
         }
 
+        .decodePosition = decodeAt + N
         var collapseMasks: [2 * CeltBandCount] u8
         .quantAllBands(shortBlocks,
                        spread,
@@ -2545,10 +2557,10 @@ internal impl CeltDecoder
             }
         }
 
-        let leftOut = .decodeMemory[0].storage() + CeltDecodeBuffer - N
+        let leftOut = .decodeMemory[0].storage() + decodeAt
         if CC == 2
         {
-            let rightOut = .decodeMemory[1].storage() + CeltDecodeBuffer - N
+            let rightOut = .decodeMemory[1].storage() + decodeAt
             for b in blocks
             {
                 let offset = blockSize * b
@@ -2563,7 +2575,7 @@ internal impl CeltDecoder
 
         for c in CC
         {
-            let outSyn = .decodeMemory[c].storage() + CeltDecodeBuffer - N
+            let outSyn = .decodeMemory[c].storage() + decodeAt
             .postfilterPeriod    = Math.max(.postfilterPeriod, CombMinPeriod)
             .postfilterPeriodOld = Math.max(.postfilterPeriodOld, CombMinPeriod)
             .combFilter(outSyn,
@@ -2644,7 +2656,7 @@ internal impl CeltDecoder
 
         if direct
         {
-            let rightOut = .decodeMemory[1].storage() + CeltDecodeBuffer - N
+            let rightOut = .decodeMemory[1].storage() + decodeAt
             .deemphasizePcm16(leftOut, rightOut, N, direct)
         }
         else
@@ -2653,7 +2665,7 @@ internal impl CeltDecoder
             var leftMemory = .preemphasisMemory[0]
             if CC == 2
             {
-                let right       = .decodeMemory[1].storage() + CeltDecodeBuffer - N
+                let right       = .decodeMemory[1].storage() + decodeAt
                 var rightMemory = .preemphasisMemory[1]
                 for j in N
                 {

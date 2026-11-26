@@ -973,6 +973,20 @@ private impl Codec
         }
     }
 
+    // Saturate four wide decoded samples to signed 32 bits before the PCM16 pack.
+    #[Swag.Inline]
+    func pcmWords(source: const [*] s64)->Math.Simd.S32x4
+    {
+        let first  = cast #bit(Math.Simd.U32x4, Math.Simd.load(source))
+        let second = cast #bit(Math.Simd.U32x4, Math.Simd.load(source + 2))
+        let lower  = cast #bit(Math.Simd.S32x4, Math.Simd.deinterleaveEven(first, second))
+        let upper  = cast #bit(Math.Simd.S32x4, Math.Simd.deinterleaveOdd(first, second))
+
+        // The low word is exact when the high word is its sign extension.
+        let saturated = (upper >> 31) ^ Math.Simd.splat(Swag.S32.Max)
+        return Math.Simd.select(upper == (lower >> 31), lower, saturated)
+    }
+
     // Keep the six source-plane addresses in the output loop.
     mtd writeSixChannelPcm16(destination: [*] s16, blockSize: u32)
     {
@@ -984,7 +998,42 @@ private impl Codec
         let plane3 = .channels[3].storage()
         let plane4 = .channels[4].storage()
         let plane5 = .channels[5].storage()
-        for sample in blockSize
+        var done   = 0'u32
+        #static if not Core.BIG_ENDIAN
+        {
+            #[Swag.Inline]
+            func packPairs(first, second: Math.Simd.S32x4)->Math.Simd.U32x4
+            {
+                const Interleaved = cast(Math.Simd.U16x8, [0'u16, 4, 1, 5, 2, 6, 3, 7])
+                let packed = Math.Simd.packSigned(first, second)
+                return cast #bit(Math.Simd.U32x4, Math.Simd.permute(packed, Interleaved))
+            }
+
+            // A 32-bit lane holds one adjacent channel pair. Four frames fill three vectors.
+            const RowsFirst = cast(Math.Simd.U32x4, [0'u32, 1, 4, 2])
+            const RowsMid   = cast(Math.Simd.U32x4, [3'u32, 5, 0, 0])
+            const RowsNext  = cast(Math.Simd.U32x4, [0'u32, 1, 4, 5])
+            const RowsLast  = cast(Math.Simd.U32x4, [6'u32, 2, 3, 7])
+            while blockSize - done >= 4
+            {
+                let ab     = packPairs(pcmWords(plane0 + done), pcmWords(plane1 + done))
+                let cd     = packPairs(pcmWords(plane2 + done), pcmWords(plane3 + done))
+                let ef     = packPairs(pcmWords(plane4 + done), pcmWords(plane5 + done))
+                let ac0    = Math.Simd.interleaveLow(ab, cd)
+                let ac1    = Math.Simd.interleaveHigh(ab, cd)
+                let start  = Math.Simd.permute2(ac0, ef, RowsFirst)
+                let mid    = Math.Simd.permute2(ac0, ef, RowsMid)
+                let next   = Math.Simd.permute2(mid, ac1, RowsNext)
+                let last   = Math.Simd.permute2(ac1, ef, RowsLast)
+                let output = destination + done * 6
+                Math.Simd.store(output, cast #bit(Math.Simd.S16x8, start))
+                Math.Simd.store(output + 8, cast #bit(Math.Simd.S16x8, next))
+                Math.Simd.store(output + 16, cast #bit(Math.Simd.S16x8, last))
+                done += 4
+            }
+        }
+
+        for sample in done until blockSize
         {
             let output = destination + sample * 6
             output[0] = cast(s16, Math.clamp(plane0[sample], MinSample, MaxSample))
@@ -999,7 +1048,19 @@ private impl Codec
     mtd writeMonoPcm16(destination: [*] s16, blockSize: u32)
     {
         let source = .channels[0].storage()
-        for sample in blockSize do
+        var done   = 0'u32
+        #static if not Core.BIG_ENDIAN
+        {
+            while blockSize - done >= 8
+            {
+                let low  = pcmWords(source + done)
+                let high = pcmWords(source + done + 4)
+                Math.Simd.store(destination + done, Math.Simd.packSigned(low, high))
+                done += 8
+            }
+        }
+
+        for sample in done until blockSize do
             destination[sample] = cast(s16, Math.clamp(source[sample], -32768's64, 32767's64))
     }
 

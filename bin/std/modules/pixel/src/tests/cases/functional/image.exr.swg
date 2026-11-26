@@ -586,3 +586,22 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     discard catch Image.decode("byte-limit.exr", bytes, options) as outcome
     Swag.require(outcome.value() is Errors.UnsupportedFormatError)
 }
+
+// Identical compressed scanlines still populate each output row independently.
+#test
+{
+    const Width = 64'u32
+    var predicted: [Width * 2] u8
+    for index in rangeTo(1'u64, predicted.count - 1) do
+        predicted[index] = 128
+    predicted[Width] = 128 + 0x3C
+    var codec: Compress.ZLib
+    let packed = expect codec.compress(predicted)
+    Swag.require(packed.count < predicted.count / 4)
+    let input = exrZipFixture(Width, packed.toSlice(), blocks: 3)
+    let image = expect Image.decode("repeated-zips.exr", nnBytes(input.toSlice()))
+    assertImage(image, cast(s32, Width), 3, .GrayF16)
+    let pixels = cast(const [*] u16, image.pixels.storage())
+    for sample in 3 * Width do
+        Swag.require(pixels[sample] == 0x3C00)
+}

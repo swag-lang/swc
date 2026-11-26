@@ -168,3 +168,5 @@ optimizations moved each result.
 - [AES software rounds in the tower basis](aes-software-tower-rounds.md)
 - [Reuse the keyed CMAC state across AES-SIV inputs](aes-siv-cmac-reuse.md)
 - [Integrated Core crypto validation at 15:22 CET](integrated-validation-1522.md)
+
+- [SHA-512/t, HMAC-SHA3 and KMACXOF against OpenSSL 4.1](extended-openssl-4.1.md)

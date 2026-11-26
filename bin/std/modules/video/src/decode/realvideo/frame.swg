@@ -39,11 +39,11 @@ impl Plane
 
     mtd at(x, y: s32)->[*] u8 => .pixels.storage() + cast(s64, ((y + 32) * .stride + x + 32))
 
-    mtd const sample(x, y: s32)->s32
+    #[Swag.Inline]
+    mtd const referenceRow(y: s32)->const [*] u8
     {
-        let column = Math.clamp(x, 0, .width - 1)
-        let row    = Math.clamp(y, 0, .height - 1)
-        return cast(s32, .pixels[(row + 32) * .stride + column + 32])
+        let row = Math.clamp(y, 0, .height - 1)
+        return .pixels.storage() + cast(s64, ((row + 32) * .stride + 32))
     }
 }
 

@@ -101,3 +101,13 @@ taskset -c 4 python3 bench/workloads/videodecode/compare.py \
     --output /tmp/swag-video-rv40 \
     bin/std/modules/video/src/tests/datas/rv40-{intra,ipb,adaptive,slices}.mkv
 ```
+
+For a longer timing window, repeat the checked-in RealVideo I/P/B clip in Matroska.
+The script preserves the codec configuration and copies the encoded packets.
+
+```sh
+python3 bench/workloads/videodecode/repeat-rv40.py --output /tmp/swag-rv40-repeat.mkv
+taskset -c 4 python3 bench/workloads/videodecode/compare.py \
+    --compiler /absolute/build/release/swc --output /tmp/swag-rv40-repeat-results \
+    /tmp/swag-rv40-repeat.mkv
+```

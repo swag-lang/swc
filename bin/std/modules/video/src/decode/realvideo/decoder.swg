@@ -422,35 +422,42 @@ impl Decoder
                 fail InvalidFormatError{"RealVideo motion vector exceeds its signed 16-bit range"}
         }
 
+        let vectors = &.current.blocks[.blockAt].motion
         for channel in 3's32
         {
-            let size  = channel == 0 ? 16 : 8
-            let baseX = .blockAt % .current.columns * size
-            let baseY = .blockAt / .current.columns * size
-            let dst   = .current.planes[channel].at(baseX, baseY)
-            for y in size
+            let chroma    = channel != 0
+            let size      = chroma ? 4 : 8
+            let baseX     = .blockAt % .current.columns * size * 2
+            let baseY     = .blockAt / .current.columns * size * 2
+            let plane     = &.current.planes[channel]
+            let reference = .pictureKind == 2 ? &.future.planes[channel] : &.past.planes[channel]
+            for part in 4's32
             {
-                for x in size
+                let x   = baseX + (part & 1) * size
+                let y   = baseY + (part >> 1) * size
+                let dst = plane.at(x, y)
+                if kind == Backward
                 {
-                    let part      = (y / (size / 2)) * 2 + x / (size / 2)
-                    let forward   = .current.blocks[.blockAt].motion[0][part]
-                    let backward  = .current.blocks[.blockAt].motion[1][part]
-                    let reference = .pictureKind == 2 ? &.future.planes[channel] : &.past.planes[channel]
-                    var value: s32
-                    if kind != Backward do
-                        value = motionPixel(reference, baseX + cast(s32, x), baseY + cast(s32, y), forward, channel != 0)
-                    if two or kind == Backward
-                    {
-                        let next = motionPixel(&.future.planes[channel], baseX + cast(s32, x), baseY + cast(s32, y), backward, channel != 0)
-                        if kind == Backward do
-                            value = next
-                        elif kind == Bidirectional or w1 == 8192 do
-                            value = (value + next + 1) >> 1
-                        else do
-                            value = (((w2 * value) >> 9) + ((w1 * next) >> 9) + 16) >> 5
-                    }
+                    predictMotion(dst, plane.stride, &.future.planes[channel], x, y, size, vectors[][1][part], chroma)
+                    continue
+                }
 
-                    dst[y * .current.planes[channel].stride + x] = clipped(value)
+                predictMotion(dst, plane.stride, reference, x, y, size, vectors[][0][part], chroma)
+                if two
+                {
+                    var next: [64] u8
+                    predictMotion(&next[0], size, &.future.planes[channel], x, y, size, vectors[][1][part], chroma)
+                    let average = kind == Bidirectional or w1 == 8192
+                    for row in size
+                    {
+                        for column in size
+                        {
+                            let a     = cast(s32, dst[row * plane.stride + column])
+                            let b     = cast(s32, next[row * size + column])
+                            let value = average ? (a + b + 1) >> 1 : (((w2 * a) >> 9) + ((w1 * b) >> 9) + 16) >> 5
+                            dst[row * plane.stride + column] = clipped(value)
+                        }
+                    }
                 }
             }
         }

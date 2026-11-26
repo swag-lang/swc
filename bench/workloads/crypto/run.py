@@ -173,7 +173,7 @@ def cpu_features():
     return record
 
 
-def main():
+def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--swag", action="append", type=program, required=True,
                         help="LABEL=PATH, with baseline first when comparing multiple Swag builds")
@@ -182,7 +182,7 @@ def main():
                         help="CPU in the common affinity mask, repeat to allow several CPUs")
     parser.add_argument("--workers", action="append", type=worker_count, default=[],
                         help="LABEL=COUNT for one Swag build, defaults to one worker")
-    parser.add_argument("--algorithm", action="append", choices=REFERENCES)
+    parser.add_argument("--algorithm", action="append", choices=references)
     parser.add_argument("--size", action="append", type=int)
     parser.add_argument("--offset", action="append", type=int)
     parser.add_argument("--rounds", type=int, default=11)
@@ -194,13 +194,13 @@ def main():
     parser.add_argument("--markdown", type=Path)
     args = parser.parse_args()
 
-    algorithms = args.algorithm or DEFAULT_ALGORITHMS
+    algorithms = args.algorithm or default_algorithms
     offsets = args.offset or [0]
     sizes = {name: args.size or PUBLIC_KEY_SIZES.get(name, (64, 4096, 65536, 1048576))
              for name in algorithms}
     labels = [label for label, _ in args.swag]
     if (len(set(labels)) != len(labels) or
-        any(label in refs for refs in REFERENCES.values() for label in labels)):
+        any(label in refs for refs in references.values() for label in labels)):
         parser.error("Swag labels must be unique and distinct from reference labels")
     requested_workers = dict(args.workers)
     if len(requested_workers) != len(args.workers) or any(label not in labels for label in requested_workers):
@@ -234,7 +234,7 @@ def main():
     with tempfile.TemporaryDirectory(dir=args.scratch, prefix="crypto-") as directory:
         for name in algorithms:
             runners = {label: (args.reference, algorithm, 1)
-                       for label, algorithm in REFERENCES[name].items()}
+                       for label, algorithm in references[name].items()}
             runners.update({label: (executable, name, workers[label]) for label, executable in args.swag})
             for size in sizes[name]:
                 for offset in offsets:

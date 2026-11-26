@@ -10,7 +10,7 @@ using Swag
 // Returns the MurmurHash3 finalizer mix of the integer `h`.
 //
 // Every input bit affects every output bit, which suits hash-table keys that are already integers.
-#[Safety(.All, false)]
+#[Inline, Safety(.All, false)]
 public func murmur3(h: u32)->u32
 {
     var key = h ^ (h >> 16)
@@ -34,7 +34,7 @@ public func murmur3(h: u64)->u64
 }
 
 // Combines the hashes `a` and `b` into one hash.
-#[Safety(.All, false)]
+#[Inline, Safety(.All, false)]
 public func murmur3(a, b: u32)->u32
 {
     var na = a * 0xCC9E2D51
@@ -56,14 +56,6 @@ public func murmur3(a, b: u64)->u64
     return nb * K
 }
 
-#[Swag.Inline]
-private func load64Le(data: const [*] u8)->u64
-{
-    var value: u64
-    Memory.copy(cast([*] void, &value), cast(const [*] void, data), #sizeof(value))
-    return Math.littleEndianToNative(value)
-}
-
 // Returns a hash of the `len` bytes at `key`, seeded with `seed`.
 //
 // The byte hash is MurmurHash64A, which reads little-endian eight-byte blocks.
@@ -75,47 +67,48 @@ public func murmur3(key: const [*] u8, len: u64, seed: u64)->u64
 
     var h = seed ^ (len * m)
 
-    let nblocks = len / 8
-
-    for i in nblocks
+    var words = cast(const [*] u64, key)
+    let end   = words + len / 8
+    while words != end
     {
-        var k = load64Le(key + i * 8)
-        k *= m
-        k ^= k >> r
-        k *= m
-        h ^= k
-        h *= m
+        var k = Math.littleEndianToNative(words[0])
+        k     *= m
+        k     ^= k >> r
+        k     *= m
+        h     ^= k
+        h     *= m
+        words += 1
     }
 
-    let data2 = key + nblocks * 8
+    let tail = cast(const [*] u8, words)
     switch len & 7
     {
     case 7:
-        h ^= cast(u64, data2[6]) << 48
+        h ^= cast(u64, tail[6]) << 48
         fallthrough
 
     case 6:
-        h ^= cast(u64, data2[5]) << 40
+        h ^= cast(u64, tail[5]) << 40
         fallthrough
 
     case 5:
-        h ^= cast(u64, data2[4]) << 32
+        h ^= cast(u64, tail[4]) << 32
         fallthrough
 
     case 4:
-        h ^= cast(u64, data2[3]) << 24
+        h ^= cast(u64, tail[3]) << 24
         fallthrough
 
     case 3:
-        h ^= cast(u64, data2[2]) << 16
+        h ^= cast(u64, tail[2]) << 16
         fallthrough
 
     case 2:
-        h ^= cast(u64, data2[1]) << 8
+        h ^= cast(u64, tail[1]) << 8
         fallthrough
 
     case 1:
-        h ^= cast(u64, data2[0])
+        h ^= cast(u64, tail[0])
         h *= m
     }
 

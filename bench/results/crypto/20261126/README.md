@@ -78,3 +78,4 @@ optimizations moved each result.
 - [Ed25519 masked four-bit scalar windows](ed25519-window.md)
 - [Parallel CRC-64 on large buffers](crc64-parallel.md)
 - [Portable AES substitution with register shuffles](aes-software.md)
+- [CityHash32 short inputs and MurmurHash64A pointer walking](noncryptohash.md)

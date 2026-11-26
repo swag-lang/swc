@@ -19,7 +19,7 @@ impl City32
     #[Swag.Inline]
     func fetch(buf: const [*] u8)->u32 => Math.littleEndianToNative(cast(const [*] u32, buf)[0])
 
-    #[Swag.Safety(.Overflow, false)]
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd len0to4(data: const [..] u8)
     {
         var b = .currentValue
@@ -33,7 +33,7 @@ impl City32
         .currentValue = murmur3(murmur3(b, murmur3(cast(u32, data.count), c)))
     }
 
-    #[Swag.Safety(.Overflow, false)]
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd len5to12(data: const [..] u8)
     {
         let s   = data.buffer
@@ -48,7 +48,7 @@ impl City32
         .currentValue = murmur3(murmur3(c, murmur3(b, murmur3(a, d))))
     }
 
-    #[Swag.Safety(.Overflow, false)]
+    #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd len13to24(data: const [..] u8)
     {
         let s   = data.buffer

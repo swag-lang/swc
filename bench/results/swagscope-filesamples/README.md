@@ -804,3 +804,40 @@ whole-image results across three FileSamples runs.
 Dimensions, pixel format and CRC64 matched across the two Swag builds on all
 13 fixtures. The combined build passed 41 native Release WebP and ImageReader tests.
 Three Swag Scope goldens passed with the lossy-path changes.
+
+## WebP vertical filtering and eight-bit Huffman lookup
+
+The Release builds at `9c999a8ae5` and `8cf6d9fc38` used the same Linux compiler and
+one worker. The comparison rotates Swag and libwebp 1.5.0 on one pinned core,
+with 11 samples per reader and timings from the thread CPU clock. Swag measures
+warmed `Image.load`. The libwebp measurement includes the file read and
+`WebPDecodeRGBAInto` with default chroma upsampling and a reused output buffer.
+
+| Fixture | Swag before (ms) | Swag after (ms) | libwebp (ms) | Paired change |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples opaque VP8 | 177.811 | 174.281 | 121.091 | -2.4% |
+| VP8 photo with compressed alpha | 43.478 | 42.391 | 31.311 | -2.4% |
+| VP8 flower with compressed alpha | 2.638 | 2.539 | 1.802 | -3.6% |
+| VP8 normal filter | 5.384 | 5.069 | 3.851 | -5.3% |
+| VP8 simple filter | 5.970 | 5.983 | 3.230 | +0.8% |
+| VP8 with filtering disabled | 4.215 | 4.163 | 3.106 | -0.5% |
+| VP8 video frame | 0.603 | 0.595 | 0.415 | -4.8% |
+| VP8L noisy RGBA | 22.010 | 7.330 | 4.943 | -66.6% |
+| VP8L noisy grayscale | 8.513 | 4.677 | 2.215 | -43.0% |
+| VP8L photo, 1254 × 1254 | 68.660 | 65.992 | 40.928 | -2.8% |
+| VP8L interface | 18.173 | 17.655 | 10.997 | -4.5% |
+| VP8L smaller interface with alpha | 4.020 | 3.862 | 2.423 | -4.1% |
+| VP8L photo, 4275 × 2451 | 357.391 | 387.625 | 252.581 | +3.7% |
+| VP8L expanded corpus photo | 33.209 | 29.902 | 20.260 | -8.8% |
+
+The VP8 vertical filter now transposes bytes and runs the packed filter on
+all 16 luma rows or both chroma planes at a time. VP8L widens each primary
+Huffman table from seven to eight prefix bits while packing its entries into
+16 bits. This keeps the per-tree table at 512 bytes and covers more literal
+symbols without walking the tree. The largest VP8L photo was 3.7% slower in
+the paired comparison. The first isolated lookup run measured 304.725 to
+302.355 ms on that photo.
+
+Dimensions, pixel formats and CRC64 matched on all 14 inputs. The seven VP8L
+images also matched libwebp's RGBA bytes after reversing the reference rows.
+The combined build passed 41 native Release WebP and ImageReader tests.

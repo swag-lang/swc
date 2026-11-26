@@ -50,8 +50,17 @@ impl ImageFormat
 
     internal mtd const matchesLowercaseExtension(ext: string)->bool
     {
-        for candidate in Tokenize.split(.extensions, ';'rune) where ext == candidate do
-            return true
-        return false
+        if ext.count == 0 or ext.count > .extensions.count do
+            return false
+
+        var start = 0'u64
+        for end in .extensions.count where .extensions[end] == ';'
+        {
+            if ext == .extensions[start until end] do
+                return true
+            start = end + 1
+        }
+
+        return ext == .extensions[start to]
     }
 }

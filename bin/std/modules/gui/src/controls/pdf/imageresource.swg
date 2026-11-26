@@ -3,12 +3,18 @@
 
 using Core, Pixel
 
+struct EncodedJpeg
+{
+    bytes:    Array'u8
+    channels: u8
+}
+
 private struct ImageResource
 {
     allocator:  Swag.IAllocator?
     references: s32 = 1
     image:      Image
-    jpeg:       Array'u8
+    jpeg:       EncodedJpeg
 }
 
 // A decoded page and the reader cache each own their references to read-only pixels.
@@ -21,11 +27,11 @@ impl ImageReference
 {
     func create(image: #move Image)->ImageReference
     {
-        var jpeg: Array'u8
+        var jpeg: EncodedJpeg
         return create(#move image, #move jpeg)
     }
 
-    func create(image: #move Image, jpeg: #move Array'u8)->ImageReference
+    func create(image: #move Image, jpeg: #move EncodedJpeg)->ImageReference
     {
         let allocator = Swag.getContext().allocator
         let resource  = Memory.new'ImageResource(allocator)
@@ -52,7 +58,9 @@ impl ImageReference
 
     mtd const value()->const *Image? => .resource ? &.resource.image : null
 
-    mtd const jpeg()->const [..] u8 => .resource!.jpeg.toSlice()
+    mtd const jpeg()->const [..] u8 => .resource!.jpeg.bytes.toSlice()
+
+    mtd const jpegChannels()->u8 => .resource!.jpeg.channels
 
     // Applying a page-specific mask edits a private image.
     mtd edit()->*Image
@@ -64,7 +72,7 @@ impl ImageReference
             me[] = #move create(#move pixels)
         }
 
-        .resource.jpeg.free()
+        .resource.jpeg = {}
         return &.resource.image
     }
 }

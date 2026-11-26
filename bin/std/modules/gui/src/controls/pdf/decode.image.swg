@@ -1090,7 +1090,7 @@ private func(const SwapRedBlue: bool) maskedJpegImage(decoded: const *Image, mas
 
 // Tests the already decoded frame's shape before carrying the original compressed samples
 // to an editable document. JPEG markers before the start of scan are length-prefixed.
-private func isRgbJpegFrame(bytes: const [..] u8, width, height: s32)->bool
+private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels: u8)->bool
 {
     if bytes.count < 4 or bytes[0] != 0xFF or bytes[1] != 0xD8 do
         return false
@@ -1118,7 +1118,7 @@ private func isRgbJpegFrame(bytes: const [..] u8, width, height: s32)->bool
                 return false
             let y = (cast(s32, bytes[cursor + 3]) << 8) | bytes[cursor + 4]
             let x = (cast(s32, bytes[cursor + 5]) << 8) | bytes[cursor + 6]
-            return bytes[cursor + 2] == 8 and bytes[cursor + 7] == 3 and x == width and y == height
+            return bytes[cursor + 2] == 8 and bytes[cursor + 7] == channels and x == width and y == height
         }
 
         cursor += length
@@ -1127,27 +1127,36 @@ private func isRgbJpegFrame(bytes: const [..] u8, width, height: s32)->bool
     return false
 }
 
-private func canRetainJpeg(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->bool
+private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->u8
 {
-    return parser.retainJpeg and raw.count < image.byteCount and
-           parser.name(parser.dict(nodeId, "ColorSpace")) == "DeviceRGB" and
-           parser.dict(nodeId, "Decode") == InvalidNode and
-           parser.dict(nodeId, "DecodeParms") == InvalidNode and
-           parser.dict(nodeId, "Mask") == InvalidNode and
-           parser.dict(nodeId, "SMask") == InvalidNode and
-           isRgbJpegFrame(raw, image.width, image.height)
+    if not parser.retainJpeg or raw.count >= image.byteCount or
+       parser.dict(nodeId, "Decode") != InvalidNode or
+       parser.dict(nodeId, "DecodeParms") != InvalidNode or
+       parser.dict(nodeId, "Mask") != InvalidNode or
+       parser.dict(nodeId, "SMask") != InvalidNode do
+        return 0
+
+    var channels: u8
+    switch parser.name(parser.dict(nodeId, "ColorSpace"))
+    {
+    case "DeviceGray": channels = 1
+    case "DeviceRGB":  channels = 3
+    default:           return 0
+    }
+
+    return matchesJpegFrame(raw, image.width, image.height, channels) ? channels : 0
 }
 
 // Keeps one reference in the cache while each page owns its own reference.
 private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image)->ImageReference
 {
-    var jpeg: Array'u8
+    var jpeg: EncodedJpeg
     return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move image, #move jpeg)
 }
 
-private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, jpeg: #move Array'u8)->ImageReference
+private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, jpeg: #move EncodedJpeg)->ImageReference
 {
-    let size = image.byteCount + jpeg.count
+    let size = image.byteCount + jpeg.bytes.count
     var result = #move ImageReference.create(#move image, #move jpeg)
     if parser.imageCacheBytes + size <= ImageCacheBudget
     {
@@ -1223,8 +1232,13 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 result = #move decoded
             else do
                 result = decoded.convertedTo(.RGB8)
-            if canRetainJpeg(parser, nodeId, raw.toSlice(), &result) do
-                return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move raw)
+            let channels = retainedJpegChannels(parser, nodeId, raw.toSlice(), &result)
+            if channels
+            {
+                var jpeg = EncodedJpeg{channels: channels}
+                jpeg.bytes = #move raw
+                return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move jpeg)
+            }
             return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
         }
 

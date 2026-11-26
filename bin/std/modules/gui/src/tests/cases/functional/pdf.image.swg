@@ -824,6 +824,19 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 }
 
 
+// A one-component progressive JPEG retains both its samples and its PDF color space.
+#test
+{
+    let bytes = expect File.readAllBytes(guiTestDataPath("pdf-device-gray.jpg"))
+    const Dictionary = "/Type /XObject /Subtype /Image /Width 48 /Height 32 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /DCTDecode"
+    let source = imageDocument(Dictionary, bytes.toSlice())
+    let encoded = expect source.encode()
+    let saved = expect Document.decode(encoded.toSlice())
+    let image = saved.pages[0].items[0].image
+    Swag.require(image.jpegChannels() == 1)
+    Swag.require(Slice.equals(bytes.toSlice(), image.jpeg()))
+}
+
 // The same image can appear below two different page resource dictionaries.
 #test
 {

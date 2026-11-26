@@ -166,6 +166,7 @@ internal impl IImageEncoder for Encoder
         let alignment  = cast(u64, try Math.lcm(4, image.bytesPerPixel))
         let dataOffset = (dfdOffset + dfdLength + alignment - 1) / alignment * alignment
 
+        result.grow(dataOffset + image.byteCount)
         result.addBytes(Identifier)
         writeU32(result, vk)
         writeU32(result, typeSize)
@@ -188,10 +189,13 @@ internal impl IImageEncoder for Encoder
         writeDfd(result, image, typeSize, &channelIds, floating)
         while result.count() < dataOffset do
             result.addNative(0'u8)
+        let target = result.reserveInPlace(image.byteCount)
+        let pixels = image.pixels.storage()
+        let stride = cast(u64, image.rowStride)
         for y in image.height
         {
             let storageY = image.height - y - 1
-            result.addBytes(Swag.makeSlice(image.pixels.storage() + cast(u64, storageY) * image.rowStride, cast(u64, image.rowStride)))
+            Memory.copy(target + cast(u64, y) * stride, pixels + cast(u64, storageY) * stride, stride)
         }
     }
 }

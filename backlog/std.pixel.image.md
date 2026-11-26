@@ -342,11 +342,15 @@ ships; history lives in Git, not here.
   Bounded VP8 row storage, specialized coefficient reads, SIMD inverse transforms, and
   shared filter loads brought the opaque FileSamples image from 232 to 136 ms thread CPU
   against 100 ms for libwebp. The measured output CRC64 is unchanged.
-  See [the source comparison and measurements](../bench/results/swagscope-filesamples/README.md#vp8-decoder-follow-up-against-libwebp-150).
-- Next: measure remaining VP8 intra-mode parsing and packed filter work, and revisit the VP8L
-  color cache on the photo and interface fixtures from the
-  [raster decode workload](../bench/workloads/rasterdecode/README.md).
-  Rerun the original Windows comparison.
+  The VP8 normal filter now processes horizontal luma edges 16 pixels at a time and
+  filters both chroma planes together. The decoder reuses intra-mode row state, decodes
+  compressed alpha directly, and uses packed horizontal and vertical alpha unfilters.
+  VP8L combines the red, blue, and alpha lookups for groups with short enough literal codes
+  and reads and writes color-cache pixels as packed RGBA words.
+  [Source comparison](../bench/results/swagscope-filesamples/README.md#vp8-decoder-follow-up-against-libwebp-150)
+  · [Expanded WebP corpus](../bench/results/swagscope-filesamples/README.md#webp-packed-deblocking-and-alpha-decoding)
+- Next: profile vertical deblocking and coefficient parsing against libwebp. Profile the
+  VP8L noisy RGBA fixture and rerun the original Windows comparison.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is
   preserved at the tested predictor, filter, and image boundaries.
 - Related: std.core.043, compiler.codegen.022.

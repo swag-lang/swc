@@ -726,3 +726,78 @@ Those two stages still cost the most relative to the corresponding libwebp phase
 
 The VP8L cross-color transform also uses SIMD now. The measured still VP8L outputs,
 including the transparent interface and the largest photo, kept their checksums.
+
+## WebP packed deblocking and alpha decoding
+
+This pass compares Release builds at `487bf239c3` and `55c90e2965` on Linux x86-64.
+Swag times warmed `Image.load` with one worker and libwebp 1.5.0 times the file read
+and `WebPDecodeRGBAInto` with default chroma upsampling and a reusable output buffer.
+Measurements use a thread CPU clock and rotate the three readers on one pinned core.
+The table uses 11 samples per reader and one table-driven CRC64/ECMA-182 check outside
+each Swag sample's timed interval. The paired column is the median of the individual
+after/before ratios.
+
+| Fixture | Swag before (ms) | Swag after (ms) | libwebp (ms) | Paired change |
+| --- | ---: | ---: | ---: | ---: |
+| Original FileSamples opaque VP8, 4275 × 2451 | 160.743 | 140.074 | 97.021 | -14.1% |
+| Expanded corpus opaque VP8, 1601 × 1067 | 31.169 | 27.560 | 21.373 | -12.9% |
+| VP8 photo with compressed alpha, 1921 × 1081 | 36.235 | 32.794 | 25.473 | -9.9% |
+| VP8 flower with compressed alpha, 400 × 301 | 2.244 | 2.070 | 1.480 | -10.6% |
+| VP8 raw alpha, no filter, 1601 × 1067 | 34.357 | 29.025 | 22.022 | -16.2% |
+| VP8 raw alpha, horizontal filter, 1601 × 1067 | 36.202 | 30.059 | 22.702 | -18.0% |
+| VP8 raw alpha, vertical filter, 1601 × 1067 | 35.302 | 32.869 | 25.624 | -8.7% |
+| VP8 raw alpha, gradient filter, 1601 × 1067 | 40.664 | 35.972 | 29.146 | -10.5% |
+| VP8L photo, 4275 × 2451 | 333.969 | 307.003 | 228.957 | -8.9% |
+| VP8L photo, 1254 × 1254 | 71.302 | 69.151 | 39.274 | -2.1% |
+| VP8L interface, 1280 × 800 | 18.395 | 17.811 | 11.025 | -3.2% |
+| VP8L interface with alpha, 600 × 401 | 4.167 | 4.015 | 2.698 | -2.3% |
+| VP8 row-window control, 37 × 257 | 0.441 | 0.478 | 0.372 | +6.8% |
+
+Before the final VP8L color-cache change, two nine-sample runs with the standard
+raster workload measured 193.741 to 184.882 ms and 160.497 to 154.263 ms on
+the original opaque FileSamples image. libwebp took 123.711 and 108.124 ms.
+A 15-sample run with the table-driven CRC measured 135.626 to 127.186 ms,
+with libwebp at 87.458 ms. Across those runs and the final table, Swag took
+1.43 to 1.49 times the libwebp decode time on FileSamples.
+
+- The VP8 normal loop filter processes 16 horizontal luma samples or the two chroma
+  planes together. The isolated FileSamples filter stage went from 37.035 to 28.644 ms
+  CPU. The alpha photo went from 3.153 to 2.328 ms and the normal-filter test image went
+  from 1.004 to 0.682 ms. libwebp also applies its horizontal kernel to both chroma
+  planes together. [libwebp SSE2 filter](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dsp/dec_sse2.c#L797)
+- VP8 intra-mode parsing keeps pointers to the active top and left state and copies four
+  decoded modes at a time. The isolated FileSamples control stage went from 12.466
+  to 11.713 ms CPU across 21 pairs. The normal-filter fixture slowed in one
+  modes-only series. In the integrated build, adding the mode change improved the
+  normal- and simple-filter controls by 2.7% and 2.6% across 17 pairs.
+  [libwebp mode reader](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dec/tree_dec.c#L291)
+- Unfiltered raw alpha can be read from the chunk in place. Compressed alpha feeds
+  its VP8L payload directly into the decoder. Horizontal and vertical alpha
+  unfiltering use packed bytes, and the gradient unfilter carries adjacent samples
+  across the row. An isolated 100-pair run on a 1601 × 1067 alpha plane measured
+  1.287 to 0.001 ms for raw unfiltered alpha, 6.060 to 0.651 ms for horizontal
+  unfiltering and 2.846 to 0.305 ms for vertical unfiltering. A 1921 × 1081 compressed
+  alpha plane went from 9.644 to 7.774 ms before the VP8L literal change.
+  [libwebp alpha reader](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dec/vp8l_dec.c#L1580)
+- VP8L decodes red, blue and alpha from a single lookup when the group's codes fit
+  together in seven bits. A 17-pair comparison isolating this change measured
+  224.139 to 208.777 ms on the largest photo, with libwebp at 163.304 ms. On a
+  synthetic fixture with short red, blue and alpha codes, it measured 5.713 to
+  4.772 ms, with libwebp at 4.619 ms. The noisy RGBA control varied from 14.247
+  to 14.583 ms, and libwebp took 4.357 ms.
+  [libwebp packed literal table](https://github.com/webmproject/libwebp/blob/v1.5.0/src/dec/vp8l_dec.c#L235)
+
+- The VP8L color cache loads and stores an RGBA word per pixel and converts to
+  ARGB for hashing. The largest photo reads about 6.5 million pixels from the
+  cache. The isolated cache change took it from 225.351 to 204.220 ms in 17
+  pairs, with libwebp at 165.610 ms. A 13-pair repeat on another core measured
+  315.537 to 310.989 ms, with libwebp at 222.051 ms. The remaining photo and
+  interface controls changed by about 2% or less in the isolated paired run.
+
+A prototype adding secondary tables for long Huffman codes slowed the noisy and
+large-photo controls. A VP8 reconstruction prototype showed inconsistent
+whole-image results across three FileSamples runs.
+
+Dimensions, pixel format and CRC64 matched across the two Swag builds on all
+13 fixtures. The combined build passed 41 native Release WebP and ImageReader tests.
+Three Swag Scope goldens passed with the lossy-path changes.

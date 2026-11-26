@@ -1324,3 +1324,66 @@ The integrated raster checkpoint at `f8ab0bce60` passed 376 native Pixel tests
 and 63 native Core tests. The Linux compiler at `e79dcabcda` used its matching
 `Core.Math` 128-bit integer source in that benchmark checkout. The tested
 image, compression and buffer code came from the checkpoint.
+
+### Ownership, scanline packing and compression settings
+
+In the opaque VP8 FileSamples decode, the same RGB reconstruction path was
+selected for Swag and libwebp with nearest-neighbor chroma upsampling. A profile
+isolated a large extra allocation at the branch joining the lossy and lossless
+Swag decoders. Moving the finished image out of the selected branch eliminated
+that dispatch copy. Both public entry points stayed at CRC64
+`11989128834250141761`, which also matches the libwebp reference. The animated
+WebP control, 45 Pixel tests and three native Swag Scope golden tests passed.
+
+| Decode call and input | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| `Image.load`, FileSamples opaque VP8 | 115.781 | 110.074 | libwebp 1.5.0, 103.094 |
+| `ImageReader`, FileSamples opaque VP8 | 127.082 | 101.526 | libwebp 1.5.0, 105.254 |
+| `Image.load`, VP8 detail | 97.011 | 82.795 | libwebp 1.5.0, 84.603 |
+| `Image.load`, VP8 with alpha | 34.294 | 30.072 | libwebp 1.5.0, 35.043 |
+| `Image.load`, VP8L large photo | 275.812 | 216.349 | libwebp 1.5.0, 181.993 |
+| OpenEXR ZIPS, alternating compressed scanlines | 18.653 | 1.902 | OpenEXR 3.5.5, 27.822 |
+| OpenEXR ZIP, alternating 16-row compressed blocks | 13.161 | 1.965 | OpenEXR 3.5.5, 23.583 |
+
+The OpenEXR cache measurements use synthetic 2049 × 1025 HALF RGBA files
+with two distinct scanline patterns. The cache keeps the decoded pixels exact
+on 14 fixtures, including 11 images from OpenEXR's official corpus. The ordinary
+photo and noisy controls exercise files with few cache hits.
+
+| Encoder and input | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| JPEG Q95 large photo, SIMD DCT and packed Huffman prefixes | 204.204 | 160.419 | libjpeg-turbo 2.1.5, 63.838 |
+| ICO FileSamples, one directory and pixel buffer | 0.834 | 0.010 | Pillow 12.3.0, 0.081 |
+| ICO seven RGBA sizes, one directory and pixel buffer | 1.716 | 0.016 | Pillow 12.3.0, 0.442 |
+| ICO seven RGBA sizes with premultiplied alpha | 4.673 | 0.169 | |
+| BMP RGB8 noise, contiguous output | 2.741 | 0.464 | ImageMagick 7.1.1-43, 6.825 |
+| QOI RGBA8 noise, smaller output buckets | 10.819 | 8.307 | QOI reference C, 8.964 |
+| OpenEXR, JPG FileSamples pixels to HALF planes | 0.794 | 0.418 | |
+| OpenEXR, uncompressed 75.6 MB RGB FLOAT, four warmed workers | 9.648 | 7.105 | |
+
+The JPEG endpoints come from two incremental series. The Huffman-prefix
+change produced the same encoded bytes at 145 settings. The direct-source
+follow-up avoids an intermediate RGB image and preserves the bytes on four
+channel orders across 34 profiles. Its peak RSS fell from 102,428 to 71,580 KiB
+on the large photo, and FileSamples JPG and JFIF times improved by 8.1% and 9.4%
+in paired runs. The ICO files decode to the same pixels as Pillow. Swag includes
+an AND mask, producing 179,582 bytes on FileSamples versus Pillow's 174,142.
+The ICO alpha conversion was checked on all 65,536 component/alpha pairs in
+both RGBA8 and BGRA8. The TGA follow-up confines RLE packets to scanlines per
+the Truevision 2.0 specification. Pillow decoded all 13 outputs after the change.
+It rejected seven of the previous encodings, whose packets could span rows.
+
+PNG encoding preserves FileSamples pixels at all ten levels. The following rows
+come from the same 12-run benchmark series. Output sizes differ because the
+encoders choose their own filters and Deflate representation.
+
+| Compression level | Swag (ms / bytes) | libpng with zlib (ms / bytes) | libpng with zlib-ng (ms / bytes) |
+| --- | ---: | ---: | ---: |
+| 0 | 0.433 / 818,599 | 1.297 / 819,717 | 0.667 / 819,717 |
+| 6 | 55.824 / 520,439 | 75.415 / 525,926 | 33.829 / 528,897 |
+| 9 | 73.898 / 519,877 | 147.280 / 522,626 | 89.729 / 511,108 |
+
+The integrated raster checkpoint at `72139801f6` passed 422 native Pixel and
+63 Core tests. The check used the Linux compiler at `52f76fab9d` with its
+matching CRC32 and CRC64 sources. The tested image and buffer sources came
+from the checkpoint.

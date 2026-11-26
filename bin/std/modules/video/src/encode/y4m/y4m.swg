@@ -7,22 +7,44 @@
 
 using Core, Core.Errors, Pixel
 
-private func luma(r, g, b: s32)->u8 => clampByte(((66 * r + 129 * g + 25 * b + 128) >> 8) + 16)
-private func cb(r, g, b: s32)->u8   => clampByte(((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128)
-private func cr(r, g, b: s32)->u8   => clampByte(((112 * r - 94 * g - 18 * b + 128) >> 8) + 128)
-
-// Returns the red, green and blue channels of one pixel, whatever order its format stores them in.
-//
-// Only the four interleaved 8-bit layouts are read here; 'addFrame' rejects every other format
-// before a pixel is touched, so the default arm exists to give the switch a value and is never
-// the one that runs.
-private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s32 }
+private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, height, chromaWidth, chromaHeight: u64, luma, cb, cr: [*] u8)
 {
-    switch image.pixelFormat
+    let red       = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 ? 0'u64 : 2'u64
+    let blue      = 2 - red
+    let pixelSize = image.bytesPerPixel
+    let stride    = cast(u64, image.rowStride)
+    const Samples = StepX * StepY
+    for cy in chromaHeight
     {
-    case .RGB8, .RGBA8: return {r: source[0], g: source[1], b: source[2]}
-    case .BGR8, .BGRA8: return {r: source[2], g: source[1], b: source[0]}
-    default: return {r: 0, g: 0, b: 0}
+        let y      = cy * StepY
+        let input  = image.pixels.storage() + (height - 1 - y) * stride
+        let output = luma + y * width
+        for cx in chromaWidth
+        {
+            let x = cx * StepX
+            var sumCb, sumCr: s32
+            for dy in StepY
+            {
+                let source = input - dy * stride + x * pixelSize
+                let yRow   = output + dy * width + x
+                for dx in StepX
+                {
+                    let pixel = source + dx * pixelSize
+                    let r     = cast(s32, pixel[red])
+                    let g     = cast(s32, pixel[1])
+                    let b     = cast(s32, pixel[blue])
+
+                    // The BT.601 coefficients already keep Y in 16–235 and Cb/Cr in 16–240.
+                    yRow[dx] = cast(u8, (((66 * r + 129 * g + 25 * b + 128) >> 8) + 16))
+                    sumCb    += ((-38 * r - 74 * g + 112 * b + 128) >> 8) + 128
+                    sumCr    += ((112 * r - 94 * g - 18 * b + 128) >> 8) + 128
+                }
+            }
+
+            let at = cy * chromaWidth + cx
+            cb[at] = cast(u8, ((sumCb + cast(s32, Samples / 2)) / cast(s32, Samples)))
+            cr[at] = cast(u8, ((sumCr + cast(s32, Samples / 2)) / cast(s32, Samples)))
+        }
     }
 }
 
@@ -103,44 +125,12 @@ impl IEncoder for Encoder
         let yPlane = .payload.storage()
         let uPlane = yPlane + lumaSize
         let vPlane = uPlane + chromaSize
-        for y in image.height
+        switch .options.chroma
         {
-            let sourceRow = cast(u64, (image.height - y - 1)) * cast(u64, image.rowStride)
-            for x in image.width
-            {
-                let source    = image.pixels.storage() + sourceRow + cast(u64, x) * image.bytesPerPixel
-                let {r, g, b} = readRgb(image, source)
-                yPlane[cast(u64, y) * width + cast(u64, x)] = luma(r, g, b)
-            }
-        }
-
-        let stepX = .options.chroma == .Yuv444 ? 1'u64 :
-                    (.options.chroma == .Yuv411 ? 4'u64 : 2'u64)
-        let stepY = .options.chroma == .Yuv420 ? 2'u64 : 1'u64
-        for cy in chromaHeight
-        {
-            for cx in chromaWidth
-            {
-                var sumU, sumV: u32
-                for dy in stepY
-                {
-                    for dx in stepX
-                    {
-                        let x         = cx * stepX + dx
-                        let y         = cy * stepY + dy
-                        let sourceRow = (height - y - 1) * cast(u64, image.rowStride)
-                        let source    = image.pixels.storage() + sourceRow + x * image.bytesPerPixel
-                        let {r, g, b} = readRgb(image, source)
-                        sumU += cast(u32, cb(r, g, b))
-                        sumV += cast(u32, cr(r, g, b))
-                    }
-                }
-
-                let samples = stepX * stepY
-                let target  = cy * chromaWidth + cx
-                uPlane[target] = cast(u8, (sumU + cast(u32, samples / 2)) / cast(u32, samples))
-                vPlane[target] = cast(u8, (sumV + cast(u32, samples / 2)) / cast(u32, samples))
-            }
+        case .Yuv411: convertPlanes'(4, 1)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+        case .Yuv420: convertPlanes'(2, 2)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+        case .Yuv422: convertPlanes'(2, 1)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
+        case .Yuv444: convertPlanes'(1, 1)(&image, width, height, chromaWidth, chromaHeight, yPlane, uPlane, vPlane)
         }
 
         try sink.writeText(FrameMarker)

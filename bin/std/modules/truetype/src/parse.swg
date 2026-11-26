@@ -207,6 +207,39 @@ func parseOS2(faceData: *FaceImpl) fail
     }
 }
 
+// Formats 12 and 13 share the packed group layout. Only the glyph calculation differs.
+private func(sequential: bool) validateCMapGroups(subTable: const [..] u8, glyphCount: u32) fail
+{
+    let groupCount = try readU32(subTable, 12)
+    if cast(u64, groupCount) > (subTable.count - 16) / 12 do
+        try fault(0x03)
+
+    var record = cast(const [*] u32, subTable.buffer + 16)
+    var previousEndCode = 0'u32
+    for index in groupCount
+    {
+        let startCode  = Math.bigEndianToNative(record[0])
+        let endCode    = Math.bigEndianToNative(record[1])
+        let startGlyph = Math.bigEndianToNative(record[2])
+        if startCode > endCode or endCode > 0x10FFFF or (index and startCode <= previousEndCode) do
+            try fault(0x03)
+
+        #static if sequential
+        {
+            if cast(u64, startGlyph) + (endCode - startCode) >= glyphCount do
+                try fault(0x03)
+        }
+        else
+        {
+            if startGlyph and startGlyph >= glyphCount do
+                try fault(0x03)
+        }
+
+        previousEndCode = endCode
+        record += 3
+    }
+}
+
 // Selects the richest character map the face declares.
 //
 // A rendering-only subset may legally omit the table entirely: a document that embeds one
@@ -403,38 +436,10 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         // Different platform records can point at the same grouped map.
         if (format == 12 or format == 13) and validatedGroupOffset != offset
         {
-            let groupCount = try readU32(subTable, 12)
-            if cast(u64, groupCount) > (subTable.count - 16) / 12 do
-                try fault(0x03)
-
-            let glyphCount      = faceData.face.glyphCount
-            var record          = subTable.buffer + 16
-            var previousEndCode = 0'u32
-            for index in groupCount
-            {
-                let startCode  = Math.make32(record[0], record[1], record[2], record[3])
-                let endCode    = Math.make32(record[4], record[5], record[6], record[7])
-                let startGlyph = Math.make32(record[8], record[9], record[10], record[11])
-                if startCode > endCode or
-                   endCode > 0x10FFFF or
-                   (index and startCode <= previousEndCode) do
-                    try fault(0x03)
-
-                if format == 12
-                {
-                    let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
-                    if lastGlyph >= glyphCount do
-                        try fault(0x03)
-                }
-                elif startGlyph and startGlyph >= glyphCount
-                {
-                    try fault(0x03)
-                }
-
-                previousEndCode = endCode
-                record += 12
-            }
-
+            if format == 12 do
+                try validateCMapGroups'true(subTable, faceData.face.glyphCount)
+            else do
+                try validateCMapGroups'false(subTable, faceData.face.glyphCount)
             validatedGroupOffset = offset
         }
 

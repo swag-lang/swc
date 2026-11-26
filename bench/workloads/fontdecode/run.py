@@ -64,8 +64,10 @@ def prepare(args, entries):
                 font.save(args.corpus / entry["file"])
 
 
-def measure_swag(executable, path, face, character, size, count):
+def measure_swag(executable, path, face, character, size, count, from_memory):
     command = [str(executable), str(path), str(face), str(character), str(size), str(count)]
+    if from_memory:
+        command.append("memory")
     output = subprocess.check_output(command, text=True).strip()
     if output == "rejected":
         return None
@@ -94,15 +96,24 @@ def measure_pillow(load, path, face, character, size, count):
 
 
 def compare(args, entries):
-    from PIL import ImageFont, __version__, features
-
     if args.cpu is not None:
         os.sched_setaffinity(0, {args.cpu})
-    load_pillow = partial(ImageFont.truetype, layout_engine=ImageFont.Layout.BASIC)
     os.environ["SWAG_RUNTIME_THREADS"] = "1"
+    engines = {"baseline": args.baseline.resolve(), "candidate": args.candidate.resolve()}
+    metadata = {"source": "memory"}
+    load_pillow = None
+    if not args.collection_memory:
+        from PIL import ImageFont, __version__, features
+
+        load_pillow = partial(ImageFont.truetype, layout_engine=ImageFont.Layout.BASIC)
+        engines["pillow"] = None
+        metadata = {"pillow": __version__, "freetype": features.version("freetype2"), "pillow_layout": "basic"}
+
     cases = []
     for entry in entries:
         path = (args.corpus / entry["file"]).resolve()
+        if args.collection_memory and path.suffix != ".ttc":
+            continue
         if not path.exists() and not ("url" in entry or "source" in entry):
             continue
         sha256 = check_digest(path, entry)
@@ -112,7 +123,6 @@ def compare(args, entries):
     if not cases:
         raise ValueError("no font fixtures were found")
 
-    engines = {"baseline": args.baseline.resolve(), "candidate": args.candidate.resolve(), "pillow": None}
     random_order = random.Random(73)
     for batch in range(args.batches):
         order = list(cases)
@@ -130,7 +140,7 @@ def compare(args, entries):
                 if executable is None:
                     opened, rendered = measure_pillow(load_pillow, *params)
                 else:
-                    result = measure_swag(executable, *params)
+                    result = measure_swag(executable, *params, from_memory=args.collection_memory)
                     if result is None:
                         expected = engine == "baseline" and case["file"] in args.allow_baseline_rejection
                         if not expected or engine in case["batches"]:
@@ -146,7 +156,7 @@ def compare(args, entries):
     result = {
         "platform": platform.platform(), "cpu": args.cpu, "pixel_size": args.size,
         "small_batch_size": args.samples, "large_batch_size": args.large_samples,
-        "pillow": __version__, "freetype": features.version("freetype2"), "pillow_layout": "basic", "cases": cases,
+        **metadata, "cases": cases,
     }
     args.output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     for case in cases:
@@ -176,6 +186,8 @@ def main():
     for arg in ("corpus", "baseline", "candidate", "output"):
         run.add_argument(f"--{arg}", type=Path, required=True)
     run.add_argument("--cpu", type=int)
+    run.add_argument("--collection-memory", action="store_true",
+                     help="compare Swag builds on file collections already in memory")
     run.add_argument("--allow-baseline-rejection", action="append", default=[], metavar="FILENAME")
     run.add_argument("--batches", type=positive_count, default=11)
     run.add_argument("--samples", type=positive_count, default=251)

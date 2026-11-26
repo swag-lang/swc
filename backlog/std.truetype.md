@@ -182,3 +182,14 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 - Done when: glyph goldens stay within a declared coverage/distance tolerance and raster and
   MSDF are benchmarked separately across small and large glyphs.
 - Related: std.core.044, std.core.047.
+
+### std.truetype.023 — Large CJK fonts spend most of their open time acquiring outlines
+
+- Evidence: six CJK file cases take 1.90 to 2.58 times Pillow's time in the warm-cache
+  open and render workload. The Noto Sans and Noto Serif CJK outline tables alone occupy
+  15.5 MB and 23.6 MB respectively. [Font decode timings](../bench/results/swagscope-filesamples/font-decode-linux.md#compact-collection-members)
+- Next: measure owned buffer reuse separately from the remaining SFNT and CFF parsing costs.
+  Preserve the loaded face's independence from later file or input changes and honor the
+  supplied allocator.
+- Done when: Swag opens and renders the six CJK fixture scenarios faster than Pillow with
+  matching Swag glyph indices, advances, bitmap dimensions, and checksums.

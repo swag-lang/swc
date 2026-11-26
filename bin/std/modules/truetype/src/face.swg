@@ -142,8 +142,13 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
-    if let path = fileName do
-        faceData.fontData = try File.readAllBytes(path)
+    var memberIndex = faceIndex
+    if let path = fileName
+    {
+        var file = try readFontFile(path, faceIndex)
+        faceData.fontData = #move file.bytes
+        memberIndex       = file.faceIndex
+    }
 
     let input = fileName ? faceData.fontData.toSlice() : bytes
     if not input.count do
@@ -158,13 +163,22 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
     }
     elif not fileName
     {
-        faceData.fontData.add(input)
+        var member = try copyFontMember(input, faceIndex)
+        if member.isEmpty()
+        {
+            faceData.fontData.add(input)
+        }
+        else
+        {
+            faceData.fontData = #move member
+            memberIndex       = 0
+        }
     }
 
     let detected = detectProgramSource(faceData.fontData.toSlice())
     if detected.sfnt
     {
-        try parseFace(faceData, faceIndex, fallbackFamilyName)
+        try parseFace(faceData, memberIndex, fallbackFamilyName)
         return &faceData.face
     }
 

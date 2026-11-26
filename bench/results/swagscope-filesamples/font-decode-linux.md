@@ -103,3 +103,39 @@ opens. They measure file acquisition and SFNT parsing inside `Face.loadFile`.
 | `NotoSansCJK-Regular.ttc` | 7 | 2419.21 | 2133.10 | 864.25 | 1929.62 | 573.06 → 281.07 |
 | `NotoSansCJKjp-Regular.otf` | 0 | 2113.72 | 1871.14 | 839.10 | 1578.20 | 607.93 → 285.79 |
 | `NotoSerifCJKjp-Regular.otf` | 0 | 3107.69 | 2619.43 | 932.10 | 2316.68 | 645.73 → 296.45 |
+
+## Compact collection members
+
+Large TTC opens copy the selected face's tables into its owned SFNT buffer. On
+Noto Sans CJK, the four tested members read 16.39–16.47 MB of the 19.48 MB file.
+The format-12 and format-13 Unicode map validators read the packed group fields directly.
+
+The same 44 scenarios use Linux Release, Swag baseline `740046dbe4`, and Pillow
+12.3.0 with FreeType 2.14.3 in Basic mode. Timings use 11 interleaved
+batches on the same CPU and a warm file cache. Swag glyph indices, advances, bitmap
+dimensions, and CRC-64 match across the two builds in all 44 scenarios.
+[Raw file and memory timings](font-decode-linux-collections.json)
+
+The four TTC file cases save 16% to 24% against the Swag baseline. The two CJK OTF
+cases save 5% to 7%. Swag leads Pillow in 38 of 44 scenarios. The six CJK
+cases take 1.90 to 2.58 times Pillow's elapsed time.
+
+| Fixture | Face | Glyph | Swag before (µs) | Swag after (µs) | Pillow (µs) |
+| --- | ---: | --- | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | `U+65E5` | 2209.56 | 1757.23 | 896.04 |
+| `NotoSansCJK-Regular.ttc` | 1 | `U+D55C` | 2295.38 | 1923.93 | 968.63 |
+| `NotoSansCJK-Regular.ttc` | 2 | `U+4E2D` | 2335.10 | 1770.14 | 930.16 |
+| `NotoSansCJK-Regular.ttc` | 7 | `U+FF21` | 2267.90 | 1749.15 | 899.24 |
+| `NotoSansCJKjp-Regular.otf` | 0 | `U+65E5` | 1996.81 | 1895.05 | 978.07 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | `U+672C` | 2850.41 | 2662.64 | 1032.79 |
+
+The `--collection-memory` run opens the TTC members with `Face.loadAt` after the input
+buffer is available. The four cases save 11% to 20% against the Swag baseline.
+Their glyph measurements and CRC-64 also match the file run.
+
+| Noto Sans CJK face | Swag before (µs) | Swag after (µs) |
+| ---: | ---: | ---: |
+| 0 | 2051.76 | 1769.73 |
+| 1 | 2200.66 | 1751.38 |
+| 2 | 2012.76 | 1781.62 |
+| 7 | 2117.45 | 1786.22 |

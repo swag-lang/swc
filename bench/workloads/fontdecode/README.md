@@ -42,3 +42,7 @@ Set `--cpu` to a CPU available to the process on Linux. Omit it on other platfor
 When comparing with a release that rejects a known valid fixture, pass its filename with
 `--allow-baseline-rejection`. The runner labels the rejected baseline and still checks the
 candidate against the reference for that scenario.
+
+Pass `--collection-memory` to measure TTC faces opened with `Face.loadAt` from a buffer
+read before timing starts. Both Swag executables need to be built from the probe source above.
+This mode compares the two Swag builds and checks the same glyph measurements.

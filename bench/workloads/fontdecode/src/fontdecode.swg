@@ -2,14 +2,19 @@ using Core, TrueType
 
 #main
 {
-    let args = Env.arguments()
-    Swag.require(args.count == 6)
+    let args       = Env.arguments()
+    let fromMemory = args.count == 7 and args[6] == "memory"
+    Swag.require(args.count == 6 or fromMemory)
     let path      = args[1]
     let faceIndex = expect StrConv.toU32(args[2])
     let character = cast(rune, expect StrConv.toU32(args[3]))
     let pixels    = expect StrConv.toU32(args[4])
     let samples   = expect StrConv.toU32(args[5])
     Swag.require(samples > 0)
+
+    var input: Array'u8
+    if fromMemory do
+        input = expect File.readAllBytes(path)
 
     const Warmups = 5
     var openTicks, renderTicks:  u64
@@ -20,7 +25,14 @@ using Core, TrueType
     {
         let start = Time.monotonicTicks()
         var loaded: *Face?
-        catch { loaded = try Face.loadFile(path, faceIndex) }
+        catch
+        {
+            if fromMemory do
+                loaded = try Face.loadAt(input.toSlice(), faceIndex)
+            else do
+                loaded = try Face.loadFile(path, faceIndex)
+        }
+
         if not loaded
         {
             Console.println("rejected")

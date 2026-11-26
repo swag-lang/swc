@@ -384,47 +384,56 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     flacAssertLossless("flac-5.1-48000", 48_000, 6)
 }
 
-// A Rice code wider than one word falls back between groups of short codes.
+// Both Rice parameter widths can fall back between groups when a code crosses the input word.
 #test
 {
     const Samples: [21] s16 = [0, 1, -1, 2, 511, -4, 6, -2, 8, -5, 5, -6, -7, 4, -6, 2, -5, 4, -2, 4, 3]
-    var frame: Array'u8
-    frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, cast(u8, Samples.count - 1)])
-    frame.add(flacTestHeaderCrc8(frame.toSlice()))
-
-    // A zero-order fixed predictor leaves the Rice residuals as the output samples.
-    var bitCount = frame.count * 8
-    flacTestAppendBits(&frame, &bitCount, 0x10, 8)
-    flacTestAppendBits(&frame, &bitCount, 0, 6)     // Rice coding, one partition.
-    flacTestAppendBits(&frame, &bitCount, 2, 4)     // Two remainder bits.
-    for sample in Samples
+    for parameter in [2'u32, 16]
     {
-        let twice = cast(u64, Math.abs(cast(s32, sample))) * 2
-        let code  = sample < 0 ? twice - 1 : twice
-        for code >> 2 do
+        let wide          = parameter == 16
+        let inputShift    = wide ? 12'u32 : 0
+        let outputShift   = wide ? 4'u32 : 0
+        let remainderMask = (1'u64 << parameter) - 1
+        var frame: Array'u8
+        frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, cast(u8, Samples.count - 1)])
+        frame.add(flacTestHeaderCrc8(frame.toSlice()))
+
+        // A zero-order fixed predictor leaves the Rice residuals as the output samples.
+        var bitCount = frame.count * 8
+        flacTestAppendBits(&frame, &bitCount, 0x10, 8)
+        flacTestAppendBits(&frame, &bitCount, wide ? 1 : 0, 2)
+        flacTestAppendBits(&frame, &bitCount, 0, 4)     // One partition.
+        flacTestAppendBits(&frame, &bitCount, cast(u64, parameter), wide ? 5 : 4)
+        for sample in Samples
+        {
+            let twice = cast(u64, Math.abs(cast(s32, sample))) << (inputShift + 1)
+            let code  = sample < 0 ? twice - 1 : twice
+            for code >> parameter do
+                flacTestAppendBits(&frame, &bitCount, 0, 1)
+            flacTestAppendBits(&frame, &bitCount, 1, 1)
+            flacTestAppendBits(&frame, &bitCount, code & remainderMask, parameter)
+        }
+
+        while bitCount & 7 do
             flacTestAppendBits(&frame, &bitCount, 0, 1)
-        flacTestAppendBits(&frame, &bitCount, 1, 1)
-        flacTestAppendBits(&frame, &bitCount, code & 3, 2)
+        let checksum = Flac.frameCrc16(frame.toSlice())
+        frame.add(cast(u8, checksum >> 8))
+        frame.add(cast(u8, checksum & 0xFF))
+
+        var codec:   Flac.Codec
+        let decoder: IPacketCodec = &codec
+        let config = flacMonoTestConfig(cast(u8, Samples.count), depth: wide ? 24 : 16)
+        expect decoder.initialize(config.toSlice(), 48_000, 1)
+        var decoded: [Samples.count] s16
+        let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
+        Swag.require(bytes == #sizeof(decoded))
+        for index in Samples.count do
+            Swag.require(decoded[index] == Samples[index] << outputShift)
+
+        var error: Swag.Error
+        discard catch decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice()[until frame.count - 9]) as error
+        Swag.require(error.value() is InvalidFormatError)
     }
-
-    while bitCount & 7 do
-        flacTestAppendBits(&frame, &bitCount, 0, 1)
-    let checksum = Flac.frameCrc16(frame.toSlice())
-    frame.add(cast(u8, checksum >> 8))
-    frame.add(cast(u8, checksum & 0xFF))
-
-    var codec:   Flac.Codec
-    let decoder: IPacketCodec = &codec
-    let config = flacMonoTestConfig(cast(u8, Samples.count))
-    expect decoder.initialize(config.toSlice(), 48_000, 1)
-    var decoded: [Samples.count] s16
-    let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
-    Swag.require(bytes == #sizeof(decoded))
-    audioAssertSamples(cast([..] u8, decoded), Samples)
-
-    var error: Swag.Error
-    discard catch decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice()[until frame.count - 9]) as error
-    Swag.require(error.value() is InvalidFormatError)
 }
 
 // The side subframe of 32-bit mid/side stereo needs 33 bits to reconstruct the full PCM range.

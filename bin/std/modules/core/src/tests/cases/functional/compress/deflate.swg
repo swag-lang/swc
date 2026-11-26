@@ -52,6 +52,23 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     return Slice.equals(decoded.toSlice(), input)
 }
 
+// Uniform runs cross the dictionary and stored position boundaries before
+// ordinary match searches resume.
+#test
+{
+    var data: Array'u8
+    data.resize(80000)
+    fillRandom(data.toSlice()[until 32644], 1337)
+    fillRandom(data.toSlice()[66212 to], 17)
+    for value in [0'u8, 219]
+    {
+        for index in 32644 until 66212 do
+            data[index] = value
+        for level in [Compress.Deflate.CompressionLevel.BestSpeed, .Default, .BestCompression] do
+            Swag.require(roundTrip(data.toSlice(), level, .Default))
+    }
+}
+
 // Every level and strategy round-trips random, textual, and constant data whose sizes straddle
 // the match limit, the stored writer's block split, the 32 KiB window, and the 64 KiB format limit.
 #test

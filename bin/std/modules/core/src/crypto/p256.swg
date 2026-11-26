@@ -26,6 +26,8 @@ private const P256Modulus: [4] u64 = [
 private const P256Order: [4] u64 = [
     0xF3B9CAC2FC632551, 0xBCE6FAADA7179E84, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFF00000000]
 
+private const P256ModulusMinusOrder: [4] u64 = [
+    0x0C46353D039CDAAE, 0x4319055358E8617B, 0x0000000000000000, 0x0000000000000000]
 private const P256MontgomeryOne: [4] u64 = [
     0x0000000000000001, 0xFFFFFFFF00000000, 0xFFFFFFFFFFFFFFFF, 0x00000000FFFFFFFE]
 
@@ -959,10 +961,18 @@ func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
         return false
     }
 
-    var x = p256OrderReduce(p256FromMontgomery(p256AffineX(sum)))
-    defer Crypto.secureClear(Swag.makeSlice(&x, 1))
+    // The affine X is either r or r + n because the field prime is below 2n.
+    // Compare in Jacobian coordinates to avoid inverting the projective scale.
+    let zSquared = p256FieldSquare(sum.z)
+    let expected = p256FieldMultiply(p256ToMontgomery(r), zSquared)
+    var valid    = p256FieldEqual(sum.x, expected)
+    if not valid and p256LessThan(r, P256ModulusMinusOrder)
+    {
+        let candidate = p256AddMod(r, P256Field{limbs: P256Order}, P256Modulus)
+        valid = p256FieldEqual(sum.x, p256FieldMultiply(p256ToMontgomery(candidate), zSquared))
+    }
+
     Crypto.secureClear(Swag.makeSlice(&s, 1))
-    let valid = p256FieldEqual(x, r)
     Crypto.secureClear(Swag.makeSlice(&r, 1))
     return valid
 }

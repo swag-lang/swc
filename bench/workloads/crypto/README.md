@@ -105,6 +105,19 @@ as Swag does. The P-256 comparator uses OpenSSL's fixed-base EC multiplication w
 the group and scratch containers allocated before timing. P-256 signing enables
 RFC 6979 nonces in OpenSSL and exports the two 32-byte signature components.
 
+## P-256 key agreement and verification
+
+Use `p256-ecdh` to derive the shared X coordinate for the peer whose
+32-byte scalar is in the input file. The peer public key is derived
+before timing. The measured call parses the public point and executes
+ECDH with the same synthetic private key on both sides.
+
+Use `p256-verify` or `p256-verify-reject` for an accepted ECDSA signature
+or a signature with one modified bit. The public key and raw deterministic
+signature are prepared before timing. Both sides import the public key
+for each call. OpenSSL encodes the signature in DER before timing. The
+result file contains the Boolean result and the full raw signature.
+
 ## AES-CMAC and AES-SIV
 
 Select `aes-256-cmac` for the 16-byte tag or `aes-256-siv` for encryption

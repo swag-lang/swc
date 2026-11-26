@@ -1,0 +1,64 @@
+{
+  "utc": "2026-11-26T13:43:59.924100+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "affine-x": 1,
+    "projective-x": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d4e65472b7100d0cc6d30282f39e88470091100c48da75f1ed2a6399111629b9",
+  "swag_builds": {
+    "affine-x": "8edaeb51a4620b08de5637f379848d290ce8b26320c03d39d9114858a6f69c77",
+    "projective-x": "d2de060dd0f8e8f187084c48871b1e67ae9df97539ef7213ad3eef35f959d456"
+  },
+  "rounds": 0,
+  "target_ms": 50,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-ecdh",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9f19db4a34bdab8c558b51da260bb0bd943ee8e56ba114ac5bb8ce5f75500720",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "p256-ecdh",
+      "bytes": 32,
+      "offset": 1,
+      "input_sha256": "03d087637711d48ddc2dbf9c9800f72623194c75d40b1e11426b713d880bbdb0",
+      "output_sha256": "d6f25213d27709f31f412fa3a1509d083bddb4bf88207929a42feb7ef11422a2",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "p256-ecdh",
+      "bytes": 32,
+      "offset": 7,
+      "input_sha256": "78e5fc31e643d9b9c6ff1b86239e6ba1b7cc53a5f5765ffe9022ef984cfb8998",
+      "output_sha256": "35def465d445961dab0975cd72a7c487ec2eb30d6ef9f164e282fe20b106184c",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "p256-ecdh",
+      "bytes": 32,
+      "offset": 15,
+      "input_sha256": "22349a584c87b701f29ad6744fed242472fa05ecbb0efae163088e741de725ea",
+      "output_sha256": "c3383ff11889b52eace8359e630ef4e6453bf0804c50905e772902e657f7e151",
+      "samples": {},
+      "round_order": []
+    }
+  ]
+}

@@ -8,6 +8,7 @@
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/err.h>
 #include <openssl/kdf.h>
 #include <openssl/param_build.h>
 #include <zlib.h>
@@ -54,6 +55,14 @@ static BN_CTX *p256_context;
 static BIGNUM *p256_scalar;
 static EVP_PKEY_CTX *p256_import_context;
 static OSSL_PARAM *p256_key_parameters;
+static EVP_PKEY_CTX *p256_verify_context;
+static EC_POINT *p256_peer;
+static BIGNUM *p256_secret;
+static unsigned char p256_peer_bytes[65];
+static unsigned char p256_verify_key[65];
+static unsigned char p256_verify_raw[64];
+static unsigned char p256_verify_der[80];
+static size_t p256_verify_der_size;
 
 typedef void (*operation)(const unsigned char *, size_t, unsigned char *);
 
@@ -272,6 +281,18 @@ static void ed25519_sign(const unsigned char *p, size_t n, unsigned char *out)
     EVP_PKEY_free(private_key);
 }
 
+static void prepare_p256_curve(void)
+{
+    p256_group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
+    require(p256_group != NULL, "OpenSSL could not create the P-256 group");
+    p256_point = EC_POINT_new(p256_group);
+    p256_context = BN_CTX_new();
+    p256_scalar = BN_new();
+    require(p256_point && p256_context && p256_scalar,
+            "OpenSSL could not allocate P-256 state");
+    BN_set_flags(p256_scalar, BN_FLG_CONSTTIME);
+}
+
 static void p256_public(const unsigned char *p, size_t n, unsigned char *out)
 {
     require(n == 32 && BN_bin2bn(p, (int)n, p256_scalar) &&
@@ -325,6 +346,72 @@ static void p256_sign(const unsigned char *p, size_t n, unsigned char *out)
     EVP_PKEY_free(private_key);
 }
 
+static void prepare_p256_verification(const unsigned char *p, size_t n, int reject)
+{
+    prepare_p256_curve();
+    p256_public(key, sizeof(key) - 1, p256_verify_key);
+    prepare_p256_sign();
+    p256_sign(p, n, p256_verify_raw);
+    require(EVP_MD_CTX_reset(digest_context), "OpenSSL could not reset the digest context");
+    if (reject)
+        p256_verify_raw[63] ^= 1;
+    p256_verify_context = EVP_PKEY_CTX_new_from_name(NULL, "EC", NULL);
+    require(p256_verify_context && EVP_PKEY_fromdata_init(p256_verify_context),
+            "OpenSSL P-256 verification setup failed");
+
+    ECDSA_SIG *signature = ECDSA_SIG_new();
+    BIGNUM *r = BN_bin2bn(p256_verify_raw, 32, NULL);
+    BIGNUM *s = BN_bin2bn(p256_verify_raw + 32, 32, NULL);
+    require(signature && r && s && ECDSA_SIG_set0(signature, r, s),
+            "OpenSSL could not assemble a P-256 signature");
+    unsigned char *end = p256_verify_der;
+    const int size = i2d_ECDSA_SIG(signature, &end);
+    require(size > 0 && size <= (int)sizeof(p256_verify_der),
+            "OpenSSL could not encode the P-256 signature");
+    p256_verify_der_size = (size_t)size;
+    ECDSA_SIG_free(signature);
+}
+
+static void p256_verify(const unsigned char *p, size_t n, unsigned char *out)
+{
+    char curve[] = "prime256v1";
+    OSSL_PARAM params[] = {
+        OSSL_PARAM_construct_utf8_string(OSSL_PKEY_PARAM_GROUP_NAME, curve, 0),
+        OSSL_PARAM_construct_octet_string(OSSL_PKEY_PARAM_PUB_KEY, p256_verify_key, sizeof(p256_verify_key)),
+        OSSL_PARAM_construct_end(),
+    };
+    EVP_PKEY *public_key = NULL;
+    require(EVP_PKEY_fromdata(p256_verify_context, &public_key, EVP_PKEY_PUBLIC_KEY, params) &&
+            public_key && EVP_DigestVerifyInit_ex(digest_context, NULL, "SHA256", NULL, NULL, public_key, NULL),
+            "OpenSSL could not initialize P-256 verification");
+    const int accepted = EVP_DigestVerify(digest_context, p256_verify_der, p256_verify_der_size, p, n);
+    if (accepted < 0)
+        ERR_print_errors_fp(stderr);
+    require(accepted >= 0, "OpenSSL could not verify P-256 signature");
+    out[0] = (unsigned char)accepted;
+    EVP_PKEY_free(public_key);
+}
+
+static void prepare_p256_ecdh(const unsigned char *p, size_t n)
+{
+    prepare_p256_curve();
+    p256_public(p, n, p256_peer_bytes);
+    p256_peer = EC_POINT_new(p256_group);
+    p256_secret = BN_new();
+    require(p256_peer && p256_secret && BN_bin2bn(key, sizeof(key) - 1, p256_scalar),
+            "OpenSSL ECDH setup failed");
+}
+
+static void p256_ecdh(const unsigned char *p, size_t n, unsigned char *out)
+{
+    (void)p;
+    (void)n;
+    require(EC_POINT_oct2point(p256_group, p256_peer, p256_peer_bytes, sizeof(p256_peer_bytes), p256_context) &&
+            EC_POINT_mul(p256_group, p256_point, NULL, p256_peer, p256_scalar, p256_context) &&
+            EC_POINT_get_affine_coordinates(p256_group, p256_point, p256_secret, NULL, p256_context) &&
+            BN_bn2binpad(p256_secret, out, 32) == 32, "OpenSSL ECDH failed");
+}
+
 static void hkdf_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
     if (n == 0)
@@ -370,14 +457,7 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
     }
 
     if (!strcmp(name, "p256-public")) {
-        p256_group = EC_GROUP_new_by_curve_name(NID_X9_62_prime256v1);
-        require(p256_group != NULL, "OpenSSL could not create the P-256 group");
-        p256_point = EC_POINT_new(p256_group);
-        p256_context = BN_CTX_new();
-        p256_scalar = BN_new();
-        require(p256_point && p256_context && p256_scalar,
-                "OpenSSL could not allocate P-256 state");
-        BN_set_flags(p256_scalar, BN_FLG_CONSTTIME);
+        prepare_p256_curve();
         *result_size = 65;
         return p256_public;
     }
@@ -565,7 +645,20 @@ int main(int argc, char **argv)
 
     const size_t size = length - offset;
     size_t result_size;
-    const operation run = select_operation(argv[1], size, &result_size);
+    const int verify_reject = !strcmp(argv[1], "p256-verify-reject");
+    const int verify = verify_reject || !strcmp(argv[1], "p256-verify");
+    operation run;
+    if (verify) {
+        prepare_p256_verification(input + offset, size, verify_reject);
+        run = p256_verify;
+        result_size = 1 + sizeof(p256_verify_raw);
+    } else if (!strcmp(argv[1], "p256-ecdh")) {
+        prepare_p256_ecdh(input + offset, size);
+        run = p256_ecdh;
+        result_size = 32;
+    } else {
+        run = select_operation(argv[1], size, &result_size);
+    }
     unsigned char *result = malloc(result_size ? result_size : 1);
     require(result != NULL, "Could not allocate result");
 
@@ -577,6 +670,10 @@ int main(int argc, char **argv)
     const uint64_t cpu_elapsed = clock_ticks(CLOCK_PROCESS_CPUTIME_ID) - cpu_start;
     const uint64_t wall_elapsed = clock_ticks(CLOCK_MONOTONIC) - wall_start;
 
+    if (verify) {
+        require(result[0] == !verify_reject, "Unexpected P-256 verification result");
+        memcpy(result + 1, p256_verify_raw, sizeof(p256_verify_raw));
+    }
     file = fopen(argv[3], "wb");
     require(file != NULL && fwrite(result, 1, result_size, file) == result_size,
             "Could not write result");
@@ -592,10 +689,13 @@ int main(int argc, char **argv)
     EVP_KDF_free(hkdf);
     EVP_MAC_CTX_free(mac_context);
     EVP_MAC_free(mac);
+    EVP_PKEY_CTX_free(p256_verify_context);
     EVP_PKEY_CTX_free(p256_import_context);
     OSSL_PARAM_free(p256_key_parameters);
+    BN_clear_free(p256_secret);
     BN_clear_free(p256_scalar);
     BN_CTX_free(p256_context);
+    EC_POINT_free(p256_peer);
     EC_POINT_free(p256_point);
     EC_GROUP_free(p256_group);
     free(input);

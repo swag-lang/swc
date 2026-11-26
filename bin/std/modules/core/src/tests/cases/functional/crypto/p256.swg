@@ -157,3 +157,15 @@ func p256HexBytes(text: string)->Array'u8
     let aboveOrder = Crypto.p256Rfc6979Nonce(key.toSlice(), digest)
     Swag.require(Crypto.constantTimeEqual(aboveOrder, oneExpected.toSlice()))
 }
+
+#test
+{
+    // The valid signature's recovered affine X is above the curve order.
+    const Message = "P-256 projective verification"
+    let key = p256HexBytes("04a40c6978f9333669757a07bc52b5fe5a3b56d2f5bf8c4791a991d400474d31507abc01104d65cff3d8514f8eefe2cf2305fcf3c1c7c7bafe9da8a633bebcf0aa")
+    var signature = p256HexBytes("00000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000001")
+    Swag.require(expect Crypto.p256EcdsaVerify(key.toSlice(), Message, signature.toSlice()))
+
+    signature[63] = 2
+    Swag.require(not expect Crypto.p256EcdsaVerify(key.toSlice(), Message, signature.toSlice()))
+}

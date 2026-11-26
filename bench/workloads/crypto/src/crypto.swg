@@ -105,6 +105,18 @@ func ed25519Public(input: const [..] u8, output: [..] u8) =>
 func ed25519Sign(input: const [..] u8, output: [..] u8) =>
     expect Crypto.ed25519Sign(Key, input, output)
 
+private var p256VerifyKey: [65] u8
+private var p256VerifySignature: [64] u8
+private var p256EcdhPeer: [65] u8
+
+func p256Verify(input: const [..] u8, output: [..] u8)
+{
+    output[0] = cast(u8, expect Crypto.p256EcdsaVerify(p256VerifyKey, input, p256VerifySignature))
+}
+
+func p256Ecdh(_: const [..] u8, output: [..] u8) =>
+    expect Crypto.p256Ecdh(Key, p256EcdhPeer, output)
+
 func p256Public(input: const [..] u8, output: [..] u8) =>
     expect Crypto.p256PublicKey(input, output)
 
@@ -161,6 +173,8 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "ed25519-sign":      return {&ed25519Sign, 64}
     case "p256-public":       return {&p256Public, 65}
     case "p256-sign":         return {&p256Sign, 64}
+    case "p256-verify", "p256-verify-reject": return {&p256Verify, 65}
+    case "p256-ecdh":         return {&p256Ecdh, 32}
     case "hkdf-sha224":       return {&hkdfSha224, size}
     case "hkdf-sha256":       return {&hkdfSha256, size}
     case "hkdf-sha384":       return {&hkdfSha384, size}
@@ -186,10 +200,21 @@ func processTicks()->u64
     let source     = expect File.readAllBytes(args[2])
     Swag.require(iterations and offset <= source.count)
     let input    = source.toSlice()[offset until source.count]
-    let selected = selectOperation(args[1], input.count)
+    let name = args[1]
+    let verify = name == "p256-verify" or name == "p256-verify-reject"
+    let selected = selectOperation(name, input.count)
+    if verify
+    {
+        expect Crypto.p256PublicKey(Key, p256VerifyKey)
+        expect Crypto.p256EcdsaSign(Key, input, p256VerifySignature)
+        if name == "p256-verify-reject" do
+            p256VerifySignature[63] ^= 1
+    }
+    elif name == "p256-ecdh" do
+        expect Crypto.p256PublicKey(input, p256EcdhPeer)
     var output: Array'u8
     output.resize(selected.outputSize)
-    let destination = output.toSlice()
+    var destination = output.toSlice()
 
     let workerLimit = Env.variable("SWAG_RUNTIME_THREADS")
     let requested   = workerLimit.isEmpty() ? 1'u32 : expect StrConv.toU32(workerLimit.toString())
@@ -205,6 +230,11 @@ func processTicks()->u64
     let cpuElapsed  = processTicks() - cpuStart
     let wallElapsed = Time.monotonicTicks() - wallStart
 
+    if verify
+    {
+        Swag.require(destination[0] == cast(u8, name == "p256-verify"))
+        Swag.memcpy(destination.buffer + 1, p256VerifySignature.buffer, 64)
+    }
     discard expect File.writeAllBytes(args[3], destination)
     Console.println(wallElapsed, " ", cpuElapsed, " ", Time.monotonicFrequency())
 }

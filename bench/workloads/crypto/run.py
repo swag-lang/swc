@@ -56,6 +56,9 @@ PUBLIC_KEY_SIZES = {
     "ed25519-sign": (64, 4096),
     "p256-public": (32,),
     "p256-sign": (64, 4096),
+    "p256-verify": (64, 4096),
+    "p256-verify-reject": (64, 4096),
+    "p256-ecdh": (32,),
 }
 HKDF_DIGEST_BYTES = {f"hkdf-sha{bits}": bits // 8 for bits in (224, 256, 384, 512)}
 HKDF_SIZES = {name: (size, 4 * size, 32 * size, 255 * size)
@@ -232,7 +235,7 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
            for row in sizes.values() for size in row):
         parser.error("sizes must be positive for timing and nonnegative for verification")
     for name in PUBLIC_KEY_SIZES:
-        if name in sizes and not name.endswith("-sign") and any(size != 32 for size in sizes[name]):
+        if name in sizes and PUBLIC_KEY_SIZES[name] == (32,) and any(size != 32 for size in sizes[name]):
             parser.error(f"{name} requires a 32-byte input")
     for name, digest_bytes in HKDF_DIGEST_BYTES.items():
         if name in sizes and any(size > 255 * digest_bytes for size in sizes[name]):

@@ -1,0 +1,904 @@
+{
+  "utc": "2026-11-26T13:44:00.017942+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "affine-x": 1,
+    "projective-x": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d4e65472b7100d0cc6d30282f39e88470091100c48da75f1ed2a6399111629b9",
+  "swag_builds": {
+    "affine-x": "8edaeb51a4620b08de5637f379848d290ce8b26320c03d39d9114858a6f69c77",
+    "projective-x": "d2de060dd0f8e8f187084c48871b1e67ae9df97539ef7213ad3eef35f959d456"
+  },
+  "rounds": 17,
+  "target_ms": 45,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "p256-verify",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "33ffd26580e8fab6e6ebe5b4a3b04295a754b6e12351c7766be862414efeae29",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 647,
+          "wall": [
+            0.04616253,
+            0.046102199,
+            0.046754002,
+            0.064990024,
+            0.068137883,
+            0.063878619,
+            0.070856503,
+            0.064009186,
+            0.045294882,
+            0.068483714,
+            0.045085166,
+            0.068244353,
+            0.064187194,
+            0.045204476,
+            0.044951393,
+            0.045027008,
+            0.068211734
+          ],
+          "cpu": [
+            0.045477468,
+            0.046060186,
+            0.046401982,
+            0.045924382,
+            0.0451645,
+            0.044919363,
+            0.047803418,
+            0.045014037,
+            0.045253254,
+            0.045496045,
+            0.044963851,
+            0.045200935,
+            0.045201415,
+            0.045174235,
+            0.044882561,
+            0.044991283,
+            0.045224708
+          ]
+        },
+        "affine-x": {
+          "iterations": 108,
+          "wall": [
+            0.0498292,
+            0.060094872,
+            0.06905124,
+            0.045447603,
+            0.045239428,
+            0.046028598,
+            0.063884878,
+            0.045524939,
+            0.087861739,
+            0.06348162,
+            0.063588211,
+            0.044758643,
+            0.067569565,
+            0.045742035,
+            0.065259491,
+            0.068124583,
+            0.045717188
+          ],
+          "cpu": [
+            0.049387478,
+            0.045088204,
+            0.046072304,
+            0.045363965,
+            0.045128618,
+            0.046000444,
+            0.044886507,
+            0.045396794,
+            0.064767673,
+            0.044494453,
+            0.044605958,
+            0.044730264,
+            0.048412746,
+            0.045526182,
+            0.04624744,
+            0.045066085,
+            0.045652606
+          ]
+        },
+        "projective-x": {
+          "iterations": 113,
+          "wall": [
+            0.050098997,
+            0.057279196,
+            0.059452774,
+            0.048694019,
+            0.06395947,
+            0.060031397,
+            0.048254756,
+            0.064212282,
+            0.061572411,
+            0.045040519,
+            0.081345862,
+            0.067190494,
+            0.045411798,
+            0.066890121,
+            0.045510036,
+            0.064604123,
+            0.046479829
+          ],
+          "cpu": [
+            0.046893533,
+            0.04635324,
+            0.048472547,
+            0.048664831,
+            0.044920247,
+            0.045070621,
+            0.048222378,
+            0.045152804,
+            0.046515711,
+            0.045013256,
+            0.06221466,
+            0.051832931,
+            0.045212872,
+            0.046362072,
+            0.045483126,
+            0.045619167,
+            0.046444025
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-verify",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "fe4e48698b2f80d71244b5f0d37742de29bae854d58b53efff7bca34975f9d7f",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 613,
+          "wall": [
+            0.046531617,
+            0.046260558,
+            0.069350672,
+            0.045011614,
+            0.075289908,
+            0.045819152,
+            0.068485597,
+            0.064986329,
+            0.067423525,
+            0.063833841,
+            0.043960088,
+            0.044355455,
+            0.044795218,
+            0.044945885,
+            0.063968574,
+            0.045126758,
+            0.046204925
+          ],
+          "cpu": [
+            0.046393981,
+            0.046211168,
+            0.046371348,
+            0.044957024,
+            0.045394693,
+            0.045452038,
+            0.045610886,
+            0.046036048,
+            0.044478568,
+            0.044895359,
+            0.043952716,
+            0.044296979,
+            0.044706862,
+            0.044913147,
+            0.044890062,
+            0.044858374,
+            0.046176017
+          ]
+        },
+        "affine-x": {
+          "iterations": 103,
+          "wall": [
+            0.069728151,
+            0.085506397,
+            0.063227387,
+            0.062529695,
+            0.066653193,
+            0.071154202,
+            0.062737818,
+            0.042791316,
+            0.062150732,
+            0.043018449,
+            0.06185123,
+            0.063111191,
+            0.064136148,
+            0.061821316,
+            0.047878449,
+            0.069790574,
+            0.062450526
+          ],
+          "cpu": [
+            0.04673684,
+            0.062362952,
+            0.044256898,
+            0.043534321,
+            0.043667386,
+            0.043597861,
+            0.0426599,
+            0.042779498,
+            0.043120075,
+            0.043015881,
+            0.042833338,
+            0.044128798,
+            0.045130965,
+            0.042793459,
+            0.047814026,
+            0.046283255,
+            0.043504148
+          ]
+        },
+        "projective-x": {
+          "iterations": 99,
+          "wall": [
+            0.040219587,
+            0.068934795,
+            0.045861171,
+            0.040727493,
+            0.045866925,
+            0.052451426,
+            0.039714996,
+            0.059523301,
+            0.040381842,
+            0.039818062,
+            0.039806384,
+            0.058837316,
+            0.040456344,
+            0.08093328,
+            0.059084638,
+            0.040112766,
+            0.062847104
+          ],
+          "cpu": [
+            0.040186526,
+            0.049940875,
+            0.04581305,
+            0.040679171,
+            0.04021506,
+            0.041352542,
+            0.039542828,
+            0.040476358,
+            0.04035563,
+            0.039815835,
+            0.039782355,
+            0.039838879,
+            0.040409609,
+            0.043096679,
+            0.040110496,
+            0.039952198,
+            0.043805376
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-verify-reject",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "77e013ac974c114e5e61726051a3eb08d8548408d1d847866e5fb16e4f8090d7",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 625,
+          "wall": [
+            0.07318813,
+            0.07014484,
+            0.071022463,
+            0.068997378,
+            0.046403864,
+            0.064815692,
+            0.065644512,
+            0.069456571,
+            0.065181464,
+            0.06730692,
+            0.063533879,
+            0.060238409,
+            0.044673504,
+            0.063709945,
+            0.064783633,
+            0.059873758,
+            0.063924107
+          ],
+          "cpu": [
+            0.046248484,
+            0.046770282,
+            0.048016067,
+            0.046039533,
+            0.046401362,
+            0.045878043,
+            0.046622934,
+            0.046509272,
+            0.046214573,
+            0.048275344,
+            0.04455363,
+            0.045234004,
+            0.044663034,
+            0.044209268,
+            0.045818424,
+            0.044878965,
+            0.044934658
+          ]
+        },
+        "affine-x": {
+          "iterations": 81,
+          "wall": [
+            0.034775416,
+            0.057227618,
+            0.037870824,
+            0.035569635,
+            0.055947367,
+            0.05376775,
+            0.055101481,
+            0.034819734,
+            0.035492999,
+            0.035411596,
+            0.033479461,
+            0.059649721,
+            0.0533436,
+            0.058108467,
+            0.039115132,
+            0.033735278,
+            0.037387847
+          ],
+          "cpu": [
+            0.034750962,
+            0.038190555,
+            0.037785011,
+            0.035567118,
+            0.037004809,
+            0.034822018,
+            0.036136165,
+            0.034816891,
+            0.035481319,
+            0.035408652,
+            0.033476785,
+            0.036699144,
+            0.034214492,
+            0.035161614,
+            0.039113038,
+            0.033513108,
+            0.037315331
+          ]
+        },
+        "projective-x": {
+          "iterations": 103,
+          "wall": [
+            0.042836944,
+            0.046405497,
+            0.06746675,
+            0.060939546,
+            0.042741972,
+            0.042312463,
+            0.044298119,
+            0.068359877,
+            0.042185722,
+            0.065142375,
+            0.062952332,
+            0.045779633,
+            0.042739768,
+            0.041705758,
+            0.064433576,
+            0.041443533,
+            0.043080192
+          ],
+          "cpu": [
+            0.042619491,
+            0.046373271,
+            0.044503196,
+            0.041922062,
+            0.042739268,
+            0.042230301,
+            0.044179774,
+            0.04542622,
+            0.042114568,
+            0.042193406,
+            0.044000387,
+            0.045697394,
+            0.042524258,
+            0.041703065,
+            0.045232811,
+            0.041428096,
+            0.042681131
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ]
+      ]
+    },
+    {
+      "algorithm": "p256-verify-reject",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "fefcbc932f8bdf4bc59e7a01154bffc1a2740a15e27d8efac949290b60e87019",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 606,
+          "wall": [
+            0.044679544,
+            0.04394735,
+            0.063444013,
+            0.066855128,
+            0.064799729,
+            0.063135819,
+            0.067409635,
+            0.063877427,
+            0.074288199,
+            0.063131943,
+            0.076919868,
+            0.045345137,
+            0.064032121,
+            0.063119504,
+            0.044198759,
+            0.063063459,
+            0.053056658
+          ],
+          "cpu": [
+            0.04465356,
+            0.043944844,
+            0.044500823,
+            0.043900759,
+            0.045850302,
+            0.044068399,
+            0.044383558,
+            0.044894839,
+            0.055348616,
+            0.044187746,
+            0.057989029,
+            0.045263776,
+            0.045085843,
+            0.04418401,
+            0.044196669,
+            0.044093083,
+            0.052921262
+          ]
+        },
+        "affine-x": {
+          "iterations": 107,
+          "wall": [
+            0.064077139,
+            0.048769662,
+            0.044267522,
+            0.067371657,
+            0.069264667,
+            0.060123075,
+            0.045259698,
+            0.084079174,
+            0.044650269,
+            0.045772622,
+            0.060122173,
+            0.077382264,
+            0.060386723,
+            0.046110101,
+            0.045123393,
+            0.045718841,
+            0.044591971
+          ],
+          "cpu": [
+            0.044968438,
+            0.048739204,
+            0.044265241,
+            0.044341986,
+            0.046325389,
+            0.04519074,
+            0.045161956,
+            0.06501865,
+            0.044641932,
+            0.045753577,
+            0.049150837,
+            0.058330168,
+            0.045045863,
+            0.046102568,
+            0.045121116,
+            0.045624444,
+            0.044588883
+          ]
+        },
+        "projective-x": {
+          "iterations": 111,
+          "wall": [
+            0.063983036,
+            0.064832978,
+            0.06783816,
+            0.044596899,
+            0.044460243,
+            0.046633461,
+            0.064970025,
+            0.045429875,
+            0.065409959,
+            0.067167358,
+            0.064891517,
+            0.065615859,
+            0.050133629,
+            0.04568523,
+            0.061541254,
+            0.06352772,
+            0.046029199
+          ],
+          "cpu": [
+            0.045018001,
+            0.045881849,
+            0.044616004,
+            0.044583134,
+            0.044456756,
+            0.04652718,
+            0.046020445,
+            0.045427241,
+            0.050289583,
+            0.044201255,
+            0.064791711,
+            0.044595744,
+            0.050131187,
+            0.045670694,
+            0.046520691,
+            0.044587912,
+            0.045769932
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "projective-x",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "projective-x",
+          "affine-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "affine-x",
+          "OpenSSL",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ],
+        [
+          "projective-x",
+          "affine-x",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "affine-x",
+          "projective-x"
+        ],
+        [
+          "projective-x",
+          "OpenSSL",
+          "affine-x"
+        ]
+      ]
+    }
+  ]
+}

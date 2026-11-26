@@ -1008,3 +1008,23 @@ The generated, public, and attached rasters retain their CRC-64s. Twelve
 additional transformed gradient files and a gradient thumbnail match with
 one or two samples per axis and one or four workers. A test compares
 linear, radial and sweep gradients with scalar blending over opaque targets.
+
+### Parallelizing medium gradient ranges
+
+The CPU renderer schedules disjoint 16-row bands from a 4,096-pixel
+bounding box for color-only BGRA gradients without stencil or overlap
+passes. Other draw states keep the existing threshold. Every band
+keeps the submitted triangle order and samples the same pixel centers.
+
+Eleven interleaved Release runs of `gradient-fills.svg` gave these
+median parse-plus-raster times in milliseconds.
+
+| Logical CPUs | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| 1 | 118.13 | 114.76 | 29.71 |
+| 2 | 116.99 | 85.22 | 31.01 |
+| 4 | 111.67 | 76.58 | 28.67 |
+
+The gradient regression uses a four-worker render and a full-color-mask
+reference that runs serially at this size. Original, generated, and
+public control CRC-64s match.

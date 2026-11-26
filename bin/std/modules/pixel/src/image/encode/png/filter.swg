@@ -18,7 +18,7 @@ using Core, Core.Errors
 // negative. Scoring the signed difference instead lets a noisy row cancel itself out and score
 // as well as a flat one, which is how a bad filter gets chosen.
 #[Swag.Inline]
-func residualScore(value: u8)->s32 => 128 - Math.abs(cast(s32, value) - 128)
+func residualScore(value: u8)->s32 => Math.abs(cast(s32, cast #bit(s8, value)))
 
 // The byte residual is signed for scoring. Reinterpret its absolute value as
 // unsigned so -128 contributes 128, then sum into the two packed accumulators.

@@ -3444,7 +3444,18 @@ private impl RenderCpu
             return bins
         }
 
-        if bounds.area() < CpuBandPixelThreshold or
+        // Interpolated paint has more work per pixel than a constant-color range.
+        let gradient = not batch.solidPaint and
+                       batch.image!.pixelFormat == .BGRA8 and
+                       not .stencilOn and not .stencilWrite and
+                       not .overlapMode and not .alphaResolve and
+                       (.paint.type == .LinearGradient or .paint.type == .RadialGradient or
+                        .paint.type == .SweepGradient) and
+                       (.program == CpuProgram_Simple or .program == CpuProgram_Default) and
+                       .blendingMode == .Alpha and .colorMask.r and .colorMask.g and
+                       .colorMask.b and not .colorMask.a
+        let threshold = gradient ? 4096'u64 : CpuBandPixelThreshold
+        if bounds.area() < threshold or
            bounds.rows() <= CpuBandRows or
            Swag.workerCount() <= 1
         {

@@ -847,9 +847,14 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(right.b > right.r)
 }
 
-// Color-only gradient spans match scalar blending over an opaque target.
+// Parallel color-only gradient spans match scalar blending over an opaque target.
+#[Swag.TestTag("parallel")]
 #test
 {
+    let workers = Swag.workerCount()
+    Swag.setWorkerCount(4)
+    defer Swag.setWorkerCount(workers)
+
     let first = Color.fromArgb(0x4267_B431'u32)
     let last  = Color.fromArgb(0xC80E_2DDE'u32)
     var paints: [3] Brush = [
@@ -871,7 +876,8 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         painter.clear(Color.fromArgb(0xFF20_3040'u32))
         if not scalar do
             painter.setColorMaskColor()
-        painter.setClippingRect({3, 5, 65, 32})
+        painter.setClippingRect({9, 15, 195, 96})
+        painter.scaleTransform(3)
         painter.translateTransform(0.25, 0.375)
         for &paint, index in paints
         {
@@ -886,12 +892,12 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
             painter.fillPath(&path, paint[])
         }
         painter.end()
-        images[scalar] = renderCpu(73, 43, &painter)
+        images[scalar] = renderCpu(219, 129, &painter)
     }
 
     Swag.require(images[0].isValid() and images[1].isValid())
-    Swag.require(images[0].pixelColor(20, 10).argb != 0xFF20_3040)
-    Swag.require(images[0].pixelColor(0, 10).argb == 0xFF20_3040)
+    Swag.require(images[0].pixelColor(60, 30).argb != 0xFF20_3040)
+    Swag.require(images[0].pixelColor(0, 30).argb == 0xFF20_3040)
     Swag.require(Memory.compare(images[0].pixels.storage(), images[1].pixels.storage(), images[0].pixels.count) == 0)
 }
 

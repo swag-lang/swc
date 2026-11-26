@@ -7,15 +7,15 @@ private const ReverseBgra32 = cast(Math.Simd.U8x16, [12'u8, 13, 14, 15, 8, 9, 10
 private const RepeatBgr24   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 128, 128, 128, 128])
 private const SwapRedBlue24 = cast(Math.Simd.U8x16, [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
 private const SwapRedBlue32 = cast(Math.Simd.U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
-private const ShiftBytes1      = cast(Math.Simd.U8x16, [0x80'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
-private const ShiftBytes2      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
-private const ShiftBytes3      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
-private const ShiftBytes4      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-private const ShiftBytes6      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
-private const ShiftBytes8      = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7])
-private const ShiftBytes12     = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3])
-private const CarryBytes6      = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3])
-private const CarryBytes3      = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
+private const ShiftBytes1   = cast(Math.Simd.U8x16, [0x80'u8, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14])
+private const ShiftBytes2   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+private const ShiftBytes3   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+private const ShiftBytes4   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+private const ShiftBytes6   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+private const ShiftBytes8   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3, 4, 5, 6, 7])
+private const ShiftBytes12  = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0, 1, 2, 3])
+private const CarryBytes6   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3])
+private const CarryBytes3   = cast(Math.Simd.U8x16, [12'u8, 13, 14, 12, 13, 14, 12, 13, 14, 12, 13, 14, 12, 13, 14, 12])
 
 func countSame32(pixel, source: const [*] u8, pixelCount: u64)->u64
 {
@@ -196,19 +196,23 @@ func restoreHorizontalDeltas(source: const [*] u8, destination: [*] u8, count, b
 
     case 3:
 
-        // The prefix sum with strides three, six, and twelve reaches back twenty-one
-        // bytes, so fifteen bytes — five whole pixels — resolve per step; the sixteenth
-        // stored byte is a partial sum the next step or the scalar tail rewrites.
-        while count - offset >= 16
+        // Carry the last complete RGB pixel to the next block. The extra byte
+        // of each store remains inside the row and is overwritten later.
+        if count >= 16
         {
-            var values = Math.Simd.load(source + offset)
-            values += Math.Simd.shuffle(values, ShiftBytes3)
-            values += Math.Simd.shuffle(values, ShiftBytes6)
-            values += Math.Simd.shuffle(values, ShiftBytes12)
-            let carry = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u64, (destination + offset - 3))[0]))
-            values += Math.Simd.shuffle(carry, CarryBytes3)
-            Math.Simd.store(destination + offset, values)
-            offset += 15
+            var carry = Math.Simd.splat(0'u8)
+            offset = 0
+            while count - offset >= 16
+            {
+                var values = Math.Simd.load(source + offset)
+                values += Math.Simd.shuffle(values, ShiftBytes3)
+                values += Math.Simd.shuffle(values, ShiftBytes6)
+                values += Math.Simd.shuffle(values, ShiftBytes12)
+                values += carry
+                carry  = Math.Simd.shuffle(values, CarryBytes3)
+                Math.Simd.store(destination + offset, values)
+                offset += 15
+            }
         }
 
     case 4:

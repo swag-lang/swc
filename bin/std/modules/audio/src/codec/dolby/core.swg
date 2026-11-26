@@ -1051,11 +1051,11 @@ impl MantissaReader
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 
     #[Swag.Inline]
-    mtd(Guarded: bool) getPrepared(code: s32, gain: f64)->f64
+    mtd(Guarded: bool, NonZero: bool) getPrepared(code: s32, gain: f64)->f64
     {
         if code >= 6 do
             return cast(f64, .reader.readSignedMantissa'Guarded(cast(u32, code - 1))) * gain
-        if not code do
+        if not NonZero and not code do
             return 0
 
         let index = code - 1
@@ -1082,14 +1082,17 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
         let end    = cast(u64, block.channelEnd[channel])
         let dither = block.dither[channel]
         let zero   = Simd.splat(0's32)
-        Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
+
+        // Dither assigns every otherwise-zero coefficient in the coded range.
+        let clearFrom = dither ? end : 0'u64
+        Memory.set(output + clearFrom, 0, (SamplesPerBlock - clearFrom) * #sizeof(f64))
         var bin = 0'u64
         while bin < end
         {
             let code = codes[bin]
             if code
             {
-                output[bin] = mantissas.getPrepared'Guarded(code, gains[bin])
+                output[bin] = mantissas.getPrepared'(Guarded, true)(code, gains[bin])
             }
             elif dither
             {
@@ -1132,7 +1135,7 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
                     let bin  = first + offset
                     let code = codes[bin]
                     if code do
-                        couplingMantissas[bin] = mantissas.getPrepared'Guarded(code, prepared.coupling[bin])
+                        couplingMantissas[bin] = mantissas.getPrepared'(Guarded, true)(code, prepared.coupling[bin])
                 }
             }
 
@@ -1145,7 +1148,7 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
         let output = coefficients + channelCount * SamplesPerBlock
         Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
         for bin in 7 do
-            output[bin] = mantissas.getPrepared'Guarded(block.lfeBap[bin], prepared.lfe[bin])
+            output[bin] = mantissas.getPrepared'(Guarded, false)(block.lfeBap[bin], prepared.lfe[bin])
     }
 
     if block.coupling

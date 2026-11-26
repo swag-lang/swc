@@ -496,6 +496,9 @@ private impl SoundFile
         let decodedTarget = .leadingTrim + firstFrame
         let packetEnd     = .packetAtDecodedFrame(decodedTarget + frameCount - 1) + 1
         let bytesPerFrame = .channelCount * #sizeof(s16)
+        let config        = .decoderConfig.toSlice()
+        let nativeFrames  = config.count >= 4 and config[until 4] == cast(const [..] u8, "fLaC")
+        let lanes         = cast(u64, workers) + (nativeFrames ? 1'u64 : 0)
         var range         = Pcm16Range{decodedTarget, frameCount}
         var pcm:  Array's16
         var jobs: Array'FlacDecodeJob
@@ -524,7 +527,7 @@ private impl SoundFile
             }
 
             let batchFrame = .packetStarts[batchFirst]
-            let jobCount   = Math.min(cast(u64, workers), batchEnd - batchFirst, Math.max(1'u64, batchFrames * bytesPerFrame / SoundDecodeReadSize))
+            let jobCount   = Math.min(lanes, batchEnd - batchFirst, Math.max(1'u64, batchFrames * bytesPerFrame / SoundDecodeReadSize))
             jobs.clear()
             jobs.resize(jobCount)
             var first = batchFirst
@@ -550,6 +553,10 @@ private impl SoundFile
             {
                 catch .decodeFlacJob(work, dst, batchFrame) do
                     work.error.capture(Swag.err)
+            }
+            elif nativeFrames
+            {
+                .decodeNativeFlacBatch(work, jobCount, dst, batchFrame)
             }
             else
             {
@@ -582,6 +589,27 @@ private impl SoundFile
 
             batchFirst = batchEnd
         }
+    }
+
+    #[Swag.NoInline]
+    mtd const decodeNativeFlacBatch(work: [*] FlacDecodeJob, jobCount: u64, dst: [*] s16, batchFrame: u64)
+    {
+        // Keep one job on the caller and give the remaining jobs to the workers.
+        var group: Swag.TaskGroup
+        let sound = me
+        for index in 1 until jobCount
+        {
+            let job = work + index
+            group.spawn(func|sound, job, dst, batchFrame|()
+            {
+                catch sound.decodeFlacJob(job, dst, batchFrame) do
+                    job.error.capture(Swag.err)
+            })
+        }
+
+        catch .decodeFlacJob(work, dst, batchFrame) do
+            work.error.capture(Swag.err)
+        group.wait()
     }
 
     mtd const decodeFlacJob(job: *FlacDecodeJob, destination: [*] s16, batchFrame: u64) fail

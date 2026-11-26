@@ -566,22 +566,22 @@ func invertFrequencies(lines: *Granule576, end: u32)
     }
 }
 
-// Samples i and 32-i use the same DCT bins. Their even-delay bins have opposite
-// signs, so the second window can carry that reflection in its coefficients.
+// Samples i and 32-i use the same DCT bins. Fold the reflection and the sign
+// of the odd-delay history bins into their window coefficients once.
 private func buildMirroredWeights()->[2, 16, 4] Math.Simd.F32x4
 {
     var weights: #returntype
     for tap in 16'u64
     {
-        let sign = (tap & 1) == 0 ? -1'f32 : 1'f32
+        let oddSign = (tap & 1) == 0 ? 1'f32 : -1'f32
         for group in 4'u64
         {
             var left, right: [4] f32
             for lane in 4'u64
             {
                 let i = group * 4 + lane + 1
-                left[lane]  = SynthesisWindow[tap * 32 + i]
-                right[lane] = SynthesisWindow[tap * 32 + 32 - i] * sign
+                left[lane]  = SynthesisWindow[tap * 32 + i] * oddSign
+                right[lane] = -SynthesisWindow[tap * 32 + 32 - i]
             }
 
             weights[0, tap, group] = cast(Math.Simd.F32x4, left)
@@ -627,8 +627,8 @@ private func saveSynthesisBins(state: *ChannelState, halves: const [*] f32)
     newest[15] = 0
     for i in 8'u64
     {
-        newest[16 + 2 * i] = -odd[(7 - i) * 4]
-        newest[17 + 2 * i] = -even[(7 - i) * 4]
+        newest[16 + 2 * i] = odd[(7 - i) * 4]
+        newest[17 + 2 * i] = even[(7 - i) * 4]
     }
 
     // The mirrored rows let each 16-tap window read across the wrap.
@@ -638,6 +638,60 @@ private func saveSynthesisBins(state: *ChannelState, halves: const [*] f32)
     let first = even[8 * 4]
     state.firstHistory[state.filterAt]                 = first
     state.firstHistory[state.filterAt + FilterHistory] = first
+}
+
+// Write the same four adjacent history bins for four consecutive time slots.
+#[Swag.Inline]
+private func storeHistoryTile(first, second, third, fourth: [*] f32, offset: u64, a, b, c, d: Math.Simd.F32x4)
+{
+    using Math.Simd
+    let x = cast #bit(U32x4, a)
+    let y = cast #bit(U32x4, b)
+    let z = cast #bit(U32x4, c)
+    let w = cast #bit(U32x4, d)
+    let xy0 = cast #bit(U64x2, interleaveLow(x, y))
+    let xy1 = cast #bit(U64x2, interleaveHigh(x, y))
+    let zw0 = cast #bit(U64x2, interleaveLow(z, w))
+    let zw1 = cast #bit(U64x2, interleaveHigh(z, w))
+    store(first + offset,  cast #bit(F32x4, interleaveLow(xy0, zw0)))
+    store(second + offset, cast #bit(F32x4, interleaveHigh(xy0, zw0)))
+    store(third + offset,  cast #bit(F32x4, interleaveLow(xy1, zw1)))
+    store(fourth + offset, cast #bit(F32x4, interleaveHigh(xy1, zw1)))
+}
+
+private func saveSynthesisBins4(state: *ChannelState, halves: const [*] Math.Simd.F32x4)
+{
+    using Math.Simd
+    let oldest = (state.filterAt + FilterMask) & FilterMask
+    let first  = cast([*] f32, &state.filter[oldest, 0])
+    let second = cast([*] f32, &state.filter[(oldest + FilterHistory - 1) & FilterMask, 0])
+    let third  = cast([*] f32, &state.filter[(oldest + FilterHistory - 2) & FilterMask, 0])
+    let fourth = cast([*] f32, &state.filter[(oldest + FilterHistory - 3) & FilterMask, 0])
+    let even   = halves
+    let odd    = halves + 16
+    for group in 3'u64
+    {
+        let bin = 8 + 2 * group
+        storeHistoryTile(first, second, third, fourth, group * 4, odd[bin], even[bin + 1], odd[bin + 1], even[bin + 2])
+    }
+
+    storeHistoryTile(first, second, third, fourth, 12, odd[14], even[15], odd[15], splat(0'f32))
+    for group in 4'u64
+    {
+        let bin = 7 - 2 * group
+        storeHistoryTile(first, second, third, fourth, 16 + group * 4, odd[bin], even[bin], odd[bin - 1], even[bin - 1])
+    }
+
+    let starts = even[8]
+    for lane in 4'u64
+    {
+        let at = (oldest + FilterHistory - lane) & FilterMask
+        if at < FilterMirrorRows do
+            Memory.copy(&state.filter[at + FilterHistory, 0], &state.filter[at, 0], #sizeof(f32) * 32)
+        state.firstHistory[at]                 = starts[lane]
+        state.firstHistory[at + FilterHistory] = starts[lane]
+    }
+    state.filterAt = (oldest + FilterHistory - 3) & FilterMask
 }
 
 private func buildFirstSampleWeights()->[16] f32
@@ -808,9 +862,14 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
         var halves: [32] Math.Simd.F32x4
         polyphaseHalves(lines, start, &halves[0])
 
-        let values = cast(const [*] f32, &halves[0])
-        for lane in first - start until 4'u64 do
-            saveSynthesisBins(state, values + lane)
+        if first == start do
+            saveSynthesisBins4(state, &halves[0])
+        else
+        {
+            let values = cast(const [*] f32, &halves[0])
+            saveSynthesisBins(state, values + 2)
+            saveSynthesisBins(state, values + 3)
+        }
 
         // Keep all sixteen taps of the earliest slot after saving the later three.
         let at     = state.filterAt

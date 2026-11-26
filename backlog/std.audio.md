@@ -248,6 +248,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [FLAC verbatim, MP3 transform and CELT pulse and band work](../bench/results/swagscope-filesamples/audio-decode-linux.md#fortieth-optimization-pass)
   · [AAC refill, Dolby and MP3 synthesis, Vorbis trees, and FLAC job storage](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-first-optimization-pass)
   · [AAC escapes, Dolby allocation, MP3 tails and odd-channel Vorbis](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-second-optimization-pass)
+  · [Native FLAC workers and MP3, Dolby and Matroska Vorbis follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-third-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.

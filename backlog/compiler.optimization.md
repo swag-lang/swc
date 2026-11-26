@@ -655,13 +655,13 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   `native` lifecycle tests.
 - Related: compiler.optimization.117.
 
-### compiler.optimization.138 — Loop vectorization cannot form reductions or masked tails
+### compiler.optimization.138 — Generalize loop reductions and prove vector memory access
 
 - Evidence: the registered vectorizer is basic-block SLP (`Pass.SlpVectorize`).
-  `Pass.LoopUnroll` recognizes only a straight-line, fixed-bound indexed 32-bit XOR
-  reduction (groups of four, or two packed loads with independent accumulators for bounds
-  of at least 128 divisible by eight). There is no general loop-reduction vectorizer and no
-  runtime-versioned alias/tail pipeline.
+  `Pass.LoopUnroll` recognizes fixed-bound indexed 32-bit XOR and the unsigned
+  32-bit conditional sum into a 64-bit accumulator. The sum supports a runtime bound with
+  four-element groups and a scalar tail. Other reduction forms still need a general analysis
+  and loops that write memory need alias proofs or runtime checks.
 - Next: add loop vectorization that recognizes associative reductions, versions
   alias/alignment checks, and generates masked or peeled tails using the explicit SIMD
   operation set.

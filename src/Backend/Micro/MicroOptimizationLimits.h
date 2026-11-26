@@ -328,6 +328,9 @@ namespace MicroOptimizationLimits
 
     namespace LoopUnroll
     {
+        // [cost-policy] At least four vector groups repay broadcast, setup and horizontal sum.
+        inline constexpr uint64_t K_MIN_FILTERED_SUM_ELEMENTS = 16;
+
         // [growth-policy] Cap the configurable partial factor to contain cloned code and indexed displacement growth.
         inline constexpr uint32_t K_MAX_PARTIAL_UNROLL_FACTOR = 64;
 

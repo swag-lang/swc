@@ -110,3 +110,41 @@ using Swag, Core
     discard catch Face.load(font.toSlice()) as rejected
     Swag.require(rejected.value() != null)
 }
+
+// A full batch of Pascal strings leaves the final record subject to its declared length.
+#test
+{
+    var table: Array'u8
+    table.resize(44)
+    writeBigU16(&table, 32, 5)
+    for index in 5 do
+        writeBigU16(&table, 34 + index * 2, cast(u16, 258 + index))
+
+    for index in 4
+    {
+        let start = table.count
+        table.resize(start + 256)
+        table[start] = 255
+        Memory.set(table.storage() + start + 1, cast(u8, 'A' + index), 255)
+    }
+
+    table.add([4'u8, 'T'u8, 'a'u8, 'i'u8, 'l'u8])
+
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(5)
+    expect parsePostGlyphNames(&faceData, table.toSlice(), 0x00020000)
+    for index in 4
+    {
+        let name = unwrap faceData.face.glyphName(cast(u32, index))
+        Swag.require(name.count == 255 and name[0] == cast(u8, 'A' + index))
+    }
+
+    Swag.require(faceData.face.glyphName(4) == "Tail")
+
+    var truncated: FaceImpl
+    truncated.face.setGlyphCount(5)
+    table.removeBack()
+    var rejected: Swag.Error
+    catch parsePostGlyphNames(&truncated, table.toSlice(), 0x00020000) as rejected
+    Swag.require(rejected.value() != null)
+}

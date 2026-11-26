@@ -10,6 +10,7 @@
     2,
     3
   ],
+  "worker_pool": {"cpu_1": 1, "cpu_4": 3},
   "cpu_model": "INTEL(R) XEON(R) PLATINUM 8573C",
   "pixel_size": 20,
   "samples": 7,

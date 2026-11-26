@@ -108,8 +108,23 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         {
             names.postOffsets.reserve(customCount)
             let offsets = unwrap names.postOffsets.buffer
+            let bytes   = postTable.buffer
             var offset  = customOffset
-            for index in customCount
+            var checked = 0'u64
+
+            // Four Pascal strings fit within 1024 bytes, including their length bytes.
+            while customCount - checked >= 4 and postTable.count - offset >= 1024
+            {
+                for lane in 4
+                {
+                    offsets[checked + lane] = cast(u32, offset)
+                    offset += cast(u64, bytes[offset]) + 1
+                }
+
+                checked += 4
+            }
+
+            for index in checked until customCount
             {
                 if offset >= postTable.count do
                     try fault(0x03)

@@ -577,12 +577,12 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     let metrics     = faceData.verticalGlyphMetrics.emplaceAddress(glyphCount)
     var entry       = vmtx.buffer
     var firstScalar = 0'u32
+    const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
 
     // Each long record consists of two contiguous 16-bit values. Convert four records
     // at once when their native layout matches the packed table apart from byte order.
     #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1'u16) != 1
     {
-        const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
         let blocks      = longMetricCount / 4
         var destination = cast([*] u8, metrics)
         for blocks
@@ -605,7 +605,25 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
 
     // Short records reuse the last advance and supply their own top side bearing.
     let lastAdvance = metrics[longMetricCount - 1].advanceHeight
-    for index in longMetricCount until glyphCount
+    var firstShort  = longMetricCount
+    #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1'u16) != 1
+    {
+        let advances    = Math.Simd.splat(lastAdvance)
+        let blocks      = (glyphCount - longMetricCount) / 8
+        var destination = cast([*] u16, metrics + longMetricCount)
+        for blocks
+        {
+            let bearings = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry), SwapWords))
+            Math.Simd.store(destination, Swag.vecInterleaveLo(advances, bearings))
+            Math.Simd.store(destination + 8, Swag.vecInterleaveHi(advances, bearings))
+            destination += 16
+            entry       += 16
+        }
+
+        firstShort += blocks * 8
+    }
+
+    for index in firstShort until glyphCount
     {
         metrics[index].set(lastAdvance, cast #bit(s16, Math.make16(entry[0], entry[1])))
         entry += 2
@@ -639,7 +657,39 @@ private func keepOrderedKernPairs(faceData: *FaceImpl, pairs: const [..] u8)->bo
     var previous = -1's64
     var values   = 0'u16
     var pair     = pairs.buffer
-    for pairs.count / 6
+    let count    = pairs.count / 6
+    var checked  = 0'u64
+
+    #static if Math.nativeToBigEndian(1'u16) != 1
+    {
+        const Keys       = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 9, 8, 7, 6, 128, 128, 128, 128, 128, 128, 128, 128])
+        const ValueBytes = cast(Math.Simd.U8x16, [0'u8, 0, 0, 0, 255, 255, 0, 0, 0, 0, 255, 255, 0, 0, 0, 0])
+        const PriorLanes = cast(Math.Simd.U32x4, [0'u32, 4, 5, 6])
+        var packedValues: Math.Simd.U8x16
+
+        // Both loads stay inside five complete records and cover the first four.
+        while count - checked >= 5
+        {
+            let first  = Math.Simd.load(pair)
+            let second = Math.Simd.load(pair + 12)
+            let low    = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(first, Keys))
+            let high   = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(second, Keys))
+            let keys   = cast #bit(Math.Simd.U32x4, Swag.vecInterleaveLo(low, high))
+            let prior  = Math.Simd.permute2(Swag.vecSplat(checked ? cast(u32, previous) : 0'u32), keys, PriorLanes)
+            if Swag.vecMask(keys <= prior) & (checked ? 15'u32 : 14'u32) do
+                return false
+
+            packedValues |= first | second
+            previous     = keys[3]
+            pair         += 24
+            checked      += 4
+        }
+
+        if Swag.vecMask((packedValues & ValueBytes) != Swag.vecSplat(0'u8)) do
+            values = 1
+    }
+
+    for checked until count
     {
         let key = cast(s64, Math.make32(pair[0], pair[1], pair[2], pair[3]))
         if key <= previous do

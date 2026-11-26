@@ -554,7 +554,7 @@ func parseHorizontalMetrics(faceData: *FaceImpl) fail
     faceData.horizontalMetrics = hmtx
 }
 
-// Fills the optional per-glyph vertical advances and top side bearings.
+// Validates the packed vertical advances and top side bearings.
 func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
 {
     let vheaRecord = findTable(faceData, TAG_VHEA)
@@ -580,14 +580,12 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     if vmtx.count < requiredBytes do
         try fault(0x98)
 
-    if let shared = faceData.fontSource.cachedVerticalMetrics(vmtx, glyphCount, longMetricCount)
+    faceData.verticalMetrics = faceData.fontSource.cachedVerticalMetrics(vmtx, glyphCount, longMetricCount)
+    if not faceData.verticalMetrics
     {
-        faceData.verticalMetrics = shared
-    }
-    else
-    {
-        faceData.verticalGlyphMetrics = decodeVerticalMetrics(vmtx, glyphCount, longMetricCount)
-        faceData.verticalMetrics      = faceData.verticalGlyphMetrics.toSlice()
+        let allocator = unwrap Swag.getContext().allocator
+        faceData.verticalMetrics     = VerticalMetricTable.create(vmtx, glyphCount, longMetricCount, allocator)
+        faceData.ownsVerticalMetrics = true
     }
 }
 

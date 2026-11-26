@@ -102,6 +102,18 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     let face  = expect Face.load(bytes.toSlice())
     defer face.destroy()
 
+    let metrics = unwrap getFaceData(face).verticalMetrics
+    Swag.require(not metrics.ready.isRaised())
+    expect face.setPixelSize(32, 32)
+    expect face.loadGlyph(0)
+    Swag.require(face.glyph.metrics.horizontalAdvance == expect scale26_6(600, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(100, 32, face.unitsPerEm))
+    expect face.loadGlyph(3)
+    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(900, 32, face.unitsPerEm))
+    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(400, 32, face.unitsPerEm))
+    Swag.require(not metrics.ready.isRaised())
+
     let first  = unwrap (expect face.getVerticalMetrics(0))
     let second = unwrap (expect face.getVerticalMetrics(1))
     let third  = unwrap (expect face.getVerticalMetrics(2))
@@ -111,11 +123,8 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     Swag.require(third.advanceHeight == 900 and third.topSideBearing == 300)
     Swag.require(fourth.advanceHeight == 900 and fourth.topSideBearing == 400)
 
-    expect face.setPixelSize(32, 32)
-    expect face.loadGlyph(0)
-    Swag.require(face.glyph.metrics.horizontalAdvance == expect scale26_6(600, 32, face.unitsPerEm))
-    Swag.require(face.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, face.unitsPerEm))
-    Swag.require(face.glyph.metrics.verticalTopSideBearing == expect scale26_6(100, 32, face.unitsPerEm))
+    Swag.require(metrics.ready.isRaised())
+    Swag.require(first == expect face.getVerticalMetrics(0))
 }
 
 #test

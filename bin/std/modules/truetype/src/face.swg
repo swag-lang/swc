@@ -512,7 +512,7 @@ public impl Face
 
         let faceData = cast(const *FaceImpl, cast(const *void, me))
         if let metrics = faceData.verticalMetrics do
-            return &metrics[glyphIndex]
+            return &metrics.entries()[glyphIndex]
         return null
     }
 

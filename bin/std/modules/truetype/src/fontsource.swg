@@ -7,14 +7,6 @@ private struct CMapCacheEntry
     selection:  CMapSelection
 }
 
-private struct VerticalMetricsCacheEntry
-{
-    late bytes:      const [..] u8
-    glyphCount:      u32
-    longMetricCount: u32
-    metrics:         Array'GlyphVerticalMetrics
-}
-
 private struct PostNamesCacheEntry
 {
     late table: const [..] u8
@@ -39,7 +31,7 @@ private struct FontSourceStorage
     cffPrograms:     Array'(*CffFont)
     programTables:   *ProgramTables?
     cmapSelections:  Array'CMapCacheEntry
-    verticalMetrics: Array'VerticalMetricsCacheEntry
+    verticalMetrics: Array'(*VerticalMetricTable)
     postNames:       Array'PostNamesCacheEntry
     glyphLocations:  Array'GlyphLocationCacheEntry
     parseMutex:      Swag.Mutex
@@ -55,6 +47,8 @@ impl FontSourceStorage
             Memory.delete(program, .allocator)
         if let tables = .programTables do
             Memory.delete(tables, .allocator)
+        for table in .verticalMetrics do
+            Memory.delete(table, .allocator)
         for entry in .postNames do
             Memory.delete(entry.names, .allocator)
     }
@@ -217,7 +211,7 @@ impl FontSource
         return selection
     }
 
-    mtd const cachedVerticalMetrics(bytes: const [..] u8, glyphCount, longMetricCount: u32)->const [..] GlyphVerticalMetrics?
+    mtd const cachedVerticalMetrics(bytes: const [..] u8, glyphCount, longMetricCount: u32)->*VerticalMetricTable?
     {
         if not .storage do
             return null
@@ -229,14 +223,13 @@ impl FontSource
             if entry.bytes.buffer == bytes.buffer and
                entry.bytes.count == bytes.count and
                entry.glyphCount == glyphCount and
-               entry.longMetricCount == longMetricCount do
-                return entry.metrics.toSlice()
+               entry.longCount == longMetricCount do
+                return entry
         }
 
-        var entry = VerticalMetricsCacheEntry{bytes: bytes, glyphCount: glyphCount, longMetricCount: longMetricCount}
-        entry.metrics = decodeVerticalMetrics(bytes, glyphCount, longMetricCount, storage.allocator)
-        storage.verticalMetrics.add(#move entry)
-        return storage.verticalMetrics[storage.verticalMetrics.count - 1].metrics.toSlice()
+        let table = VerticalMetricTable.create(bytes, glyphCount, longMetricCount, storage.allocator)
+        storage.verticalMetrics.add(table)
+        return table
     }
 
     mtd const cachedPostNames(table: const [..] u8, glyphCount, format: u32)->*GlyphNames? fail

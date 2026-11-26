@@ -50,8 +50,9 @@ private func p256MultiplyAdd(left, right, addend, carry: u64)->{word: u64, carry
     return {word, high}
 }
 
-private func p256MontgomeryMultiply(left, right, modulus: [4] u64, n0Inverse: u64)->[4] u64
+private func(IsField: bool) p256MontgomeryMultiply(left, right: [4] u64)->[4] u64
 {
+    const Modulus = IsField ? P256Modulus : P256Order
     var temporary: [5] u64
     for multiplier in right
     {
@@ -65,13 +66,40 @@ private func p256MontgomeryMultiply(left, right, modulus: [4] u64, n0Inverse: u6
 
         let productTop   = temporary[4] + carry
         let productCarry = cast(u64, productTop < carry)
-        let reduction    = temporary[0] * n0Inverse
-        carry = p256MultiplyAdd(reduction, modulus[0], temporary[0], 0).carry
-        for word in 1 until 4
+        #static if IsField
         {
-            let product = p256MultiplyAdd(reduction, modulus[word], temporary[word], carry)
-            temporary[word - 1] = product.word
-            carry = product.carry
+            // The prime's least-significant word is 2^64 - 1. Its product
+            // cancels word zero, with the reduction factor as the carry.
+            let factor  = temporary[0]
+            let shifted = factor << 32
+            let word1   = temporary[1] + shifted
+            let carry1  = (factor >> 32) + cast(u64, word1 < shifted)
+            temporary[0] = word1
+
+            // The middle words are 2^32 - 1 and zero. The carry from
+            // word zero turns the first product into a single left shift.
+            let word2  = temporary[2] + carry1
+            let carry2 = cast(u64, word2 < carry1)
+            temporary[1] = word2
+
+            // The high word is 2^64 - 2^32 + 1.
+            let low   = factor - shifted
+            let high  = factor - (factor >> 32) - cast(u64, factor < shifted)
+            let sum   = low + temporary[3]
+            let word3 = sum + carry2
+            temporary[2] = word3
+            carry        = high + cast(u64, sum < low) + cast(u64, word3 < sum)
+        }
+        else
+        {
+            let reduction = temporary[0] * P256OrderWordInverse
+            carry = p256MultiplyAdd(reduction, Modulus[0], temporary[0], 0).carry
+            for word in 1 until 4
+            {
+                let product = p256MultiplyAdd(reduction, Modulus[word], temporary[word], carry)
+                temporary[word - 1] = product.word
+                carry = product.carry
+            }
         }
 
         // Retain the carry from both top-word additions before shifting off word zero.
@@ -84,9 +112,9 @@ private func p256MontgomeryMultiply(left, right, modulus: [4] u64, n0Inverse: u6
     var borrow = 0'u64
     for index in 4
     {
-        let word = temporary[index] - modulus[index]
+        let word = temporary[index] - Modulus[index]
         difference[index] = word - borrow
-        borrow = cast(u64, temporary[index] < modulus[index]) | cast(u64, word < borrow)
+        borrow = cast(u64, temporary[index] < Modulus[index]) | cast(u64, word < borrow)
     }
 
     let useDifference = cast(u64, temporary[4] != 0) | cast(u64, borrow == 0)
@@ -103,14 +131,14 @@ private func p256MontgomeryMultiply(left, right, modulus: [4] u64, n0Inverse: u6
 private func p256ToMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, P256MontgomeryR2, P256Modulus, 1)
+    result.limbs = p256MontgomeryMultiply'true(value.limbs, P256MontgomeryR2)
     return result
 }
 
 private func p256FromMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0], P256Modulus, 1)
+    result.limbs = p256MontgomeryMultiply'true(value.limbs, [1, 0, 0, 0])
     return result
 }
 
@@ -188,7 +216,7 @@ private func p256FieldSubtract(left, right: P256Field)->P256Field => p256Subtrac
 private func p256FieldMultiply(left, right: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs, P256Modulus, 1)
+    result.limbs = p256MontgomeryMultiply'true(left.limbs, right.limbs)
     return result
 }
 
@@ -258,21 +286,21 @@ private func p256OrderSubtract(left, right: P256Field)->P256Field => p256Subtrac
 private func p256OrderMultiply(left, right: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(left.limbs, right.limbs, P256Order, P256OrderWordInverse)
+    result.limbs = p256MontgomeryMultiply'false(left.limbs, right.limbs)
     return result
 }
 
 private func p256OrderToMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, P256OrderMontgomeryR2, P256Order, P256OrderWordInverse)
+    result.limbs = p256MontgomeryMultiply'false(value.limbs, P256OrderMontgomeryR2)
     return result
 }
 
 private func p256OrderFromMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0], P256Order, P256OrderWordInverse)
+    result.limbs = p256MontgomeryMultiply'false(value.limbs, [1, 0, 0, 0])
     return result
 }
 

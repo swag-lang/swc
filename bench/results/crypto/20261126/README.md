@@ -94,3 +94,4 @@ optimizations moved each result.
 - [Packed HMAC-SHA-384 and HMAC-SHA-512](hmac-sha512.md)
 - [P-256 four-bit order inversion](p256-order.md)
 - [Scalar CRC state and short CRC-64 folding](crc-scalar-state.md)
+- [Sparse P-256 prime reduction](p256-sparse.md)

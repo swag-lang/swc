@@ -274,6 +274,24 @@ All 762 pictures still matched FFmpeg, and 46 native Release tests passed.
 In the new I/P/B profile, deblocking accounted for 111 of 492 samples.
 [Raw timings, quality and isolated trials](realvideo-simd.json).
 
+## Decoder thread budgets
+
+Swag and FFmpeg were run with budgets of one and four threads on the same four
+logical CPUs. The table gives the median of three runs in milliseconds per picture.
+The AVC fixture has six H.264 slices in its first picture. The HEVC WPP fixture
+has wavefront entry points, and the HEVC 4K Main10 fixture uses a single substream.
+
+| Video stream | Swag 1 | Swag 4 | Swag speedup | FFmpeg 1 | FFmpeg 4 | FFmpeg speedup | Swag / FFmpeg at budget 4 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| AVC High, 3840×2160, six slices | 31.42 | 22.98 | 1.37× | 19.15 | 5.68 | 3.37× | 4.05× |
+| HEVC Main 720p WPP | 4.84 | 3.08 | 1.58× | 2.95 | 1.68 | 1.75× | 1.83× |
+| HEVC Main10, 3840×2076 | 51.49 | 33.50 | 1.54× | 38.45 | 11.34 | 3.39× | 2.96× |
+
+Each budget produced the same 285 pictures as FFmpeg. The serial budgets in this
+experiment allowed the same four-core affinity mask as the parallel budgets.
+The separate single-core comparisons above used one logical CPU.
+[Raw timings, picture hashes and fixture command](thread-budgets.json).
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

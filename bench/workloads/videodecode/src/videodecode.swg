@@ -60,7 +60,6 @@ using Core, Video
             Console.printf("video frames=% ticks=% frequency=%\n", count - warmup, ticks, Time.monotonicFrequency())
     }
 
-    Swag.setWorkerCount(1)
     Swag.startWorkers()
     let args = Env.arguments()
     if (args.count == 4 or args.count == 6) and args[1] == "time"

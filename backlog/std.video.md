@@ -115,8 +115,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: split from std.video.001. The recorded six-slice 4K run used a banded parse/reconstruct
   path with both threads spending roughly half their samples waiting. A one-slice serial result
   cannot establish that this stream shape schedules efficiently.
-- Next: preserve an openly reproducible multi-slice fixture, measure parse, reconstruction and
-  wait costs separately, then choose a scheduling change that preserves reference dependencies.
+  [The reproducible six-slice 4K workload](../bench/results/video/20261126-decode-comparison/README.md#decoder-thread-budgets)
+  scales from 31.42 to 22.98 ms per picture as the thread budget rises from one to four.
+  FFmpeg scales from 19.15 to 5.68 ms and the decoded pictures match.
+- Next: time the caller's complete multi-slice entropy parse and move it to the frame lane
+  where the headers and retained RBSP permit earlier prediction-state publication.
 - Done when: multi-slice pictures decode exactly with bounded queues and forward progress,
   measured scheduling overhead improves on the same fixture, and the one-slice path does not regress.
 - Related: std.video.001, language.parallelism.001

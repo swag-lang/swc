@@ -681,3 +681,50 @@ bit for bit.
 
 Native Release passes 319 audio tests. Release-safe passes
 99 focused AAC, FLAC and MP3 tests.
+
+## Nineteenth optimization pass
+
+This follow-up compares the changed codecs with commit `04127573e4` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round19.json)
+
+| Format | R18 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R18 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MP3 | 9.16 | 8.84 | 7.93 | 8.95 | 8.54 | 7.63 |
+| Ogg Vorbis | 6.66 | 6.86 | 7.22 | 6.69 | 6.69 | 7.34 |
+| Opus | 22.08 | 20.90 | 20.17 | 21.46 | 20.65 | 19.88 |
+| WAV | 1.05 | 0.90 | 26.48 | 1.00 | 0.88 | 25.90 |
+
+| Format | R18 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| MP3 | 5.58 | 4.78 | 8.10 |
+| Ogg Vorbis | 6.83 | 7.01 | 7.72 |
+| Opus | 22.27 | 21.11 | 19.53 |
+| WAV | 1.11 | 1.01 | 28.05 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R18 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R18 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `mp3-48k-stereo.mp3` | 10.64 | 10.53 | 9.17 | 6.11 | 6.02 | 9.54 |
+| `opus-20ms-48k-stereo.opus` | 31.05 | 29.87 | 31.45 | 33.00 | 28.70 | 29.21 |
+| `opus-5ms-48k-stereo.opus` | 32.15 | 29.08 | 33.69 | 31.64 | 29.56 | 34.08 |
+| `opus-voip-48k-mono.opus` | 16.26 | 15.76 | 13.70 | 16.48 | 16.56 | 14.62 |
+| `vorbis-32k-mono.ogg` | 4.02 | 3.72 | 5.35 | 4.25 | 3.67 | 5.71 |
+| `vorbis-48k-5.1.ogg` | 34.30 | 31.74 | 28.71 | 35.81 | 32.18 | 28.83 |
+| `vorbis-48k-stereo.ogg` | 9.11 | 9.19 | 10.59 | 9.65 | 9.84 | 11.27 |
+| `wav-48k-stereo-24.wav` | 0.63 | 0.60 | 1.49 | 0.72 | 0.71 | 1.91 |
+
+MP3 trims silent bands beyond the current spectrum and saved overlap. Opus
+vectorizes stereo CELT synthesis preparation and inlines range operations.
+Vorbis packs mono and six-channel PCM output, and contiguous PCM16 ranges
+can deliver the input slice directly. The measured Swag builds share the
+R18 compiler and Core snapshot.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 320 audio tests. Release-safe passes
+64 focused MP3, Opus, Vorbis and WAV tests.

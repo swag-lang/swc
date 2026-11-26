@@ -582,7 +582,27 @@ private impl CeltMdct
         let points = .scratch.storage()
         const Pair = cast(Simd.U32x4, [0'u32, 4, 0, 4])
         const Join = cast(Simd.U32x4, [0'u32, 1, 4, 5])
-        if right
+        if right and stride == 1
+        {
+            // A pair of neighboring points draws from two four-bin spans of each channel.
+            const Heads  = cast(Simd.U32x4, [0'u32, 4, 2, 6])
+            const Tails  = cast(Simd.U32x4, [3'u32, 7, 1, 5])
+            const First  = cast(Simd.U32x4, [0'u32, 4, 1, 5])
+            const Second = cast(Simd.U32x4, [2'u32, 6, 3, 7])
+            for block in n4 / 2
+            {
+                let i    = 2 * block
+                let head = 2 * i
+                let tail = n2 - 4 - head
+                let h    = Swag.vecShuffle2(Simd.load(spectrum + head), Simd.load(right + head), Heads)
+                let t0   = Swag.vecShuffle2(Simd.load(spectrum + tail), Simd.load(right + tail), Tails)
+                let even = Swag.vecShuffle2(h, t0, First)
+                let odd  = Swag.vecShuffle2(h, t0, Second)
+                points[order[i]]     = CeltFft.rotate(even, t[i], t[n4 + i])
+                points[order[i + 1]] = CeltFft.rotate(odd, t[i + 1], t[n4 + i + 1])
+            }
+        }
+        elif right
         {
             for i in n4
             {
@@ -2208,18 +2228,25 @@ internal impl CeltDecoder
             end   = 0
         }
 
-        for i in M * cast(u32, CeltBands[start]) do
-            freq[i] = 0
+        Memory.clear(freq, cast(u64, M * cast(u32, CeltBands[start])) * #sizeof(f32))
         for i in start until end
         {
-            let lg = bandLogE[i] + CeltEnergyMeans[i]
-            let g  = celtExp2(Math.min(32.0'f32, lg))
-            for j in M * cast(u32, CeltBands[i]) until M * cast(u32, CeltBands[i + 1]) do
+            let lg     = bandLogE[i] + CeltEnergyMeans[i]
+            let g      = celtExp2(Math.min(32.0'f32, lg))
+            let lo     = M * cast(u32, CeltBands[i])
+            let hi     = M * cast(u32, CeltBands[i + 1])
+            let packed = (hi - lo) & ~3'u32
+            for group in packed / 4
+            {
+                let j = lo + 4 * group
+                Simd.store(freq + j, Simd.load(x + j) * g)
+            }
+
+            for j in lo + packed until hi do
                 freq[j] = x[j] * g
         }
 
-        for i in bound until N do
-            freq[i] = 0
+        Memory.clear(freq + bound, cast(u64, N - bound) * #sizeof(f32))
     }
 
     // Every call covers whole four-sample groups. The pitch taps precede the

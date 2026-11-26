@@ -27,6 +27,7 @@ struct ChannelState
     overlap:      SubbandOverlap         // Second half of the previous inverse transform, grouped by time slot.
     filter:       [FilterHistory, 32] f32 // Even and odd bins for paired samples.
     firstHistory: [FilterHistory * 2] f32 // Two copies let one load cross the history wrap.
+    overlapEnd:   u32                    // Exclusive upper bound of the saved overlap.
     filterAt:     u64                    // Newest block of the delay line.
 }
 
@@ -38,6 +39,7 @@ impl ChannelState
         Memory.set(cast(*void, &.overlap[0, 0]), 0, #sizeof(f32) * 32 * 18)
         Memory.set(cast(*void, &.filter[0, 0]), 0, #sizeof(f32) * FilterHistory * 32)
         Memory.set(cast(*void, &.firstHistory[0]), 0, #sizeof(f32) * .firstHistory.count)
+        .overlapEnd = 0
         .filterAt = 0
     }
 }
@@ -356,8 +358,9 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
 }
 
 // Encoder low-pass filters often leave the top subbands identically zero. Only
-// the preceding window contributes there, so copy the overlap and clear it.
-func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, end, blockType: u32)
+// the preceding window contributes there, up to the previous overlap bound.
+// Return the exclusive upper bound of the current spectrum for the next granule.
+func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, end, blockType: u32, overlapEnd = 32'u32)->u32
 {
     using Math.Simd
     var active = end
@@ -384,23 +387,29 @@ func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, 
         subband += 1
     }
 
-    for band in subband until end
+    // Above the previous overlap bound the untouched spectral lines are already zero.
+    let drainEnd = Math.min(end, overlapEnd)
+    while subband < drainEnd
     {
-        let base = cast(u64, band) * 18
+        let base = cast(u64, subband) * 18
         for i in 18'u64
         {
-            lines[][base + i]  = overlap[][i, band]
-            overlap[][i, band] = 0
+            lines[][base + i]  = overlap[][i, subband]
+            overlap[][i, subband] = 0
         }
+
+        subband += 1
     }
+
+    return active > start ? active : 0
 }
 
 // Negates every second sample of every second subband, which is what puts the filter bank input
 // back in phase after the inverse transform.
-func invertFrequencies(lines: *Granule576)
+func invertFrequencies(lines: *Granule576, end: u32)
 {
     var subband = 1'u64
-    while subband < 32
+    while subband < end
     {
         let base  = subband * 18
         var index = 1'u64

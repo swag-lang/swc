@@ -107,6 +107,7 @@ internal impl RangeDecoder
         return result
     }
 
+    #[Swag.Inline]
     mtd readByte()->u32
     {
         if .offset >= .storage do
@@ -116,6 +117,7 @@ internal impl RangeDecoder
         return byte
     }
 
+    #[Swag.Inline]
     mtd readByteFromEnd()->u32
     {
         if .endOffset >= .storage do
@@ -124,6 +126,7 @@ internal impl RangeDecoder
         return cast(u32, .data![.storage - .endOffset])
     }
 
+    #[Swag.Inline]
     mtd normalize()
     {
         while .range <= CodeBottom
@@ -138,6 +141,7 @@ internal impl RangeDecoder
     }
 
     // Returns the cumulative frequency of the next symbol out of `total`; [[update]] consumes it.
+    #[Swag.Inline]
     mtd decode(total: u32)->u32
     {
         .extent = total < UniformDivision.count ? divideUniformRange(.range, total) : .range / total
@@ -145,6 +149,7 @@ internal impl RangeDecoder
         return total - Math.min(scaledValue + 1, total)
     }
 
+    #[Swag.Inline]
     mtd decodeBinary(bits: u32)->u32
     {
         .extent = .range >> bits
@@ -152,6 +157,7 @@ internal impl RangeDecoder
         return (1'u32 << bits) - Math.min(scaledValue + 1, 1'u32 << bits)
     }
 
+    #[Swag.Inline]
     mtd update(low, high, total: u32)
     {
         let rangeOffset = .extent * (total - high)
@@ -161,6 +167,7 @@ internal impl RangeDecoder
     }
 
     // Decodes one bit whose probability of being set is `1 / 2^logp`.
+    #[Swag.Inline]
     mtd decodeBit(logp: u32)->bool
     {
         let currentRange = .range
@@ -212,6 +219,7 @@ internal impl RangeDecoder
     }
 
     // Decodes a uniformly distributed integer below `total`, which is at least two.
+    #[Swag.Inline]
     mtd decodeUint(total: u32)->u32
     {
         let limit = total - 1
@@ -232,6 +240,7 @@ internal impl RangeDecoder
     }
 
     // Reads `bits` raw bits from the end of the frame, least significant first.
+    #[Swag.Inline]
     mtd decodeBits(bits: u32)->u32
     {
         var window        = .endWindow

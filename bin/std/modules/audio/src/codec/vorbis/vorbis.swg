@@ -742,6 +742,8 @@ private struct Mode
     mapping:   u32
 }
 
+private alias PcmPointer = [*] u16?
+
 // Decodes Vorbis packets, one run of Ogg pages or one raw packet per call.
 //
 // The codec keeps the lapping state of the previous block and, when it decodes page runs, the
@@ -1756,6 +1758,14 @@ private impl Codec
                         frame += 4
                     }
                 }
+                elif .channels == 1 or .channels == 6
+                {
+                    // Mono can go straight to the output, and six-channel PCM is
+                    // interleaved after all six planes are available.
+                    let packed  = .channels == 1 ? cast([*] u16, pcm) : cast([*] u16, .spectrum[channel].storage())
+                    let current = time + cast(u64, cast(s64, overlapStart) + shift)
+                    writePcmPlane(packed, saved, current, overlapStart, overlapEnd, outputFrames)
+                }
                 else
                 {
                     for frame in overlapStart do
@@ -1813,8 +1823,42 @@ private impl Codec
             }
         }
 
+        elif .channels == 6 and outputFrames
+        {
+            .interleaveSurroundPcm(pcm, outputFrames)
+        }
+
         .previousSize = n
         return outputFrames
+    }
+
+    mtd interleaveSurroundPcm(pcm: [*] s16, outputFrames: u64)
+    {
+        var lanes: [6] PcmPointer
+        for channel in 6 do
+            lanes[ChannelSlots[6, channel]] = cast([*] u16, .spectrum[channel].storage())
+
+        let output = cast([*] u16, pcm)
+        let l0     = unwrap lanes[0]
+        let l1     = unwrap lanes[1]
+        let l2     = unwrap lanes[2]
+        let l3     = unwrap lanes[3]
+        let l4     = unwrap lanes[4]
+        let l5     = unwrap lanes[5]
+        var frame  = 0'u64
+        while frame < outputFrames
+        {
+            let a      = Simd.load(l0 + frame)
+            let b      = Simd.load(l1 + frame)
+            let c      = Simd.load(l2 + frame)
+            let d      = Simd.load(l3 + frame)
+            let e      = Simd.load(l4 + frame)
+            let f      = Simd.load(l5 + frame)
+            let target = output + 6 * frame
+            storeFourSurroundFrames(target, Simd.interleaveLow(a, b), Simd.interleaveLow(c, d), Simd.interleaveLow(e, f))
+            storeFourSurroundFrames(target + 24, Simd.interleaveHigh(a, b), Simd.interleaveHigh(c, d), Simd.interleaveHigh(e, f))
+            frame += 8
+        }
     }
 
     // Decodes every packet of one run of pages and returns the frames the run completes, after the
@@ -1939,6 +1983,76 @@ private func renderPoint(x0, x1, y0, y1, x: s32)->s32
     let ady = Math.abs(dy)
     let off = (ady * (x - x0)) / adx
     return dy < 0 ? y0 - off : y0 + off
+}
+
+// Round x * 32767 by splitting the exact power-of-two product x * 32768
+// into its integer and fractional parts. Comparisons on the fraction
+// apply the adjustment from subtracting x and adding the rounding bias.
+#[Swag.Inline]
+private func pcmExactLanes(value: Simd.F32x4)->Simd.S32x4
+{
+    // A magnitude larger than 1.5 saturates at PCM16 narrowing.
+    // Clamping here bounds the correction to a single integer on either side.
+    let magnitude = Math.min(Simd.splat(1.5'f32), Math.abs(value))
+    let scaled    = magnitude * 32768.0'f32
+    let whole     = Math.floor(scaled)
+    let fraction  = scaled - whole
+    let half      = Simd.splat(0.5'f32)
+    let one       = Simd.splat(1'u32)
+    let up        = cast #bit(Simd.S32x4, ((fraction - half) >= magnitude) & one)
+    let down      = cast #bit(Simd.S32x4, (fraction < (magnitude - half)) & one)
+    let level     = Simd.truncateToS32(whole) + up - down
+    return Simd.select(value < Simd.splat(0'f32), -level, level)
+}
+
+#[Swag.Inline]
+private func pcmExactEight(first, second: Simd.F32x4)->Simd.U16x8
+    => cast #bit(Simd.U16x8, Simd.packSigned(pcmExactLanes(first), pcmExactLanes(second)))
+
+// All three overlap spans are multiples of eight frames.
+#[Swag.Inline]
+private func(Add: bool) writePcmSpan(output: [*] u16, source: const [*] f32, frames: u64, other: const [*] f32? = null)
+{
+    #static if not Add do
+        discard other
+
+    var frame = 0'u64
+    while frame < frames
+    {
+        var first  = Simd.load(source + frame)
+        var second = Simd.load(source + frame + 4)
+        #static if Add
+        {
+            let overlap = unwrap other
+            first  += Simd.load(overlap + frame)
+            second += Simd.load(overlap + frame + 4)
+        }
+
+        Simd.store(output + frame, pcmExactEight(first, second))
+        frame += 8
+    }
+}
+
+private func writePcmPlane(output: [*] u16, saved, current: const [*] f32, overlapStart, overlapEnd, frames: u64)
+{
+    writePcmSpan'false(output, saved, overlapStart)
+    writePcmSpan'true(output + overlapStart, saved + overlapStart, overlapEnd - overlapStart, current)
+    writePcmSpan'false(output + overlapEnd, current + (overlapEnd - overlapStart), frames - overlapEnd)
+}
+
+// Interleaves four six-channel frames. Each lane holds one adjacent channel pair.
+#[Swag.Inline]
+private func storeFourSurroundFrames(output: [*] u16, a, b, c: Simd.U16x8)
+{
+    let x      = cast #bit(Simd.U32x4, a)
+    let y      = cast #bit(Simd.U32x4, b)
+    let z      = cast #bit(Simd.U32x4, c)
+    let first  = Simd.permute2(x, y, cast(Simd.U32x4, [0'u32, 4, 1, 1]))
+    let middle = Simd.permute2(y, x, cast(Simd.U32x4, [1'u32, 1, 6, 2]))
+    let last   = Simd.permute2(x, y, cast(Simd.U32x4, [3'u32, 3, 7, 3]))
+    Simd.store(output, cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0'u32, 1, 4, 3]))))
+    Simd.store(output + 8, cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0'u32, 5, 2, 3]))))
+    Simd.store(output + 16, cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6'u32, 1, 2, 7]))))
 }
 
 // Multiplies `target` by the line from `(x0, y0)` to `(x1, y1)`, stepping through the amplitude

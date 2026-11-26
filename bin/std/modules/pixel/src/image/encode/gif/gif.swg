@@ -26,10 +26,10 @@ private
         indexes:          Array'u8
     }
 
-    struct HistogramCell
+    struct(T) HistogramCell
     {
-        count: u64
-        red, green, blue: u64
+        count:            T
+        red, green, blue: T
     }
 
     struct ColorBox

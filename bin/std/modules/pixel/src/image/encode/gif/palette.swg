@@ -83,21 +83,27 @@ impl Encoder
         data.lzwMinCodeSize = Math.max(data.tableBits, 2'u8)
     }
 
-    func allGrayBytesEqual(pixels: const [*] u8, count: u64)->bool
+    #[Inline]
+    func(T) allMaskedSamplesEqual(pixels: const [*] T, count: u64, mask: T)->bool
     {
-        let gray    = pixels[0]
-        let pattern = Math.Simd.splat(gray)
-        var i       = 0'u64
-        while count - i >= 16
+        let sample = pixels[0] & mask
+        if (pixels[count - 1] & mask) != sample do
+            return false
+
+        let pattern  = Math.Simd.splat(sample)
+        let channels = Math.Simd.splat(mask)
+        const Lanes  = 16 / #sizeof(T)
+        var i        = 0'u64
+        while count - i >= Lanes
         {
-            if not Math.Simd.allTrue(Math.Simd.load(pixels + i) == pattern) do
+            if not Math.Simd.allTrue((Math.Simd.load(pixels + i) & channels) == pattern) do
                 return false
-            i += 16
+            i += Lanes
         }
 
         for tail in i until count
         {
-            if pixels[tail] != gray do
+            if (pixels[tail] & mask) != sample do
                 return false
         }
 
@@ -107,28 +113,36 @@ impl Encoder
     // A single color needs no index buffer; its only palette index is zero.
     func tryBuildUniformPalette(data: *PaletteData, image: Image, count: u64)->bool
     {
-        let pixels = image.pixels.storage()
-        let step   = image.bytesPerPixel
-        let last   = pixels + (count - 1) * step
+        let pixels      = image.pixels.storage()
+        let step        = image.bytesPerPixel
+        let transparent = (step == 2 or step == 4) and pixels[step - 1] < 128
         switch step
         {
         case 1:
-            if last[0] != pixels[0] or not allGrayBytesEqual(pixels, count) do
+            if not allMaskedSamplesEqual'u8(pixels, count, 0xFF) do
+                return false
+        case 2:
+            // GIF observes only the high alpha bit and discards fully hidden colors.
+            let mask = transparent ? 0x8000'u16 : 0x80FF'u16
+            if not allMaskedSamplesEqual'u16(cast(const [*] u16, pixels), count, mask) do
                 return false
         case 3:
+            let last = pixels + (count - 1) * 3
             if cast(const *u16, last)[] != cast(const *u16, pixels)[] or last[2] != pixels[2] or
                PackedPixel.countSame24(pixels, pixels + 3, count - 1) != count - 1 do
                 return false
-        case 4:
-            if cast(const *u32, last)[] != cast(const *u32, pixels)[] or
-               PackedPixel.countSame32(pixels, pixels + 4, count - 1) != count - 1 do
-                return false
         default:
-            return false
+            let words = cast(const [*] u32, pixels)
+            if words[0] != words[count - 1] or PackedPixel.countSame32(pixels, pixels + 4, count - 1) != count - 1
+            {
+                let mask = transparent ? 0x80000000'u32 : 0x80FFFFFF'u32
+                if not allMaskedSamplesEqual'u32(words, count, mask) do
+                    return false
+            }
         }
 
         let offsets = pixelChannelOffsets(image)
-        if step == 4 and pixels[3] < 128 do
+        if transparent do
             data.transparentIndex = 0
         else do
             data.colors[0] = {pixels[offsets.red], pixels[offsets.green], pixels[offsets.blue]}
@@ -282,7 +296,7 @@ impl Encoder
     func histogramIndex(red, green, blue: u8)->u32 =>
         (cast(u32, red >> 3) << 10) | (cast(u32, green >> 3) << 5) | (blue >> 3)
 
-    func occupiedBox(region: ColorBox, histogram: const [*] HistogramCell)->ColorBox
+    func(T) occupiedBox(region: ColorBox, histogram: const [*] HistogramCell'T)->ColorBox
     {
         var result = ColorBox{32, -1, 32, -1, 32, -1}
 
@@ -301,10 +315,10 @@ impl Encoder
                     result.maxGreen   = Math.max(result.maxGreen, green)
                     result.minBlue    = Math.min(result.minBlue, blue)
                     result.maxBlue    = Math.max(result.maxBlue, blue)
-                    result.pixels     += cell.count
-                    result.redTotal   += cell.red
-                    result.greenTotal += cell.green
-                    result.blueTotal  += cell.blue
+                    result.pixels     += cast(u64, cell.count)
+                    result.redTotal   += cast(u64, cell.red)
+                    result.greenTotal += cast(u64, cell.green)
+                    result.blueTotal  += cast(u64, cell.blue)
                 }
             }
         }
@@ -312,7 +326,7 @@ impl Encoder
         return result
     }
 
-    func splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell)->bool
+    func(T) splitBox(boxes: *[256] ColorBox, boxCount: u32, histogram: const [*] HistogramCell'T)->bool
     {
         var selected = -1
         var best     = 0'u64
@@ -363,7 +377,7 @@ impl Encoder
                 for blue in box.minBlue to box.maxBlue
                 {
                     let axisValue = axis == 0 ? red : axis == 1 ? green : blue
-                    slices[axisValue] += histogram[(red << 10) | (green << 5) | blue].count
+                    slices[axisValue] += cast(u64, histogram[(red << 10) | (green << 5) | blue].count)
                 }
             }
         }
@@ -397,18 +411,18 @@ impl Encoder
             right.minBlue = cut + 1
         }
 
-        boxes[][selected] = occupiedBox(left, histogram)
-        boxes[][boxCount] = occupiedBox(right, histogram)
+        boxes[][selected] = occupiedBox'T(left, histogram)
+        boxes[][boxCount] = occupiedBox'T(right, histogram)
         return true
     }
 
-    func buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent, dither: bool)
+    func(T) buildQuantizedPalette(data: *PaletteData, image: Image, hasTransparent, dither: bool)
     {
         let pixelCount = cast(u64, image.width) * image.height
         resetPaletteResult(data, pixelCount)
 
         // Five bits per channel keep the histogram bounded independently of image size.
-        var histogram: Array'HistogramCell
+        var histogram: Array'(HistogramCell'T)
         histogram.resize(32 * 32 * 32)
         let offsets = pixelChannelOffsets(image)
         for y in image.height
@@ -422,10 +436,19 @@ impl Encoder
                     let g    = pix[offsets.green]
                     let b    = pix[offsets.blue]
                     let cell = &histogram[histogramIndex(r, g, b)]
-                    cell.count += 1
-                    cell.red   += r
-                    cell.green += g
-                    cell.blue  += b
+                    #static if T == u32
+                    {
+                        let counters = cast([*] u32, cell)
+                        let add      = cast(Math.Simd.U32x4, [1'u32, cast(u32, r), cast(u32, g), cast(u32, b)])
+                        Math.Simd.store(counters, Math.Simd.load(counters) + add)
+                    }
+                    else
+                    {
+                        cell.count += 1
+                        cell.red   += r
+                        cell.green += g
+                        cell.blue  += b
+                    }
                 }
 
                 pix += image.bytesPerPixel
@@ -433,10 +456,10 @@ impl Encoder
         }
 
         var boxes: [256] ColorBox
-        boxes[0] = occupiedBox(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
+        boxes[0] = occupiedBox'T(ColorBox{0, 31, 0, 31, 0, 31}, histogram.storage())
         var boxCount  = 1'u32
         let maxColors = MaxPaletteColors - (hasTransparent ? 1'u32 : 0'u32)
-        while boxCount < maxColors and splitBox(&boxes, boxCount, histogram.storage()) do
+        while boxCount < maxColors and splitBox'T(&boxes, boxCount, histogram.storage()) do
             boxCount += 1
 
         let firstColor = hasTransparent ? 1'u32 : 0'u32
@@ -572,8 +595,14 @@ impl Encoder
     {
         let hasTransparent = imageHasTransparentPixels(image)
         var result: #returntype
-        if not tryBuildExactPalette(&result, image, hasTransparent) do
-            buildQuantizedPalette(&result, image, hasTransparent, dither)
+        if not tryBuildExactPalette(&result, image, hasTransparent)
+        {
+            // An individual cell's channel totals are bounded by 255 per pixel.
+            if cast(u64, image.width) * image.height <= Swag.U32.Max / 255 do
+                buildQuantizedPalette'u32(&result, image, hasTransparent, dither)
+            else do
+                buildQuantizedPalette'u64(&result, image, hasTransparent, dither)
+        }
         return result
     }
 

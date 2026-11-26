@@ -186,3 +186,5 @@ optimizations moved each result.
 - [YMM AES rounds in XTS and CTR](aes-vaes-xts-ctr.md)
 
 - [RSA Montgomery multiplication with 64-bit words](rsa-64-bit-words.md)
+
+- [Symmetric RSA Montgomery squaring](rsa-symmetric-square.md)

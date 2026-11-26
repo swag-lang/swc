@@ -183,23 +183,90 @@ private func rsaMontgomeryMultiply(left, right: [64] u64, context: *RsaMontgomer
         temporary[words]     = productCarry + cast(u64, top < carry)
     }
 
+    let result = rsaReduceWords(temporary[until words], temporary[words], context)
+    Crypto.secureClear(temporary)
+    return result
+}
+
+private func rsaReduceWords(value: const [..] u64, high: u64, context: *RsaMontgomery)->[64] u64
+{
     var difference: [64] u64
     var borrow = 0'u64
-    for index in words
+    for index in value.count
     {
         let modulus = context[].modulus[index]
-        let word    = temporary[index] - modulus
+        let word    = value[index] - modulus
         difference[index] = word - borrow
-        borrow = cast(u64, temporary[index] < modulus) | cast(u64, word < borrow)
+        borrow = cast(u64, value[index] < modulus) | cast(u64, word < borrow)
     }
 
     var result: #returntype
-    let useDifference = cast(u64, temporary[words] != 0) | cast(u64, borrow == 0)
+    let useDifference = cast(u64, high != 0) | cast(u64, borrow == 0)
     let mask = 0'u64 - useDifference
-    for index in words do
-        result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
-    Crypto.secureClear(temporary)
+    for index in value.count do
+        result[index] = (difference[index] & mask) | (value[index] & ~mask)
     Crypto.secureClear(difference)
+    return result
+}
+
+private func rsaMontgomerySquare(value: [64] u64, context: *RsaMontgomery)->[64] u64
+{
+    let words = cast(u64, context[].limbCount)
+    var temporary: [128] u64
+    // Accumulate one triangle of cross products before doubling it.
+    for row in words
+    {
+        var carry = 0'u64
+        for column in row + 1 until words
+        {
+            let position = row + column
+            let product  = rsaMultiplyAdd(value[row], value[column], temporary[position], carry)
+            temporary[position] = product.word
+            carry = product.carry
+        }
+        temporary[row + words] = carry
+    }
+    var carry = 0'u64
+    for word in words * 2
+    {
+        let lower = temporary[word]
+        temporary[word] = (lower << 1) | carry
+        carry = lower >> 63
+    }
+
+    // Add one diagonal product to each adjacent pair of words.
+    carry = 0
+    for row in words
+    {
+        let word    = row * 2
+        let product = rsaMultiplyAdd(value[row], value[row], temporary[word], carry)
+        temporary[word] = product.word
+        let high = temporary[word + 1] + product.carry
+        temporary[word + 1] = high
+        carry = cast(u64, high < product.carry)
+    }
+
+    // A top carry belongs to the next row's top word, above its product loop.
+    var extra = 0'u64
+    for row in words
+    {
+        let reduction = temporary[row] * context[].n0Inverse
+        carry = 0
+        for column in words
+        {
+            let position = row + column
+            let product  = rsaMultiplyAdd(reduction, context[].modulus[column], temporary[position], carry)
+            temporary[position] = product.word
+            carry = product.carry
+        }
+        let top   = temporary[row + words] + carry
+        let added = top + extra
+        temporary[row + words] = added
+        extra = cast(u64, top < carry) | cast(u64, added < extra)
+    }
+
+    let result = rsaReduceWords(temporary[words until words * 2], extra, context)
+    Crypto.secureClear(temporary)
     return result
 }
 
@@ -223,7 +290,7 @@ private func rsaPrivatePower(base: [64] u64, exponent: const [..] u8, context: *
     {
         for 4
         {
-            var squared = rsaMontgomeryMultiply(result, result, context)
+            var squared = rsaMontgomerySquare(result, context)
             Crypto.secureClear(result)
             result = squared
             Crypto.secureClear(squared)
@@ -260,7 +327,7 @@ private func rsaPublicPower(base: [64] u64, exponent: const [..] u8, context: *R
     while bits > 1
     {
         bits -= 1
-        result = rsaMontgomeryMultiply(result, result, context)
+        result = rsaMontgomerySquare(result, context)
         if rsaExponentBit(exponent, bits - 1) do
             result = rsaMontgomeryMultiply(result, base, context)
     }

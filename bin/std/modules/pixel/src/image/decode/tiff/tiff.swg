@@ -163,9 +163,8 @@ func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValu
 
 // Decodes literal and repeated PackBits packets. For bottom-up output, packets
 // that cross a source row are split between the corresponding destination rows.
-func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8, reverseRowBytes: u64 = 0) fail
+private func(REVERSE_ROWS: bool) unpackBitsRows(dst: [*] u8, expected: u64, src, last: const [*] u8, rowBytes: u64) fail
 {
-    let rowBytes     = reverseRowBytes ? reverseRowBytes : expected
     var remaining    = expected
     var row          = dst
     var rowRemaining = rowBytes
@@ -185,28 +184,48 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8, reverseRowB
         if count > remaining or p + sourceBytes > last do
             fail InvalidFormatError{"invalid source buffer"}
 
-        var copied = 0'u64
-        while copied < count
+        #static if REVERSE_ROWS
         {
-            let size   = Math.min(count - copied, rowRemaining)
-            let target = row + (rowBytes - rowRemaining)
-            if literal do
-                Memory.copy(target, p + copied, size)
-            else do
-                Memory.set(target, p[0], size)
-
-            copied       += size
-            remaining    -= size
-            rowRemaining -= size
-            if not rowRemaining and remaining
+            var copied = 0'u64
+            while copied < count
             {
-                row -= rowBytes
-                rowRemaining = rowBytes
+                let size   = Math.min(count - copied, rowRemaining)
+                let target = row + (rowBytes - rowRemaining)
+                if literal do
+                    Memory.copy(target, p + copied, size)
+                else do
+                    Memory.set(target, p[0], size)
+
+                copied       += size
+                remaining    -= size
+                rowRemaining -= size
+                if not rowRemaining and remaining
+                {
+                    row -= rowBytes
+                    rowRemaining = rowBytes
+                }
             }
+        }
+        else
+        {
+            if literal do
+                Memory.copy(row, p, count)
+            else do
+                Memory.set(row, p[0], count)
+            row       += count
+            remaining -= count
         }
 
         p += sourceBytes
     }
+}
+
+func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8, reverseRowBytes: u64 = 0) fail
+{
+    if reverseRowBytes do
+        try unpackBitsRows'true(dst, expected, src, last, reverseRowBytes)
+    else do
+        try unpackBitsRows'false(dst, expected, src, last, expected)
 }
 
 // Expands grayscale while the samples are still in registers. The predictor carries

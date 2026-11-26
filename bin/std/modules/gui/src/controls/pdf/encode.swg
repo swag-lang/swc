@@ -14,9 +14,9 @@ private struct ImageObject
 
 private struct ImageSource
 {
-    number: u32
-    image:  const *Image
-    jpeg:   const [..] u8
+    number:  u32
+    image:   const *Image
+    encoded: const *EncodedImageStream
 }
 
 private struct PageObjects
@@ -598,24 +598,33 @@ private func sameImageSource(first, second: const *Image)->bool
            not Memory.compare(first.pixels.storage(), second.pixels.storage(), first.pixels.count)
 }
 
+private func sameEncodedImage(first, second: const *EncodedImageStream, image, prior: const *Image)->bool
+{
+    return first.filter == second.filter and first.channels == second.channels and first.bits == second.bits and
+           first.predictor == second.predictor and first.interpolate == second.interpolate and
+           image.width == prior.width and image.height == prior.height and
+           Slice.equals(first.bytes.toSlice(), second.bytes.toSlice())
+}
+
 private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *HashTable'(u32, ImageSource)?)->ImageObject
 {
     if sources
     {
         let image = unwrap item.imageValue()
-        let jpeg  = item.image.jpeg()
-        let key   = Hash.Crc32.compute(jpeg.count ? jpeg : image.pixels.toSlice())
+        let encoded = item.image.encoded()
+        let key = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
         // Verify bytes and format before sharing an object, including on a hash collision.
         if let source = sources.tryFind(key)
         {
             let prior = &source.value
-            let same = (jpeg.count or prior.jpeg.count) ? Slice.equals(jpeg, prior.jpeg) : sameImageSource(image, prior.image)
+            let same = (encoded.bytes.count or prior.encoded.bytes.count) ?
+                       sameEncodedImage(encoded, prior.encoded, image, prior.image) : sameImageSource(image, prior.image)
             if same do
                 return {number: source.value.number, firstUse: false}
         }
         else
         {
-            sources.add(key, ImageSource{nextObject[], image, jpeg})
+            sources.add(key, ImageSource{nextObject[], image, encoded})
         }
     }
 
@@ -698,12 +707,17 @@ private impl Writer
                 continue
 
             let image = unwrap item.imageValue()
-            let jpeg  = item.image.jpeg()
-            if jpeg.count
+            let source = item.image.encoded()
+            if source.bytes.count
             {
-                let space = item.image.jpegChannels() == 1 ? "Gray" : "RGB"
-                let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /DCTDecode", image.width, image.height, space)
-                .streamObject(imageObject.number, jpeg, dictionary.toString())
+                let space = source.channels == 1 ? "Gray" : (source.channels == 4 ? "CMYK" : "RGB")
+                let filter = source.filter == .Dct ? "DCTDecode" : "FlateDecode"
+                var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /%", image.width, image.height, space, source.bits, filter)
+                if source.predictor > 1 do
+                    dictionary.appendFormat(" /DecodeParms << /Predictor % /Colors % /Columns % /BitsPerComponent % >>", source.predictor, source.channels, image.width, source.bits)
+                if source.interpolate do
+                    dictionary += " /Interpolate true"
+                .streamObject(imageObject.number, source.bytes.toSlice(), dictionary.toString())
                 continue
             }
 

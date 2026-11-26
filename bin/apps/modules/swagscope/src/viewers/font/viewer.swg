@@ -63,6 +63,25 @@ struct FaceFacts
     embedding:   u16      // Embedding permission bits, when `hasMetadata`.
 }
 
+private func countBlockCoverage(face: *Face)->[BlockFirst.count] u32
+{
+    var result: #returntype
+    for &covered, index in result
+    {
+        let last = BlockLast[index]
+        face.visitCharacters(BlockFirst[index], func|covered, last|(character: rune, glyphIndex: u32)->bool
+        {
+            discard glyphIndex
+            if cast(u32, character) > last do
+                return false
+            covered[] += 1
+            return true
+        })
+    }
+
+    return result
+}
+
 // A collection face selection is keyed to one exact path and file content, then stores the
 // collection's original member index. Paths themselves are never written to the preference file.
 struct FaceSelection
@@ -267,11 +286,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     buildGlyphNameIndex(face, &result.glyphNames)
     buildCharacterIndex(face, &result.pageStarts, &result.glyphCharacters)
 
-    for &count, index in result.facts.coverage
-    {
-        for code in BlockFirst[index] to BlockLast[index] where face.hasChar(cast(rune, code)) do
-            count[] += 1
-    }
+    result.facts.coverage = countBlockCoverage(face)
 
     return result
 }
@@ -555,11 +570,7 @@ private impl Panel
         let typeFace = try TypeFace.createFromSource(.cacheKey, &.document.fontSource, memberIndex)
 
         var facts: FaceFacts
-        for &count, block in facts.coverage
-        {
-            for code in BlockFirst[block] to BlockLast[block] where face.hasChar(cast(rune, code)) do
-                count[] += 1
-        }
+        facts.coverage = countBlockCoverage(face)
 
         catch
         {

@@ -3,10 +3,20 @@
 
 using Core, Pixel
 
-struct EncodedJpeg
+enum EncodedImageFilter
 {
-    bytes:    Array'u8
-    channels: u8
+    Dct
+    Flate
+}
+
+struct EncodedImageStream
+{
+    bytes:       Array'u8
+    filter:      EncodedImageFilter
+    channels:    u8
+    bits:        u8 = 8
+    predictor:   u8 = 1
+    interpolate: bool
 }
 
 private struct ImageResource
@@ -14,7 +24,7 @@ private struct ImageResource
     allocator:  Swag.IAllocator?
     references: s32 = 1
     image:      Image
-    jpeg:       EncodedJpeg
+    encoded:       EncodedImageStream
 }
 
 // A decoded page and the reader cache each own their references to read-only pixels.
@@ -27,17 +37,17 @@ impl ImageReference
 {
     func create(image: #move Image)->ImageReference
     {
-        var jpeg: EncodedJpeg
-        return create(#move image, #move jpeg)
+        var encoded: EncodedImageStream
+        return create(#move image, #move encoded)
     }
 
-    func create(image: #move Image, jpeg: #move EncodedJpeg)->ImageReference
+    func create(image: #move Image, encoded: #move EncodedImageStream)->ImageReference
     {
         let allocator = Swag.getContext().allocator
         let resource  = Memory.new'ImageResource(allocator)
         resource.allocator = allocator
         resource.image     = #move image
-        resource.jpeg      = #move jpeg
+        resource.encoded      = #move encoded
         var result: #returntype
         result.resource = resource
         return result
@@ -58,9 +68,7 @@ impl ImageReference
 
     mtd const value()->const *Image? => .resource ? &.resource.image : null
 
-    mtd const jpeg()->const [..] u8 => .resource!.jpeg.bytes.toSlice()
-
-    mtd const jpegChannels()->u8 => .resource!.jpeg.channels
+    mtd const encoded()->const *EncodedImageStream => &.resource!.encoded
 
     // Applying a page-specific mask edits a private image.
     mtd edit()->*Image
@@ -72,7 +80,7 @@ impl ImageReference
             me[] = #move create(#move pixels)
         }
 
-        .resource.jpeg = {}
+        .resource.encoded = {}
         return &.resource.image
     }
 }

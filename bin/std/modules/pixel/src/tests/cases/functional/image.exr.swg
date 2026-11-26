@@ -456,14 +456,16 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 {
     const Width  = 1024'u32
     const Height = 512'u32
-    for rows in [1'u32, 16'u32]
+    for rowsPerBlock in [0'u32, 1'u32, 16'u32]
     {
+        let smallZips  = not rowsPerBlock
+        let rows       = smallZips ? 1'u32 : rowsPerBlock
         let blocks     = Height / rows
         let planeBytes = cast(u64, Width * rows)
         var deltas: Array'u8
         deltas.resize(planeBytes * 2)
         var state    = 0x436C_A9D5'u32
-        let distinct = planeBytes * 3 / 4
+        let distinct = planeBytes * (smallZips ? 1 : 3) / 4
         for index in distinct
         {
             state = state * #wrap 1664525 + #wrap 1013904223
@@ -489,7 +491,12 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 
         var zlib: Compress.ZLib
         let packed = expect zlib.compress(deltas.toSlice())
-        Swag.require(packed.count < deltas.count and packed.count * blocks >= 512 * 1024)
+        Swag.require(packed.count < deltas.count)
+        let compressedSize = packed.count * blocks
+        if smallZips do
+            Swag.require(compressedSize >= 192 * 1024 and compressedSize < 512 * 1024)
+        else do
+            Swag.require(compressedSize >= 512 * 1024)
         var single = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: rows)
         single.makeLinear()
         let reference = expect Image.decode("single-zip-block.exr", nnBytes(single.toSlice()))

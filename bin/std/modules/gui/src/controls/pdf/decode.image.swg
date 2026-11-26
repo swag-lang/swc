@@ -1129,7 +1129,7 @@ private func matchesJpegFrame(bytes: const [..] u8, width, height: s32, channels
 
 private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->u8
 {
-    if not parser.retainJpeg or raw.count >= image.byteCount or
+    if not parser.retainImageStreams or raw.count >= image.byteCount or
        parser.dict(nodeId, "Decode") != InvalidNode or
        parser.dict(nodeId, "DecodeParms") != InvalidNode or
        parser.dict(nodeId, "Mask") != InvalidNode or
@@ -1147,17 +1147,61 @@ private func retainedJpegChannels(parser: *PdfParser, nodeId: u32, raw: const [.
     return matchesJpegFrame(raw, image.width, image.height, channels) ? channels : 0
 }
 
+// Retain a single Flate filter whose parameters can be written from the
+// image's own dimensions. The stream was already decoded and validated.
+private func retainFlateImage(parser: *PdfParser, nodeId: u32, image: const *Image, colorName: string)->EncodedImageStream
+{
+    var result: #returntype
+    if not parser.retainImageStreams or
+       parser.dict(nodeId, "Decode") != InvalidNode or
+       parser.boolean(parser.dict(nodeId, "ImageMask"), false) do
+        return result
+
+    let filter = parser.name(parser.dict(nodeId, "Filter"))
+    if filter != "FlateDecode" and filter != "Fl" do
+        return result
+
+    let channels = colorName == "DeviceGray" ? 1 : (colorName == "DeviceCMYK" ? 4 : 3)
+    let bits = parser.integer(parser.dict(nodeId, "BitsPerComponent"), 8)
+    let parameters = parser.dict(nodeId, "DecodeParms")
+    if parameters != InvalidNode and parser.nodes[parameters].kind != .Dictionary do
+        return result
+
+    let predictor = parser.integer(parser.dict(parameters, "Predictor"), 1)
+    if predictor != 1
+    {
+        if (predictor != 2 and (predictor < 10 or predictor > 15)) or
+           parser.integer(parser.dict(parameters, "Columns"), 1) != image.width or
+           parser.integer(parser.dict(parameters, "Colors"), 1) != channels or
+           parser.integer(parser.dict(parameters, "BitsPerComponent"), 8) != bits do
+            return result
+    }
+
+    let interpolate = parser.boolean(parser.dict(nodeId, "Interpolate"), false)
+    let data = parser.nodes[nodeId].stream.toSlice()
+    if not data.count or data.count >= image.byteCount do
+        return result
+
+    result.bytes.add(data)
+    result.filter      = .Flate
+    result.channels    = cast(u8, channels)
+    result.bits        = cast(u8, bits)
+    result.predictor   = cast(u8, predictor)
+    result.interpolate = interpolate
+    return result
+}
+
 // Keeps one reference in the cache while each page owns its own reference.
 private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image)->ImageReference
 {
-    var jpeg: EncodedJpeg
-    return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move image, #move jpeg)
+    var encoded: EncodedImageStream
+    return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move image, #move encoded)
 }
 
-private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, jpeg: #move EncodedJpeg)->ImageReference
+private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, encoded: #move EncodedImageStream)->ImageReference
 {
-    let size = image.byteCount + jpeg.bytes.count
-    var result = #move ImageReference.create(#move image, #move jpeg)
+    let size = image.byteCount + encoded.bytes.count
+    var result = #move ImageReference.create(#move image, #move encoded)
     if parser.imageCacheBytes + size <= ImageCacheBudget
     {
         parser.imageCacheBytes += size
@@ -1235,9 +1279,9 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             let channels = retainedJpegChannels(parser, nodeId, raw.toSlice(), &result)
             if channels
             {
-                var jpeg = EncodedJpeg{channels: channels}
-                jpeg.bytes = #move raw
-                return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move jpeg)
+                var encoded = EncodedImageStream{channels: channels}
+                encoded.bytes = #move raw
+                return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
             }
             return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
         }
@@ -1331,5 +1375,10 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     var result = #move planeToImage(&plane, null)
+    if deviceOnly
+    {
+        var encoded = #move retainFlateImage(parser, nodeId, &result, colorName)
+        return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move encoded)
+    }
     return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
 }

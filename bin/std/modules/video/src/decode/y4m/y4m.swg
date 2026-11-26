@@ -204,51 +204,149 @@ private func framePayloadSize(width, height: s32, chromaMode: ChromaMode)->u64
     }
 }
 
-private func decodePayload(target: *Image, payload: const [..] u8, header: const *Header)
+#[Swag.Inline]
+private func(T, Full: bool) convertRgb(y, u, v: T)->{r: T, g: T, b: T}
 {
-    let width       = header.info.width
-    let height      = header.info.height
-    let chromaMode  = header.chromaMode
-    let lumaSize    = cast(u64, width) * cast(u64, height)
-    let chromaWidth = chromaMode == .Yuv444 ? cast(u64, width) :
-                      (chromaMode == .Yuv411 ? (cast(u64, width) + 3) / 4 :
-                       (cast(u64, width) + 1) / 2)
-    let chromaHeight   = chromaMode == .Yuv420 ? (cast(u64, height) + 1) / 2 : cast(u64, height)
-    let chromaSize     = chromaMode == .Mono ? 0 : chromaWidth * chromaHeight
-    let chromaRowShift = chromaMode == .Yuv420 ? 1 : 0
-    let chromaColShift = chromaMode == .Yuv444 ? 0 : (chromaMode == .Yuv411 ? 2 : 1)
-
-    // Reusing the frame the caller already has is what keeps a whole stream at the memory cost
-    // of one frame; a fresh image is created only when it cannot hold this one.
-    if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
-        target[] = Image.create(width, height, .RGB8)
-
-    for y in height
+    #static if Full
     {
-        let destinationRow = cast(u64, (height - y - 1)) * cast(u64, target.rowStride)
-        for x in width
+        return {r: y + ((359 * v + 128) >> 8),
+                g: y - ((88 * u + 183 * v + 128) >> 8),
+                b: y + ((454 * u + 128) >> 8)}
+    }
+    else
+    {
+        let base = 298 * Math.max(y - 16, y - y) + 128
+        return {r: (base + 409 * v) >> 8,
+                g: (base - 100 * u - 208 * v) >> 8,
+                b: (base + 516 * u) >> 8}
+    }
+}
+
+#[Swag.Inline]
+private func widenBytes(samples: Math.Simd.U8x16)->Math.Simd.S32x4 =>
+    cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(Math.Simd.widenLow(samples)))
+
+#[Swag.Inline]
+private func(Shift: u32) chroma4(source: const [*] u8)->Math.Simd.S32x4
+{
+    #static if Shift == 0
+    {
+        return widenBytes(cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, source)[0]))) - 128
+    }
+    else
+    {
+        #static if Shift == 1
         {
-            let source       = cast(u64, y) * cast(u64, width) + cast(u64, x)
-            let chromaSource = cast(u64, (y >> chromaRowShift)) * chromaWidth + cast(u64, (x >> chromaColShift))
-            let luma         = cast(s32, payload[source])
-            let centeredU    = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSource]) - 128
-            let centeredV    = chromaMode == .Mono ? 0 : cast(s32, payload[lumaSize + chromaSize + chromaSource]) - 128
-            let destination  = target.pixels.storage() + destinationRow + cast(u64, x) * 3
-            if header.colorRange == .Full
-            {
-                destination[0] = clampByte(luma + ((359 * centeredV + 128) >> 8))
-                destination[1] = clampByte(luma - ((88 * centeredU + 183 * centeredV + 128) >> 8))
-                destination[2] = clampByte(luma + ((454 * centeredU + 128) >> 8))
-            }
-            else
-            {
-                let limitedLuma = Math.max(luma - 16, 0)
-                destination[0] = clampByte((298 * limitedLuma + 409 * centeredV + 128) >> 8)
-                destination[1] = clampByte((298 * limitedLuma - 100 * centeredU - 208 * centeredV + 128) >> 8)
-                destination[2] = clampByte((298 * limitedLuma + 516 * centeredU + 128) >> 8)
-            }
+            const Duplicate = cast(Math.Simd.U8x16, [0'u8, 0, 1, 1, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+            let words = Math.Simd.splat(cast(const [*] u16, source)[0])
+            return widenBytes(Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, words), Duplicate)) - 128
+        }
+        else
+        {
+            return Math.Simd.splat(cast(s32, source[0]) - 128)
         }
     }
+}
+
+#[Swag.Inline]
+private func packedSamples(value: Math.Simd.S32x4)->Math.Simd.U8x16
+{
+    let shorts = Math.Simd.packSigned(value, value)
+    return Math.Simd.packUnsigned(shorts, shorts)
+}
+
+#[Swag.Inline]
+private func storeRgb4(target: [*] u8, r, g, b: Math.Simd.S32x4)
+{
+    const Pixels = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
+    let rg     = Math.Simd.interleaveLow(packedSamples(r), packedSamples(g))
+    let bx     = Math.Simd.interleaveLow(packedSamples(b), Math.Simd.splat(0'u8))
+    let words  = Math.Simd.interleaveLow(cast #bit(Math.Simd.U16x8, rg), cast #bit(Math.Simd.U16x8, bx))
+    let packed = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, words), Pixels)
+    cast([*] u64, target)[0] = cast #bit(Math.Simd.U64x2, packed)[0]
+    cast([*] u32, target)[2] = cast #bit(Math.Simd.U32x4, packed)[2]
+}
+
+private func(Shift: u32, Mono: bool, Full: bool) decodeRows(target: *Image, payload: const [..] u8, header: const *Header)
+{
+    let width          = cast(u64, header.info.width)
+    let height         = cast(u64, header.info.height)
+    let chromaRowShift = cast(u32, header.chromaMode == .Yuv420)
+    let chromaWidth    = (width + (1'u64 << Shift) - 1) >> Shift
+    let chromaHeight   = (height + (1'u64 << chromaRowShift) - 1) >> chromaRowShift
+    let chromaSize     = chromaWidth * chromaHeight
+    let groups         = width / 4
+    let packed         = unwrap payload.buffer
+    let output         = target.pixels.storage()
+    let stride         = cast(u64, target.rowStride)
+    for row in height
+    {
+        let luma        = packed + row * width
+        let destination = output + (height - row - 1) * stride
+        var cb          = packed
+        var cr          = packed
+        #static if not Mono
+        {
+            cb = packed + width * height + (row >> chromaRowShift) * chromaWidth
+            cr = cb + chromaSize
+        }
+
+        for group in groups
+        {
+            let col = group * 4
+            let y   = widenBytes(cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, luma + col)[0])))
+            var u, v: Math.Simd.S32x4
+            #static if not Mono
+            {
+                u = chroma4'(Shift)(cb + (col >> Shift))
+                v = chroma4'(Shift)(cr + (col >> Shift))
+            }
+
+            let rgb = convertRgb'(Math.Simd.S32x4, Full)(y, u, v)
+            storeRgb4(destination + col * 3, rgb.r, rgb.g, rgb.b)
+        }
+
+        for col in groups * 4 until width
+        {
+            var u, v: s32
+            #static if not Mono
+            {
+                u = cast(s32, cb[col >> Shift]) - 128
+                v = cast(s32, cr[col >> Shift]) - 128
+            }
+
+            let rgb   = convertRgb'(s32, Full)(cast(s32, luma[col]), u, v)
+            let pixel = destination + col * 3
+            pixel[0] = clampByte(rgb.r)
+            pixel[1] = clampByte(rgb.g)
+            pixel[2] = clampByte(rgb.b)
+        }
+    }
+}
+
+private func(Full: bool) decodeRowsForRange(target: *Image, payload: const [..] u8, header: const *Header)
+{
+    switch #complete header.chromaMode
+    {
+    case .Yuv411: decodeRows'(2, false, Full)(target, payload, header)
+    case .Yuv420, .Yuv422: decodeRows'(1, false, Full)(target, payload, header)
+    case .Yuv444: decodeRows'(0, false, Full)(target, payload, header)
+    case .Mono:   decodeRows'(0, true, Full)(target, payload, header)
+    }
+}
+
+private func decodePayload(target: *Image, payload: const [..] u8, header: const *Header)
+{
+    let width  = header.info.width
+    let height = header.info.height
+
+    // Reuse the caller's destination when it has the correct geometry and RGB layout.
+    if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
+        target[] = Image.create(width, height, .RGB8)
+    if header.colorRange == .Full do
+        decodeRowsForRange'true(target, payload, header)
+    else do
+        decodeRowsForRange'false(target, payload, header)
 }
 
 // Reads YUV4MPEG2 streams one frame at a time.

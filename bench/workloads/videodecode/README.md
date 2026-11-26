@@ -4,7 +4,7 @@
 `Video.Reader` in Release.
 It needs the built Swag compiler and its runtime, Python 3.11 or newer with NumPy, and FFmpeg
 and ffprobe. Timing also needs a C compiler, pkg-config and the FFmpeg development libraries
-`libavformat`, `libavcodec` and `libavutil`. Use `--quality-only` for the picture comparison
+`libavformat`, `libavcodec`, `libavutil` and `libswscale`. Use `--quality-only` for the picture comparison
 alone or `--reference` to use an independently built `ffmpeg_native` from this workload.
 
 For comparable timings, generate single-slice MP4 clips on the same FFmpeg installation and
@@ -88,6 +88,19 @@ Use `--lanes` to set the worker limit for Swag and the decoder thread count for 
 Run scaling comparisons on the same CPU affinity mask and use a freshly built
 `ffmpeg_native`. FFmpeg's CPU measurement totals all threads. Swag can choose fewer
 frame lanes for a small picture or a codec with a smaller supported budget.
+
+Use `--rgb` to compare Y4M and Motion JPEG with both decoders producing RGB24. The reference
+uses libswscale with nearest-neighbour chroma sampling and a BT.601 matrix. It uses the
+declared range for each input. Timings include colour conversion to a reusable output
+buffer. The comparison reports RGB differences and PSNR because JPEG transforms, chroma
+siting and colour conversion can produce differences between implementations.
+
+```sh
+python3 bench/workloads/videodecode/generate.py --rgb --output /tmp/swag-video-rgb
+taskset -c 4 python3 bench/workloads/videodecode/compare.py --rgb --warmup 6 \
+    --compiler /absolute/build/release/swc --output /tmp/swag-video-rgb-results \
+    /tmp/swag-video-rgb/*.y4m /tmp/swag-video-rgb/*.avi
+```
 
 This fixture starts with four HEVC samples that FFmpeg never emits as pictures. The comparison
 still matches all 30 displayed pictures by presentation time.

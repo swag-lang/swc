@@ -1,4 +1,4 @@
-"""Compare planar video pictures and decode time with FFmpeg."""
+"""Compare decoded video pictures and processing time with FFmpeg."""
 
 import argparse
 import hashlib
@@ -33,6 +33,7 @@ def arguments():
     parser.add_argument("--warmup", type=int, default=WARMUP,
                         help=f"pictures decoded before the timed window (default {WARMUP})")
     parser.add_argument("--quality-only", action="store_true")
+    parser.add_argument("--rgb", action="store_true", help="compare RGB24 output for Y4M and Motion JPEG")
     parser.add_argument("--mpeg4-max-sample-difference", type=int, default=0,
                         help="allow this per-sample difference from FFmpeg for MPEG-4 Part 2")
     parser.add_argument("--reference", type=Path, help="prebuilt ffmpeg_native executable")
@@ -57,7 +58,7 @@ def arguments():
 
 def build_reference(output):
     options = subprocess.check_output(
-        ["pkg-config", "--cflags", "--libs", "libavformat", "libavcodec", "libavutil"], text=True
+        ["pkg-config", "--cflags", "--libs", "libavformat", "libavcodec", "libavutil", "libswscale"], text=True
     )
     executable = output / "ffmpeg_native"
     subprocess.run(["cc", "-O2", WORKLOAD / "ffmpeg_native.c", "-o", executable,
@@ -87,7 +88,7 @@ def swag(executable, log, lanes, *values):
                env={**os.environ, "SWAG_RUNTIME_THREADS": str(lanes)})
 
 
-def fixture_timeline(path):
+def fixture_timeline(path, rgb=False):
     probe = subprocess.check_output([
         "ffprobe", "-v", "error", "-threads", "1", "-select_streams", "v:0", "-show_streams",
         "-show_frames", "-show_packets", "-show_entries",
@@ -98,7 +99,10 @@ def fixture_timeline(path):
     metadata = json.loads(probe)
     stream, = metadata["streams"]
     pixel_format = stream["pix_fmt"]
-    if stream["codec_name"] not in ("h264", "hevc", "mpeg4", "rv40") or pixel_format not in (
+    if rgb:
+        if path.suffix.lower() != ".y4m" and stream["codec_name"] != "mjpeg":
+            raise ValueError(f"{path} needs a Y4M or Motion JPEG stream for RGB comparison")
+    elif stream["codec_name"] not in ("h264", "hevc", "mpeg4", "rv40") or pixel_format not in (
         "yuv420p", "yuv444p", "yuv420p10le"
     ):
         raise ValueError(f"{path} has an unsupported codec or planar layout")
@@ -116,25 +120,28 @@ def fixture_timeline(path):
     return stream, times
 
 
-def compare_planes(path, stream, frames, planes):
+def compare_pictures(path, stream, frames, pictures, rgb):
     width, height, fmt = (stream[key] for key in ("width", "height", "pix_fmt"))
     luma = width * height
     chroma = luma if fmt == "yuv444p" else ((width + 1) // 2) * ((height + 1) // 2)
-    samples = luma + 2 * chroma
-    main10 = fmt == "yuv420p10le"
+    samples = 3 * luma if rgb else luma + 2 * chroma
+    main10 = not rgb and fmt == "yuv420p10le"
     native_bytes = samples * (2 if main10 else 1)
     digest = hashlib.sha256()
     differing_frames = different = greatest = squares = 0
 
     command = ["ffmpeg", "-nostdin", "-v", "error", "-xerror", "-threads", "1",
-               "-i", path, "-map", "0:v:0", "-an", "-sn", "-dn", "-fps_mode", "passthrough",
-               "-c:v", "rawvideo", "-threads", "1", "-f", "rawvideo", "-pix_fmt", fmt, "pipe:1"]
-    with subprocess.Popen(command, stdout=subprocess.PIPE) as ffmpeg, planes.open("rb") as decoded:
+               "-i", path, "-map", "0:v:0", "-an", "-sn", "-dn", "-fps_mode", "passthrough"]
+    if rgb:
+        command.extend(["-filter_threads", "1", "-vf", "scale=flags=neighbor:in_color_matrix=bt601"])
+    command.extend(["-c:v", "rawvideo", "-threads", "1", "-f", "rawvideo", "-pix_fmt",
+                    "rgb24" if rgb else fmt, "pipe:1"])
+    with subprocess.Popen(command, stdout=subprocess.PIPE) as ffmpeg, pictures.open("rb") as decoded:
         for index in range(frames):
             reference = ffmpeg.stdout.read(native_bytes)
             actual = decoded.read(samples)
             if len(reference) != native_bytes or len(actual) != samples:
-                raise ValueError(f"{path} has incomplete planes at reference frame {index}")
+                raise ValueError(f"{path} has an incomplete picture at reference frame {index}")
             if main10:
                 # Reader publishes 8-bit planes with rounding and saturation.
                 values = np.frombuffer(reference, dtype="<u2")
@@ -158,7 +165,8 @@ def compare_planes(path, stream, frames, planes):
 
 
 def benchmark_fixture(args, reference, executables, path, prefix):
-    stream, times = fixture_timeline(path)
+    rgb = args.rgb
+    stream, times = fixture_timeline(path, rgb)
     frames = len(times) - args.warmup
     if not args.quality_only and frames <= 0:
         raise ValueError(f"{path} needs more than {args.warmup} frames for timing")
@@ -166,13 +174,16 @@ def benchmark_fixture(args, reference, executables, path, prefix):
     timeline = prefix.with_suffix(".pts")
     timeline.write_text("".join(f"{float(time):.12f}\n" for time in times))
     quality = {}
-    picture_mode = "planes" if args.quality_only else "planes-dense"
+    picture_mode = "rgb" if rgb else "planes"
+    if not args.quality_only:
+        picture_mode += "-dense"
+    suffix = "rgb" if rgb else "yuv"
     for name, executable in executables.items():
-        planes = prefix.with_suffix(f".{name}.yuv")
-        swag(executable, prefix.with_suffix(f".{name}.planes.log"),
-             args.lanes, picture_mode, path, timeline, planes)
-        quality[name] = compare_planes(path, stream, len(times), planes)
-        planes.unlink()
+        pictures = prefix.with_suffix(f".{name}.{suffix}")
+        swag(executable, prefix.with_suffix(f".{name}.{picture_mode}.log"),
+             args.lanes, picture_mode, path, timeline, pictures)
+        quality[name] = compare_pictures(path, stream, len(times), pictures, rgb)
+        pictures.unlink()
 
     with path.open("rb") as file:
         digest = hashlib.file_digest(file, "sha256").hexdigest()
@@ -188,15 +199,18 @@ def benchmark_fixture(args, reference, executables, path, prefix):
         for name in order:
             log = prefix.with_suffix(f".{name}.{repetition + 1}.log")
             if name in executables:
-                text = swag(executables[name], log, args.lanes, "time", path, 1, len(times), args.warmup)
+                text = swag(executables[name], log, args.lanes, "time-rgb" if rgb else "time",
+                            path, 1, len(times), args.warmup)
                 count, ticks, frequency = map(int, SWAG_TIMING.findall(text)[0])
                 elapsed = ticks / frequency
             else:
                 command = [reference, path, "1", str(int(name == "ffmpeg_no_simd"))]
-                if args.warmup != WARMUP or args.lanes != 1:
+                if args.warmup != WARMUP or args.lanes != 1 or rgb:
                     command.append(str(args.warmup))
-                if args.lanes != 1:
+                if args.lanes != 1 or rgb:
                     command.append(str(args.lanes))
+                if rgb:
+                    command.append("rgb")
                 text = run(command, log)
                 count_text, wall, cpu = FFMPEG_TIMING.findall(text)[0]
                 count, elapsed = int(count_text), float(wall)
@@ -229,13 +243,15 @@ def main():
         results.append(result)
         print(json.dumps(result), flush=True)
     version = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]
-    report = {"ffmpeg": version, "lanes": args.lanes, "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
+    report = {"ffmpeg": version, "lanes": args.lanes, "rgb": args.rgb,
+              "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
               "results": results}
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-    for result in results:
-        limit = args.mpeg4_max_sample_difference if result["stream"]["codec_name"] == "mpeg4" else 0
-        if any(quality["max_difference"] > limit for quality in result["quality"].values()):
-            return 1
+    if not args.rgb:
+        for result in results:
+            limit = args.mpeg4_max_sample_difference if result["stream"]["codec_name"] == "mpeg4" else 0
+            if any(quality["max_difference"] > limit for quality in result["quality"].values()):
+                return 1
     return 0
 
 

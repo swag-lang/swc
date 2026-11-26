@@ -459,7 +459,13 @@ namespace
         return Result::Continue;
     }
 
-    bool isU32LaneMask(CodeGen& codeGen, AstNodeRef ref)
+    struct U32MaskCodeGenPayload
+    {
+        MicroReg masked;
+        MicroReg lowHalfInput;
+    };
+
+    bool isU32LaneMask(CodeGen& codeGen, AstNodeRef ref, bool preservesAllLowBits = false)
     {
         const SemaNodeView view = codeGen.viewConstant(ref);
         if (!view.hasConstant() || !view.cst()->isArray())
@@ -471,10 +477,14 @@ namespace
 
         // The upper four bytes of each little-endian qword must all be zero.
         const auto isZero = [](std::byte byte) { return byte == std::byte{0}; };
-        return std::ranges::all_of(bytes.subspan(4, 4), isZero) && std::ranges::all_of(bytes.subspan(12, 4), isZero);
+        if (!std::ranges::all_of(bytes.subspan(4, 4), isZero) || !std::ranges::all_of(bytes.subspan(12, 4), isZero))
+            return false;
+        const auto isOnes = [](std::byte byte) { return byte == std::byte{0xFF}; };
+        return !preservesAllLowBits ||
+               (std::ranges::all_of(bytes.subspan(0, 4), isOnes) && std::ranges::all_of(bytes.subspan(8, 4), isOnes));
     }
 
-    bool isU32MaskedVectorOperand(CodeGen& codeGen, AstNodeRef ref)
+    AstNodeRef findU32MaskedVectorOperand(CodeGen& codeGen, AstNodeRef ref)
     {
         ref = codeGen.resolvedNodeRef(ref);
         while (const auto* paren = codeGen.node(ref).safeCast<AstParenExpr>())
@@ -482,13 +492,23 @@ namespace
 
         const auto* binary = codeGen.node(ref).safeCast<AstBinaryExpr>();
         if (!binary || codeGen.token(binary->codeRef()).id != TokenId::SymAmpersand)
-            return false;
+            return AstNodeRef::invalid();
 
         const auto* specialOp = codeGen.sema().semaPayload<BinarySpecOpPayload>(ref);
         if ((specialOp && specialOp->calledFn) || codeGen.sema().currentNodePayloadContext().hasResolvedCallArguments(ref))
-            return false;
+            return AstNodeRef::invalid();
 
-        return isU32LaneMask(codeGen, binary->nodeLeftRef) || isU32LaneMask(codeGen, binary->nodeRightRef);
+        if (isU32LaneMask(codeGen, binary->nodeLeftRef) || isU32LaneMask(codeGen, binary->nodeRightRef))
+            return ref;
+        return AstNodeRef::invalid();
+    }
+
+    MicroReg wideningMultiplyInput(CodeGen& codeGen, AstNodeRef operand, MicroReg masked)
+    {
+        const auto* source = codeGen.safeNodePayload<U32MaskCodeGenPayload>(operand);
+        if (source && source->masked == masked)
+            return source->lowHalfInput;
+        return masked;
     }
 
     Result emitBinaryVector(CodeGen& codeGen, const BinaryEncodeContext& encodeCtx, TokenId tokId)
@@ -553,17 +573,35 @@ namespace
             if (laneType.payloadIntBits() == 64)
             {
                 const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstBinaryExpr>();
-                if (isU32MaskedVectorOperand(codeGen, node.nodeLeftRef) && isU32MaskedVectorOperand(codeGen, node.nodeRightRef))
+                const AstNodeRef left  = findU32MaskedVectorOperand(codeGen, node.nodeLeftRef);
+                const AstNodeRef right = findU32MaskedVectorOperand(codeGen, node.nodeRightRef);
+                if (left.isValid() && right.isValid())
                 {
-                    // The mask zeros the upper half of every lane. VPMULUDQ
-                    // computes the full product of both remaining halves.
-                    builder.emitOpBinaryRegRegReg(nodePayload.reg, lhsReg, rhsReg, MicroOp::VecMulU32Wide, MicroOpBits::B128);
+                    // The widening product reads only the low half of every lane.
+                    const MicroReg leftInput  = wideningMultiplyInput(codeGen, left, lhsReg);
+                    const MicroReg rightInput = wideningMultiplyInput(codeGen, right, rhsReg);
+                    builder.emitOpBinaryRegRegReg(nodePayload.reg, leftInput, rightInput, MicroOp::VecMulU32Wide, MicroOpBits::B128);
                     return Result::Continue;
                 }
             }
 
             nodePayload.reg = CodeGenVectorHelpers::emitDecomposedMultiply(codeGen, lhsReg, rhsReg, laneType);
             return Result::Continue;
+        }
+
+        if (tokId == TokenId::SymAmpersand && laneType.isInt() && laneType.payloadIntBits() == 64)
+        {
+            const auto& node      = codeGen.node(codeGen.curNodeRef()).cast<AstBinaryExpr>();
+            const bool  leftMask  = isU32LaneMask(codeGen, node.nodeLeftRef, true);
+            const bool  rightMask = isU32LaneMask(codeGen, node.nodeRightRef, true);
+            if (leftMask || rightMask)
+            {
+                // Capture the evaluated operand before another expression can change its storage.
+                const MicroReg input = codeGen.nextVirtualFloatRegister();
+                builder.emitLoadRegReg(input, leftMask ? rhsReg : lhsReg, MicroOpBits::B128);
+                const AstNodeRef resolved = codeGen.resolvedNodeRef(codeGen.curNodeRef());
+                codeGen.setNodePayload(resolved, U32MaskCodeGenPayload{nodePayload.reg, input});
+            }
         }
 
         const MicroOp op = CodeGenVectorHelpers::binaryMicroOpForLane(tokId, laneType);

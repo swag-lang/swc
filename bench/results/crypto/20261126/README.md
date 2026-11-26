@@ -208,3 +208,4 @@ optimizations moved each result.
 - [P-256 Montgomery multiplication with fused carries](p256-multiply-addends.md)
 
 - [RSA Montgomery multiplication with fused carries](rsa-multiply-addends.md)
+- [Redundant low-word masks in Argon2id](argon2-mask-elision.md)

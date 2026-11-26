@@ -381,3 +381,25 @@ impl MaskedPair
     let product = cast([2] u64, (cast(#simd [2] u64, left & LowWords) * (right.value & LowWords)))
     Swag.require(product[0] == 0xFFFF_FFFE and product[1] == 6)
 }
+
+#[Swag.NoInline]
+func replaceProductOperand(value: *#simd [2] u64)->#simd [2] u64
+{
+    value[] = [0xFFF0_0000_0000_0002, 3]
+    return [0xF000_0000_0000_000D, 0xE000_0000_0000_0011]
+}
+
+#test
+{
+    const LowWords: #simd [2] u64 = [0xFFFF_FFFF, 0xFFFF_FFFF]
+    var operand = cast(#simd [2] u64, [0xABCD_0123_0000_0007, 0x1122_3344_0000_000B])
+    let product = cast([2] u64, ((operand & LowWords) * (LowWords & replaceProductOperand(&operand))))
+    Swag.require(product[0] == 91 and product[1] == 187)
+    Swag.require((cast([2] u64, operand))[1] == 3)
+
+    const Partial: #simd [2] u64 = [0xFF, 0xFFFF]
+    let source = cast(#simd [2] u64, [0xABCD_0000_0001_2345, 0xEF00_0000_0003_012C])
+    let factor = cast(#simd [2] u64, [0xBCDE_0000_0000_000D, 0xFED0_0000_0000_0011])
+    let partial = cast([2] u64, ((Partial & source) * (factor & LowWords)))
+    Swag.require(partial[0] == 897 and partial[1] == 5100)
+}

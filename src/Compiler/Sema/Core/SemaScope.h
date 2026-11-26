@@ -92,7 +92,7 @@ public:
         scope.addUsingSymMap(usingSymMap);
     }
 
-    const SmallVector<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
+    const SmallVector8<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
 
     // Name bits skip scopes that cannot contain a lookup. Impl names can change
     // after declaration, so impl symbols set every bit to avoid false negatives.
@@ -103,7 +103,7 @@ public:
         symbolNames_ |= symbol->isImpl() ? ~0ull : nameBit(symbol->idRef());
     }
 
-    const SmallVector<Symbol*>& symbols() const { return symbols_; }
+    const SmallVector8<Symbol*>& symbols() const { return symbols_; }
     bool                        mayHaveSymbolNamed(IdentifierRef idRef) const { return (symbolNames_ & nameBit(idRef)) != 0; }
 
     void addAutoMemberBinding(const AutoMemberBinding& binding)
@@ -137,10 +137,10 @@ private:
     SemaScopeFlags flags_ = SemaScopeFlagsE::Zero;
     uint32_t       depth_ = 1;
 
-    SymbolMap*              symMap_ = nullptr;
-    SmallVector<SymbolMap*> usingSymMaps_;
+    SymbolMap*               symMap_ = nullptr;
+    SmallVector8<SymbolMap*> usingSymMaps_;
 
-    SmallVector<Symbol*> symbols_;
+    SmallVector8<Symbol*> symbols_;
     uint64_t             symbolNames_ = 0;
 
     std::vector<AutoMemberBinding> autoMemberBindings_;
@@ -181,7 +181,7 @@ private:
     static constexpr size_t K_FIRST_CHUNK_SCOPES = 4;
     static constexpr size_t K_MAX_CHUNK_SCOPES   = 16;
 
-    std::vector<std::unique_ptr<Slot[]>> chunks_;
+    SmallVector2<std::unique_ptr<Slot[]>> chunks_;
 
     size_t chunkCapacity_ = 0;
     size_t chunkUsed_     = 0;

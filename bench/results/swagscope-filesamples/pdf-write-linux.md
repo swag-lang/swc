@@ -105,3 +105,29 @@ Every saved raster matches its baseline in PDFium. The 136 PDF tests
 include a 513 by 513 GrayAlpha8 image with one predictor per plane.
 The 52 PNG tests pass and the public row filter appears in the
 generated Pixel documentation.
+
+
+## Retaining original RGB JPEG streams
+
+An editable document can keep the compressed bytes of an unmasked,
+eight-bit DeviceRGB JPEG with matching dimensions and default decoding
+parameters. The writer emits those bytes as DCT data and shares identical
+streams. A pixel edit releases the stored stream for that image.
+
+Nine interleaved Release runs on one AMD EPYC 7763 logical CPU compare
+the shared-image implementation based on `5d769d9d98` before and after
+JPEG retention. These times cover `Document.save` after loading the
+source. The native tests use the same compiler and Core snapshot.
+[Timings, source-raster comparisons, and checksums](pdf-write-linux-retained-jpeg.json)
+
+| Input | Save before, ms | Save after, ms | Bytes before | Bytes after |
+| --- | ---: | ---: | ---: | ---: |
+| `pdfbox-jpeg.pdf` | 12.230 | 0.069 | 159,599 | 41,140 |
+| `perf_images_jpeg_large.pdf` | 587.920 | 0.579 | 11,946,563 | 1,431,623 |
+| `pdfbox-scan.pdf` | 1.904 | 1.818 | 3,660 | 3,660 |
+
+PDFium renders both retained JPEG files exactly as the original PDFs
+at one pixel per point. The existing Flate save had a mean RGB delta
+of 0.420 and 0.029 respectively. The 43 supported raster cases keep
+their Swag checksums, and the 139 PDF tests cover compressed-byte
+equality, explicit decoding parameters and an independent pixel edit.

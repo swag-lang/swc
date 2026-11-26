@@ -1720,7 +1720,7 @@ internal func indexDocument(parser: *PdfParser, metadata: *Metadata, pages: *Arr
 
 func decodeDocument(bytes: const [..] u8)->Document fail
 {
-    var parser = PdfParser{bytes: bytes}
+    var parser = PdfParser{bytes: bytes, retainJpeg: true}
     var sources: Array'PageSource
     var result:  #returntype = Document.create()
     try indexDocument(&parser, &result.metadata, &sources)

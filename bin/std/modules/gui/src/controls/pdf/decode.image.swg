@@ -1088,11 +1088,67 @@ private func(const SwapRedBlue: bool) maskedJpegImage(decoded: const *Image, mas
     return #move result
 }
 
+// Tests the already decoded frame's shape before carrying the original compressed samples
+// to an editable document. JPEG markers before the start of scan are length-prefixed.
+private func isRgbJpegFrame(bytes: const [..] u8, width, height: s32)->bool
+{
+    if bytes.count < 4 or bytes[0] != 0xFF or bytes[1] != 0xD8 do
+        return false
+    var cursor = 2'u64
+    while bytes.count - cursor >= 4
+    {
+        if bytes[cursor] != 0xFF do
+            return false
+        cursor += 1
+        while cursor < bytes.count and bytes[cursor] == 0xFF do
+            cursor += 1
+        if bytes.count - cursor < 3 do
+            return false
+
+        let marker = bytes[cursor]
+        cursor += 1
+        if marker == 0xDA or marker == 0xD9 do
+            return false
+        let length = (cast(u64, bytes[cursor]) << 8) | bytes[cursor + 1]
+        if length < 2 or length > bytes.count - cursor do
+            return false
+        if marker == 0xC0 or marker == 0xC1 or marker == 0xC2
+        {
+            if length < 8 do
+                return false
+            let y = (cast(s32, bytes[cursor + 3]) << 8) | bytes[cursor + 4]
+            let x = (cast(s32, bytes[cursor + 5]) << 8) | bytes[cursor + 6]
+            return bytes[cursor + 2] == 8 and bytes[cursor + 7] == 3 and x == width and y == height
+        }
+
+        cursor += length
+    }
+
+    return false
+}
+
+private func canRetainJpeg(parser: *PdfParser, nodeId: u32, raw: const [..] u8, image: const *Image)->bool
+{
+    return parser.retainJpeg and raw.count < image.byteCount and
+           parser.name(parser.dict(nodeId, "ColorSpace")) == "DeviceRGB" and
+           parser.dict(nodeId, "Decode") == InvalidNode and
+           parser.dict(nodeId, "DecodeParms") == InvalidNode and
+           parser.dict(nodeId, "Mask") == InvalidNode and
+           parser.dict(nodeId, "SMask") == InvalidNode and
+           isRgbJpegFrame(raw, image.width, image.height)
+}
+
 // Keeps one reference in the cache while each page owns its own reference.
 private func cacheDecodedImage(parser: *PdfParser, key: u64, image: #move Image)->ImageReference
 {
-    let size = image.byteCount
-    var result = #move ImageReference.create(#move image)
+    var jpeg: Array'u8
+    return cacheDecodedImage(parser, key, #move image, #move jpeg)
+}
+
+private func cacheDecodedImage(parser: *PdfParser, key: u64, image: #move Image, jpeg: #move Array'u8)->ImageReference
+{
+    let size = image.byteCount + jpeg.count
+    var result = #move ImageReference.create(#move image, #move jpeg)
     if parser.imageCacheBytes + size <= ImageCacheBudget
     {
         parser.imageCacheBytes += size
@@ -1140,7 +1196,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     {
         if codec != "DCTDecode" and codec != "DCT" do
             fail UnsupportedFormatError{"PDF image codec is not supported"}
-        let raw     = #move try parser.decodeStream(nodeId, true)
+        var raw     = #move try parser.decodeStream(nodeId, true)
         var decoded = #move try Image.decode(".jpg", raw.toSlice())
 
         // An unmasked photograph is already the answer. It comes back bottom-up, which is how
@@ -1154,6 +1210,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 result = #move decoded
             else do
                 result = decoded.convertedTo(.RGB8)
+            if canRetainJpeg(parser, nodeId, raw.toSlice(), &result) do
+                return cacheDecodedImage(parser, cacheKey, #move result, #move raw)
             return cacheDecodedImage(parser, cacheKey, #move result)
         }
 

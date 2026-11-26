@@ -173,15 +173,6 @@ func decodeTga16RowReversed(source: const [*] u8, destination: [*] u8, pixelCoun
     PackedPixel.decodeBgra5551RowReversed(source, destination, pixelCount, alphaFromBit)
 }
 
-func dstPixel(result: *Image, header: Header, pixelIndex: u64)->[*] u8
-{
-    let srcX = cast(s32, (pixelIndex % header.width))
-    let srcY = cast(s32, (pixelIndex / header.width))
-    let dstX = header.descriptorByte & DESC_ORIGIN_RIGHT ? result.width - srcX - 1 : srcX
-    let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - srcY - 1 : srcY
-    return cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride + cast(u64, dstX) * result.bytesPerPixel
-}
-
 func paletteIndex(src: const [*] u8, bpp: u8)->u32
 {
     if bpp == 16 do
@@ -438,9 +429,15 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     let plain = header.imageTypeCode == TYPE_RLE_RGB and
                 (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
     let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+    let topOrigin   = (header.descriptorByte & DESC_ORIGIN_TOP) != 0
     let outputBytes = result.bytesPerPixel
+    let width       = cast(u64, result.width)
+    let stride      = topOrigin ? -result.rowStride : result.rowStride
+    let first       = topOrigin ? result.height - 1 : 0
+    var row         = result.pixels.storage() + cast(u64, first) * result.rowStride
+    var rowLeft     = width
     var decoded: [4] u8
-    var index: u64
+    var index:   u64
     var p = src
     while index < pixelCount
     {
@@ -461,15 +458,21 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
         var source    = p
         while remaining
         {
-            let rowRemaining = cast(u64, header.width) - index % header.width
-            let segmentCount = Math.min(remaining, rowRemaining)
-            let dstIndex     = rightOrigin ? index + segmentCount - 1 : index
-            let dst          = dstPixel(result, header, dstIndex)
+            let segmentCount = Math.min(remaining, rowLeft)
+            let x             = rightOrigin ? rowLeft - segmentCount : width - rowLeft
+            let dst           = row + x * outputBytes
             if repeated
             {
                 let color = plain ? p : cast(const [*] u8, &decoded[0])
-                if outputBytes == 3 do
-                    PackedPixel.fillBgr24Row(color, dst, segmentCount)
+                if outputBytes == 3
+                {
+                    if segmentCount == 1 do
+                        writeBgrPixel(dst, color[0], color[1], color[2])
+                    else do
+                        PackedPixel.fillBgr24Row(color, dst, segmentCount)
+                }
+                elif segmentCount == 1 do
+                    cast([*] u32, dst)[0] = cast(const [*] u32, color)[0]
                 else do
                     PackedPixel.fillBgra32Row(color, dst, segmentCount)
             }
@@ -488,6 +491,12 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
             index     += segmentCount
             remaining -= segmentCount
+            rowLeft   -= segmentCount
+            if not rowLeft and index < pixelCount
+            {
+                row     += stride
+                rowLeft = width
+            }
         }
 
         p += repeated ? pixelBytes : count * pixelBytes

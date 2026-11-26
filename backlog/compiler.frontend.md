@@ -106,3 +106,26 @@ This file owns lexer, parser, semantic analysis, type resolution, and diagnostic
 - Done when: the primary and independent diagnostics remain visible, with no secondary
   report caused by the failed declaration in that fixture.
 - Related: compiler.frontend.006, compiler.query.001, compiler.query.003.
+
+### compiler.frontend.008 — Preserve value parameters of local generic functions
+
+- Evidence: specializing the outer function below reports `unknown name 'InnerDelta'` in the
+  local generic body. The same local generic compiles in a non-generic outer function and
+  returns its own value argument.
+
+  ```swag
+  func(Base: u64) outer()->u64
+  {
+      func(InnerDelta: u64) inner()->u64 => Base + InnerDelta
+      return inner'7()
+  }
+
+  #test
+  {
+      Swag.require(outer'9() == 16)
+  }
+  ```
+
+- Next: inspect how cloning an outer specialization publishes the nested generic declaration
+  and its parameter scope before resolving the local body.
+- Done when: the regression resolves both value parameters and runs in JIT and native builds.

@@ -46,6 +46,101 @@ namespace
             appendLz4Length(bytes, matchLength - inlineLength);
     }
 
+    void appendLz4Block(ByteArray& packed, const std::span<const std::byte> bytes)
+    {
+        if (bytes.size() < 12)
+        {
+            appendLz4Sequence(packed, bytes, 0, 0);
+            return;
+        }
+        constexpr size_t      hashBits = 16;
+        std::vector<uint32_t> last(1 << hashBits, UINT32_MAX);
+        size_t                literalStart = 0;
+        size_t                cursor       = 0;
+        // LZ4 leaves at least five trailing literals, and the last match starts
+        // at least twelve bytes before the end of the block.
+        const size_t matchLimit = bytes.size() - 5;
+        const auto readWord = [&](const size_t offset) {
+            uint32_t word;
+            std::memcpy(&word, bytes.data() + offset, sizeof(word));
+            if constexpr (std::endian::native == std::endian::big)
+                word = std::byteswap(word);
+            return word;
+        };
+        while (cursor + 12 <= bytes.size())
+        {
+            const uint32_t word     = readWord(cursor);
+            const uint32_t hash     = (word * 2654435761u) >> (32 - hashBits);
+            const uint32_t previous = std::exchange(last[hash], static_cast<uint32_t>(cursor));
+            if (previous == UINT32_MAX || cursor - previous > UINT16_MAX || readWord(previous) != word)
+            {
+                ++cursor;
+                continue;
+            }
+            const size_t maxLength = matchLimit - cursor;
+            const auto*  match     = bytes.data() + cursor;
+            const auto*  candidate = bytes.data() + previous;
+            size_t       length    = 4;
+            while (length + sizeof(uint64_t) <= maxLength &&
+                   std::memcmp(match + length, candidate + length, sizeof(uint64_t)) == 0)
+                length += sizeof(uint64_t);
+            while (length < maxLength && match[length] == candidate[length])
+                ++length;
+            appendLz4Sequence(packed, bytes.subspan(literalStart, cursor - literalStart), static_cast<uint16_t>(cursor - previous), length);
+            cursor += length;
+            literalStart = cursor;
+        }
+        appendLz4Sequence(packed, bytes.subspan(literalStart), 0, 0);
+    }
+
+    void appendVarUInt(ByteArray& bytes, uint32_t value)
+    {
+        while (value >= 128)
+        {
+            bytes.pushBack(static_cast<std::byte>((value & 127) | 128));
+            value >>= 7;
+        }
+        bytes.pushBack(static_cast<std::byte>(value));
+    }
+
+    ByteArray compactStackEntries(uint32_t& count, const ByteArray& table)
+    {
+        count = table.readLe32(K_HEADER_COUNT);
+        if (!count || count > (table.size() - SymbolTable::HEADER_SIZE) / SymbolTable::ENTRY_SIZE)
+            return {};
+        const size_t stringsOffset = SymbolTable::HEADER_SIZE + static_cast<size_t>(count) * SymbolTable::ENTRY_SIZE;
+        if (table.readLe32(K_HEADER_STRINGS) != stringsOffset)
+            return {};
+
+        constexpr size_t             fieldSize = sizeof(uint32_t);
+        constexpr size_t             fields    = SymbolTable::ENTRY_SIZE / fieldSize;
+        std::array<uint32_t, fields> previous{};
+        ByteArray                    compact;
+        compact.reserve(table.size());
+        for (size_t entry = SymbolTable::HEADER_SIZE; entry < stringsOffset; entry += SymbolTable::ENTRY_SIZE)
+        {
+            const size_t start = compact.size();
+            for (size_t field = 0; field < fields; ++field)
+            {
+                const size_t offset = field * fieldSize;
+                uint32_t     value  = table.readLe32(entry + offset);
+                if (offset != K_ENTRY_SIZE)
+                {
+                    const uint32_t delta = value - previous[field];
+                    previous[field] = value;
+                    value = (delta << 1) ^ (0u - (delta >> 31));
+                }
+                appendVarUInt(compact, value);
+            }
+
+            // Expansion reads each row before writing the row to its final position.
+            if (compact.size() - start > SymbolTable::ENTRY_SIZE)
+                return {};
+        }
+        compact.append(table.span().subspan(stringsOffset));
+        return compact;
+    }
+
     struct StringBlob
     {
         uint32_t insert(const std::string_view value)
@@ -75,42 +170,39 @@ namespace
 
 ByteArray SymbolTable::packRuntimeSymbols(const ByteArray& table)
 {
-    ByteArray packed;
     // Small tables do not amortize the header and match dictionary.
     if (table.size() < 256 || table.size() > UINT32_MAX)
-        return packed;
+        return {};
+
+    ByteArray packed;
     packed.appendLe32(MAGIC);
     packed.appendLe32(VERSION_LZ4);
     packed.appendLe32(static_cast<uint32_t>(table.size()));
     packed.appendLe32(0);
+    appendLz4Block(packed, table.span());
 
-    constexpr size_t      hashBits = 16;
-    std::vector<uint32_t> last(1 << hashBits, UINT32_MAX);
-    size_t                literalStart = 0;
-    size_t                cursor       = 0;
-    // LZ4 leaves at least five trailing literals, and the last match starts
-    // at least twelve bytes before the end of the block.
-    const size_t matchLimit = table.size() - 5;
-    while (cursor + 12 <= table.size())
+    uint32_t count = 0;
+    const ByteArray compact = compactStackEntries(count, table);
+    if (!compact.empty())
     {
-        const uint32_t word     = table.readLe32(cursor);
-        const uint32_t hash     = (word * 2654435761u) >> (32 - hashBits);
-        const uint32_t previous = std::exchange(last[hash], static_cast<uint32_t>(cursor));
-        if (previous == UINT32_MAX || cursor - previous > UINT16_MAX || table.readLe32(previous) != word)
+        ByteArray candidate;
+        candidate.appendLe32(MAGIC);
+        candidate.appendLe32(VERSION_COMPACT_LZ4);
+        candidate.appendLe32(static_cast<uint32_t>(table.size()));
+        candidate.appendLe32(0);
+        candidate.appendLe32(static_cast<uint32_t>(compact.size()));
+        candidate.appendLe32(count);
+        appendLz4Block(candidate, compact.span());
+        if (candidate.size() < table.size() && candidate.size() < packed.size())
         {
-            ++cursor;
-            continue;
+            candidate.writeLe32(12, static_cast<uint32_t>(candidate.size() - COMPACT_HEADER_SIZE));
+            return candidate;
         }
-        size_t length = 4;
-        while (cursor + length < matchLimit && table[cursor + length] == table[previous + length])
-            ++length;
-        appendLz4Sequence(packed, table.span().subspan(literalStart, cursor - literalStart), static_cast<uint16_t>(cursor - previous), length);
-        cursor += length;
-        literalStart = cursor;
     }
-    appendLz4Sequence(packed, table.span().subspan(literalStart), 0, 0);
+
     if (packed.size() >= table.size())
-        packed.clear();
+        return {};
+    packed.writeLe32(12, static_cast<uint32_t>(packed.size() - HEADER_SIZE));
     return packed;
 }
 

@@ -624,8 +624,6 @@ void PEWriter::compressEmbeddedDebugTable()
         if (compressed.empty() || Math::alignUpU32(static_cast<uint32_t>(compressed.size()), FILE_ALIGNMENT) >= section.rawSize)
             continue;
 
-        // The runtime sees the reserved virtual section size after raw file compaction.
-        compressed.writeLe32(12, static_cast<uint32_t>(compressed.size() - SymbolTable::HEADER_SIZE));
         section.bytes = std::move(compressed);
         compactFileLayout();
         return;

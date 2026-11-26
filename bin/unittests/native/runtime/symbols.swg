@@ -64,3 +64,44 @@ func symbolizationFixture()->u32 => 7
     bytes[63] = 'x'
     Swag.require(not Swag.readDebugString(&bytes[0], bytes.count, 36, 63, &value))
 }
+
+#test
+{
+    let payload: [27] u8 = [
+        0xF0, 10,
+        0xFF, 3, 16, 112, 120, 24,
+        0xC0, 4, 8, 18, 0, 7,
+        'o', 'n', 'e', 0, 'f', 'i', 'l', 'e', 0, 't', 'w', 'o', 0]
+    var packed: [51] u8
+    writeDebugU32(packed, 0, 0x4244_5753)
+    writeDebugU32(packed, 4, 5)
+    writeDebugU32(packed, 8, 69)
+    writeDebugU32(packed, 12, payload.count)
+    writeDebugU32(packed, 16, 25)
+    writeDebugU32(packed, 20, 2)
+    Swag.memcpy(&packed[24], &payload[0], payload.count)
+
+    var decoded: [69] u8
+    let block = Swag.readCompressedDebugTable(&packed[0], packed.count)
+    Swag.require(block.decodedSize == decoded.count)
+    let success = block.decode(&packed[0], &decoded[0])
+    Swag.require(success and Swag.validateDebugSection(&decoded[0], decoded.count))
+    let startBytes: [4] u8 = [0, 0xFF, 0xFF, 0xFF]
+    for byte, index in startBytes do
+        Swag.require(decoded[16 + index] == byte)
+    Swag.require(decoded[36] == 0x20)
+    Swag.require(decoded[32] == 12 and decoded[52] == 8)
+
+    var name      = ""
+    let foundName = Swag.readDebugString(&decoded[0], decoded.count, 56, 65, &name)
+    Swag.require(foundName and name == "two")
+
+    // The final entry ends at the string blob. Stop reading continuation bytes at that boundary.
+    packed[37] = 0x87
+    let malformed = block.decode(&packed[0], &decoded[0])
+    Swag.require(not malformed)
+
+    writeDebugU32(packed, 12, payload.count + 1)
+    let truncated = Swag.readCompressedDebugTable(&packed[0], packed.count)
+    Swag.require(not truncated.decodedSize)
+}

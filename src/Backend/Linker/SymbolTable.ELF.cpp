@@ -308,7 +308,10 @@ bool ELFSymbolTable::finalizeImage(ByteArray& image, Utf8& outError, const bool 
         return tableError(outError, "the ELF runtime symbol table exceeds its reserved section");
     for (size_t index = 0; index < addresses.size(); ++index)
         table.writeLe32(SymbolTable::HEADER_SIZE + index * SymbolTable::ENTRY_SIZE, addresses[index]);
-    const ByteArray  packed = SymbolTable::packRuntimeSymbols(table);
+    ByteArray packed = SymbolTable::packRuntimeSymbols(table);
+    // Keep the original v4 ELF header when we use the legacy packed layout.
+    if (!packed.empty() && packed.readLe32(4) == SymbolTable::VERSION_LZ4)
+        packed.writeLe32(12, 0);
     const ByteArray& stored = packed.empty() ? table : packed;
     std::fill_n(image.data() + section.offset, section.size, std::byte{0});
     std::memcpy(image.data() + section.offset, stored.data(), stored.size());

@@ -932,6 +932,12 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
         return status >= 0 and finalSize == targetSize
     }
 
+    func allocate(size: u64)->[*] u8?
+    {
+        let flags = __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE
+        return cast([*] u8?, __Win32RT.VirtualAlloc(null, size, flags, __Win32RT.PAGE_READWRITE))
+    }
+
     decodedSizeOut[] = 0
     if sectionSize < 16 or __peU32(section, 0) != 0x4244_5753 do
         return null
@@ -939,11 +945,7 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
     let version = __peU32(section, 4)
     if version == 1
     {
-        let decoded = cast([*] u8?,
-                           __Win32RT.VirtualAlloc(null,
-                                                  sectionSize,
-                                                  __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE,
-                                                  __Win32RT.PAGE_READWRITE))
+        let decoded = allocate(sectionSize)
         if not decoded do
             return null
         Swag.memcpy(decoded, section, sectionSize)
@@ -951,34 +953,28 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
         return decoded
     }
 
-    if version != 2 and version != 4 do
+    if version == 4 and not __peU32(section, 12) do
         return null
 
-    let decodedSize = __peU32(section, 8)
-    let packedSize  = __peU32(section, 12)
-    if decodedSize < 16 or packedSize == 0 or cast(u64, packedSize) > sectionSize - 16 do
+    let packed = Swag.readCompressedDebugTable(section, sectionSize)
+    if not packed.decodedSize do
         return null
-    if version == 4 and cast(u64, decodedSize) > cast(u64, packedSize) * 255 do
-        return null
-
-    let decoded = cast([*] u8?,
-                       __Win32RT.VirtualAlloc(null,
-                                              decodedSize,
-                                              __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE,
-                                              __Win32RT.PAGE_READWRITE))
+    let decoded = allocate(packed.decodedSize)
     if not decoded do
         return null
 
-    let payload = &section[16]
-    let ok      = version == 4 ? Swag.__dbgDecodeLz4(payload, packedSize, decoded, decodedSize)
-                  : decodeLznt1(payload, packedSize, decoded, decodedSize)
+    let ok = packed.format == 2 ? decodeLznt1(&section[packed.payloadOffset],
+                                              cast(u32, packed.payloadSize),
+                                              decoded,
+                                              cast(u32, packed.decodedSize))
+             : packed.decode(section, decoded)
     if not ok
     {
         discard __Win32RT.VirtualFree(decoded, 0, __Win32RT.MEM_RELEASE)
         return null
     }
 
-    decodedSizeOut[] = decodedSize
+    decodedSizeOut[] = packed.decodedSize
     return decoded
 }
 

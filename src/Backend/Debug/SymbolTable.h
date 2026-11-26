@@ -20,15 +20,17 @@ struct NativeFunctionInfo;
 // relocated against the entry's symbol.
 namespace SymbolTable
 {
-    inline constexpr std::string_view IMAGE_SECTION   = ".swagdbg";
-    inline constexpr std::string_view OBJECT_SECTION  = ".swagsym";
-    inline constexpr uint32_t         MAGIC           = 0x42445753u; // 'SWDB'
-    inline constexpr uint32_t         VERSION_PLAIN   = 1;
-    inline constexpr uint32_t         VERSION_PACKED  = 2; // legacy LZNT1 in PE images
-    inline constexpr uint32_t         VERSION_LZ4     = 4; // an image table in an LZ4 block
-    inline constexpr uint32_t         HEADER_SIZE     = 16;
-    inline constexpr uint32_t         ENTRY_SIZE      = 20;
-    inline constexpr uint32_t         ENTRY_START_RVA = 0;
+    inline constexpr std::string_view IMAGE_SECTION       = ".swagdbg";
+    inline constexpr std::string_view OBJECT_SECTION      = ".swagsym";
+    inline constexpr uint32_t         MAGIC               = 0x42445753u; // 'SWDB'
+    inline constexpr uint32_t         VERSION_PLAIN       = 1;
+    inline constexpr uint32_t         VERSION_PACKED      = 2; // legacy LZNT1 in PE images
+    inline constexpr uint32_t         VERSION_LZ4         = 4; // an image table in an LZ4 block
+    inline constexpr uint32_t         VERSION_COMPACT_LZ4 = 5; // LZ4-wrapped varint entries
+    inline constexpr uint32_t         COMPACT_HEADER_SIZE = 24;
+    inline constexpr uint32_t         HEADER_SIZE         = 16;
+    inline constexpr uint32_t         ENTRY_SIZE          = 20;
+    inline constexpr uint32_t         ENTRY_START_RVA     = 0;
 
     struct Entry
     {
@@ -54,7 +56,9 @@ namespace SymbolTable
     void build(ByteArray& outBytes, std::span<const Entry> entries);
 
     // Packs a relocated plain image table, or returns an empty array when packing does not save space.
-    // A padded section must set the last header word to the exact payload size.
+    // Packed headers carry the original table size and the exact payload size. Legacy ELF v4
+    // stores zero for the payload size because the section size already identifies its end.
+    // Version 5 also carries the compact payload size before LZ4 and the entry count.
     ByteArray packRuntimeSymbols(const ByteArray& table);
 
     // Appends the entries of a table, given the symbol each start address is relocated against.

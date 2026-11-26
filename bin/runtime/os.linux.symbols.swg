@@ -194,23 +194,19 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSize: *u
         return section
     }
 
-    if version != 4 do
+    let packed = Swag.readCompressedDebugTable(section, sectionSize)
+    if not packed.decodedSize or packed.format == 2 do
         return null
-
-    let size       = cast(u64, Swag.__dbgU32(section, 8))
-    let packedSize = sectionSize - 16
-    if size < 16 or size > packedSize * 255 or Swag.__dbgU32(section, 12) != 0 do
-        return null
-    let decoded = cast([*] u8?, __LinuxRT.malloc(size))
+    let decoded = cast([*] u8?, __LinuxRT.malloc(packed.decodedSize))
     if not decoded do
         return null
-    if not Swag.__dbgDecodeLz4(&section[16], packedSize, decoded, size)
+    if not packed.decode(section, decoded)
     {
         __LinuxRT.free(decoded)
         return null
     }
 
-    decodedSize[] = size
+    decodedSize[] = packed.decodedSize
     return decoded
 }
 

@@ -85,6 +85,129 @@ func __dbgDecodeLz4(source: const [*] u8, sourceSize: u64, target: [*] u8, targe
     return false
 }
 
+struct SwagDebugTableBlock
+{
+    format:        u32
+    payloadOffset: u64
+    payloadSize:   u64
+    decodedSize:   u64
+    compactSize:   u64 = 0
+    entryCount:    u64 = 0
+}
+
+impl SwagDebugTableBlock
+{
+    mtd decode(section: [*] u8, target: [*] u8)->bool
+    {
+        func readVarUInt(input: const [*] u8, limit: u64, cursor: *u64, value: *u32)->bool
+        {
+            value[] = 0
+            for index in 5
+            {
+                if cursor[] == limit do
+                    return false
+                let byte = input[cursor[]]
+                cursor[] += 1
+                if index == 4 and byte > 15 do
+                    return false
+                value[] |= cast(u32, byte & 127) << (index * 7)
+                if byte < 128 do
+                    return true
+            }
+
+            return false
+        }
+
+        let payload = &section[.payloadOffset]
+        if .format == 4 do
+            return __dbgDecodeLz4(payload, .payloadSize, target, .decodedSize)
+        if .format != 5 do
+            return false
+
+        // The compact stream ends at the same address as the final table.
+        // Expanding its rows forward leaves the string blob in its final position.
+        var cursor = .decodedSize - .compactSize
+        if not __dbgDecodeLz4(payload, .payloadSize, &target[cursor], .compactSize) do
+            return false
+
+        let stringsOffset = 16 + .entryCount * 20
+        var fields: [5] u32
+        for entry in .entryCount
+        {
+            for column in fields.count
+            {
+                var encoded: u32
+                if not readVarUInt(target, stringsOffset, &cursor, &encoded) do
+                    return false
+                if column == 1
+                {
+                    fields[column] = encoded
+                }
+                else
+                {
+                    let delta = (encoded >> 1) ^ ((encoded & 1) * Swag.U32.Max)
+                    fields[column] = cast(u32, (cast(u64, fields[column]) + delta) & Swag.U32.Max)
+                }
+            }
+
+            let offset = 16 + entry * 20
+            if offset + 20 > cursor do
+                return false
+            Swag.memcpy(&target[offset], &fields[0], 20)
+        }
+
+        if cursor != stringsOffset do
+            return false
+
+        let header: [4] u32 = [0x4244_5753, 1, cast(u32, .entryCount), cast(u32, stringsOffset)]
+        Swag.memcpy(target, &header[0], 16)
+        return true
+    }
+}
+
+// A validated header has a nonzero decoded size.
+func readCompressedDebugTable(section: [*] u8, sectionSize: u64)->SwagDebugTableBlock
+{
+    if sectionSize < 16 or sectionSize > Swag.U32.Max or __dbgU32(section, 0) != 0x4244_5753 do
+        return {}
+
+    let format = __dbgU32(section, 4)
+    if format != 2 and format != 4 and format != 5 do
+        return {}
+    let headerSize = format == 5 ? 24'u64 : 16'u64
+    if sectionSize < headerSize do
+        return {}
+
+    let decodedSize = cast(u64, __dbgU32(section, 8))
+    var payloadSize = cast(u64, __dbgU32(section, 12))
+    if format == 4 and not payloadSize do
+        payloadSize = sectionSize - headerSize
+    if decodedSize < 16 or not payloadSize or payloadSize > sectionSize - headerSize do
+        return {}
+
+    if format == 2 do
+        return SwagDebugTableBlock{format, headerSize, payloadSize, decodedSize}
+    if format == 4
+    {
+        if decodedSize > payloadSize * 255 do
+            return {}
+        return SwagDebugTableBlock{format, headerSize, payloadSize, decodedSize}
+    }
+
+    let compactSize = cast(u64, __dbgU32(section, 16))
+    let entryCount  = cast(u64, __dbgU32(section, 20))
+    if not entryCount or
+       entryCount > (decodedSize - 16) / 20 or
+       compactSize > decodedSize or
+       compactSize > payloadSize * 255 do
+        return {}
+
+    let stringsSize = decodedSize - 16 - entryCount * 20
+    if compactSize < stringsSize + entryCount * 5 do
+        return {}
+    return SwagDebugTableBlock{format, headerSize, payloadSize, decodedSize, compactSize, entryCount}
+}
+
 func readDebugString(section: [*] u8, size: u64, stringsOffset, offset: u32, value: *string)->bool
 {
     if not offset

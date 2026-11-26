@@ -96,32 +96,44 @@ private func ed25519Double(point: Ed25519Point)->Ed25519Point
     return result
 }
 
-private func ed25519Select(left, right: Ed25519Point, chooseRight: u64)->Ed25519Point
-{
-    let mask = 0'u64 - chooseRight
-    var result: #returntype
-    for index in result.x.limbs.count
-    {
-        result.x.limbs[index] = (left.x.limbs[index] & ~mask) | (right.x.limbs[index] & mask)
-        result.y.limbs[index] = (left.y.limbs[index] & ~mask) | (right.y.limbs[index] & mask)
-        result.z.limbs[index] = (left.z.limbs[index] & ~mask) | (right.z.limbs[index] & mask)
-        result.t.limbs[index] = (left.t.limbs[index] & ~mask) | (right.t.limbs[index] & mask)
-    }
-
-    return result
-}
-
 private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->Ed25519Point
 {
-    var result = ed25519Identity()
-    var addend = point
-    var bit    = 0'u32
-    while bit < 256
+    func selectMultiple(multiples: const *[16] Ed25519Point, nibble: u8)->Ed25519Point
     {
-        let selected = cast(u64, (scalar[bit / 8] >> (bit & 7)) & 1)
-        result = ed25519Select(result, ed25519Add(result, addend), selected)
-        addend = ed25519Double(addend)
-        bit    += 1
+        var result: #returntype
+        for index in 16
+        {
+            let mask = 0'u64 - cast(u64, index == nibble)
+            for limb in result.x.limbs.count
+            {
+                result.x.limbs[limb] |= multiples[][index].x.limbs[limb] & mask
+                result.y.limbs[limb] |= multiples[][index].y.limbs[limb] & mask
+                result.z.limbs[limb] |= multiples[][index].z.limbs[limb] & mask
+                result.t.limbs[limb] |= multiples[][index].t.limbs[limb] & mask
+            }
+        }
+
+        return result
+    }
+
+    // The table depends on the point alone. Every scalar nibble scans all entries.
+    var multiples: [16] Ed25519Point
+    multiples[0] = ed25519Identity()
+    multiples[1] = point
+    for index in 2 until multiples.count do
+        multiples[index] = ed25519Add(multiples[index - 1], point)
+
+    var result = ed25519Identity()
+    for window in 2 * Ed25519KeySize
+    {
+        for 4 do
+            result = ed25519Double(result)
+
+        let nibbleIndex = 2 * Ed25519KeySize - 1 - window
+        let nibble      = (scalar[nibbleIndex / 2] >> (4 * (nibbleIndex & 1))) & 15
+        var selected    = selectMultiple(&multiples, nibble)
+        result = ed25519Add(result, selected)
+        Crypto.secureClear(Swag.makeSlice(&selected, 1))
     }
 
     return result

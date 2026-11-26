@@ -7,9 +7,9 @@ Release build of `10bf72c650`. It includes changes through that revision.
 The AMD EPYC 9V74 workload used CPU 4 and 13 interleaved paired
 process CPU-time trials per case, calibrated to 25 ms each. The full byte
 output matched across builds and references for all 76 algorithm and size
-combinations, including every measured round. Each speed ratio against the
-starting point either favored the final build or included parity. The table
-gives 1 MiB results.
+combinations, including every measured round. All 76 paired 95% intervals
+favor the final build over the starting point. The smallest lower bound is
+1.075×, for ChaCha20 at 64 KiB. The table gives 1 MiB results.
 
 | Algorithm | Baseline GB/s | Swag GB/s | Best measured reference | Reference GB/s | Swag / baseline (95% CI) | Swag / reference (95% CI) |
 | --- | ---: | ---: | --- | ---: | ---: | ---: |

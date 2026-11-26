@@ -659,6 +659,25 @@ private impl RenderCpu
                     (((greenAlpha | (greenAlpha >> 16)) & Pair) << 8))
     }
 
+    // The sign bit of the unsigned weight contributes one whole source difference
+    // after the multiply-high. Select that source as the starting value before adding
+    // the signed product, including the exact weight of 65536 at the upper endpoint.
+    #[Swag.Inline]
+    func lerpChannels8(a, b: Math.Simd.U16x8, weight: Math.Simd.S16x8, upper: bool)->Math.Simd.S16x8
+    {
+        let delta = cast #bit(Math.Simd.S16x8, b - a)
+        let start = cast #bit(Math.Simd.S16x8, upper ? b : a)
+        return start + Math.Simd.mulHigh(delta, weight)
+    }
+
+    #[Swag.Inline]
+    internal func lerpBgra8x4(a, b: Math.Simd.U8x16, weight: Math.Simd.S16x8, upper: bool)->Math.Simd.U8x16
+    {
+        let low  = lerpChannels8(Math.Simd.widenLow(a), Math.Simd.widenLow(b), weight, upper)
+        let high = lerpChannels8(Math.Simd.widenHigh(a), Math.Simd.widenHigh(b), weight, upper)
+        return Math.Simd.packUnsigned(low, high)
+    }
+
     #[Swag.Inline]
     func bilinearWeight(fraction: f32)->u32 => cast(u32, (Math.saturate(fraction) * 65536.0))
 
@@ -2714,7 +2733,33 @@ private impl RenderCpu
                     if twoRows do
                         filterTextureRow'Format(&filteredBottom, bottom, columns.toSlice(), sampleY.high)
 
-                    for x in x0 until x1 + 1
+                    let first  = cast(u64, x0 - triangle.bounds.minX)
+                    let savedA = cast(const [*] u8, filteredTop.colors.storage() + first)
+                    let savedB = twoRows ? cast(const [*] u8, filteredBottom.colors.storage() + first) : savedA
+                    let weight = Math.Simd.splat(cast #bit(s16, cast(u16, sampleY.weight)))
+                    let upper  = sampleY.weight >= 32768
+                    var x      = x0
+                    while x1 - x >= 3
+                    {
+                        let offset = (x - x0) * 4
+                        let a      = Math.Simd.load(savedA + offset)
+                        let ink    = twoRows ? lerpBgra8x4(a, Math.Simd.load(savedB + offset), weight, upper) : a
+                        let target = row + cast(u64, x) * 4
+                        let old    = Math.Simd.load(target)
+                        #static if Format == .BGR8 or Format == .RGB8
+                        {
+                            Math.Simd.store(target, Math.Simd.select(CpuBgraRgbMask, ink, old))
+                        }
+                        else
+                        {
+                            let alpha = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
+                            Math.Simd.store(target, blendAlphaBgra8x4(ink, old, cast #bit(Math.Simd.U8x16, alpha)))
+                        }
+
+                        x += 4
+                    }
+
+                    for x in x until x1 + 1
                     {
                         let index = cast(u64, x - triangle.bounds.minX)
                         let a     = filteredTop.colors[index]

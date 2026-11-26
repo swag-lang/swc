@@ -569,6 +569,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - [Sixteen-bit RGB images](../bench/results/swagscope-filesamples/pdf-raster-linux.md#sixteen-bit-rgb-images)
   take the PDF.js fixture from 130 to 49 ms total at 1200 px. SIMD quantization
   cuts load from 98 to 18 ms with identical RGB. PDFium takes 20 ms.
+- [SIMD for cached image rows](../bench/results/swagscope-filesamples/pdf-raster-linux.md#simd-for-cached-image-rows)
+  reduces the 2400 px PDFBox scan from 42 to 28 ms. PDFium takes 6 ms.
+  All 43 supported pages retain the same bitmap CRC-32.
 - Measure cached glyph masks for transformed PDF text. Profile the remaining
   stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.

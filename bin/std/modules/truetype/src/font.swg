@@ -259,7 +259,7 @@ impl FaceImpl
     {
         if .fontData.count do
             return .fontData.toSlice()
-        return .fontSource.bytes()
+        return .fontSource.faceBytes()
     }
 
     mtd loadCff(bytes: const [..] u8) fail

@@ -125,6 +125,16 @@ private impl BitReader
 
     mtd readEscapeMagnitude()->s32 fail
     {
+        if .ensure(12)
+        {
+            let leading = cast(s32, Math.leadingZeros(~.word))
+            if leading > 11 do
+                fail InvalidFormatError{"AAC escape coefficient is too large"}
+            .consume(leading + 1)
+            let bits = leading + 4
+            return (1 << bits) + cast(s32, .get(bits))
+        }
+
         var leading = 0's32
         while .get1() do
             leading += 1
@@ -1848,4 +1858,38 @@ impl IPacketCodec for AacCodec
     decoder.applyStereoPair(0)
     for index in FrameSamples do
         Swag.require(decoder.coefficients[1, index] == 2)
+}
+
+// Escape magnitudes consume the same unary and magnitude bits at any alignment.
+#test
+{
+    for leading in 12
+    {
+        let bits  = leading + 4
+        let mask  = (1'u64 << bits) - 1
+        let unary = (((1'u64 << leading) - 1) << 1) << bits
+        for skip in 8
+        {
+            for high in 2
+            {
+                let suffix    = high ? mask : 0'u64
+                let consumed  = skip + leading + 1 + bits
+                let byteCount = (consumed + 7) / 8
+                let encoded   = Math.bigEndianToNative((unary | suffix) << (64 - consumed))
+                let bytes     = cast(const [*] u8, &encoded)
+                var reader    = BitReader.create(bytes, byteCount)
+                discard reader.get(cast(s32, skip))
+                let magnitude = expect reader.readEscapeMagnitude()
+                Swag.require(magnitude == cast(s32, (1'u64 << bits) + suffix))
+                Swag.require(reader.left() == byteCount * 8 - consumed)
+                Swag.require(not reader.overrun)
+            }
+        }
+    }
+
+    let overlong: [2] u8 = [0xFF, 0xF0]
+    var reader = BitReader.create(&overlong, overlong.count)
+    var error:    Swag.Error
+    discard catch reader.readEscapeMagnitude() as error
+    Swag.require(error.value() is InvalidFormatError)
 }

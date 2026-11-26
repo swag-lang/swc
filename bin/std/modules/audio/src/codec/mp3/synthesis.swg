@@ -24,9 +24,10 @@ private const FilterMask    = FilterHistory - 1
 // alone. A seek resets both.
 struct ChannelState
 {
-    overlap:  SubbandOverlap          // Second half of the previous inverse transform, grouped by time slot.
-    filter:   [FilterHistory, 33] f32 // Even and odd bins for paired samples, plus the unpaired first sample.
-    filterAt: u64                     // Newest block of the delay line.
+    overlap:      SubbandOverlap         // Second half of the previous inverse transform, grouped by time slot.
+    filter:       [FilterHistory, 32] f32 // Even and odd bins for paired samples.
+    firstHistory: [FilterHistory * 2] f32 // Two copies let one load cross the history wrap.
+    filterAt:     u64                    // Newest block of the delay line.
 }
 
 impl ChannelState
@@ -35,7 +36,8 @@ impl ChannelState
     mtd reset()
     {
         Memory.set(cast(*void, &.overlap[0, 0]), 0, #sizeof(f32) * 32 * 18)
-        Memory.set(cast(*void, &.filter[0, 0]), 0, #sizeof(f32) * FilterHistory * 33)
+        Memory.set(cast(*void, &.filter[0, 0]), 0, #sizeof(f32) * FilterHistory * 32)
+        Memory.set(cast(*void, &.firstHistory[0]), 0, #sizeof(f32) * .firstHistory.count)
         .filterAt = 0
     }
 }
@@ -465,28 +467,36 @@ private func saveSynthesisBins(state: *ChannelState, bins: const [*] f32)
     newest[15] = 0
     for i in 16'u64 do
         newest[16 + i] = -bins[(15 - i) * 4]
-    newest[32] = bins[16 * 4]
+    let first = bins[16 * 4]
+    state.firstHistory[state.filterAt]                 = first
+    state.firstHistory[state.filterAt + FilterHistory] = first
 }
 
-private func synthesizeFirstSample(state: const *ChannelState, at: u64)->f32
+private func buildFirstSampleWeights()->[16] f32
 {
-    var firstSample: f32
-    for tap in 8'u64
-    {
-        let even = (at + 2 * tap) & FilterMask
-        let odd  = (even + 1) & FilterMask
-        firstSample += state.filter[even, 32] * SynthesisWindow[tap * 64]
-        firstSample += -state.filter[odd, 32] * SynthesisWindow[tap * 64 + 32]
-    }
+    var weights: #returntype
+    for tap in 16'u64 do
+        weights[tap] = (tap & 1) == 0 ? SynthesisWindow[tap * 32] : -SynthesisWindow[tap * 32]
+    return weights
+}
 
-    return firstSample
+private const FirstSampleWeights = #run buildFirstSampleWeights()
+
+// Each lane is the first sample of one time slot, ordered newest to oldest.
+private func synthesizeFirstSamples(state: const *ChannelState, at: u64)->Math.Simd.F32x4
+{
+    using Math.Simd
+    let newest = cast(const [*] f32, &state.firstHistory[at])
+    var samples: F32x4
+    for tap in 16'u64 do
+        samples += load(newest + tap) * FirstSampleWeights[tap]
+    return samples
 }
 
 private func synthesizeBlock(state: const *ChannelState, at: u64, destination: [*] f32)
 {
     using Math.Simd
     const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
-    destination[0] = synthesizeFirstSample(state, at)
     for group in 4'u64
     {
         var left, right: F32x4
@@ -530,8 +540,6 @@ private func synthesizeBlockPair(state: const *ChannelState, at: u64, destinatio
     using Math.Simd
     const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
     let laterAt = (at + FilterMask - 1) & FilterMask
-    destination[0]  = synthesizeFirstSample(state, at)
-    destination[64] = synthesizeFirstSample(state, laterAt)
     for group in 4'u64
     {
         var left, right, laterLeft, laterRight: F32x4
@@ -551,6 +559,34 @@ private func synthesizeBlockPair(state: const *ChannelState, at: u64, destinatio
     }
 }
 
+// The opposite subbands form the first DCT-II butterfly. Load them directly into
+// the two half-size transforms instead of staging a copy of all 32 subbands.
+#[Swag.Inline]
+private func polyphaseBins(lines: const *Granule576, start: u64, bins: [*] Math.Simd.F32x4)
+{
+    using Math.Simd
+    const Factors = #run buildCosineReciprocals'16(32'f64)
+    var halves: [32] F32x4
+    for i in 16'u64
+    {
+        let first = load(&lines[][i * 18 + start])
+        let last  = load(&lines[][(31 - i) * 18 + start])
+        bins[i]      = first + last
+        bins[16 + i] = (first - last) * Factors[i]
+    }
+
+    dct'(16, F32x4)(bins, &halves[0])
+    dct'(16, F32x4)(bins + 16, &halves[16])
+    for i in 15'u64
+    {
+        bins[2 * i]     = halves[i]
+        bins[2 * i + 1] = halves[16 + i] + halves[17 + i]
+    }
+
+    bins[30] = halves[15]
+    bins[31] = halves[31]
+}
+
 // Turns the 32 by 18 subband samples of one granule into 576 output samples.
 //
 // Each vector lane holds a different time slot. The last four-slot input overlaps
@@ -561,24 +597,30 @@ func synthesizeGranule(state: *ChannelState, lines: const *Granule576, destinati
     {
         let first = group * 4
         let start = Math.min(first, 14)
-        var input, bins: [32] Math.Simd.F32x4
-        for i in 32'u64 do
-            input[i] = Math.Simd.load(&lines[][i * 18 + start])
-        dct'(32, Math.Simd.F32x4)(&input[0], &bins[0])
+        var bins: [32] Math.Simd.F32x4
+        polyphaseBins(lines, start, &bins[0])
 
         let values = cast(const [*] f32, &bins[0])
         for lane in first - start until 4'u64 do
             saveSynthesisBins(state, values + lane)
 
         // Keep all sixteen taps of the earliest slot after saving the later three.
-        let at = state.filterAt
+        let at     = state.filterAt
+        let starts = synthesizeFirstSamples(state, at)
+        let pcm    = destination + first * 32
         if first == start
         {
+            pcm[0]  = starts[3]
+            pcm[32] = starts[2]
+            pcm[64] = starts[1]
+            pcm[96] = starts[0]
             synthesizeBlockPair(state, (at + 3) & FilterMask, destination + first * 32)
             synthesizeBlockPair(state, (at + 2) & FilterMask, destination + (first + 1) * 32)
         }
         else
         {
+            pcm[0]  = starts[1]
+            pcm[32] = starts[0]
             synthesizeBlock(state, (at + 1) & FilterMask, destination + first * 32)
             synthesizeBlock(state, at, destination + (first + 1) * 32)
         }

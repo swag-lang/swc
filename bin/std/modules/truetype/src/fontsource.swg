@@ -5,8 +5,9 @@ private struct FontSourceStorage
     late allocator: IAllocator
     references:     s64 = 1
     bytes:          Array'u8
+    woffSfnt:       Array'u8
     cffPrograms:    Array'(*CffFont)
-    cffMutex:       Swag.Mutex
+    parseMutex:     Swag.Mutex
 }
 
 impl FontSourceStorage
@@ -51,6 +52,36 @@ impl FontSource
         }
     }
 
+    // Face views use the reconstructed sfnt once prepareBytes has published it.
+    mtd const faceBytes()->const [..] u8
+    {
+        if let storage = .storage do
+            return storage.woffSfnt.count ? storage.woffSfnt.toSlice() : storage.bytes.toSlice()
+        return ""
+    }
+
+    private mtd const prepareBytes(faceIndex: u32)->const [..] u8 fail
+    {
+        let input = .bytes()
+        if input.count < 4 or (try readU32(input, 0)) != TAG_WOFF do
+            return input
+        if faceIndex do
+            try fault(0x0F)
+
+        let storage = unwrap .storage
+        Sync.scopedLock(&storage.parseMutex)
+        if not storage.woffSfnt.count
+        {
+            let context        = Swag.getContext()
+            let priorAllocator = context.allocator
+            context.allocator = storage.allocator
+            defer context.allocator = priorAllocator
+            storage.woffSfnt = try inflateWoff(input)
+        }
+
+        return storage.woffSfnt.toSlice()
+    }
+
     // Different faces of a collection can reference the same CFF byte range.
     mtd const cachedCff(bytes: const [..] u8)->*CffFont? fail
     {
@@ -58,7 +89,7 @@ impl FontSource
             return null
 
         let storage = .storage
-        Sync.scopedLock(&storage.cffMutex)
+        Sync.scopedLock(&storage.parseMutex)
         for program in storage.cffPrograms
         {
             if program.block.buffer == bytes.buffer and program.block.count == bytes.count do
@@ -129,12 +160,19 @@ public impl FontSource
         return ""
     }
 
+    // Reads metadata for a zero-based member using this source's shared tables.
+    //
+    // The result owns its strings. Index and format checks follow [[TrueType.Face.metadataAt]].
+    // For WOFF1, metadata and face loading share one reconstructed sfnt.
+    mtd const metadataAt(faceIndex: u32 = 0)->FaceMetadata fail =>
+        try Face.metadataAt(try .prepareBytes(faceIndex), faceIndex)
+
     // Loads one zero-based face while retaining this snapshot.
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
-    // per-face state, and the source allocator covers shared CFF data. A default
-    // source or invalid input fails. WOFF1 is expanded into storage owned by the face.
+    // per-face state. The source allocator covers shared CFF data and WOFF1 reconstruction.
+    // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>
-        try loadFaceBytes(.bytes(), faceIndex, "", allocator, source: me)
+        try loadFaceBytes(try .prepareBytes(faceIndex), faceIndex, "", allocator, source: me)
 }

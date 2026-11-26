@@ -211,7 +211,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         var name: String
         catch
         {
-            let metadata = try Face.metadataAt(bytes, memberIndex)
+            let metadata = try result.source.metadataAt(memberIndex)
             let family   = metadata.typographicFamilyName.isEmpty() ? metadata.familyName.toString() : metadata.typographicFamilyName.toString()
             let style    = metadata.typographicStyleName.isEmpty() ? metadata.styleName.toString() : metadata.typographicStyleName.toString()
             name = style.count == 0 ? family : Format.toString("% · %", family, style)
@@ -287,7 +287,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 
     catch
     {
-        let metadata = try Face.metadataAt(bytes, selectedMember)
+        let metadata = try result.source.metadataAt(selectedMember)
         result.facts.weight      = metadata.weight
         result.facts.embedding   = metadata.embedding
         result.facts.hasMetadata = true
@@ -583,7 +583,7 @@ private impl Panel
 
         catch
         {
-            let metadata = try Face.metadataAt(.document.fontSource.bytes(), memberIndex)
+            let metadata = try .document.fontSource.metadataAt(memberIndex)
             facts.weight      = metadata.weight
             facts.embedding   = metadata.embedding
             facts.hasMetadata = true

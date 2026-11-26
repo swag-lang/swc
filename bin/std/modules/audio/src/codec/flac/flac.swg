@@ -820,8 +820,10 @@ private impl Codec
     }
 
     // Apply stereo decorrelation while interleaving, so the wide scratch is read once.
-    mtd(Assignment: u32) writeStereoPcm16(destination: [*] s16, blockSize: u32)
+    mtd(Assignment: u32, ScaleDown: bool) interleaveStereoPcm16(destination: [*] s16, blockSize, shift: u32)
     {
+        #static if not ScaleDown do
+            discard shift
         let first  = .channels[0].storage()
         let second = .channels[1].storage()
         var done   = 0'u32
@@ -861,6 +863,12 @@ private impl Codec
                     right = (mid - right) >> 1
                 }
 
+                #static if ScaleDown
+                {
+                    left  >>= shift
+                    right >>= shift
+                }
+
                 let leftWords  = cast #bit (Math.Simd.U32x4, left)
                 let rightWords = cast #bit (Math.Simd.U32x4, right)
                 let low        = cast #bit (Math.Simd.S32x4, Math.Simd.interleaveLow(leftWords, rightWords))
@@ -889,8 +897,48 @@ private impl Codec
                 right = (mid - right) >> 1
             }
 
+            #static if ScaleDown
+            {
+                left  >>= shift
+                right >>= shift
+            }
+
             destination[2 * sample]     = cast(s16, Math.clamp(left, -32768's64, 32767's64))
             destination[2 * sample + 1] = cast(s16, Math.clamp(right, -32768's64, 32767's64))
+        }
+    }
+
+    mtd(ScaleDown: bool) writeStereoPcm16(destination: [*] s16, header: FrameHeader, shift: u32)
+    {
+        switch header.channelAssignment
+        {
+        case 8:  .interleaveStereoPcm16'(8'u32, ScaleDown)(destination, header.blockSize, shift)
+        case 9:  .interleaveStereoPcm16'(9'u32, ScaleDown)(destination, header.blockSize, shift)
+        case 10: .interleaveStereoPcm16'(10'u32, ScaleDown)(destination, header.blockSize, shift)
+        default: .interleaveStereoPcm16'(1'u32, ScaleDown)(destination, header.blockSize, shift)
+        }
+    }
+
+    // Keep the six source-plane addresses in the output loop.
+    mtd writeSixChannelPcm16(destination: [*] s16, blockSize: u32)
+    {
+        const MinSample = -32768's64
+        const MaxSample = 32767's64
+        let plane0 = .channels[0].storage()
+        let plane1 = .channels[1].storage()
+        let plane2 = .channels[2].storage()
+        let plane3 = .channels[3].storage()
+        let plane4 = .channels[4].storage()
+        let plane5 = .channels[5].storage()
+        for sample in blockSize
+        {
+            let output = destination + sample * 6
+            output[0] = cast(s16, Math.clamp(plane0[sample], MinSample, MaxSample))
+            output[1] = cast(s16, Math.clamp(plane1[sample], MinSample, MaxSample))
+            output[2] = cast(s16, Math.clamp(plane2[sample], MinSample, MaxSample))
+            output[3] = cast(s16, Math.clamp(plane3[sample], MinSample, MaxSample))
+            output[4] = cast(s16, Math.clamp(plane4[sample], MinSample, MaxSample))
+            output[5] = cast(s16, Math.clamp(plane5[sample], MinSample, MaxSample))
         }
     }
 
@@ -898,16 +946,18 @@ private impl Codec
     mtd writePcm16(destination: [*] s16, header: FrameHeader)
     {
         let shift = cast(s32, header.bitsPerSample) - 16
-        if not shift and header.channels == 2
+        if shift >= 0 and header.channels == 2
         {
-            switch header.channelAssignment
-            {
-            case 8:  .writeStereoPcm16'8(destination, header.blockSize)
-            case 9:  .writeStereoPcm16'9(destination, header.blockSize)
-            case 10: .writeStereoPcm16'10(destination, header.blockSize)
-            default: .writeStereoPcm16'1(destination, header.blockSize)
-            }
+            if shift do
+                .writeStereoPcm16'true(destination, header, cast(u32, shift))
+            else do
+                .writeStereoPcm16'false(destination, header, 0)
+            return
+        }
 
+        if not shift and header.channels == 6
+        {
+            .writeSixChannelPcm16(destination, header.blockSize)
             return
         }
 

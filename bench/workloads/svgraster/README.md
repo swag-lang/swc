@@ -17,6 +17,12 @@ curves with 0.5 px and 4 px pens. Pass `--filesamples /path/to/filesamples/sampl
 to use the four originals described in [std.pixel.image.057](../../../backlog/std.pixel.image.md#stdpixelimage057--svg-cpu-rasterization-is-far-slower-than-resvg).
 It verifies their SHA-256 digests and caps the largest output at 2048 pixels.
 
+Add `--public` to include 13 fixtures from the pinned resvg 0.50.0 test suite.
+They exercise clip paths, fill rules, acute and round joins, square caps,
+transformed rectangles, dash patterns, and an embedded 16-bit PNG. The
+runner downloads and verifies each file against its SHA-256 in the
+[public fixture manifest](public-fixtures.json).
+
 The runner prints separate parse, raster and combined medians from seven repetitions. Each
 Swag sample warms the engine once and parses a fresh drawing before calling
 `Svg.Drawing.rasterize(width, height, 1)`. Pass `--scope` to measure the bitmap path

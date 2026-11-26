@@ -635,3 +635,49 @@ match the preceding build exactly.
 
 Native Release passes 318 audio tests. Release-safe passes
 71 focused FLAC and AAC tests.
+
+## Eighteenth optimization pass
+
+This follow-up compares the changed codecs with commit `9a7dab89b5` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round18.json)
+
+| Format | R17 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R17 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 9.52 | 9.60 | 11.34 | 8.71 | 8.88 | 11.23 |
+| Ogg FLAC | 8.36 | 8.48 | 11.00 | 8.52 | 8.71 | 11.11 |
+| AAC | 6.20 | 6.22 | 6.68 | 6.19 | 6.11 | 6.42 |
+| MP3 | 9.25 | 8.97 | 7.81 | 9.11 | 9.19 | 7.94 |
+
+| Format | R17 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| FLAC | 6.21 | 6.58 | 7.21 |
+| Ogg FLAC | 6.64 | 6.44 | 6.89 |
+| AAC | 4.47 | 4.37 | 6.61 |
+| MP3 | 4.49 | 4.79 | 7.86 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R17 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R17 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `aac-lc-32k-mono.aac` | 2.59 | 2.48 | 3.45 | 2.02 | 2.00 | 3.42 |
+| `aac-lc-48k-5.1.aac` | 19.53 | 19.01 | 17.92 | 14.62 | 12.67 | 17.36 |
+| `aac-lc-48k-stereo.aac` | 8.87 | 8.58 | 8.24 | 5.50 | 5.72 | 8.05 |
+| `flac-44k-stereo-16.flac` | 5.93 | 5.95 | 11.48 | 3.34 | 3.40 | 7.46 |
+| `flac-48k-5.1-16.flac` | 23.07 | 20.40 | 36.15 | 11.08 | 9.62 | 19.27 |
+| `flac-96k-stereo-24.flac` | 21.15 | 17.82 | 27.39 | 10.14 | 8.55 | 13.96 |
+| `mp3-48k-stereo.mp3` | 11.14 | 11.15 | 9.52 | 6.07 | 5.86 | 9.43 |
+
+AAC scans escape lengths with a leading-zero count. MP3 fuses the opening
+synthesis butterfly with its subband loads and packs the first output
+position across slots. FLAC packs scaled stereo output and reuses each
+channel pointer while writing six-channel output. The generated fixture
+PCM matches R17 at each worker budget and across budgets.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 319 audio tests. Release-safe passes
+99 focused AAC, FLAC and MP3 tests.

@@ -51,6 +51,32 @@ using Core
     Swag.require(image.pixelColor(0, 24).argb == 0x00FF_FFFF)
 }
 
+// Curved holes wholly outside a tile give the same coverage as an untiled fill.
+#test
+{
+    const Source = """
+        <svg width='48' height='32'>
+          <path fill-rule='evenodd' d='M1 1H47V31H1Z M2 2C12 2 12 6 2 6Z
+                                     M35 22C45 22 45 28 35 28Z
+                                     M14 16C18 16 26 2 28 16C24 30 18 16 14 16Z'/>
+        </svg>
+        """
+    let drawing = expect Svg.Drawing.parse(Source, {preferScanFills: true})
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    let tiled = drawing.rasterizeWithSampleTileSide(renderer, 48, 32, 1, 8, &cpu)
+    let whole = drawing.rasterize(48, 32, 1)
+    Swag.require(tiled.isValid() and whole.isValid())
+    Swag.require(tiled.pixelColor(4, 3).a == 0)
+    Swag.require(tiled.pixelColor(38, 25).a == 0)
+    Swag.require(tiled.pixelColor(16, 26).a == 255)
+    for value, index in tiled.pixels do
+        Swag.require(value == whole.pixels[index])
+}
+
 // A referenced clip and a different ink keep the general painter in charge.
 #test
 {

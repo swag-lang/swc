@@ -136,8 +136,11 @@ ships; history lives in Git, not here.
   brings the largest original down to 359 ms against 269 ms for resvg on the Linux host. The
   other originals take 1.00× to 1.39× as long as resvg. Scope also uses the path for eligible
   thumbnails at its existing sample count.
-- Next: measure the remaining crossing collection and sorting costs against an incremental
-  active-edge sweep. Rerun the original Windows comparison with the current renderer.
+- Evidence: an [active-edge prototype](../bench/workloads/svgraster/resvg-comparison.md#contour-culling-and-crossing-sort)
+  improved the generated dense fill and slowed the largest original. Contour culling and
+  short-line sorting improved the original corpus with matching raster checksums.
+- Next: profile curve flattening, edge projection and bitmap writes separately on the largest
+  original at bitmap and thumbnail size. Rerun the original Windows comparison.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

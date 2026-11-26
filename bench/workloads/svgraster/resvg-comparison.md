@@ -193,3 +193,33 @@ parse options keep the existing raster CRC-64 on all four originals.
 At Scope's 320 × 213 thumbnail size, with the two-sample setting on both
 Swag builds, the totals were 75.09 → 5.79 ms, 98.14 → 17.59 ms,
 140.90 → 36.22 ms and 1316.70 → 227.00 ms respectively.
+
+## Contour culling and crossing sort
+
+An active-edge prototype reused crossing order from one subrow to the next
+and preserved the existing interpolation. In a three-run check it moved the
+generated dense fill from 70.3 to 47.8 ms, and the largest original from
+325.1 to 378.8 ms. The isolated rendering of its two largest compound paths
+also took longer with the prototype, at 231.4 ms versus 212.7 ms.
+
+The renderer discards flattened contours wholly outside either tile axis
+when the transform is axis-aligned. The projected bounds carry a rounding
+margin. Vertical edges reuse the same crossing on every subrow, and lines
+of up to eight crossings use a short insertion sort.
+
+Seven interleaved Release runs on one CPU compared the previous renderer
+at `b31d712f65` with these changes. Both Swag builds used
+`preferScanFills`, one sample per axis, and the output sizes from the
+bitmap comparison above. Thumbnail timings preserve the existing
+320 × 213 size and two samples per axis.
+
+| Source size | Previous bitmap (ms) | Current bitmap (ms) | resvg (ms) | Previous thumbnail (ms) | Current thumbnail (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 640 × 426 | 5.71 | 5.57 | 5.48 | 6.14 | 6.39 |
+| 1280 × 853 | 28.66 | 23.20 | 20.94 | 18.46 | 19.32 |
+| 1920 × 1280 | 62.78 | 53.21 | 45.83 | 38.14 | 37.18 |
+| 5184 × 3456 | 350.20 | 311.46 | 261.46 | 235.22 | 225.30 |
+
+All bitmap and thumbnail CRC-64s matched the previous Swag build. The
+largest bitmap saved 30 ms in the raster phase and 39 ms in total. The
+generated dense fill went from 69.75 to 64.80 ms with the same CRC-64.

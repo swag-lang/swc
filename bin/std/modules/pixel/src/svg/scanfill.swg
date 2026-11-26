@@ -290,6 +290,14 @@ private impl ScanFill
             let start   = cast(u64, Math.clamp(Math.ceil(top.y * VerticalSamples - 0.5), 0.0, limit))
             let end     = cast(u64, Math.clamp(Math.ceil(bottom.y * VerticalSamples - 0.5), 0.0, limit))
             let winding = a.y < b.y ? 1 : -1
+            if top.x == bottom.x
+            {
+                let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
+                for row in start until end do
+                    rows[row].add(crossing)
+                return
+            }
+
             for row in start until end
             {
                 let y       = (cast(f32, row) + 0.5) / VerticalSamples
@@ -304,6 +312,25 @@ private impl ScanFill
 
         func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
         {
+            if line.count <= 8
+            {
+                let points = line.storage()
+                for index in 1 until line.count
+                {
+                    let crossing = points[index]
+                    var target   = index
+                    while target and points[target - 1].x > crossing.x
+                    {
+                        points[target] = points[target - 1]
+                        target         -= 1
+                    }
+
+                    points[target] = crossing
+                }
+
+                return
+            }
+
             if line.count < 128
             {
                 line.sort(func(left, right) => left.x <=> right.x)
@@ -354,16 +381,17 @@ private impl ScanFill
         let crossings = scratch.rows.toSlice()[0 until rowCount]
         for &line in crossings do
             line.clear()
-        let origin     = Vector2{tile.x, tile.y}
-        let scale      = transform.axisScale()
-        let useBands   = .bands.count and transform.m12 == 0
-        let useBuckets = .buckets.count and transform.m12 == 0
-        let bandCount  = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
-        let useColumns = transform.m12 == 0 and
-                         transform.m21 == 0 and
-                         tile.width * 2 < .bounds.width * Math.abs(transform.m11) * density and
-                         Math.isFinite((.bounds.y * transform.m22 + transform.ty) * density - tile.y) and
-                         Math.isFinite((.bounds.bottom() * transform.m22 + transform.ty) * density - tile.y)
+        let origin      = Vector2{tile.x, tile.y}
+        let scale       = transform.axisScale()
+        let useBands    = .bands.count and transform.m12 == 0
+        let useBuckets  = .buckets.count and transform.m12 == 0
+        let bandCount   = useBuckets ? .buckets.count : (useBands ? .bands.count : 1'u64)
+        let axisAligned = transform.m12 == 0 and transform.m21 == 0
+        let useColumns  = axisAligned and
+                          tile.width < .bounds.width * Math.abs(transform.m11) * density and
+                          Math.isFinite((.bounds.y * transform.m22 + transform.ty) * density - tile.y) and
+                          Math.isFinite((.bounds.bottom() * transform.m22 + transform.ty) * density - tile.y)
+        let useRows = axisAligned and tile.height < .bounds.height * Math.abs(transform.m22) * density
         for band in bandCount
         {
             var first = 0'u64
@@ -389,11 +417,11 @@ private impl ScanFill
             {
                 let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
 
-                // The scan closes every contour. When all crossings are outside one
-                // edge of the tile, they cancel there and cannot change interior winding.
-                if useColumns and
-                   path.isPolyOnly and
-                   scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)
+                path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
+
+                // A closed contour outside either tile axis contributes no visible span.
+                if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
+                   (useRows and scanIntervalMisses(path.minBounds.y, path.maxBounds.y, transform.m22, transform.ty, density, tile.y, tile.height))
                 {
                     var finite = true
                     for point in path.polygon.points where not point.isFinite()
@@ -406,7 +434,6 @@ private impl ScanFill
                         continue
                 }
 
-                path.flattenPoints(.Normal, Math.max(scale.x, scale.y) * density)
                 let points = path.polygon.points.toSlice()
                 if points.count < 2 do
                     continue

@@ -47,9 +47,9 @@
 // puts it. When that branch - with the compare it fuses with - crosses a 32-byte
 // boundary or ends on one, the pair can stop issuing as one fused operation.
 // LLVM's branch alignment handles that case (MCAssembler needPadding, X86 isMacroFused).
-// Once the branches are settled, such a loop's header is pinned to the other half of the
-// 32-byte window (pinLoopBranchGroups) and the layout is redone; the function then
-// asks to start on a 32-byte boundary so the window measured here is the real one.
+// Once the branches are settled, pinLoopBranchGroups sets the header's phase within
+// the 32-byte window and the layout is redone. The function then starts on a 32-byte
+// boundary so the window measured here is the real one.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -815,9 +815,9 @@ void MicroEmitPass::collectLoopHeaders(const MicroPassContext& context)
 
 // LLVM pads right before a branch group that needs it (X86AsmBackend, -x86-align-branch=fused+jcc+jmp),
 // which a loop's closing branch then executes on every iteration. Here the loop is known, so the
-// whole loop moves instead: its header takes the other 16-byte phase of the 32-byte window, and the
-// padding before it runs once per entry. A group of at most 16 bytes that crosses or ends on a
-// boundary lands inside the window once moved by 16. A loop that encloses another candidate waits
+// whole loop moves instead. A group of at most 16 bytes that crosses or ends on a boundary lands
+// inside the window once moved by 16. A short isolated loop can use its unpadded position when
+// the whole body fits there. A loop that encloses another candidate waits
 // for the next round: the inner loop runs more often, and moving it moves the outer branch.
 bool MicroEmitPass::pinLoopBranchGroups()
 {
@@ -825,6 +825,7 @@ bool MicroEmitPass::pinLoopBranchGroups()
         return false;
 
     pinCandidates_.clear();
+    std::optional<PinCandidate> compactLoop;
     for (const PendingLabelJump& pending : pendingLabelJumps_)
     {
         if (pending.instructionRef.isInvalid())
@@ -836,7 +837,33 @@ bool MicroEmitPass::pinLoopBranchGroups()
             continue;
         if (!needsBoundaryPadding(pending.groupStart, pending.groupEnd))
             continue;
-        pinCandidates_.push_back({.labelRef = pending.labelRef, .start = static_cast<uint32_t>(label->offset), .end = pending.groupEnd, .alignment = K_BRANCH_BOUNDARY, .phaseShift = K_LOOP_HEADER_ALIGNMENT});
+        const auto start = static_cast<uint32_t>(label->offset);
+        pinCandidates_.push_back({.labelRef = pending.labelRef, .start = start, .end = pending.groupEnd, .alignment = K_BRANCH_BOUNDARY, .phaseShift = K_LOOP_HEADER_ALIGNMENT});
+
+        // A short isolated loop may fit in the window it had before header
+        // padding. This keeps both entry work and the closing group small.
+        const uint32_t padding = label->paddingBytes;
+        if (!padding || (compactLoop && compactLoop->start <= start) ||
+            needsBoundaryPadding(start - padding, pending.groupEnd - padding))
+            continue;
+
+        const bool overlappingLoop = std::ranges::any_of(pendingLabelJumps_, [&](const PendingLabelJump& other) {
+            if (&other == &pending || other.instructionRef.isInvalid() || other.groupEnd <= start)
+                return false;
+            const auto* header = findLabelInfo(other.labelRef);
+            return header && header->loopHeaderStamp == functionStamp_ &&
+                   header->offset <= other.groupStart && header->offset < pending.groupEnd;
+        });
+        if (!overlappingLoop)
+            compactLoop = PinCandidate{.labelRef = pending.labelRef, .start = start, .end = pending.groupEnd, .alignment = K_BRANCH_BOUNDARY, .phaseShift = K_BRANCH_BOUNDARY - padding};
+    }
+
+    // Re-emit before taking another compact position. Removing entry padding
+    // changes the raw offset of every later header.
+    if (compactLoop)
+    {
+        pinCandidates_.clear();
+        pinCandidates_.push_back(*compactLoop);
     }
 
     // The first branch in a loop can be hotter than its closing branch:

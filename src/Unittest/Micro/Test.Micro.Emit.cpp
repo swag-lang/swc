@@ -123,13 +123,17 @@ namespace
     }
 }
 
-// The closing cmp/jb would sit at 29..33 and cross the 32-byte boundary; the header moves
-// to the other half of the window and the function asks for a 32-byte start.
+// The closing cmp/jb would straddle the 32-byte boundary in both loops.
+// The shorter body fits in the first window without its header padding.
 SWC_TEST_BEGIN(MicroEmit_LoopBranchGroupAvoidsBoundary)
 {
     EmittedLoop loop;
     SWC_RESULT(emitLoop(ctx, 13, loop));
-    if (!groupClearOfBoundary(loop) || loop.codeAlignment != 32)
+    if (!groupClearOfBoundary(loop) || loop.codeAlignment != 32 || loop.groupStart != 1 + 13)
+        return Result::Error;
+    EmittedLoop longLoop;
+    SWC_RESULT(emitLoop(ctx, 45, longLoop));
+    if (!groupClearOfBoundary(longLoop) || longLoop.codeAlignment != 32 || longLoop.groupStart != 32 + 45)
         return Result::Error;
     return Result::Continue;
 }

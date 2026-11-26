@@ -16,6 +16,7 @@ public const Poly1305BlockSize = 16
 public alias Poly1305Tag = [Poly1305TagSize] u8
 
 private const LimbMask = 0x3FF_FFFF'u64
+private const ScalarWideBlockThreshold = 8
 private const IfmaBlockThreshold = 20
 private const TileBlockBits = 13
 private const TileBlocks = 1 << TileBlockBits
@@ -238,6 +239,29 @@ private func poly44Pairs(words: const [*] u64, count: u64, state: *Poly44Lanes,
     state[][2] = top
 }
 
+#[Swag.Inline]
+private func poly64FromLimbs(limbs: [5] u64)->[3] u64
+{
+    let first = limbs[0] + (limbs[1] << 26)
+    let low = first + (limbs[2] << 52)
+    let upper = limbs[4] << 40
+    let middle = upper + (limbs[3] << 14) + (limbs[2] >> 12) + cast(u64, low < first)
+    return [low, middle, (limbs[4] >> 24) + cast(u64, middle < upper)]
+}
+
+#[Swag.Inline]
+private func poly64ToLimbs(limbs: [3] u64)->[5] u64
+{
+    let lowPlusFive = limbs[0] + 5
+    let middlePlusCarry = limbs[1] + cast(u64, lowPlusFive < limbs[0])
+    let quotient = (limbs[2] + cast(u64, middlePlusCarry < limbs[1])) >> 2
+    let low = limbs[0] + quotient * 5
+    let middle = limbs[1] + cast(u64, low < limbs[0])
+    let high = (limbs[2] + cast(u64, middle < limbs[1])) & 3
+    return [low & LimbMask, (low >> 26) & LimbMask, ((low >> 52) | (middle << 12)) & LimbMask,
+            (middle >> 14) & LimbMask, (middle >> 40) | (high << 24)]
+}
+
 // Authenticates a message under a one-time key, following RFC 8439.
 //
 // A Poly1305 key authenticates exactly one message. Reusing it across two
@@ -457,10 +481,63 @@ public impl Poly1305
         return mac.finalize()
     }
 
+    private mtd absorbScalar64(blocks: const [*] u8, count: u64)
+    {
+        var scratch: struct
+        {
+            h, r: [3] u64
+            wrapped: u64
+        }
+        with scratch
+        {
+            .h = poly64FromLimbs(me.accumulator)
+            .r = poly64FromLimbs(me.r)
+            // The clamped upper key word is a multiple of four. Its
+            // products that wrap at bit 130 carry a factor of five.
+            .wrapped = .r[1] + (.r[1] >> 2)
+            for block in count
+            {
+                let data = cast(const [*] u64, blocks + block * Poly1305BlockSize)
+                let low = Math.littleEndianToNative(data[0])
+                let high = Math.littleEndianToNative(data[1])
+                let a0 = .h[0] + low
+                let mid = .h[1] + high
+                let a1 = mid + cast(u64, a0 < .h[0])
+                // The folded top limb is at most four. A full block adds at most two.
+                let a2 = .h[2] + 1 + cast(u64, mid < .h[1]) + cast(u64, a1 < mid)
+
+                let p00 = Math.mulU64(a0, .r[0])
+                let p11 = Math.mulU64(a1, .wrapped)
+                let p01 = Math.mulU64(a0, .r[1])
+                let p10 = Math.mulU64(a1, .r[0])
+                let d0 = p00.lo + p11.lo
+                let carry0 = p00.hi + p11.hi + cast(u64, d0 < p00.lo)
+                let middle = p01.lo + p10.lo
+                let sub = middle + carry0
+                let d1 = sub + a2 * .wrapped
+                let d2 = a2 * .r[0] + p01.hi + p10.hi +
+                         cast(u64, middle < p01.lo) + cast(u64, sub < middle) + cast(u64, d1 < sub)
+                let first = d0 + ((d2 & ~3'u64) + (d2 >> 2))
+                let second = d1 + cast(u64, first < d0)
+                .h[0] = first
+                .h[1] = second
+                .h[2] = (d2 & 3) + cast(u64, second < d1)
+            }
+            me.accumulator = poly64ToLimbs(.h)
+        }
+        secureClear(Swag.makeSlice(&scratch, 1))
+    }
+
     // The implicit high bit belongs to each full block. Finalization supplies a
     // zero high bit because the padded final block already contains its terminator.
     private mtd absorbBlocks(blocks: const [*] u8, count, highBit: u64)
     {
+        if count >= ScalarWideBlockThreshold
+        {
+            .absorbScalar64(blocks, count)
+            return
+        }
+
         // Terms that wrap past 2^130 pick up a factor of five modulo 2^130 - 5.
         var scratch: struct
         {

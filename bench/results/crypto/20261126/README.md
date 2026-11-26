@@ -212,3 +212,4 @@ optimizations moved each result.
 - [Centered Adler-32 byte weights](adler-centered-weights.md)
 - [scrypt ROMix storage alignment](scrypt-romix-alignment.md)
 - [Paired software AES counters in GCM and CCM](aes-aead-software-pairs.md)
+- [Wide-word scalar Poly1305 fallback](poly1305-wide-scalar.md)

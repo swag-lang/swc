@@ -38,3 +38,55 @@ ran from a standalone native entry with assertions enabled, admitted at 3% avera
 The runtime still distributes these expensive four-iteration ranges. Argon2 no longer needs
 its own segment-length threshold; one-lane work stays local through the runtime's single-index
 fast path. As with the earlier samples, the runs are local evidence rather than a pinned campaign.
+
+## Native comparison with libargon2 and OpenSSL
+
+The Linux runner pairs one native Swag run with both independent libraries in every round.
+It verifies the full 32-byte tag on each run. All profiles use four lanes, three passes,
+and Argon2 version 0x13. The worker count sets available CPU threads independently of lanes.
+The timer includes the derivation's allocation, computation, and internal clearing. It
+excludes one warm-up derivation, worker-pool startup in Swag, and provider setup in OpenSSL.
+
+From the repository root, set `swc` to an absolute path to the Release compiler with its
+matching runtime beside it. Set `baseline` and `candidate` to the two revisions to compare.
+The probe source comes from this checkout for both builds. [Linux compiler setup](../../../tools/README.md#linux-compiler-build)
+
+```sh
+root="$PWD"
+work=$(mktemp -d)
+mkdir -p "$work/baseline" "$work/candidate"
+git archive "$baseline" bin/std | tar -x -C "$work/baseline"
+git archive "$candidate" bin/std | tar -x -C "$work/candidate"
+for side in baseline candidate
+do
+    side_dir="$work/$side"
+    (cd "$side_dir" &&
+        SWAG_PATH="$side_dir/bin" "$swc" build \
+            -f "$root/bench/workloads/argon2/compare/compare.swg" \
+            --module-file "$root/bench/workloads/argon2/module.swg" \
+            -bc release --artifact-kind executable -n argon2-swag \
+            -od "$side_dir/out" -wd "$side_dir/work")
+done
+```
+
+Build the upstream library with the target selected for the machine under test. The probe
+also needs OpenSSL 3.2 or newer with Argon2id and threading enabled.
+
+```sh
+git clone --depth 1 --branch 20190702 https://github.com/P-H-C/phc-winner-argon2.git "$work/libargon2"
+make -C "$work/libargon2" OPTTARGET=native libargon2.a
+cc -std=c11 -O2 -I"$work/libargon2/include" \
+    bench/workloads/argon2/compare/reference.c "$work/libargon2/libargon2.a" \
+    -pthread -lcrypto -o "$work/argon2-reference"
+
+python3 bench/workloads/argon2/compare/run.py \
+    --baseline "$work/baseline/out/argon2-swag" \
+    --candidate "$work/candidate/out/argon2-swag" \
+    --reference "$work/argon2-reference" --cpus 0 1 2 3 \
+    --output "$work/results.json"
+```
+
+Replace the four CPU IDs with CPUs from the process affinity. The one-worker run uses the
+first CPU and the four-worker run uses the whole set. The default nine rounds shuffle the
+implementations within each round. The JSON keeps per-round times, exact median intervals,
+and paired candidate/reference ratios for 1, 64, and 256 MiB.

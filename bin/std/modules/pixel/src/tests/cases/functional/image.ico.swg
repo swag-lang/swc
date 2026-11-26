@@ -229,6 +229,79 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.pixels.buffer[7] == 0'u8)     // transparent via AND mask
 }
 
+// Odd-width indexed, BGR and legacy BGRA rows apply the AND mask across vector blocks and pixel tails.
+#test
+{
+    const Width  = 13
+    const Height = 3
+    for bitCount in [1'u16, 4, 8, 24, 32]
+    {
+        let rowBytes     = ((Width * bitCount + 31) / 32) * 4
+        let paletteCount = bitCount <= 8 ? 1'u32 << bitCount : 0'u32
+        var body: ConcatBuffer
+        for index in paletteCount
+        {
+            body.addNative(cast(u8, index))
+            body.addNative(cast(u8, ((index ^ 0x65) & 0xFF)))
+            body.addNative(cast(u8, ((index ^ 0x91) & 0xFF)))
+            body.addNative(0xFA'u8)
+        }
+
+        for y in Height
+        {
+            var row: [52] u8
+            for x in Width
+            {
+                let sample = x * 251 + y * 127 + 3
+                if paletteCount
+                {
+                    let bit   = x * bitCount
+                    let index = sample & (paletteCount - 1)
+                    row[bit / 8] |= cast(u8, (index << (8 - bitCount - (bit & 7))))
+                }
+                else
+                {
+                    let at = x * (bitCount / 8)
+                    row[at]     = cast(u8, (sample & 0xFF))
+                    row[at + 1] = cast(u8, ((sample ^ 0x65) & 0xFF))
+                    row[at + 2] = cast(u8, ((sample ^ 0x91) & 0xFF))
+                }
+            }
+
+            body.addBytes(row[until rowBytes])
+        }
+
+        for y in Height
+        {
+            var mask: [4] u8
+            for x in Width
+            {
+                if (x + y) % 3 == 0 do
+                    mask[x / 8] |= cast(u8, (128 >> (x & 7)))
+            }
+
+            body.addBytes(mask)
+        }
+
+        body.makeLinear()
+        let file   = buildIco(Width, Height, bitCount, paletteCount, nnBytes(body.toSlice()))
+        let image  = expect decodeIco(nnBytes(file.toSlice()))
+        let pixels = image.pixels.storage()
+        for y in Height
+        {
+            for x in Width
+            {
+                let offset = (y * Width + x) * 4
+                let sample = (x * 251 + y * 127 + 3) & (paletteCount ? paletteCount - 1 : 255)
+                Swag.require(pixels[offset] == sample)
+                Swag.require(pixels[offset + 1] == (sample ^ 0x65))
+                Swag.require(pixels[offset + 2] == (sample ^ 0x91))
+                Swag.require(pixels[offset + 3] == ((x + y) % 3 == 0 ? 0 : 255))
+            }
+        }
+    }
+}
+
 // Decode a 2x2 8-bit indexed icon through its palette.
 #test
 {

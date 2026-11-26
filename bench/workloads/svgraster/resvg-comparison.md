@@ -576,3 +576,53 @@ At two samples per axis, the one-pixel stroke fixture took 414.92 versus
 389.84 ms at one worker and 453.64 versus 416.06 ms at four. All six
 bitmap controls and the three supersampled stroke fixtures matched their
 baseline CRC-64s.
+
+## Projection across scan bands
+
+`dense-colored` renders two 8,000-contour fills with different colors and
+partial opacity. It follows the shared CPU matte path and exposes the
+cost of reprojecting every vertex for each short band. The renderer now
+projects the contours once and skips the ones whose vertical bounds miss
+the band. Crossings still use the same tile-local subtraction, sample
+positions, winding and blend order. The device-point cache is capped at
+one million points, with its bounds stored per contour.
+
+Nine Release runs per build used the Scope options and matching CPU
+sets. Medians include parsing and first rasterization in milliseconds.
+
+| CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| One logical CPU | 805.59 | 96.27 | 49.71 |
+| Four logical CPUs | 853.19 | 103.64 | 59.43 |
+
+All original bitmaps and thumbnails, the eleven generated fixtures, and
+thirteen public resvg fixtures matched their Swag baseline CRC-64s. A
+regression checks fractional coverage against individually drawn contours
+across several clipped scan bands.
+
+## Embedded images on shared CPU mattes
+
+Swag samples the embedded bitmap once and mixes the sampled color into
+both SVG mattes. For straight RGB and RGBA images with sixteen-bit
+components, the CPU sampler quantizes each texel with integer arithmetic.
+Those colors enter the same interpolation as eight-bit texels. Separable
+axis-aligned sampling and cached horizontal rows apply to magnified
+sixteen-bit PNGs.
+
+One-core Release medians in milliseconds use eleven interleaved samples
+on an AMD EPYC 7763 logical CPU. The baseline is Swag `60a2e9e772` and
+the reference is resvg 0.50.0. Both public fixtures use 1200 by 1200 pixels.
+[Phase timings and comparisons](bitmap-mattes-linux.json)
+
+| Fixture | Swag total before | Swag total after | resvg total | Raster before | Raster after | resvg raster |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `resvg-clip.svg` | 16.38 | 11.58 | 46.01 | 16.28 | 11.48 | 45.80 |
+| `resvg-embedded-rgb16.svg` | 619.36 | 24.02 | 69.84 | 619.02 | 23.66 | 69.54 |
+
+Of 23 generated and public cases, 22 kept their Swag CRC-64. The PNG
+fixture's coordinate rounding changed by at most two levels out of 255,
+with a 0.0041 mean difference in premultiplied RGBA. Its mean error
+against resvg decreased from 0.2661 to 0.2646. The image-under-clip
+fixture kept the same pixels. A focused test gives equivalent
+sixteen-bit and eight-bit images the same translucent placement and
+checks their complete output.

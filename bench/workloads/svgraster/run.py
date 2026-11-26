@@ -108,6 +108,21 @@ def fixtures(scratch, filesamples):
             svg.write('</g></svg>\n')
         yield path, width, height
 
+    width, height = 1280, 853
+    path = scratch / "dense-colored.svg"
+    compound_random = random.Random(63)
+    with path.open("w", encoding="ascii", newline="\n") as svg:
+        svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+        for color in ("#306495", "#9a4728"):
+            svg.write(f'<path fill="{color}" fill-opacity=".72" fill-rule="evenodd" d="\n')
+            for _ in range(8000):
+                x = compound_random.randrange(width - 15)
+                y = compound_random.randrange(height - 15)
+                svg.write(f"M{x} {y}l3 1 4 4 -2 5 -6 -2Z\n")
+            svg.write('"/>\n')
+        svg.write('</svg>\n')
+    yield path, width, height
+
 
 def public_fixtures(scratch):
     manifest = json.loads((HERE / "public-fixtures.json").read_text(encoding="utf-8"))

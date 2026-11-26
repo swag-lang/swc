@@ -155,3 +155,51 @@ using Core
     Swag.require(image.pixelColor(8, 21).argb == 0xFFFF_FFFF)
     Swag.require(image.pixelColor(12, 21).argb == 0xFF00_0000)
 }
+
+// A compound fill keeps fractional coverage when its contours span several clipped scan bands.
+#test
+{
+    const Width  = 80
+    const Height = 420
+    let ink = Color.fromArgb(0x8020_6090'u32)
+    var images: [2] Image
+    for draw in 2
+    {
+        var cpu: RenderCpu
+        cpu.begin(Width, Height)
+        let renderer: IRenderer = &cpu
+        defer renderer.end()
+        var painter = Painter.createScanline(&cpu)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromArgb(Argb.White))
+        painter.setColorMaskColor()
+        painter.setClippingRect({5, 5, 64, 406})
+        painter.setTransform(Math.Transform2.createTranslation(0.25, 0.25))
+
+        var contours: LinePathList
+        for row in 104
+        {
+            for column in 12
+            {
+                contours.newPath().setRectRaw(cast(f32, 4 + column * 5), cast(f32, 2 + row * 4), 2.5, 2.5)
+                if draw
+                {
+                    painter.fillPath(&contours, ink, .EvenOdd)
+                    contours.clear()
+                }
+            }
+        }
+
+        if not draw do
+            painter.fillPath(&contours, ink, .EvenOdd)
+        painter.end()
+        expect renderer.draw(&painter)
+        images[draw] = cpu.surfaceImage()
+    }
+
+    Swag.require(images[0].pixelColor(10, 8).argb != 0xFFFF_FFFF)
+    Swag.require(images[0].pixelColor(2, 8).argb == 0xFFFF_FFFF)
+    for byte, index in images[0].pixels do
+        Swag.require(byte == images[1].pixels[index])
+}

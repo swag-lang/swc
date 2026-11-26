@@ -77,91 +77,84 @@ private func dolbySourceChannel(destination, acmod, nfchans: u32, lfeon: bool)->
 
 private struct BitReader
 {
-    data:     const [*] u8
-    bitSize:  u64
-    bitPos:   u64
-    overrun:  bool
-    cache:    u64
-    cacheEnd: u64
+    data:    const [*] u8
+    size:    u64
+    bitPos:  u64
+    overrun: bool
 }
 
 private impl BitReader
 {
-    internal func create(data: const [*] u8, size: u64)->BitReader => BitReader{data, size * 8}
+    internal func create(data: const [*] u8, size: u64)->BitReader => BitReader{data, size}
 
-    // Dolby fields are at most 32 bits and never seek backwards.
+    // Dolby syntax fields and mantissas use at most 16 bits.
     #[Swag.Inline]
     internal mtd read(count: u32)->u32
     {
         if not count do
             return 0
-
-        let start = .bitPos
-        let end   = start + count
-        .bitPos = end
-        if end <= .cacheEnd
-        {
-            let offset = cast(u32, 64 - (.cacheEnd - start))
-            return cast(u32, ((.cache << offset) >> (64 - count)))
-        }
-
-        return .refillAndRead(count, start)
-    }
-
-    mtd refillAndRead(count: u32, start: u64)->u32
-    {
-        let byteStart = start >> 3
-        let cacheEnd  = (byteStart + 8) * 8
-        if cacheEnd <= .bitSize
-        {
-            .cache    = Math.bigEndianToNative(cast(const [*] u64, .data + byteStart)[0])
-            .cacheEnd = cacheEnd
-            return cast(u32, ((.cache << cast(u32, (start & 7))) >> (64 - count)))
-        }
-
-        // Read the tail without loading a full word past the end of the packet.
-        if start >= .bitSize
-        {
-            .overrun = true
-            return 0
-        }
-
-        var pos       = start
-        let end       = pos + count
-        let available = Math.min(end, .bitSize)
-        var value: u32
-        while pos < available
-        {
-            let byteBits = 8 - cast(u32, pos & 7)
-            let take     = Math.min(cast(u32, available - pos), byteBits)
-            let bits     = cast(u32, .data[pos >> 3]) >> (byteBits - take)
-            value = (value << take) | (bits & ((1'u32 << take) - 1))
-            pos   += take
-        }
-
-        if end > .bitSize
-        {
-            .overrun = true
-            value    <<= cast(u32, end - pos)
-        }
-
-        return value
+        return cast(u32, (.readAligned(count) >> (32 - count)))
     }
 
     #[Swag.Inline]
-    mtd readSigned(count: u32)->s32
+    mtd readAligned(count: u32)->u32
     {
-        let raw = .read(count)
+        let start     = .bitPos
+        let byteStart = start >> 3
+        .bitPos = start + count
+        var word: u32
+        if byteStart + 4 <= .size
+        {
+            word = Math.bigEndianToNative(cast(const [*] u32, .data + byteStart)[0])
+        }
+        else
+        {
+            if .bitPos > .size * 8 do
+                .overrun = true
+            word = .readTail(byteStart)
+        }
+
+        return word << cast(u32, (start & 7))
+    }
+
+    // The wide-load guard leaves at most three physical bytes here.
+    mtd readTail(byteStart: u64)->u32
+    {
+        if byteStart >= .size do
+            return 0
+        var word: u32
+        for byte in .size - byteStart do
+            word |= cast(u32, .data[byteStart + byte]) << cast(u32, (24 - 8 * byte))
+        return word
+    }
+
+    #[Swag.Inline]
+    internal mtd readSigned(count: u32)->s32
+    {
         if not count do
             return 0
-        let shift = 32 - count
-        return cast #bit(s32, (raw << shift)) >> shift
+        return cast(s32, (cast #bit(s32, .readAligned(count)) >> (32 - count)))
+    }
+
+    #[Swag.Inline]
+    internal mtd readBit()->u32
+    {
+        let at        = .bitPos
+        let byteStart = at >> 3
+        .bitPos = at + 1
+        if byteStart >= .size
+        {
+            .overrun = true
+            return 0
+        }
+
+        return (cast(u32, .data[byteStart]) >> (7 - cast(u32, (at & 7)))) & 1
     }
 
     internal mtd skip(count: u64)
     {
         .bitPos += count
-        if .bitPos > .bitSize do
+        if .bitPos > .size * 8 do
             .overrun = true
     }
 }

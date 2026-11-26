@@ -1850,10 +1850,10 @@ private impl Codec
                         frame += 4
                     }
                 }
-                elif .channels == 1 or .channels == 6
+                elif .channels == 1 or .channels == 6 or .channels == 8
                 {
-                    // Mono can go straight to the output, and six-channel PCM is
-                    // interleaved after all six planes are available.
+                    // Mono goes straight to the output. Surround PCM is
+                    // interleaved after every channel plane is available.
                     let packed  = .channels == 1 ? cast([*] u16, pcm) : cast([*] u16, .spectrum[channel].storage())
                     let current = time + cast(u64, cast(s64, overlapStart) + shift)
                     writePcmPlane(packed, saved, current, overlapStart, overlapEnd, outputFrames)
@@ -1919,6 +1919,10 @@ private impl Codec
         {
             .interleaveSurroundPcm(pcm, outputFrames)
         }
+        elif .channels == 8 and outputFrames
+        {
+            .interleaveEightPcm(pcm, outputFrames)
+        }
 
         .previousSize = n
         return outputFrames
@@ -1949,6 +1953,43 @@ private impl Codec
             let target = output + 6 * frame
             storeFourSurroundFrames(target, Simd.interleaveLow(a, b), Simd.interleaveLow(c, d), Simd.interleaveLow(e, f))
             storeFourSurroundFrames(target + 24, Simd.interleaveHigh(a, b), Simd.interleaveHigh(c, d), Simd.interleaveHigh(e, f))
+            frame += 8
+        }
+    }
+
+    mtd interleaveEightPcm(pcm: [*] s16, outputFrames: u64)
+    {
+        var lanes: [8] PcmPointer
+        for channel in 8 do
+            lanes[ChannelSlots[8, channel]] = cast([*] u16, .spectrum[channel].storage())
+
+        let output = cast([*] u16, pcm)
+        let l0     = unwrap lanes[0]
+        let l1     = unwrap lanes[1]
+        let l2     = unwrap lanes[2]
+        let l3     = unwrap lanes[3]
+        let l4     = unwrap lanes[4]
+        let l5     = unwrap lanes[5]
+        let l6     = unwrap lanes[6]
+        let l7     = unwrap lanes[7]
+        var frame  = 0'u64
+        while frame < outputFrames
+        {
+            let a      = Simd.load(l0 + frame)
+            let b      = Simd.load(l1 + frame)
+            let c      = Simd.load(l2 + frame)
+            let d      = Simd.load(l3 + frame)
+            let e      = Simd.load(l4 + frame)
+            let f      = Simd.load(l5 + frame)
+            let g      = Simd.load(l6 + frame)
+            let h      = Simd.load(l7 + frame)
+            let target = output + 8 * frame
+            storeFourEightChannelFrames(target, Simd.interleaveLow(a, b), Simd.interleaveLow(c, d), Simd.interleaveLow(e, f), Simd.interleaveLow(g, h))
+            storeFourEightChannelFrames(target + 32,
+                                        Simd.interleaveHigh(a, b),
+                                        Simd.interleaveHigh(c, d),
+                                        Simd.interleaveHigh(e, f),
+                                        Simd.interleaveHigh(g, h))
             frame += 8
         }
     }
@@ -2145,6 +2186,24 @@ private func storeFourSurroundFrames(output: [*] u16, a, b, c: Simd.U16x8)
     Simd.store(output, cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0'u32, 1, 4, 3]))))
     Simd.store(output + 8, cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0'u32, 5, 2, 3]))))
     Simd.store(output + 16, cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6'u32, 1, 2, 7]))))
+}
+
+// Join pairs into four-channel halves, then join two halves into each frame.
+#[Swag.Inline]
+private func storeFourEightChannelFrames(output: [*] u16, a, b, c, d: Simd.U16x8)
+{
+    let pa         = cast #bit(Simd.U32x4, a)
+    let pb         = cast #bit(Simd.U32x4, b)
+    let pc         = cast #bit(Simd.U32x4, c)
+    let pd         = cast #bit(Simd.U32x4, d)
+    let firstLow   = cast #bit(Simd.U64x2, Simd.interleaveLow(pa, pb))
+    let secondLow  = cast #bit(Simd.U64x2, Simd.interleaveLow(pc, pd))
+    let firstHigh  = cast #bit(Simd.U64x2, Simd.interleaveHigh(pa, pb))
+    let secondHigh = cast #bit(Simd.U64x2, Simd.interleaveHigh(pc, pd))
+    Simd.store(output, cast #bit(Simd.U16x8, Simd.interleaveLow(firstLow, secondLow)))
+    Simd.store(output + 8, cast #bit(Simd.U16x8, Simd.interleaveHigh(firstLow, secondLow)))
+    Simd.store(output + 16, cast #bit(Simd.U16x8, Simd.interleaveLow(firstHigh, secondHigh)))
+    Simd.store(output + 24, cast #bit(Simd.U16x8, Simd.interleaveHigh(firstHigh, secondHigh)))
 }
 
 // Multiplies `target` by the line from `(x0, y0)` to `(x1, y1)`, stepping through the amplitude

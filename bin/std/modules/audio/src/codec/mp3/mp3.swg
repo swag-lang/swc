@@ -265,14 +265,16 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
     var scfsi         = 0'u32
     if header.isMpeg1
     {
-        mainDataBegin = cast(u64, reader.read(9))
-        discard reader.read(header.channels == 1 ? 5 : 3)
-        scfsi = reader.read(4 * header.channels)
+        let shareBits   = 4 * header.channels
+        let privateBits = header.channels == 1 ? 5'u32 : 3'u32
+        let start       = reader.read(9 + privateBits + shareBits)
+        mainDataBegin = cast(u64, start >> (privateBits + shareBits))
+        scfsi         = start & ((1'u32 << shareBits) - 1)
     }
     else
     {
-        mainDataBegin = cast(u64, reader.read(8))
-        discard reader.read(header.channels == 1 ? 1 : 2)
+        let privateBits = header.channels == 1 ? 1'u32 : 2'u32
+        mainDataBegin = cast(u64, reader.read(8 + privateBits) >> privateBits)
     }
 
     for granule in header.granules
@@ -280,22 +282,26 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
         for channel in header.channels
         {
             let info = &granules[][cast(u64, granule), cast(u64, channel)]
-            info.part23Length = reader.read(12)
-            info.bigValues    = reader.read(9)
+            let sizes = reader.read(21)
+            info.part23Length = sizes >> 9
+            info.bigValues    = sizes & 511
             if info.bigValues > 288 do
                 fail InvalidFormatError{"MP3 granule codes more spectral lines than a granule holds"}
-            info.globalGain       = reader.read(8)
-            info.scalefacCompress = reader.read(header.isMpeg1 ? 4 : 9)
+            let scaleBits = header.isMpeg1 ? 4'u32 : 9'u32
+            let scale     = reader.read(8 + scaleBits)
+            info.globalGain       = scale >> scaleBits
+            info.scalefacCompress = scale & ((1'u32 << scaleBits) - 1)
 
             info.longBands  = 22
             info.shortBands = 0
             info.bandKind   = 0
             if reader.readBit() != 0
             {
-                info.blockType = reader.read(2)
+                let windows = reader.read(3)
+                info.blockType = windows >> 1
                 if not info.blockType do
                     fail InvalidFormatError{"MP3 granule switches windows and then states a normal block"}
-                info.mixedBlock = reader.readBit() != 0
+                info.mixedBlock = (windows & 1) != 0
 
                 info.regionBands[0] = 7
                 info.regionBands[1] = 255
@@ -316,26 +322,31 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
                     }
                 }
 
-                for region in 2'u64 do
-                    info.tableSelect[region] = reader.read(5)
-                info.tableSelect[2] = 0
-                for window in 3'u64 do
-                    info.subblockGain[window] = reader.read(3)
+                let switches = reader.read(19)
+                info.tableSelect[0]  = switches >> 14
+                info.tableSelect[1]  = (switches >> 9) & 31
+                info.tableSelect[2]  = 0
+                info.subblockGain[0] = (switches >> 6) & 7
+                info.subblockGain[1] = (switches >> 3) & 7
+                info.subblockGain[2] = switches & 7
             }
             else
             {
-                info.blockType  = 0
-                info.mixedBlock = false
-                for region in 3'u64 do
-                    info.tableSelect[region] = reader.read(5)
-                info.regionBands[0] = reader.read(4)
-                info.regionBands[1] = reader.read(3)
+                let regions = reader.read(22)
+                info.blockType      = 0
+                info.mixedBlock     = false
+                info.tableSelect[0] = regions >> 17
+                info.tableSelect[1] = (regions >> 12) & 31
+                info.tableSelect[2] = (regions >> 7) & 31
+                info.regionBands[0] = (regions >> 3) & 15
+                info.regionBands[1] = regions & 7
                 info.regionBands[2] = 255
             }
 
-            info.preflag       = header.isMpeg1 ? reader.readBit() != 0 : info.scalefacCompress >= 500
-            info.scalefacScale = reader.readBit()
-            info.count1Table   = reader.readBit()
+            let flags = reader.read(header.isMpeg1 ? 3 : 2)
+            info.preflag       = header.isMpeg1 ? (flags & 4) != 0 : info.scalefacCompress >= 500
+            info.scalefacScale = (flags >> 1) & 1
+            info.count1Table   = flags & 1
 
             // `scfsi` says whether the second granule keeps what the first read, so the first
             // never shares, and a short block never shares either.

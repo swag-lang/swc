@@ -209,8 +209,9 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 ### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
 
 - Evidence: native Linux Release timings cover opening and materializing the first
-  ten seconds of PCM16. AAC, DTS, FLAC, OGA and Vorbis lead at one core.
-  AAC and MP3 lead with four cores. AC-3, MP3 and Opus still trail at one core.
+  ten seconds of PCM16. Against FFmpeg 9.1, FileSamples AAC, FLAC and OGA lead
+  on the measured single core. DTS and Vorbis are close on that core. AC-3,
+  MP3 and Opus still trail there. MP3 leads by about 3 ms with four cores.
   [Full FileSamples comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#full-ninth-pass-comparison)
   · [Vorbis output follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#tenth-optimization-pass)
   · [AAC, AC-3 and Opus follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#eleventh-optimization-pass)
@@ -230,6 +231,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [FLAC verbatim and wide sample follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-fifth-optimization-pass)
   · [MP3 bit reader and AC-3 stereo follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-eighth-optimization-pass)
   · [CELT stereo, SILK filtering and Vorbis setup follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-ninth-optimization-pass)
+  · [FFmpeg 9.1, Dolby, MP3, SILK and Vorbis 7.1](../bench/results/swagscope-filesamples/audio-decode-linux.md#thirty-first-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.

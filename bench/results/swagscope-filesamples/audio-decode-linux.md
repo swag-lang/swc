@@ -1062,3 +1062,66 @@ and mono Vorbis take slightly longer with four cores and remain ahead of FFmpeg.
 
 Native Release passes 325 audio tests. Release-safe passes 28 focused Ogg, Opus and
 Vorbis tests.
+
+## Thirty-first optimization pass
+
+This pass compares Swag against `ef5b06b283` on the same Release compiler and
+against [FFmpeg 9.1](https://github.com/FFmpeg/FFmpeg/tree/n9.1). The native
+reference includes the relevant audio codecs and x86 assembly with runtime CPU
+dispatch. Each median uses 42 samples. Total time includes opening and writing
+up to ten seconds of interleaved PCM16 to memory.
+
+[Raw stage times, PCM digests, and fixture manifest](audio-decode-linux-round31.json)
+
+| FileSamples format | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 8.84 | 8.99 | 9.92 | 6.64 | 6.29 | 6.81 |
+| Ogg FLAC | 8.25 | 8.35 | 9.54 | 6.58 | 7.06 | 6.77 |
+| AAC | 6.12 | 6.16 | 6.36 | 4.34 | 4.05 | 6.14 |
+| AC-3 | 8.31 | 7.29 | 6.40 | 8.55 | 7.61 | 6.60 |
+| DTS | 12.64 | 12.84 | 12.67 | 12.37 | 12.14 | 13.36 |
+| MP3 | 8.08 | 7.78 | 7.21 | 4.07 | 3.94 | 7.00 |
+| Ogg Vorbis | 6.69 | 6.74 | 6.64 | 6.81 | 6.59 | 6.62 |
+| Opus | 20.74 | 20.95 | 18.79 | 20.29 | 19.76 | 18.65 |
+| WAV | 0.91 | 0.90 | 8.10 | 1.00 | 1.00 | 8.45 |
+
+The raw data includes a second single-core FileSamples run on CPU 1 for AC-3,
+MP3, Vorbis and Opus. The WAV result includes over 7 ms of open time in FFmpeg
+9.1 on this file. Its decode stage is faster than Swag's.
+
+| Generated input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ac3-32k-mono.ac3` | 4.84 | 4.49 | 3.69 | 5.01 | 4.52 | 3.59 |
+| `ac3-32k-stereo.ac3` | 7.66 | 7.02 | 6.14 | 7.80 | 7.49 | 6.68 |
+| `ac3-44k-stereo.ac3` | 9.35 | 8.57 | 7.21 | 9.36 | 9.02 | 7.36 |
+| `ac3-48k-5.1.ac3` | 24.89 | 23.05 | 22.21 | 23.83 | 22.73 | 21.86 |
+| `ac3-48k-stereo.ac3` | 9.52 | 8.79 | 7.45 | 9.66 | 9.14 | 7.58 |
+| `eac3-48k-5.1.eac3` | 23.35 | 21.62 | 21.54 | 24.62 | 22.78 | 21.72 |
+| `mp3-24k-mono.mp3` | 2.65 | 2.67 | 2.67 | 2.01 | 1.95 | 2.54 |
+| `mp3-44k-stereo-cbr.mp3` | 8.34 | 8.07 | 7.06 | 4.49 | 3.95 | 7.37 |
+| `mp3-48k-stereo.mp3` | 9.18 | 9.18 | 8.05 | 5.44 | 5.55 | 8.11 |
+| `mp3-8k-mono.mp3` | 0.99 | 0.99 | 1.10 | 0.71 | 0.74 | 1.11 |
+| `vorbis-32k-mono.ogg` | 3.50 | 3.46 | 4.26 | 3.46 | 3.39 | 4.43 |
+| `vorbis-48k-5.1.ogg` | 28.59 | 28.06 | 27.49 | 27.01 | 27.59 | 26.15 |
+| `vorbis-48k-7.1.ogg` | 39.79 | 35.75 | 32.34 | 40.02 | 34.95 | 32.34 |
+| `vorbis-48k-stereo.ogg` | 8.72 | 8.95 | 9.06 | 9.04 | 9.03 | 9.44 |
+| `opus-20ms-48k-stereo.opus` | 27.65 | 27.75 | 26.47 | 28.55 | 28.89 | 26.72 |
+| `opus-5ms-48k-stereo.opus` | 27.51 | 27.44 | 29.73 | 27.83 | 27.52 | 30.97 |
+| `opus-voip-16k-mono.opus` | 8.75 | 8.14 | 9.62 | 8.80 | 8.17 | 9.80 |
+| `opus-voip-48k-mono.opus` | 15.33 | 14.65 | 13.05 | 15.79 | 14.86 | 13.13 |
+| `dts-48k-stereo.dts` | 13.32 | 13.05 | 13.39 | 12.93 | 12.86 | 14.28 |
+
+Dolby reads literal fields and mantissas through guarded 32-bit windows.
+MP3 reads adjacent side-information fields together. SILK combines its common
+LPC saturation checks and keeps the same edge behavior. Vorbis interleaves
+eight PCM16 planes with vector stores. All 26 Swag outputs are byte-identical
+to the preceding build and across worker budgets.
+
+The corpus now has 31 generated fixtures. The previous 25 SHA-256 digests
+are unchanged. The 7.1 Vorbis case improves by 4.04 ms at one core and
+5.08 ms at four cores. The new 16 kHz voice input improves by 0.61 ms
+and leads FFmpeg 9.1. The 48 kHz voice case and FileSamples Opus still trail
+the newer reference, as do FileSamples AC-3 and single-core MP3.
+
+Native Release passes 327 audio tests. Release-safe passes 67 focused Dolby,
+MP3, Ogg, Opus and Vorbis tests.

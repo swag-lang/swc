@@ -119,6 +119,33 @@ private func encodeFileRows(image: Image, output: [*] u8, rowBytes: u64)
     }
 }
 
+private func encodePackBitsRows(output: *Array'u8, image: Image, rowBytes: u64)
+{
+    let swizzled = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+    var converted: Array'u8
+    if swizzled do
+        converted.reserve(rowBytes)
+
+    let pixels = image.pixels.storage()
+    for fileY in image.height
+    {
+        let source = pixels + cast(u64, image.height - fileY - 1) * image.rowStride
+        if swizzled
+        {
+            let destination = converted.storage()
+            if image.pixelFormat == .BGR8 do
+                PackedPixel.swapRedBlue24Row(source, destination, cast(u64, image.width))
+            else do
+                PackedPixel.swapRedBlue32Row(source, destination, cast(u64, image.width))
+            packBitsRow(output, destination, rowBytes)
+        }
+        else
+        {
+            packBitsRow(output, source, rowBytes)
+        }
+    }
+}
+
 internal impl IImageEncoder for Encoder
 {
     mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
@@ -161,26 +188,23 @@ internal impl IImageEncoder for Encoder
         var storedLen      = rawDataLen
         var compressionTag = COMPRESSION_NONE
         var hasPredictor: bool
-        if userOptions.compression == .Lzw or userOptions.compression == .PackBits
+        if userOptions.compression == .Lzw
         {
             var rawData: Array'u8
             rawData.reserve(rawDataLen)
-            encodeFileRows(image, rawData.storage(), rowBytes)
-            if userOptions.compression == .Lzw
-            {
-                applyHorizontalPredictor(rawData.storage(), rowBytes, cast(u64, height), samples)
-                packLzw(&packedData, rawData.storage(), rawDataLen)
-                compressionTag = COMPRESSION_LZW
-                hasPredictor   = true
-            }
-            else
-            {
-                for y in height do
-                    packBitsRow(&packedData, rawData.storage() + cast(u64, y) * rowBytes, rowBytes)
-                compressionTag = COMPRESSION_PACKBITS
-            }
-
-            storedLen = packedData.count
+            let raw = rawData.storage()
+            encodeFileRows(image, raw, rowBytes)
+            applyHorizontalPredictor(raw, rowBytes, cast(u64, height), samples)
+            packLzw(&packedData, raw, rawDataLen)
+            storedLen      = packedData.count
+            compressionTag = COMPRESSION_LZW
+            hasPredictor   = true
+        }
+        elif userOptions.compression == .PackBits
+        {
+            encodePackBitsRows(&packedData, image, rowBytes)
+            storedLen      = packedData.count
+            compressionTag = COMPRESSION_PACKBITS
         }
 
         // Layout: header(8) | pixel data | IFD | BitsPerSample array

@@ -78,7 +78,10 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Evidence: [the packed-filter comparison](../bench/results/video/20261126-decode-comparison/README.md#realvideo-packed-filters-and-reconstruction)
   measures the longer RealVideo I/P/B stream at 3.34× single-threaded FFmpeg. The
   post-change profile assigns 23% of samples to deblocking and 9% to bilinear
-  motion interpolation.
+  motion interpolation. Reference-buffer reuse and the exact DC-only path lower
+  the long-stream median to 0.118 ms, 3.21 times FFmpeg. The remaining filter cost
+  needs a new profile after this change.
+  [Reference reuse measurements](../bench/results/video/20261126-decode-comparison/README.md#realvideo-reference-buffers-and-dc-only-reconstruction)
 - Next: measure packed deblocking across the independent samples of each edge.
   Use both the extended I/P/B stream and the original short clips.
 - Done when: the same benchmarks show a repeatable reduction and all reference planes

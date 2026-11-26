@@ -38,18 +38,28 @@ func inverseTransform(block: *[16] s32, dc: bool)
     Simd.transpose4x4(rows)
 }
 
+#[Swag.Inline]
+private func addResidualRow(row: [*] u8, changes: Simd.S32x4)
+{
+    let bytes      = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u32, row)[0]))
+    let prediction = cast #bit(Simd.S32x4, Simd.widenLow(Simd.widenLow(bytes)))
+    let samples    = Simd.packSigned(changes + prediction, changes + prediction)
+    Simd.storeLow4(row, Simd.packUnsigned(samples, samples))
+}
+
 func addResidual(dst: [*] u8, stride: s32, block: *[16] s32)
 {
     inverseTransform(block, false)
-    for y in 4's32
-    {
-        let row        = dst + y * stride
-        let bytes      = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u32, row)[0]))
-        let prediction = cast #bit(Simd.S32x4, Simd.widenLow(Simd.widenLow(bytes)))
-        let values     = Simd.load(&block[][y * 4]) + prediction
-        let samples    = Simd.packSigned(values, values)
-        Simd.storeLow4(row, Simd.packUnsigned(samples, samples))
-    }
+    for y in 4's32 do
+        addResidualRow(dst + y * stride, Simd.load(&block[][y * 4]))
+}
+
+// A pure DC coefficient sees the factor 13 in both transform passes.
+func addDcResidual(dst: [*] u8, stride, coefficient: s32)
+{
+    let residual = Simd.splat((13 * 13 * coefficient + 512) >> 10)
+    for y in 4's32 do
+        addResidualRow(dst + y * stride, residual)
 }
 
 func predictLarge(dst: [*] u8, stride, size, mode: s32, top, left: bool)

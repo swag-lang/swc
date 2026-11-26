@@ -489,3 +489,29 @@ for Noto Serif CJK JP versus 0.89 ms in FreeType and 1.21 ms for Gowun Batang
 versus 0.71 ms in FreeType. For Noto Serif CJK JP, the two independent pathname
 repeats were 5–9% slower than the Swag baseline. The source speedup applies to
 retained snapshots.
+
+## Scope character index
+
+Scope builds its page starts and its first Unicode scalar per glyph by
+visiting the selected character map in order. For grouped maps, iteration
+seeks to the first group it needs and walks the mapped ranges. Glyph-zero
+mappings and surrogate code points are skipped. One visit builds each index
+when the viewer opens a face or switches to another collection member.
+
+The probe isolates the viewer's index construction with the face already
+loaded. It starts at U+0020 and uses 192 characters per page. The baseline is
+`154239b013`. Medians use seven interleaved batches of three indexes on one
+CPU, after one warmup. All 59 fixture faces have the same page count and
+CRC-64 of the page starts and glyph-to-character arrays before and after.
+[Raw timings and checksums](font-index-linux.json)
+
+| Fixture | Face | Before (ms) | After (ms) |
+| --- | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 0 | 104.888 | 0.029 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 131.549 | 0.419 |
+| `NotoSerifCJK-Regular.ttc` | 0 | 130.425 | 0.382 |
+| `ZenKakuGothicNew-Regular.ttf` | 0 | 73.638 | 6.268 |
+| `MaShanZheng-Regular.ttf` | 0 | 76.504 | 6.301 |
+| `GowunBatang-Regular.ttf` | 0 | 110.338 | 0.059 |
+| `NotoSansJP-Variable.ttf` | 0 | 129.159 | 0.157 |
+| `NotoSansSC-Variable.ttf` | 0 | 115.414 | 0.184 |

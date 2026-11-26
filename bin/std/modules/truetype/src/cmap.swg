@@ -348,7 +348,7 @@ func hasVariationSequence(faceData: *FaceImpl, charCode, selector: u32)->bool fa
     return nonDefaultOffset != 0 and lookupNonDefaultVariation(cmap, nonDefaultOffset, charCode) != 0
 }
 
-func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
+func lookupGlyphIndex(faceData: const *FaceImpl, charCode: u32)->u32 fail
 {
     // A bare CFF or Type 1 program declares no character map; the one derived from its
     // built-in encoding answers in its place.
@@ -373,4 +373,117 @@ func lookupGlyphIndex(faceData: *FaceImpl, charCode: u32)->u32 fail
     }
 
     return glyphIndex < faceData.face.glyphCount ? glyphIndex : 0
+}
+
+// The group ends are ordered and were validated with this face's glyph count.
+private func(sequential: bool) visitCMapGroups(cmap: const [..] u8, first: u32, visitor: func||(rune, u32)->bool)
+{
+    let numGroups = peekU32(cmap, 12)
+    var lower     = 0'u32
+    var upper     = numGroups
+    while lower < upper
+    {
+        let middle = lower + (upper - lower) / 2
+        let end    = peekU32(cmap, 20'u64 + cast(u64, middle) * 12)
+        if end < first do
+            lower = middle + 1
+        else do
+            upper = middle
+    }
+
+    for index in lower until numGroups
+    {
+        let record = 16'u64 + cast(u64, index) * 12
+        let start  = peekU32(cmap, record)
+        let end    = peekU32(cmap, record + 4)
+        let glyph  = peekU32(cmap, record + 8)
+        #static if not sequential
+        {
+            if not glyph do
+                continue
+        }
+
+        for code in Math.max(first, start) to end
+        {
+            let character = cast(rune, code)
+            if not Utf8.isValidRune(character) do
+                continue
+            let glyphIndex = sequential ? glyph + (code - start) : glyph
+            if glyphIndex and not visitor(character, glyphIndex) do
+                return
+        }
+    }
+}
+
+func visitMappedCharacters(faceData: const *FaceImpl, first: u32, visitor: func||(rune, u32)->bool)
+{
+    const ScalarLimit = 0x110000'u64
+    if first >= ScalarLimit do
+        return
+
+    if not faceData.hasCMap
+    {
+        var codes: Array'u32
+        for code, glyph in faceData.syntheticCMap
+        {
+            if code >= first and
+               code < ScalarLimit and
+               glyph and
+               glyph < faceData.face.glyphCount and
+               Utf8.isValidRune(cast(rune, code)) do
+                codes.add(code)
+        }
+
+        codes.sort()
+        for code in codes
+        {
+            if not visitor(cast(rune, code), faceData.syntheticCMap.getOrDefault(code, 0)) do
+                return
+        }
+
+        return
+    }
+
+    let cmap  = faceData.chosenCMap
+    var start = cast(u64, first)
+    var limit = ScalarLimit
+    switch faceData.cmapFormat
+    {
+    case 0:
+        limit = 0x100
+
+    case 4:
+        limit = 0x10000
+
+    case 6:
+        let mapStart = cast(u64, peekU16(cmap, 6))
+        start = Math.max(start, mapStart)
+        limit = mapStart + peekU16(cmap, 8)
+
+    case 10:
+        let mapStart = cast(u64, peekU32(cmap, 12))
+        start = Math.max(start, mapStart)
+        limit = Math.min(ScalarLimit, mapStart + peekU32(cmap, 16))
+
+    case 12:
+        visitCMapGroups'true(cmap, first, visitor)
+        return
+
+    case 13:
+        visitCMapGroups'false(cmap, first, visitor)
+        return
+    }
+
+    if start >= limit do
+        return
+
+    for code in start until limit
+    {
+        let character = cast(rune, code)
+        if not Utf8.isValidRune(character) do
+            continue
+        let glyph = catch lookupGlyphIndex(faceData, cast(u32, code)) orelse 0
+        if glyph and not visitor(character, glyph) do
+            return
+    }
 }

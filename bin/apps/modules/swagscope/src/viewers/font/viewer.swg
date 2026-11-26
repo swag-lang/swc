@@ -251,9 +251,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         result.details = Format.toString(texts().ui_UnreadableFaces, unreadable, collectionCount)
     elif collectionCount > 1 do
         result.details = Format.toString(texts().ui_CollectionFaces, collectionCount)
-    let face  = unwrap result.face
-    var start = 0x20'u32
-    result.glyphCharacters.resize(face.glyphCount)
+    let face = unwrap result.face
     for glyphIndex in face.glyphCount
     {
         if let name = face.glyphName(cast(u32, glyphIndex)) do
@@ -261,23 +259,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
 
     result.glyphNames.sort(func(a, b) => Text.compareNames(a.name.toSlice(), b.name.toSlice()))
-    while start < 0x110000
-    {
-        let page = characterPage(face, start)
-        if page.characters.isEmpty() do
-            break
-        result.pageStarts.add(cast(u32, page.characters[0]))
-        for character in page.characters
-        {
-            let glyphIndex = face.glyphIndex(character)
-            if glyphIndex < result.glyphCharacters.count and not result.glyphCharacters[glyphIndex] do
-                result.glyphCharacters[glyphIndex] = character
-        }
-
-        if not page.hasNext do
-            break
-        start = page.end + 1
-    }
+    buildCharacterIndex(face, &result.pageStarts, &result.glyphCharacters)
 
     for &count, index in result.facts.coverage
     {

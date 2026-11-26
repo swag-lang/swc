@@ -57,6 +57,35 @@ struct OverlayArray
     idx: [3] f32
 }
 
+struct OverlayPadded
+{
+    first: u64
+    #[Swag.Offset("first")]
+    low:    u32
+    second: u64
+    last:   u32
+}
+
+#[Swag.NoInline]
+func makeOverlayPadded(first, second: u64, low, last: u32)->OverlayPadded
+{
+    return {first: first, low: low, second: second, last: last}
+}
+
+#test
+{
+    const LastEnd = #offsetof(OverlayPadded.last) + #sizeof(u32)
+    #assert(LastEnd == 20)
+    #assert(#sizeof(OverlayPadded) == 24)
+    var value = makeOverlayPadded(0x1122_3344_5566_7788, 0xAABB_CCDD_1122_3344, 0xDEAD_BEEF, 9)
+    Swag.require(value.first == 0x1122_3344_DEAD_BEEF)
+    Swag.require(value.second == 0xAABB_CCDD_1122_3344)
+    Swag.require(value.last == 9)
+    let bytes = cast(const [*] u8, &value)
+    for index in LastEnd until #sizeof(OverlayPadded) do
+        Swag.require(bytes[index] == 0)
+}
+
 #test
 {
     #assert(#offsetof(Packed1.a) == 0)

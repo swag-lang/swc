@@ -246,20 +246,18 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 - Done when: the unmodified caller-state question is resolved and compiler cost is assessed.
 - Related: compiler.optimization.121, platform.portability.103.
 
-### compiler.codegen.016 — Drop the default clear of a value built in the return slot
+### compiler.codegen.016 — Drop overwritten defaults in returned locals
 
-- Evidence: a struct literal or a defaulted local built in the caller's storage first clears it,
-  then stores every field: `return P{a: x, b: 2, c: 3, d: 4, e: 5}` emits two 16-byte zero stores
-  that the field stores overwrite. On a stack slot the dead stores disappear; through the hidden
-  return pointer they stay, because the optimizer removes dead stores only on frame storage.
-- Next: remove a store fully overwritten before any load, call, or escape of the same base address,
-  whatever that base is, or skip the clear when the literal names every field and the type has no
-  padding.
-- Validation: include the native Scope video consumer after complete dependency rebuilds. A
-  full-coverage literal prototype passed the language suites but did not establish a reliable
-  asynchronous-consumer comparison; isolate that behavior before enabling clear removal.
-- Done when: the literal above and a local of the return type filled field by field write each
-  byte of the slot once.
+- Evidence: a defaulted local built in the caller's return storage can clear every byte before
+  the succeeding field assignments fill it. Frame dead-store elimination does not prove that
+  the same hidden return pointer stays unread. Fully specified scalar literals already skip
+  their pure zero fill when disjoint field stores cover the return slot.
+- Next: prove which ranges are overwritten before any load, call, or escape of the return
+  pointer. Preserve bytes for incomplete writes, padding, overlapped fields, and dynamic or
+  lifecycle initialization. Include the existing native Scope video test after rebuilding its
+  dependencies.
+- Done when: a local of the return type filled field by field writes each byte of its return
+  slot once, and partial and observable initialization cases preserve their behavior.
 
 ### compiler.codegen.017 — Reduce reflection metadata and absolute-pointer relocations in native images
 

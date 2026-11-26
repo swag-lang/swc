@@ -345,16 +345,53 @@ namespace
         return true;
     }
 
-    Result emitConcreteLiteralStorageInit(CodeGen& codeGen, TypeRef storageTypeRef, MicroReg dstBaseReg)
+    bool literalOverwritesZeroDefault(CodeGen& codeGen, const TypeInfo& storageType, std::span<const AggregateElementLayout> layout)
     {
-        if (storageTypeRef.isInvalid())
-            return Result::Continue;
+        if (!storageType.isStruct())
+            return false;
 
-        const TypeInfo& storageType = codeGen.typeMgr().get(storageTypeRef);
-        if (!storageType.isArray() && !storageType.isStruct())
-            return Result::Continue;
+        const SymbolStruct& symStruct = storageType.payloadSymStruct();
+        if (symStruct.isUnion())
+            return false;
+        symStruct.computeImplicitDefaultFlags(codeGen.sema());
+        if (!symStruct.hasImplicitAllZeroDefault())
+            return false;
 
-        return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, storageTypeRef, dstBaseReg);
+        // A literal lists each field at most once. Require all nonempty fields
+        // to cover the storage without padding or overlapping explicit offsets.
+        uint64_t coveredBytes = 0;
+        size_t   fieldCount   = 0;
+        for (const SymbolVariable* field : symStruct.fields())
+        {
+            if (!field)
+                continue;
+            const uint64_t size = field->typeInfo(codeGen.ctx()).sizeOf(codeGen.ctx());
+            if (!size)
+                continue;
+            if (field->offset() != coveredBytes)
+                return false;
+            coveredBytes += size;
+            ++fieldCount;
+        }
+        if (fieldCount != layout.size() || coveredBytes != storageType.sizeOf(codeGen.ctx()))
+            return false;
+
+        for (const auto& entry : layout)
+        {
+            const auto* payload = codeGen.safePayload(entry.valueRef);
+            if (!payload || !payload->reg.isValid() || !payload->isValue() || payload->typeRef != entry.typeRef)
+                return false;
+
+            // Restrict this to values already in registers. Copying an
+            // address-backed value or running a lifecycle hook could read the
+            // destination between default initialization and field stores.
+            const TypeInfo& type = codeGen.typeMgr().get(entry.typeRef);
+            const auto      bits = CodeGenTypeHelpers::scalarStoreBits(type, codeGen.ctx());
+            if (bits == MicroOpBits::Zero || getNumBytes(bits) != type.sizeOf(codeGen.ctx()))
+                return false;
+        }
+
+        return true;
     }
 
     bool tryResolveExistingAggregateElementPayload(CodeGenNodePayload& outPayload, CodeGen& codeGen, AstNodeRef valueRef, TypeRef targetTypeRef)
@@ -801,9 +838,14 @@ namespace
             dstBaseReg    = codeGen.runtimeStorageAddressReg(nodeRef);
         }
 
-        // Start from defaults so omitted array or struct elements retain valid bytes.
-        if (storageType.isStructOrArray())
-            SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
+        const SymbolVariable* storageSym = buildsInPlace ? destinationSym : codeGen.runtimeStorageSymbol(nodeRef);
+
+        // Frame stores already benefit from dead-store elimination. A short
+        // function body can use the caller's slot without a storage symbol.
+        const bool usesCallerSlot = !codeGen.frame().hasCurrentInlineContext() &&
+                                    (storageSym ? CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *storageSym) : buildsInPlace);
+        if (storageType.isStructOrArray() && !(usesCallerSlot && literalOverwritesZeroDefault(codeGen, storageType, layout)))
+            SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, aggregateTypeRef, dstBaseReg));
 
         if (taggedCaseRef.isValid())
         {
@@ -868,8 +910,7 @@ namespace
 
         // Only a compiler temporary is dropped with its statement. The caller's return slot
         // belongs to the caller, who drops the value it receives.
-        const SymbolVariable* storageSym  = codeGen.runtimeStorageSymbol(nodeRef);
-        const bool            isTemporary = storageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && !storageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal);
+        const bool isTemporary = storageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) && !storageSym->hasExtraFlag(SymbolVariableFlagsE::RetVal);
         if (ownsValue && isTemporary && codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop))
             codeGen.registerTemporaryDrop(nodeRef, aggregateTypeRef, *storageSym);
 

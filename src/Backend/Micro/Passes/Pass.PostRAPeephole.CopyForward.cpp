@@ -591,8 +591,13 @@ namespace PostRaPeephole
         return false;
     }
 
+    // A LEA followed by a register copy can write the copied destination.
+    // Also redirect one adjacent arithmetic reader of the old LEA result
+    // when that is its last use.
     bool tryRetargetAddressResultCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst)
     {
+        if (ctx.isClaimed(copyRef))
+            return false;
         const auto* copy = copyInst.ops(*ctx.operands);
         if (!copy || !copy[0].reg.isInt() || !copy[1].reg.isInt() || copy[0].reg == copy[1].reg ||
             ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg) ||
@@ -604,17 +609,54 @@ namespace PostRaPeephole
             return false;
         const auto*    ops        = address->ops(*ctx.operands);
         const uint32_t widthIndex = address->op == MicroInstrOpcode::LoadAddrRegMem ? 2 : 3;
-        if (!ops || ops[0].reg != copy[1].reg || ops[widthIndex].opBits != copy[2].opBits ||
-            !ctx.isRegDeadAfterCurrent(copy[1].reg))
+        const MicroReg oldResult  = copy[1].reg;
+        const MicroReg result     = copy[0].reg;
+        if (!ops || ops[0].reg != oldResult || ops[widthIndex].opBits != copy[2].opBits)
             return false;
+
+        SmallVector<MicroInstrRef, 3> proof{addressRef, copyRef};
+        MicroInstrRef                 readerRef          = MicroInstrRef::invalid();
+        MicroInstrOperand             rewrittenReader[4] = {};
+        if (!ctx.isRegDeadAfterCurrent(oldResult))
+        {
+            readerRef                = ctx.nextRef(copyRef);
+            const MicroInstr* reader = ctx.instruction(readerRef);
+            if (!reader || reader->op != MicroInstrOpcode::OpBinaryRegReg)
+                return false;
+            const auto* read = reader->ops(*ctx.operands);
+            if (!read || read[0].reg == oldResult || !read[0].reg.isInt() ||
+                read[1].reg != oldResult || read[2].opBits != copy[2].opBits ||
+                !ctx.isRegDeadAfter(oldResult, ctx.instructionIndex + 1))
+                return false;
+            switch (read[3].microOp)
+            {
+                case MicroOp::Add:
+                case MicroOp::Subtract:
+                case MicroOp::And:
+                case MicroOp::Or:
+                case MicroOp::Xor:
+                case MicroOp::MultiplySigned:
+                    break;
+                default:
+                    return false;
+            }
+            std::copy_n(read, 4, rewrittenReader);
+            rewrittenReader[1].reg = result;
+            MicroConformanceIssue issue;
+            if (ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *reader, rewrittenReader))
+                return false;
+            proof.push_back(readerRef);
+        }
         MicroInstrOperand rewritten[Action::K_MAX_OPS] = {};
         std::copy_n(ops, address->numOperands, rewritten);
-        rewritten[0].reg = copy[0].reg;
+        rewritten[0].reg = result;
         MicroConformanceIssue issue;
-        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *address, rewritten)) || !ctx.claimAll({addressRef, copyRef}))
+        if ((ctx.encoder && ctx.encoder->queryConformanceIssue(issue, *address, rewritten)) || !ctx.claimAll(proof.span()))
             return false;
         ctx.emitRewrite(addressRef, address->op, std::span{rewritten, address->numOperands});
         ctx.emitErase(copyRef);
+        if (readerRef.isValid())
+            ctx.emitRewrite(readerRef, MicroInstrOpcode::OpBinaryRegReg, rewrittenReader);
         return true;
     }
 

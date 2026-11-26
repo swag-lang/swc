@@ -1672,6 +1672,39 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsDoubledAddressIntoAdd)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_CoalescesAddressCopyUsedByNextArithmetic)
+{
+    constexpr MicroReg result  = MicroReg::intReg(0);
+    constexpr MicroReg input   = MicroReg::intReg(9);
+    constexpr MicroReg other   = MicroReg::intReg(8);
+    constexpr MicroReg scratch = MicroReg::intReg(10);
+    for (const bool live : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAddressAmcRegMem(scratch, MicroOpBits::B32, result, input, 1, 0, MicroOpBits::B64);
+        const auto address = builder.instructions().lastInstructionRef();
+        builder.emitLoadRegReg(result, scratch, MicroOpBits::B32);
+        const auto copy = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegReg(other, scratch, MicroOp::Add, MicroOpBits::B32);
+        const auto arithmetic = builder.instructions().lastInstructionRef();
+        if (live)
+            builder.emitLoadMemReg(input, 0, scratch, MicroOpBits::B64);
+        builder.emitLoadMemReg(input, 8, other, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+        const auto* lea      = builder.instructions().ptr(address);
+        const auto* add      = builder.instructions().ptr(arithmetic);
+        const auto  expected = live ? scratch : result;
+        if (!lea || !add || lea->ops(builder.operands())[0].reg != expected ||
+            add->ops(builder.operands())[1].reg != expected || (builder.instructions().ptr(copy) != nullptr) != live)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsIndexedAddressIntoNextLoad)
 {
     constexpr MicroReg base    = MicroReg::intReg(8);

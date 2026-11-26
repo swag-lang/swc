@@ -183,3 +183,4 @@ optimizations moved each result.
 - [AES-KW and AES-KWP inverse round chain](aes-key-unwrap-chain.md)
 
 - [RSA Montgomery setup and private exponent windows](rsa-fixed-windows.md)
+- [YMM AES rounds in XTS and CTR](aes-vaes-xts-ctr.md)

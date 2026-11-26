@@ -52,3 +52,22 @@ same Linux host, with seven one-worker repetitions and three four-worker repetit
 | Clip masks | 68.29 | 44.46 | 10.39 | 77.66 | 42.05 | 11.35 |
 | Dense compound fill | 74.46 | 70.71 | 50.94 | 74.84 | 68.54 | 74.42 |
 | Large drawing | 1896.49 | 1312.27 | 315.09 | 2296.20 | 896.15 | 280.98 |
+
+## Original FileSamples SVGs
+
+The four SHA-256-verified originals were measured against `844f2af028` on the same Linux
+x86-64 host. The one-worker run used seven interleaved repetitions pinned to one CPU. The
+four-worker run used three interleaved repetitions pinned to four CPUs. Each Swag output
+matched its baseline CRC-64 in both runs.
+
+| SVG source | Output px | One worker baseline (ms) | Swag (ms) | resvg (ms) | Four workers baseline (ms) | Swag (ms) | resvg (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample_640×426.svg` | 640 × 426 | 90.80 | 84.28 | 5.87 | 85.48 | 74.85 | 7.50 |
+| `sample_1280×853.svg` | 1280 × 853 | 1427.01 | 136.10 | 21.31 | 1389.61 | 146.40 | 22.34 |
+| `sample_1920×1280.svg` | 1920 × 1280 | 273.76 | 211.71 | 53.60 | 232.83 | 174.76 | 45.97 |
+| `sample_5184×3456.svg` | 2048 × 1365 | 2545.78 | 1510.16 | 254.74 | 2445.01 | 1542.69 | 249.80 |
+
+On the 1280 × 853 input, segment intersection tests took about 80% of the baseline CPU
+profile. Contour edge bounds reject disjoint groups before those tests run. All four drawings
+use black ink, so one white matte recovers their coverage. Releasing oversized tessellation
+and fill scratch tables reduces the cost of small regions that follow large compound paths.

@@ -889,10 +889,13 @@ impl Tessellate
         return false
     }
 
-    // Empties the coincidence grid without releasing what it allocated.
+    // Reuses coincidence cells that are still proportionate to the last border set.
     private mtd dupClear()
     {
-        .dupCells.clear()
+        if .dupCells.capacity > 256 and .dupCells.capacity / 8 > .dupCells.count do
+            .dupCells.free()
+        else do
+            .dupCells.clear()
         .dupNext.clear()
         .dupPoint.clear()
     }

@@ -3,14 +3,15 @@
 
 using Swag, Core
 
-// Tiled white masks preserve CPU coverage at every supersampling factor.
+// Tiled monochrome masks preserve CPU coverage at every supersampling factor.
 #test
 {
     var cpu: RenderCpu
     cpu.begin(91, 75)
     let renderer: IRenderer = &cpu
     defer renderer.end()
-    assertSvgWhiteMaskRaster(renderer, 64)
+    assertSvgMaskRaster(renderer, 64, "white")
+    assertSvgMaskRaster(renderer, 64, "black")
 }
 
 // One traversal must preserve both mattes even at clipped overlaps and partial edge tiles.

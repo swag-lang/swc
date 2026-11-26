@@ -124,9 +124,12 @@ ships; history lives in Git, not here.
   `bf29681a8b952f06b8d5a61a4ac5a18e0194e9f6a207e57ab6ab9b32f4e64801`.
   Benchmark host: Windows 11 x64, Intel Core Ultra 9 185H. The comparison measures this corpus
   and these output sizes only; it does not establish whole-format correctness or universal speed.
-- Next: run the [Release SVG benchmark](../bench/workloads/svgraster/README.md) against the four
-  SHA-256-verified original files. Profile the remaining gap on the 453 KiB and 7.9 MiB samples,
-  particularly stroke coverage and the remaining triangle work in individual colored paths.
+- Evidence: the [Linux Release benchmark](../bench/workloads/svgraster/README.md#original-filesamples-svgs)
+  uses the same four originals. Its one-worker medians are 14.36×, 6.39×, 3.95× and 5.93×
+  resvg. The largest remaining absolute gap is the 7.9 MiB sample. Its raster profile spans
+  triangle drawing, contour intersection tests, transforms and scan edge construction.
+- Next: attribute the 7.9 MiB sample's raster cost by path and measure the remaining triangle and
+  scan fill work separately. Rerun the original Windows comparison with the current renderer.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

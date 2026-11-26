@@ -112,28 +112,30 @@ func solutionArea(paths: Pixel.Clipper.ClipperPaths)->f64
     return Math.abs(total)
 }
 
-// White masks recover coverage from one black matte. An invisible colored shape selects the
-// two-matte reference without changing its pixels, including clipped translucent overlaps.
-func assertSvgWhiteMaskRaster(renderer: IRenderer, sampleTileSide: s32)
+// An offscreen colored shape selects the two-matte reference for the same visible geometry.
+func assertSvgMaskRaster(renderer: IRenderer, sampleTileSide: s32, ink: string)
 {
     const Content = """
         <defs><clipPath id='c'><circle cx='46' cy='38' r='34'/></clipPath></defs>
-        <g clip-path='url(#c)' fill='white' stroke='white' stroke-width='1.4'>
+        <g clip-path='url(#c)' fill='%' stroke='%' stroke-width='1.4'>
           <rect x='8' y='5' width='52' height='48' rx='5' fill-opacity='0.3'/>
           <circle cx='54' cy='40' r='25' fill-opacity='0.6'/>
           <path d='M4 68L82 7M9 10L84 64' fill='none' stroke-opacity='0.4'/>
         </g>
         """
-    let source          = Format.toString("<svg width='91' height='75'>%</svg>", Content)
-    let referenceSource = Format.toString("<svg width='91' height='75'>%<rect width='1' height='1' fill='red' fill-opacity='0'/></svg>", Content)
+    let content         = Format.toString(Content, ink, ink)
+    let source          = Format.toString("<svg width='91' height='75'>%</svg>", content)
+    let referenceSource = Format.toString("<svg width='91' height='75'>%<rect x='160' width='1' height='1' fill='red'/></svg>", content)
     let drawing         = expect Svg.Drawing.parse(source.toString())
     let reference       = expect Svg.Drawing.parse(referenceSource.toString())
     for samples in [1'u8, 2'u8, 4'u8, 8'u8]
     {
         let image    = drawing.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
         let expected = reference.rasterizeWithSampleTileSide(renderer, 91, 75, samples, sampleTileSide)
+        Swag.require(image.isValid() and expected.isValid())
+        Swag.require(image.pixels.count == expected.pixels.count)
         for value, index in image.pixels do
-            Swag.require(value == expected.pixels[index], Format.toString("SVG white mask differs at sample count %, byte %: got %, expected %", samples, index, value, expected.pixels[index]))
+            Swag.require(value == expected.pixels[index], Format.toString("SVG % mask differs at sample count %, byte %. Got %, expected %.", ink, samples, index, value, expected.pixels[index]))
     }
 }
 

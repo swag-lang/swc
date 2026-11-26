@@ -94,6 +94,40 @@ func nestedSquares()->LinePathList
     Swag.require(bowtie.normalizedFill(.NonZero, byDirection: true) == cleaned)
 }
 
+// Blocks of outer edges may skip a distant hole while retaining tolerant contacts.
+#test
+{
+    for top in [25.0'f32, 0.25'f32, -1.0'f32]
+    {
+        var list: LinePathList
+        with let outer = list.newPath()
+        {
+            .start(0, 0)
+            .lineTo(10, 0)
+            .lineTo(10.02, 0)
+            for i in 49 do
+                .lineTo(cast(f32, 12 + i * 2), 0)
+            .lineTo(108, 100)
+            .lineTo(0, 100)
+            .close()
+        }
+
+        with let inner = list.newPath()
+        {
+            .start(10.002, top)
+            .lineTo(10.018, top)
+            .lineTo(10.018, top + 2)
+            .lineTo(10.002, top + 2)
+            .close()
+        }
+
+        list.flatten(.Normal)
+        Swag.require(list.paths[0].polygon.points.count > 32)
+        let normalized = list.normalizedFill(.NonZero, byDirection: true)
+        Swag.require((normalized != &list) == (top != 25))
+    }
+}
+
 // A deep copy leaves the fill cache with the source and rebuilds its own.
 #test
 {

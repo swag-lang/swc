@@ -13,8 +13,8 @@ TTF and OTF. It does not time all 808 files or every size/profile variant.
 **Result:** Swag Scope is not uniformly slow. The largest measured regressions are its FLAC and
 DTS audio paths, its PDF page render, and its WebP/EXR image decode. BMP, ICO, JPEG, PNG, TIFF,
 WAV and most tested video containers are competitive or faster under these API workloads. The
-four SVG fixtures remain a separate, severe regression against resvg; their results are summarized
-below and detailed in [`std.pixel.image.057`](../../../backlog/std.pixel.image.md#stdpixelimage057--svg-cpu-rasterization-is-far-slower-than-resvg).
+four SVG fixtures remain slower than resvg. The original results and the Linux follow-up are
+summarized below.
 
 ## Measured formats
 
@@ -132,6 +132,12 @@ The prior four-file comparison measured Scope's SVG parse plus CPU rasterization
 0.50.0. Its total ratios were **18.4×, 75.0×, 7.9× and 11.4×** for outputs from 640 × 426 up
 to the 2048 × 1365 cap. Rasterization dominated. Details, timings by phase, hashes and limitations
 remain in [`std.pixel.image.057`](../../../backlog/std.pixel.image.md#stdpixelimage057--svg-cpu-rasterization-is-far-slower-than-resvg).
+
+The Linux A/B rerun verified all four original files and preserved Swag's raster checksums.
+With one worker, the revised renderer took **14.36×, 6.39×, 3.95× and 5.93×** as long as resvg.
+On this host, the 1280 × 853 sample fell from 1427 ms to 136 ms against the Swag baseline.
+See the [SVG benchmark](../../workloads/svgraster/README.md#original-filesamples-svgs) for the
+one-worker and four-worker measurements.
 
 ## FileSamples coverage and remaining comparisons
 

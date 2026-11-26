@@ -10,6 +10,13 @@ private const PaintGridColumns     = 16'u64
 
 private const ContourChunkSize = 512'u64
 
+private enum RasterMask
+{
+    Color
+    White
+    Black
+}
+
 // Controls resources that SVG parsing may resolve outside the document text.
 //
 // Data-image URIs are accepted up to `maxImageBytes`. A non-empty
@@ -6079,8 +6086,8 @@ impl Drawing
         let tileHeight    = Math.min(height, Math.max(sampleTileSide / ss, 1))
         let sampledWidth  = tileWidth * ss
         let sampledHeight = tileHeight * ss
-        let whiteMask     = .hasOnlyWhiteShapes()
-        let paired        = cpu != null and ss == 1 and not whiteMask and .canShareMatteCoverage()
+        let mask          = .rasterMask()
+        let paired        = cpu != null and ss == 1 and mask == .Color and .canShareMatteCoverage()
 
         // Strokes use destination alpha as scratch. Recover source-over coverage from two
         // opaque mattes instead: white minus black is the uncovered fraction. Each matte
@@ -6119,13 +6126,13 @@ impl Drawing
             {
                 let copyWidth = Math.min(tileWidth, width - tileX)
                 var mattes: [2] Image
-                for matte in (whiteMask or paired ? 1 : 2)
+                for matte in (mask != .Color or paired ? 1 : 2)
                 {
                     var painter = Painter.create(renderer)
                     painter.begin()
                     painter.bindRenderTarget(&sampled)
                     painter.setColorMaskFull()
-                    painter.clear(Color.fromArgb(matte == 0 ? Argb.Black : Argb.White))
+                    painter.clear(Color.fromArgb(matte == 0 and mask != .Black ? Argb.Black : Argb.White))
                     painter.setColorMaskColor()
                     painter.pushClippingSurfaceRect({0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)})
                     .paintImpl(&painter, cast(f32, (-tileX * ss)), cast(f32, (-tileY * ss)), cast(f32, (width * ss)) / .width)
@@ -6181,28 +6188,35 @@ impl Drawing
 
                 for row in copyHeight
                 {
-                    let black       = mattes[0].pixels.storage() + cast(u64, row) * cast(u64, mattes[0].rowStride)
+                    let firstMatte  = mattes[0].pixels.storage() + cast(u64, row) * cast(u64, mattes[0].rowStride)
                     let resultRow   = result.height - tileY - copyHeight + row
                     let destination = result.pixels.storage() + cast(u64, resultRow) * cast(u64, result.rowStride) + cast(u64, tileX) * result.bytesPerPixel
+                    let output      = cast([*] u32, destination)
 
-                    // White source-over ink leaves the white matte unchanged. The black
-                    // matte alone carries its coverage, including overlaps and stroke scratch.
-                    if whiteMask
+                    // Mask ink leaves the same-colored matte unchanged through overlaps.
+                    // The other matte carries the coverage, even when strokes use alpha scratch.
+                    if mask == .White
+                    {
+                        for column in copyWidth do
+                            output[column] = 0x00FF_FFFF | (cast(u32, firstMatte[column * 4]) << 24)
+                        continue
+                    }
+
+                    if mask == .Black
                     {
                         for column in copyWidth
                         {
-                            let offset = cast(u64, column) * 4
-                            destination[offset], destination[offset + 1], destination[offset + 2] = 255
-                            destination[offset + 3] = black[offset]
+                            let alpha = 255'u32 - firstMatte[column * 4]
+                            output[column] = alpha == 0 ? 0x00FF_FFFF : alpha << 24
                         }
 
                         continue
                     }
 
+                    let black      = firstMatte
                     let white      = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
                     let blackWords = cast(const [*] u32, black)
                     let whiteWords = cast(const [*] u32, white)
-                    let output     = cast([*] u32, destination)
                     for column in copyWidth
                     {
                         // Identical matte colors have full coverage. Strokes may have
@@ -6251,24 +6265,42 @@ impl Drawing
         return true
     }
 
-    // White masks need one matte. Keep pictures, text, paint servers and filters on the
-    // general path: their final color cannot be established from a solid brush alone.
-    private mtd const hasOnlyWhiteShapes()->bool
+    // Detects shapes whose color can be recovered from one matte.
+    private mtd const rasterMask()->RasterMask
     {
+        var white = true
+        var black = true
         for item in .items
         {
             if item.kind != .Shape do
-                return false
+                return .Color
             let shape = &.shapes[item.index]
             if shape.filterId or shape.fillPaintId do
-                return false
-            if shape.hasFill and (shape.fillColor.argb & 0xFFFFFF) != 0xFFFFFF do
-                return false
+                return .Color
+            if shape.hasFill
+            {
+                let rgb = shape.fillColor.argb & 0x00FF_FFFF
+                white = white and rgb == 0x00FF_FFFF
+                black = black and rgb == 0
+            }
+
             let stroke = .strokeFor(shape)
-            if stroke and (stroke.paintId or (stroke.enabled and (stroke.color.argb & 0xFFFFFF) != 0xFFFFFF)) do
-                return false
+            if stroke
+            {
+                if stroke.paintId do
+                    return .Color
+                if stroke.enabled
+                {
+                    let rgb = stroke.color.argb & 0x00FF_FFFF
+                    white = white and rgb == 0x00FF_FFFF
+                    black = black and rgb == 0
+                }
+            }
+
+            if not white and not black do
+                return .Color
         }
 
-        return true
+        return white ? .White : .Black
     }
 }

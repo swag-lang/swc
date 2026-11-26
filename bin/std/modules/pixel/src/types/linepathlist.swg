@@ -41,7 +41,43 @@ private func contourPointCount(polygon: const *Polygon)->u64
     return count
 }
 
-private func contoursIntersect(a, b: const *Polygon)->bool
+private const ContourEdgeBlockSize      = 16'u64
+private const FillIntersectionTolerance = 0.01'f32
+
+private struct ContourEdgeBounds
+{
+    min, max: Vector2
+    bounded:  bool
+}
+
+// Includes both the crossing factors' endpoint tolerance and the near-collinear test's
+// dominant-axis projection. Two cross products below epsilon can put the projected edges
+// up to 2 * sqrt(2) apart when the first segment's length is at least epsilon.
+private func contourEdgeBounds(points: const [..] Vector2, last: Vector2)->ContourEdgeBounds
+{
+    func bounded(point: Vector2)->bool
+    {
+        return point.isFinite() and Math.abs(point.x) < 32768 and Math.abs(point.y) < 32768
+    }
+
+    if not bounded(last) do
+        return {}
+    var min = last
+    var max = last
+    for point in points
+    {
+        if not bounded(point) do
+            return {}
+        min = Vector2.min(min, point)
+        max = Vector2.max(max, point)
+    }
+
+    let extent  = max - min
+    let padding = 3.01 + FillIntersectionTolerance * (extent.x + extent.y)
+    return {min - Vector2{padding, padding}, max + Vector2{padding, padding}, true}
+}
+
+private func contoursIntersect(a, b: const *Polygon, blocks: *Array'ContourEdgeBounds)->bool
 {
     if a.maxBounds.x < b.minBounds.x or
        b.maxBounds.x < a.minBounds.x or
@@ -54,16 +90,49 @@ private func contoursIntersect(a, b: const *Polygon)->bool
     if countA < 2 or countB < 2 do
         return false
 
-    for i in countA
+    let pointsA = a.points.storage()
+    let pointsB = b.points.storage()
+    if countA >= ContourEdgeBlockSize * 2 and blocks.isEmpty()
     {
-        let a0 = a.points[i]
-        let a1 = a.points[(i + 1) % countA]
-        for j in countB
+        // Consecutive edges tend to stay local. Build their bounds once and reuse them
+        // for every possible neighbor, including the small holes inside a large outline.
+        for block in (countA - 1) / ContourEdgeBlockSize + 1
         {
-            let b0 = b.points[j]
-            let b1 = b.points[(j + 1) % countB]
-            if Geometry.intersectSegments(a0, a1, b0, b1, 0.01).intersects do
-                return true
+            let first = block * ContourEdgeBlockSize
+            let end   = first + Math.min(ContourEdgeBlockSize, countA - first)
+            blocks.add(contourEdgeBounds(Swag.makeSlice(pointsA + first, end - first), pointsA[end == countA ? 0 : end]))
+        }
+    }
+
+    var probe: ContourEdgeBounds
+    if blocks.count do
+        probe = contourEdgeBounds(Swag.makeSlice(pointsB, countB), pointsB[0])
+    for block in Math.max(blocks.count, 1)
+    {
+        var first = 0'u64
+        var end   = countA
+        if blocks.count
+        {
+            let bounds = &blocks[block]
+            if bounds.bounded and
+               probe.bounded and
+               (bounds.max.x < probe.min.x or probe.max.x < bounds.min.x or bounds.max.y < probe.min.y or probe.max.y < bounds.min.y) do
+                continue
+            first = block * ContourEdgeBlockSize
+            end   = first + Math.min(ContourEdgeBlockSize, countA - first)
+        }
+
+        for i in first until end
+        {
+            let a0 = pointsA[i]
+            let a1 = pointsA[i + 1 == countA ? 0 : i + 1]
+            for j in countB
+            {
+                let b0 = pointsB[j]
+                let b1 = pointsB[j + 1 == countB ? 0 : j + 1]
+                if Geometry.intersectSegments(a0, a1, b0, b1, FillIntersectionTolerance).intersects do
+                    return true
+            }
         }
     }
 
@@ -94,11 +163,13 @@ private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
     for p in pathList.paths where not p.polygon.isSimple do
         return true
 
+    var blocks: Array'ContourEdgeBounds
     for i in pathList.paths.count
     {
+        blocks.clear()
         for j in i + 1 until pathList.paths.count
         {
-            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon) do
+            if contoursIntersect(&pathList.paths[i].polygon, &pathList.paths[j].polygon, &blocks) do
                 return true
         }
     }

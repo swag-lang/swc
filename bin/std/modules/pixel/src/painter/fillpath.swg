@@ -87,7 +87,16 @@ private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *Lin
     p.triangleOffsets.clear()
     p.triangleOffsets.resize(p.triangles.vertices.count)
 
-    directions.clear()
+    // A large compound region can be followed by thousands of small ones.
+    // Release an oversized scratch table before its sparse clears dominate them.
+    var pointCount = 0'u64
+    for index in contours do
+        pointCount += paths[index].polygon.points.count
+    if directions.capacity > 256 and directions.capacity / 8 > pointCount do
+        directions.free()
+    else do
+        directions.clear()
+
     for index in contours
     {
         let contour = paths[index]

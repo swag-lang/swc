@@ -15,7 +15,8 @@ using Core, Ogl
     defer renderer.deleteContext(&context)
     renderer.setCurrentContext(context)
     renderer.init()
-    assertSvgWhiteMaskRaster(renderer, 256)
+    assertSvgMaskRaster(renderer, 256, "white")
+    assertSvgMaskRaster(renderer, 256, "black")
 
     // A rejected tile allocation must return an invalid image, never dereference empty pixels.
     let drawing = expect Svg.Drawing.parse("<svg width='8' height='8'><rect width='8' height='8' fill='white'/></svg>")

@@ -49,3 +49,4 @@ optimizations moved each result.
 - [Packed Adler-32 byte sums](adler32.md)
 - [BLAKE3 register-resident compression](blake3.md)
 - [Packed ChaCha20 block output](chacha20.md)
+- [CRC-32 on short byte slices](crc32-short.md)

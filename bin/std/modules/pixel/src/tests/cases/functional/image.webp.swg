@@ -454,16 +454,19 @@ func assertEncodedWebpRoundtrip(source: Image)
 // Backward-distance runs can span the VP8L maximum length and start a new run.
 #test
 {
-    var source = Image.create(5017, 1, .RGBA8)
+    var source = Image.create(5257, 1, .RGBA8)
     source.fill(Color.fromArgb(37'u8, 19'u8, 73'u8, 211'u8))
     let pixels = cast([*] u32, source.pixels.storage())
 
     // The distinct prefix exercises the direct-color run encoder.
-    for i in 17 do
-        pixels[i] = 0x25D34900'u32 | cast(u32, i)
+    for i in 257
+    {
+        let color = cast(u32, i)
+        pixels[i] = 0x25D34900'u32 + ((color >> 8) << 8) + (color & 0xFF)
+    }
 
     let buffer = expect source.encode("memory.webp")
-    Swag.require(buffer.count() < 128)
+    Swag.require(buffer.count() < 1024)
     assertEncodedWebpRoundtrip(source)
 }
 
@@ -494,6 +497,36 @@ func assertEncodedWebpRoundtrip(source: Image)
         let decoded = expect Image.decode("palette.webp", encoded.toSlice())
         Swag.require(decoded.width == Width and decoded.height == Height)
         Swag.require(decoded.pixelFormat == .RGBA8)
+        Swag.require(decoded.pixels.count == image.pixels.count)
+        for i in image.pixels.count do
+            Swag.require(decoded.pixels[i] == image.pixels[i])
+    }
+}
+
+// At the VP8L palette limit, the 256th color is a literal index; a further color uses direct RGB.
+#test
+{
+    const Width  = 257
+    const Height = 6
+    for colorCount in [256'u32, 257]
+    {
+        var image  = Image.create(Width, Height, .RGBA8)
+        let pixels = cast([*] u32, image.pixels.storage())
+        for i in Width * Height
+        {
+            let color = cast(u32, i) % colorCount
+            let red   = color & 0xFF
+            let green = color >> 8
+            let blue  = (color * 17) & 0xFF
+            pixels[i] = 0xFF000000'u32 | red | (green << 8) | (blue << 16)
+        }
+
+        let encoded = expect image.encodeToBytes("full-palette.webp")
+
+        // The transform flag follows the signature and four-byte VP8L image header.
+        Swag.require(((encoded[25] & 1) != 0) == (colorCount == 256))
+        let decoded = expect Image.decode("full-palette.webp", encoded.toSlice())
+        Swag.require(decoded.width == Width and decoded.height == Height)
         Swag.require(decoded.pixels.count == image.pixels.count)
         for i in image.pixels.count do
             Swag.require(decoded.pixels[i] == image.pixels[i])

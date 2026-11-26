@@ -309,7 +309,7 @@ private impl PaintBlock
 private struct PaintBin
 {
     bounds:  PaintBlock
-    indices: Array'u64
+    indices: Array'u32
 }
 
 private enum TextAnchor
@@ -5312,6 +5312,9 @@ impl Drawing
     // Bucket widely dispersed items by centre, using both axes for near-square drawings.
     private mtd const measurePaintBins(bins: *Array'PaintBin, measuredText = false)
     {
+        if .items.count > Swag.U32.Max do
+            return
+
         var minimum = Vector2.Max
         var maximum = Vector2.Min
         var spanX, spanY: f64
@@ -5383,7 +5386,7 @@ impl Drawing
                 bin.bounds.maximum = Vector2.max(bin.bounds.maximum, upper)
             }
 
-            bin.indices.add(index)
+            bin.indices.add(cast(u32, index))
         }
 
         if occupied <= 1 do
@@ -5391,7 +5394,7 @@ impl Drawing
     }
 
     // Collect the spatial candidates in authored order when only a small portion is visible.
-    private mtd const collectPaintCandidates(transform: Transform2, visible: Rectangle, axisAligned: bool, candidates: *Array'u64)->bool
+    private mtd const collectPaintCandidates(transform: Transform2, visible: Rectangle, axisAligned: bool, candidates: *Array'u32)->bool
     {
         if .paintIndex.isEmpty() do
             return false
@@ -5895,7 +5898,7 @@ impl Drawing
 
         let axisAligned  = tr.m12 == 0 and tr.m21 == 0
         let useBlocks    = .paintBlocks.count and painter.hasClippingRect()
-        var candidates:    Array'u64
+        var candidates:    Array'u32
         let useBins      = useBlocks and .collectPaintCandidates(tr, visible, axisAligned, &candidates)
         let useRuns      = useBlocks and not useBins
         var textScratch:   SvgTextScratch
@@ -5915,7 +5918,7 @@ impl Drawing
 
             for i in first until end
             {
-                let itemIndex = useBins ? candidates[i] : i
+                let itemIndex = useBins ? cast(u64, candidates[i]) : i
                 let item      = &.items[itemIndex]
                 if item.hasBounds
                 {

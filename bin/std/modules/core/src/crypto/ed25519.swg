@@ -393,14 +393,17 @@ private func ed25519IsCanonicalScalar(value: const [..] u8)->bool
 
 private func ed25519IsIdentity(point: Ed25519Point)->bool
 {
-    let encoded = ed25519EncodePoint(point)
-    var identity: [32] u8
-    identity[0] = 1
-    return Crypto.constantTimeEqual(encoded, identity)
+    var zero: X25519Field
+    return not ed25519FieldEqual(point.z, zero) and
+           ed25519FieldEqual(point.x, zero) and
+           ed25519FieldEqual(point.y, point.z)
 }
 
 private func ed25519IsPrimeSubgroup(point: Ed25519Point)->bool
 {
+    if ed25519IsIdentity(point) do
+        return false
+
     var order: [32] u8
     for index in 16
     {
@@ -408,8 +411,7 @@ private func ed25519IsPrimeSubgroup(point: Ed25519Point)->bool
         order[index * 2 + 1] = cast(u8, Ed25519Order[index] >> 8)
     }
 
-    let multiple = ed25519ScalarMultiply(point, order)
-    return ed25519IsIdentity(multiple) and not ed25519IsIdentity(ed25519Double(ed25519Double(ed25519Double(point))))
+    return ed25519IsIdentity(ed25519ScalarMultiply(point, order))
 }
 
 private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
@@ -518,7 +520,7 @@ func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
     if not validPublic or
        not validR or
        not ed25519IsPrimeSubgroup(publicPoint) or
-       not ed25519IsPrimeSubgroup(rPoint) do
+       ed25519IsIdentity(rPoint) do
         return false
 
     var challengeHash: Hash.Sha512
@@ -530,7 +532,12 @@ func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
     let challenge       = ed25519Reduce(challengeDigest)
     let left            = ed25519MultiplyGenerator(encodedS)
     let right           = ed25519Add(rPoint, ed25519ScalarMultiply(publicPoint, challenge))
-    let verified        = Crypto.constantTimeEqual(ed25519EncodePoint(left), ed25519EncodePoint(right))
+
+    // The exact group equation forces R into the same subgroup as both scalar
+    // multiples. Cross-products compare projective coordinates without inversions.
+    let sameX    = ed25519FieldEqual(x25519Multiply(left.x, right.z), x25519Multiply(right.x, left.z))
+    let sameY    = ed25519FieldEqual(x25519Multiply(left.y, right.z), x25519Multiply(right.y, left.z))
+    let verified = (cast(u8, sameX) & cast(u8, sameY)) != 0
     Crypto.secureClear(challengeDigest)
     Crypto.secureClear(challenge)
     return verified

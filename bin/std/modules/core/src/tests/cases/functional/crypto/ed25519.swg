@@ -113,3 +113,12 @@ func ed25519HexBytes(text: string)->Array'u8
     Swag.require(Crypto.constantTimeEqual(signature, expectedSignature.toSlice()))
     Swag.require(expect Crypto.ed25519Verify(publicKey, message.toSlice(), signature))
 }
+
+// The identity commitment is rejected even when the projective group equation holds.
+#test
+{
+    let publicKey = ed25519HexBytes("d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a")
+    let signature = ed25519HexBytes("0100000000000000000000000000000000000000000000000000000000000000a589c991bf8059de8942d16812ec127d9cdd50ea1ab9ffe6cd052333d729320a")
+    let verified  = expect Crypto.ed25519Verify(publicKey.toSlice(), "Identity commitment must be rejected", signature.toSlice())
+    Swag.require(not verified)
+}

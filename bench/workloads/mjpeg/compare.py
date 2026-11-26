@@ -57,6 +57,8 @@ def main():
     parser.add_argument("--height", type=int, required=True)
     parser.add_argument("--frames", type=int, default=30)
     parser.add_argument("--repetitions", type=int, default=5)
+    parser.add_argument("--ffmpeg-qualities", nargs=4, type=int, default=(3, 5, 8, 12), metavar="QP",
+                        help="four FFmpeg MJPEG quantizers, each from 2 to 31")
     parser.add_argument("--output", type=Path, required=True, help="new evidence directory outside the checkout")
     parser.add_argument("input", type=Path, nargs="+", help="bottom-up packed RGB8 clips of equal dimensions and length")
     args = parser.parse_args()
@@ -67,6 +69,8 @@ def main():
         parser.error("--output must be a new directory outside the source trees")
     if not all(v > 0 for v in (args.width, args.height, args.frames, args.repetitions)):
         parser.error("dimensions, picture count and repetitions must be positive")
+    if len(set(args.ffmpeg_qualities)) != 4 or any(not 2 <= qp <= 31 for qp in args.ffmpeg_qualities):
+        parser.error("--ffmpeg-qualities needs four distinct values from 2 to 31")
     inputs = [path.resolve() for path in args.input]
     if any(path.stat().st_size != args.width * args.height * args.frames * 3 for path in inputs):
         parser.error("input size differs from the dimensions and picture count")
@@ -91,7 +95,7 @@ def main():
     checked = quality(inputs[0], control, output / "lossless", args.width, args.height, args.frames)
     if checked["psnr"] != "inf" or checked["ssim"] != 1:
         raise RuntimeError("lossless RGB reference differs after decoding")
-    encoders = [("swag", (40, 60, 80, 95)), ("turbo", (70, 80, 90, 95)), ("ffmpeg", (3, 5, 8, 12))]
+    encoders = [("swag", (40, 60, 80, 95)), ("turbo", (70, 80, 90, 95)), ("ffmpeg", args.ffmpeg_qualities)]
     rows = []
     for index, source in enumerate(inputs):
         for settings in zip(*(values for _, values in encoders)):
@@ -130,9 +134,12 @@ def main():
                 print(json.dumps(row), flush=True)
     ffmpeg = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]
     inputs = {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in inputs}
-    (output / "report.json").write_text(json.dumps(dict(ffmpeg=ffmpeg, width=args.width, height=args.height,
-                                                       frames=args.frames, inputs=inputs, metric_self_check=checked,
-                                                       results=rows), indent=2) + "\n")
+    report = dict(ffmpeg=ffmpeg, width=args.width, height=args.height, frames=args.frames, inputs=inputs,
+                  metric_self_check=checked, results=rows)
+    native_versions = subprocess.run([ref, "--versions"], capture_output=True, text=True)
+    if native_versions.returncode == 0:
+        report["native_encoders"] = native_versions.stdout.splitlines()
+    (output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
 
 
 if __name__ == "__main__":

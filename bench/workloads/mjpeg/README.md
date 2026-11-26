@@ -23,6 +23,9 @@ The runner rotates encoder order on each repetition and checks the packet hashes
 PSNR and SSIM use decoded raw RGB in frame order. A lossless shifted-timestamp control
 checks the RGB orientation and metric agreement. JPEG quality and FFmpeg QP use different
 scales. Compare packet bytes at shared measured RGB PSNR instead of matching settings.
+`--ffmpeg-qualities` selects four distinct quantizers (default `3 5 8 12`). Use
+`2 3 5 8` to extend the high-quality end of the sweep. The report records the
+linked encoder versions and the FFmpeg CLI used to decode pictures and check metrics.
 `--library-bin` selects the library source snapshot used to build the Swag driver.
 
 ## Motion JPEG decoding

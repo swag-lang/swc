@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include <libavcodec/avcodec.h>
+#include <libavutil/avutil.h>
 #include <libswscale/swscale.h>
 #include <jpeglib.h>
 
@@ -145,8 +146,22 @@ static void encode_ffmpeg(const unsigned char *rgb, int width, int height, int q
     avcodec_free_context(&codec);
 }
 
+#define STRINGIFY_VERSION_IMPL(version) #version
+#define STRINGIFY_VERSION(version) STRINGIFY_VERSION_IMPL(version)
+
 int main(int argc, char **argv)
 {
+    if (argc == 2 && !strcmp(argv[1], "--versions"))
+    {
+        printf("FFmpeg %s\n", av_version_info());
+#ifdef LIBJPEG_TURBO_VERSION
+        printf("libjpeg-turbo %s\n", STRINGIFY_VERSION(LIBJPEG_TURBO_VERSION));
+#else
+        printf("libjpeg API %d\n", JPEG_LIB_VERSION);
+#endif
+        return 0;
+    }
+
     if (argc != 8 || (strcmp(argv[1], "turbo") && strcmp(argv[1], "ffmpeg")))
     {
         fprintf(stderr, "usage: mjpeg_native turbo|ffmpeg input.rgb output.mjpg width height count quality\n");

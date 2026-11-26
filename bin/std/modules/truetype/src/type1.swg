@@ -249,61 +249,72 @@ private const HexDigits: [256] u8 = #run
     return digits
 }
 
-// Decodes the hexadecimal spelling a PFA file gives the private section.
-private func decodeEexecHex(data: const [..] u8)->Array'u8
+// Recognizes and decrypts the hexadecimal form in one pass over its digits.
+private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: Array'u8}
 {
-    var result: #returntype
-    if data.count < 2 do
-        return result
-
-    result.reserve(data.count / 2)
-    let output = unwrap result.buffer
-    var high   = 0'u8
-    var have   = false
-    var count  = 0'u64
-    for c in data
+    var prefixEnd = 0'u64
+    var digits    = 0'u32
+    while prefixEnd < data.count and digits < 4
     {
-        let value = HexDigits[c]
-        if value == 0xFF do
-            continue
-        if have
-        {
-            output[count] = high << 4 | value
-            count         += 1
-        }
-        else
-        {
-            high = value
-        }
-
-        have = not have
-    }
-
-    result.count = count
-    return result
-}
-
-// Answers whether the bytes right after `eexec` spell the private section in hexadecimal.
-//
-// The binary form starts with four random bytes, so the test is whether the first four
-// non-space bytes are all hexadecimal digits — the check the format itself prescribes.
-private func isHexPrivateSection(data: const [..] u8)->bool
-{
-    var seen    = 0'u32
-    let trailer = findBytes(data, 0, "cleartomark")
-    let limit   = trailer < data.count ? trailer : data.count
-    let bytes   = data
-    for index in limit
-    {
-        let c = bytes[index]
+        let c = data[prefixEnd]
+        prefixEnd += 1
         if isPostScriptSpace(c) do
             continue
         if HexDigits[c] == 0xFF do
-            return false
-        seen += 1
+            return {false, Array'u8{}}
+        digits += 1
     }
 
-    return seen >= 4
+    if digits < 4 do
+        return {false, Array'u8{}}
+
+    let trailer = findBytes(data, 0, "cleartomark")
+    if trailer < prefixEnd do
+        return {false, Array'u8{}}
+
+    var result: #returntype
+    result.bytes.reserve(data.count / 2)
+    let output = unwrap result.bytes.buffer
+    var high   = 0'u8
+    var have   = false
+    var state  = cast(u32, EexecPrivateKey)
+    var skip   = EexecPrivateSkip
+    var count  = 0'u64
+    for c, index in data
+    {
+        let value = HexDigits[c]
+        if value == 0xFF
+        {
+            if index < trailer and not isPostScriptSpace(c) do
+                return {false, Array'u8{}}
+            continue
+        }
+
+        if not have
+        {
+            high = value
+            have = true
+            continue
+        }
+
+        let cipher = high << 4 | value
+        have = false
+        if skip
+        {
+            skip -= 1
+        }
+        else
+        {
+            output[count] = cipher ^ cast #wrap(u8, state >> 8)
+            count         += 1
+        }
+
+        state = (cast(u32, cipher) + #wrap state) * #wrap EexecC1 + #wrap EexecC2
+    }
+
+    result.hex         = true
+    result.bytes.count = count
+    return result
 }
 
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
@@ -561,10 +572,10 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
     let clear   = try getSlice(flat, 0, marker)
     let start   = skipPostScriptSpaces(flat, marker + 5)
     let encoded = try getSlice(flat, start, flat.count - start)
-    let binary  = isHexPrivateSection(encoded) ? decodeEexecHex(encoded) : Array'u8{}
+    var hex     = decryptHexPrivateSection(encoded)
 
-    if binary.count do
-        result.privateSection = eexecDecrypt(binary.toSlice(), EexecPrivateKey, EexecPrivateSkip)
+    if hex.hex do
+        result.privateSection = #move hex.bytes
     else do
         result.privateSection = eexecDecrypt(encoded, EexecPrivateKey, EexecPrivateSkip)
 

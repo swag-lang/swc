@@ -258,6 +258,33 @@ direction. All 480 encoded pictures and their FFmpeg decodes matched byte for by
 The JPEG, AVI and MP4 Release selection passed 86 tests.
 [Individual results](mjpeg-flat-blocks.json)
 
+### Motion JPEG against FFmpeg 9.1 and libjpeg-turbo 3.2.1
+
+The same RGB clips were retested after the Swag colour rounding, uniform-block,
+packed forward transform, and Huffman changes. FFmpeg 9.1 uses its default optimal
+Huffman tables. Libjpeg-turbo 3.2.1 uses its standard tables. The linked encoders
+used the same full-range 4:4:4 format, and FFmpeg 7.1.5 decoded all 1,440 pictures
+for the RGB metrics. Seven rotating runs used one logical CPU. Packet hashes
+were stable, and the lossless RGB control gave infinite PSNR and SSIM 1.
+
+Packet bytes and process CPU time are interpolated at the midpoint of each pair's
+shared RGB PSNR range. Where a codec has more than one point at the same PSNR,
+the comparison uses the point with the fewest bytes. A CPU ratio below 1 favours
+Swag. [Measurements](mjpeg-current.json)
+
+| Input | Swag vs libjpeg-turbo bytes | Swag / libjpeg-turbo CPU | Swag vs FFmpeg bytes | Swag / FFmpeg CPU |
+| --- | ---: | ---: | ---: | ---: |
+| Scrolling desktop | −0.2% at 35.39 dB | 1.58× | +18.1% at 35.00 dB | 0.68× |
+| Changing tiles | −0.4% at 50.71 dB | 0.21× | FFmpeg plateau at 48.71 dB | |
+| Animated test pattern | −0.1% at 42.31 dB | 0.69× | +28.1% at 42.52 dB | 0.41× |
+| Camera | −1.0% at 45.60 dB | 2.03× | −10.4% at 43.46 dB | 0.89× |
+
+On changing tiles, FFmpeg produces 122,743 bytes at 48.71 dB for all four
+quantizers. The smallest Swag point is 254,749 bytes at 48.46 dB. Both Swag and
+libjpeg-turbo reach 52.96 dB on that clip. The CPU ratios describe the selected
+PSNR points, so the camera ratio against FFmpeg spans 42.90–44.03 dB, while the
+camera comparison against libjpeg-turbo spans 42.90–48.30 dB.
+
 ## Y4M planar output
 
 Swag now writes luma and accumulates chroma while reading each RGB pixel once. It

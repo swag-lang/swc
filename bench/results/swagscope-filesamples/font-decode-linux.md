@@ -1547,3 +1547,28 @@ stable addresses and retained-source lifetimes.
 | `NotoSerifKR-Regular.otf` | 0 | U+570B | 157.71 | 151.56 |
 | `NotoSerifSC-Regular.otf` | 0 | U+4E2D | 240.32 | 228.10 |
 | `NotoSerifSC-Regular.otf` | 0 | U+6587 | 232.61 | 224.19 |
+
+## Direct decryption of hexadecimal Type 1 input
+
+The PFA reader validates hexadecimal input while decrypting its bytes.
+It uses the binary reader when it encounters non-hexadecimal content
+before the trailer. A hexadecimal-looking binary prefix remains covered
+by the native tests.
+
+Eleven interleaved batches with 51 opens on one CPU compare with
+`bb5f1c72c8`. The PFA cases improve by 19–26%. Binary control
+medians vary in both directions. All ten glyph fingerprints agree.
+[Raw timings and binary controls](font-decode-linux-type1-hex-direct.json)
+
+| Fixture | Character | Pathname open before (µs) | After |
+| --- | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 757.32 | 740.85 |
+| `NimbusSans-Regular.t1` | U+0067 | 792.05 | 745.34 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 926.13 | 919.00 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 891.71 | 991.40 |
+| `P052-Roman.t1` | U+0067 | 1061.74 | 1041.48 |
+| `P052-Roman.t1` | U+0045 | 1059.55 | 1041.74 |
+| `NimbusSans-Regular.pfa` | U+0041 | 1678.68 | 1365.81 |
+| `NimbusSans-Regular.pfa` | U+0067 | 1756.99 | 1300.74 |
+| `P052-Roman.pfb` | U+0067 | 1079.31 | 1039.14 |
+| `P052-Roman.pfb` | U+0045 | 1063.17 | 1058.47 |

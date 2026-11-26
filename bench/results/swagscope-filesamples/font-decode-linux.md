@@ -273,3 +273,27 @@ passes and matching glyph fingerprints between Swag builds.
 | --- | ---: | ---: | ---: |
 | `NotoSansCJK-Regular.ttc` | 10 | 1425.25 | 780.76 |
 | `NotoSerifCJK-Regular.ttc` | 5 | 774.06 | 468.94 |
+
+## Default-instance TrueType snapshots
+
+The standalone load keeps the default glyph outlines in `glyf`. When a large
+`gvar` table describes other instances, the owned snapshot checks the original
+range and omits the variation payload. A selected collection member can omit the
+same unused data. Both file and copied-memory loads use the compact representation.
+
+The comparison adds Noto Sans JP and Noto Sans TC variable TrueType to the
+existing SC fixture. Swag leads Pillow in 41 of the 52 expanded file scenarios.
+The other eleven are CJK CFF file loads. All Swag glyph indices, advances, bitmap
+dimensions, and CRC-64 match the baseline `ccd4c58548`.
+
+The file comparison uses Pillow 12.3.0 with FreeType 2.14.3 in Basic mode. Each
+result is the median of 11 interleaved batches on one CPU with a warm file cache.
+The probe opens 101 fresh faces per batch, or 21 for files of at least 10 MB.
+A separate syscall trace counts bytes returned by reads of the font file.
+[All 52 scenarios and raw timings](font-decode-linux-variations.json)
+
+| Fixture | Bytes read before | Bytes read after | Swag before (µs) | Swag after (µs) | Pillow (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansJP-Variable.ttf` | 9589912 | 5840191 | 942.65 | 622.67 | 2443.57 |
+| `NotoSansTC-Variable.ttf` | 11941980 | 7223529 | 1119.88 | 748.68 | 2189.34 |
+| `NotoSansSC-Variable.ttf` | 17772312 | 10690532 | 1662.16 | 1067.02 | 2301.50 |

@@ -209,6 +209,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [MP3 synthesis follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twelfth-optimization-pass)
   · [AAC transform follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#thirteenth-optimization-pass)
   · [AC-3, MP3 and Opus follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#fourteenth-optimization-pass)
+  · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native

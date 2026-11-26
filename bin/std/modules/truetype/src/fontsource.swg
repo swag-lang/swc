@@ -15,6 +15,13 @@ private struct VerticalMetricsCacheEntry
     metrics:         Array'GlyphVerticalMetrics
 }
 
+private struct PostNamesCacheEntry
+{
+    late table: const [..] u8
+    glyphCount: u32
+    late names: *GlyphNames
+}
+
 private struct FontSourceStorage
 {
     late allocator:  IAllocator
@@ -24,6 +31,7 @@ private struct FontSourceStorage
     cffPrograms:     Array'(*CffFont)
     cmapSelections:  Array'CMapCacheEntry
     verticalMetrics: Array'VerticalMetricsCacheEntry
+    postNames:       Array'PostNamesCacheEntry
     parseMutex:      Swag.Mutex
 }
 
@@ -33,6 +41,8 @@ impl FontSourceStorage
     {
         for program in .cffPrograms do
             Memory.delete(program, .allocator)
+        for entry in .postNames do
+            Memory.delete(entry.names, .allocator)
     }
 }
 
@@ -168,6 +178,35 @@ impl FontSource
         return storage.verticalMetrics[storage.verticalMetrics.count - 1].metrics.toSlice()
     }
 
+    mtd const cachedPostNames(table: const [..] u8, glyphCount, format: u32)->*GlyphNames? fail
+    {
+        if not .storage do
+            return null
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+        for entry in storage.postNames
+        {
+            if entry.table.buffer == table.buffer and
+               entry.table.count == table.count and
+               entry.glyphCount == glyphCount do
+                return entry.names
+        }
+
+        let context = Swag.getContext()
+        let previousAllocator = context.allocator
+        context.allocator = storage.allocator
+        defer context.allocator = previousAllocator
+
+        let allocator = storage.allocator
+        let names     = Memory.new'GlyphNames(allocator)
+        defer #fail Memory.delete(names, allocator)
+        names.entries.allocator = storage.allocator
+        try parsePostGlyphNames(names, glyphCount, table, format)
+        storage.postNames.add({table, glyphCount, names})
+        return names
+    }
+
     private func takeBytes(bytes: #move Array'u8, allocator: IAllocator)->FontSource
     {
         let storage = Memory.new'FontSourceStorage(allocator)
@@ -176,6 +215,7 @@ impl FontSource
         storage.cffPrograms.allocator     = allocator
         storage.cmapSelections.allocator  = allocator
         storage.verticalMetrics.allocator = allocator
+        storage.postNames.allocator       = allocator
         return {storage: storage}
     }
 }
@@ -233,7 +273,7 @@ public impl FontSource
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
     // per-face state. The source allocator covers the shared character maps, CFF programs,
-    // vertical metrics, and WOFF1 reconstruction.
+    // glyph names, vertical metrics, and WOFF1 reconstruction.
     // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>

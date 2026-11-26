@@ -414,6 +414,43 @@ func y4mAspectBytes(aspect: string)->Array'u8
     Swag.require((invalid411Outcome.value() is BadParameterError))
 }
 
+// All packed RGB orders and alpha values must agree across the SIMD groups and scalar tail.
+#test
+{
+    const Width   = 12
+    const Height  = 4
+    const Formats = [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
+    const Layouts = [Y4m.EncodeChromaMode.Yuv411, .Yuv420, .Yuv422, .Yuv444]
+    let rate = expect FrameRate.create(30, 1)
+    for layout in Layouts
+    {
+        var expected: Array'u8
+        for format in Formats
+        {
+            var image = Image.create(Width, Height, format)
+            let red   = format == .RGB8 or format == .RGBA8 ? 0'u64 : 2'u64
+            let blue  = 2 - red
+            for index in Width * Height
+            {
+                let pixel = image.pixels.storage() + index * image.bytesPerPixel
+                pixel[red]  = cast(u8, (index * 31 & 255))
+                pixel[1]    = cast(u8, (index * 13 & 255))
+                pixel[blue] = cast(u8, (index * 73 & 255))
+                if image.bytesPerPixel == 4 do
+                    pixel[3] = cast(u8, (index * 11 & 255))
+            }
+
+            var clip = expect Clip.create(Width, Height, rate)
+            expect clip.addFrame(image)
+            let encoded = expect clip.encodeToBytes("packed.y4m", Y4m.EncodeOptions{layout})
+            if expected.isEmpty() do
+                expected.add(encoded.toSlice())
+            else do
+                Swag.require(encoded.count == expected.count and Memory.compare(encoded.storage(), expected.storage(), expected.count) == 0)
+        }
+    }
+}
+
 #test
 {
     let fileName = videoTempPath("roundtrip", "y4m")

@@ -183,7 +183,13 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
     faceData.face.setUnderline(try readS16(postTable, 8), try readS16(postTable, 10))
     faceData.face.setItalicAngle(try readS32(postTable, 4))
     faceData.face.setFixedPitch(try readU32(postTable, 12) != 0)
-    try parsePostGlyphNames(faceData, postTable, format)
+    if format != 0x00030000
+    {
+        let glyphCount = faceData.face.glyphCount
+        faceData.sharedPostNames = try faceData.fontSource.cachedPostNames(postTable, glyphCount, format)
+        if not faceData.sharedPostNames do
+            try parsePostGlyphNames(&faceData.postNames, glyphCount, postTable, format)
+    }
 }
 
 // Parse x-height / cap-height from OS/2 (version >= 2). Missing or older tables

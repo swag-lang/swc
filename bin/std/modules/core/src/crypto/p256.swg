@@ -28,10 +28,6 @@ private const P256Order: [8] u32 = [
     0xFC632551, 0xF3B9CAC2, 0xA7179E84, 0xBCE6FAAD,
     0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF]
 
-private const P256InverseExponent: [8] u32 = [
-    0xFFFFFFFD, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000,
-    0x00000000, 0x00000000, 0x00000001, 0xFFFFFFFF]
-
 private const P256MontgomeryOne: [8] u32 = [
     0x00000001, 0x00000000, 0x00000000, 0xFFFFFFFF,
     0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0x00000000]
@@ -203,18 +199,39 @@ private func p256FieldSelect(left, right: P256Field, selectRight: bool)->P256Fie
     return result
 }
 
-private func p256FieldPower(value: P256Field, exponent: [8] u32)->P256Field
+private func p256FieldSquareRepeated(value: P256Field, count: u32)->P256Field
 {
-    var result: P256Field
-    result.limbs = P256MontgomeryOne
-    for step in 256
-    {
-        let bit = 255 - step
+    var result = value
+    for count do
         result = p256FieldSquare(result)
-        if (exponent[bit / 32] >> (bit % 32)) & 1 do
-            result = p256FieldMultiply(result, value)
-    }
+    return result
+}
 
+private func p256FieldInverse(value: P256Field)->P256Field
+{
+    // Build powers with exponents of the form 2^n - 1. The same 30-bit
+    // prefix supplies both the leading word and the shortened low word.
+    var powers: [5] P256Field
+    powers[0] = p256FieldMultiply(p256FieldSquare(value), value)
+    powers[1] = p256FieldMultiply(p256FieldSquareRepeated(powers[0], 2), powers[0])
+    powers[2] = p256FieldMultiply(p256FieldSquareRepeated(powers[1], 4), powers[1])
+    var prefix = p256FieldMultiply(p256FieldSquareRepeated(powers[2], 8), powers[2])
+    prefix = p256FieldMultiply(p256FieldSquareRepeated(prefix, 8), powers[2])
+    prefix = p256FieldMultiply(p256FieldSquareRepeated(prefix, 4), powers[1])
+    prefix = p256FieldMultiply(p256FieldSquareRepeated(prefix, 2), powers[0])
+
+    prefix    = p256FieldSquareRepeated(prefix, 2)
+    powers[3] = p256FieldMultiply(prefix, powers[0])
+    powers[4] = p256FieldMultiply(prefix, value)
+
+    // Read the exponent p - 2 as eight 32-bit words, most significant first.
+    prefix = p256FieldMultiply(p256FieldSquareRepeated(powers[3], 32), value)
+    prefix = p256FieldMultiply(p256FieldSquareRepeated(prefix, 128), powers[3])
+    prefix = p256FieldMultiply(p256FieldSquareRepeated(prefix, 32), powers[3])
+    let result = p256FieldMultiply(p256FieldSquareRepeated(prefix, 32), powers[4])
+
+    Crypto.secureClear(powers)
+    Crypto.secureClear(Swag.makeSlice(&prefix, 1))
     return result
 }
 
@@ -723,7 +740,7 @@ private func p256ValidatePublicPoint(point: P256Point)->bool
 
 private func p256AffineX(point: P256Point)->P256Field
 {
-    var inverse = p256FieldPower(point.z, P256InverseExponent)
+    var inverse = p256FieldInverse(point.z)
     let result  = p256FieldMultiply(point.x, p256FieldSquare(inverse))
     Crypto.secureClear(Swag.makeSlice(&inverse, 1))
     return result
@@ -742,7 +759,7 @@ func p256PublicKey(privateKey: const [..] u8, publicKey: [..] u8) fail
     var point = p256MultiplyGenerator(&scalar)
     defer Crypto.secureClear(Swag.makeSlice(&point, 1))
 
-    var inverse = p256FieldPower(point.z, P256InverseExponent)
+    var inverse = p256FieldInverse(point.z)
     defer Crypto.secureClear(Swag.makeSlice(&inverse, 1))
     var inverseSquared = p256FieldSquare(inverse)
     defer Crypto.secureClear(Swag.makeSlice(&inverseSquared, 1))

@@ -72,3 +72,4 @@ optimizations moved each result.
 - [AES-GCM four-counter encryption](aes-batched.md)
 - [Four-product reciprocal GHASH](aes-reciprocal.md)
 - [CityHash32 word loads and state rotation](cityhash32.md)
+- [P-256 field inversion addition chain](p256-inverse.md)

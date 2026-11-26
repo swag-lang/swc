@@ -155,7 +155,46 @@ func(T, CHANNELS: u64) writeScanlinePlanes(destination: [*] u8, source: const [*
     }
 }
 
-func(T, CHANNELS: u64) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
+#[Swag.ConstExpr]
+private func makeByteToHalfTable()->[256] u16
+{
+    var samples: #returntype
+    for value in samples.count do
+        samples[value] = floatToHalf(cast(f32, value) / 255.0)
+    return samples
+}
+
+private const ByteToHalf = makeByteToHalfTable()
+
+#[Swag.Inline]
+private func(CHANNELS: u64, BLUE_FIRST: bool) writeBytePlanes(destination: [*] u8, source: const [*] u8, width: u64)
+{
+    const FirstColor = CHANNELS == 4 ? 1'u64 : 0'u64
+    const Blue       = BLUE_FIRST ? 0'u64 : 2'u64
+    const Red        = 2 - Blue
+    let planes = cast([*] u16, destination)
+    let colors = planes + FirstColor * width
+    for x in width
+    {
+        let pixel = source + x * CHANNELS
+        #static if CHANNELS >= 3
+        {
+            #static if CHANNELS == 4 do
+                planes[x] = ByteToHalf[pixel[3]]
+            colors[x]             = ByteToHalf[pixel[Blue]]
+            colors[width + x]     = ByteToHalf[pixel[1]]
+            colors[2 * width + x] = ByteToHalf[pixel[Red]]
+        }
+        else
+        {
+            planes[x] = ByteToHalf[pixel[CHANNELS - 1]]
+            #static if CHANNELS == 2 do
+                planes[width + x] = ByteToHalf[pixel[0]]
+        }
+    }
+}
+
+func(T, CHANNELS: u64, BYTE_INPUT: bool, BLUE_FIRST: bool) writeScanlines(destination: [*] u8, source: const *Image, fileOffset: u64)
 {
     let width      = cast(u64, source.width)
     let rows       = cast(u64, source.height)
@@ -176,7 +215,10 @@ func(T, CHANNELS: u64) writeScanlines(destination: [*] u8, source: const *Image,
         header[0] = Math.nativeToLittleEndian(cast(u32, y))
         header[1] = Math.nativeToLittleEndian(cast(u32, rowBytes))
         let row = pixels + (rows - y - 1) * stride
-        writeScanlinePlanes'(T, CHANNELS)(chunk + 8, row, width)
+        #static if BYTE_INPUT do
+            writeBytePlanes'(CHANNELS, BLUE_FIRST)(chunk + 8, row, width)
+        else do
+            writeScanlinePlanes'(T, CHANNELS)(chunk + 8, row, width)
     }
 }
 
@@ -184,10 +226,24 @@ func(T) writeChannelLayout(destination: [*] u8, source: const *Image, fileOffset
 {
     switch source.pixelFormat.channels()
     {
-    case 1:  writeScanlines'(T, 1)(destination, source, fileOffset)
-    case 2:  writeScanlines'(T, 2)(destination, source, fileOffset)
-    case 3:  writeScanlines'(T, 3)(destination, source, fileOffset)
-    default: writeScanlines'(T, 4)(destination, source, fileOffset)
+    case 1:  writeScanlines'(T, 1, false, false)(destination, source, fileOffset)
+    case 2:  writeScanlines'(T, 2, false, false)(destination, source, fileOffset)
+    case 3:  writeScanlines'(T, 3, false, false)(destination, source, fileOffset)
+    default: writeScanlines'(T, 4, false, false)(destination, source, fileOffset)
+    }
+}
+
+private func writeByteScanlines(destination: [*] u8, source: const *Image, fileOffset: u64) fail
+{
+    switch source.pixelFormat
+    {
+    case .Gray8:      writeScanlines'(u16, 1, true, false)(destination, source, fileOffset)
+    case .GrayAlpha8: writeScanlines'(u16, 2, true, false)(destination, source, fileOffset)
+    case .RGB8:       writeScanlines'(u16, 3, true, false)(destination, source, fileOffset)
+    case .BGR8:       writeScanlines'(u16, 3, true, true)(destination, source, fileOffset)
+    case .RGBA8:      writeScanlines'(u16, 4, true, false)(destination, source, fileOffset)
+    case .BGRA8:      writeScanlines'(u16, 4, true, true)(destination, source, fileOffset)
+    default:          fail InvalidFormatError{"invalid OpenEXR byte source layout"}
     }
 }
 
@@ -229,9 +285,15 @@ internal impl IImageEncoder for Encoder
             }
         }
 
+        let byteInput = image.pixelFormat == .Gray8 or
+                        image.pixelFormat == .GrayAlpha8 or
+                        image.pixelFormat == .RGB8 or
+                        image.pixelFormat == .BGR8 or
+                        image.pixelFormat == .RGBA8 or
+                        image.pixelFormat == .BGRA8
         var converted: Image
         var source:    const *Image = &image
-        if image.pixelFormat != target
+        if image.pixelFormat != target and not byteInput
         {
             converted = image.convertedTo(target)
             source    = &converted
@@ -286,7 +348,9 @@ internal impl IImageEncoder for Encoder
 
         let fileOffset = result.count()
         let scanlines  = result.reserveInPlace(scanlineBytes)
-        if fullFloat do
+        if byteInput do
+            try writeByteScanlines(scanlines, source, fileOffset)
+        elif fullFloat do
             writeChannelLayout'u32(scanlines, source, fileOffset)
         else do
             writeChannelLayout'u16(scanlines, source, fileOffset)

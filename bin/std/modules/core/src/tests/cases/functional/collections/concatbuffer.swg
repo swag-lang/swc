@@ -549,3 +549,35 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     Swag.require(buffer.position().bucket == saved.bucket)
     Swag.require(buffer.position().pointer == saved.pointer)
 }
+
+// Moving a linear buffer keeps its allocation when the requested allocator matches.
+#test
+{
+    var allocator: Swag.Allocator
+    allocator.setup()
+    allocator.configure(false, false, false, false, false)
+    let backing: Swag.IAllocator = &allocator
+    scope
+    {
+        var source: ConcatBuffer
+        source.setAllocator(backing)
+        source.addBytes([1'u8, 2, 3])
+        let original = unwrap source.toSlice()
+
+        let copied = source.moveToArray()
+        Swag.require(copied.storage() != original.buffer and copied.count == 3)
+        Swag.require(source.count() == 3 and allocator.stats().countAlloc == 2)
+
+        let moved = source.moveToArray(backing)
+        Swag.require(moved.storage() == original.buffer and moved.count == 3 and moved[2] == 3)
+        Swag.require(source.count() == 0 and allocator.stats().countAlloc == 1)
+        source.addNative(9'u8)
+        Swag.require(moved[0] == 1 and source.count() == 1)
+    }
+
+    Swag.require(allocator.stats().countAlloc == 0)
+
+    var multiple = buildConcatBuffer()
+    let copied   = multiple.moveToArray()
+    Swag.require(copied.count == 8 and copied[7] == 8 and multiple.count() == 8)
+}

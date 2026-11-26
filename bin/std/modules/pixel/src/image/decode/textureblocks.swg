@@ -144,6 +144,37 @@ func alphaRow(palette: *[8] u8, indices: u16)->Simd.U32x4
 }
 
 #[Swag.Inline]
+private func alphaBlock(palette: const *[8] u8, indices: u64)->Simd.U8x16
+{
+    // Each group uses the same three source bytes, laid out as eight little-endian words.
+    const FirstWords  = cast(Simd.U8x16, [0'u8, 1, 0, 1, 0, 1, 1, 2, 1, 2, 1, 2, 2, 3, 2, 3])
+    const SecondWords = cast(Simd.U8x16, [3'u8, 4, 3, 4, 3, 4, 4, 5, 4, 5, 4, 5, 5, 6, 5, 6])
+    const Shifts      = cast(Simd.U16x8, [8192'u16, 1024, 128, 4096, 512, 64, 2048, 256])
+    let packed = cast #bit(Simd.U8x16, Simd.splat(indices))
+    let first  = cast #bit(Simd.U16x8, Simd.shuffle(packed, FirstWords))
+    let second = cast #bit(Simd.U16x8, Simd.shuffle(packed, SecondWords))
+    let low    = cast #bit(Simd.S16x8, ((first * Shifts) >> 13))
+    let high   = cast #bit(Simd.S16x8, ((second * Shifts) >> 13))
+    let lookup = cast #bit(Simd.U8x16, Simd.splat(cast(const *u64, palette)[]))
+    return Simd.shuffle(lookup, Simd.packUnsigned(low, high))
+}
+
+#[Swag.Inline]
+private func(FMT: Format) storeChannelBlock(target: [*] u32, rowStep: s64, red, green: Simd.U8x16)
+{
+    let opaque = Simd.splat(255'u8)
+    let blue   = FMT == .BC4 ? red : Simd.splat(0'u8)
+    let lowRG  = cast #bit(Simd.U16x8, Simd.interleaveLow(red, green))
+    let highRG = cast #bit(Simd.U16x8, Simd.interleaveHigh(red, green))
+    let lowBA  = cast #bit(Simd.U16x8, Simd.interleaveLow(blue, opaque))
+    let highBA = cast #bit(Simd.U16x8, Simd.interleaveHigh(blue, opaque))
+    Simd.store(target, cast #bit(Simd.U32x4, Simd.interleaveLow(lowRG, lowBA)))
+    Simd.store(target + rowStep, cast #bit(Simd.U32x4, Simd.interleaveHigh(lowRG, lowBA)))
+    Simd.store(target + 2 * rowStep, cast #bit(Simd.U32x4, Simd.interleaveLow(highRG, highBA)))
+    Simd.store(target + 3 * rowStep, cast #bit(Simd.U32x4, Simd.interleaveHigh(highRG, highBA)))
+}
+
+#[Swag.Inline]
 func explicitAlphaRow(indices: u16)->Simd.U32x4
 {
     const Shift = cast(Simd.U16x8, [4096'u16, 4096, 256, 256, 16, 16, 1, 1])
@@ -197,6 +228,23 @@ func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, row
             {
                 alphaPalette(&secondPalette, block + 8)
                 secondIndices = loadAlphaBits(block + 8) >> 16
+            }
+
+            #static if FMT == .BC4 or FMT == .BC5
+            {
+                if countX == 4 and countY == 4
+                {
+                    let red = alphaBlock(&firstPalette, firstIndices)
+                    #static if FMT == .BC4 do
+                        storeChannelBlock'(Format.BC4)(targetRow + firstX, rowStep, red, red)
+                    else
+                    {
+                        let green = alphaBlock(&secondPalette, secondIndices)
+                        storeChannelBlock'(Format.BC5)(targetRow + firstX, rowStep, red, green)
+                    }
+
+                    continue
+                }
             }
 
             // Clip partial blocks once and write each visible row as packed RGBA words.

@@ -252,3 +252,34 @@ func ddsRoundtrip(source: Image)->Image
         }
     }
 }
+
+// BC4 and BC5 expand a full block using both interpolation branches.
+#test
+{
+    const Descending: [8] u8 = [255, 0, 218, 182, 145, 109, 72, 36]
+    const Ascending:  [8] u8 = [0, 255, 51, 102, 153, 204, 0, 255]
+    var selectors: u64
+    for i in 16 do
+        selectors |= cast(u64, (i & 7)) << (16 + i * 3)
+    let words: [2] u64 = [selectors | 255, selectors | 0xFF00]
+    let bytes = Swag.makeSlice(cast(const [*] u8, &words[0]), 16)
+    var image = Image.create(4, 4, .RGBA8)
+    for topDown in [true, false]
+    {
+        for format in [TextureBlocks.Format.BC4, TextureBlocks.Format.BC5]
+        {
+            expect TextureBlocks.decode(&image, bytes, format, topDown)
+            for i in 16
+            {
+                let y     = cast(s32, i / 4)
+                let pixel = image.pixelColor(cast(s32, i % 4), topDown ? y : 3 - y)
+                let index = i & 7
+                Swag.require(pixel.r == Descending[index] and pixel.a == 255)
+                if format == .BC4 do
+                    Swag.require(pixel.g == Descending[index] and pixel.b == Descending[index])
+                else do
+                    Swag.require(pixel.g == Ascending[index] and pixel.b == 0)
+            }
+        }
+    }
+}

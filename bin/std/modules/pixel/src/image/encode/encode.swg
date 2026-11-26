@@ -130,8 +130,8 @@ public impl Image
     // a request body — rather than flattening the segmented buffer itself every time.
     mtd const encodeToBytes(fileName: string, options: any? = null)->Array'u8 fail
     {
-        let buffer = try .encode(fileName, options)
-        return buffer.toArray()
+        var buffer = try .encode(fileName, options)
+        return buffer.moveToArray()
     }
 
     // Encodes the image and writes it to `fileName`.

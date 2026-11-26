@@ -224,65 +224,75 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
 
 // The inverse MDCT is a DCT-IV shifted by N/2 bins. The cosine sum identity gives each
 // DCT-IV bin by adding adjacent DCT-II bins of the scaled input, with bin N equal to zero.
-// Symmetry then expands the shifted bins to the two halves of the time-domain block.
-private func(N: u64, T) inverseMdct(input: const [*] T, stride: u64, output: [*] T)
+#[Swag.Inline]
+private func(N: u64, T) scaledCosineTransform(input: const [*] T, stride: u64, bins: [*] T)
 {
     const Factors = #run buildCosineReciprocals'N(cast(f64, 2 * N))
-    var scaled, bins: [N] T
+    var scaled: [N] T
     for i in N do
         scaled[i] = input[i * stride] * Factors[i]
-    dct'(N, T)(&scaled[0], &bins[0])
-
-    for i in N - 1 do
-        bins[i] += bins[i + 1]
-
-    const Half = N / 2
-    for i in Half
-    {
-        let first = bins[i + Half]
-        let last  = -bins[Half - 1 - i]
-        output[i]             = first
-        output[N - 1 - i]     = -first
-        output[N + i]         = last
-        output[2 * N - 1 - i] = last
-    }
+    dct'(N, T)(&scaled[0], bins)
 }
 
-// A short block combines three overlapping windows. A long block selects one of the
-// normal, start, and stop windows for its entire output. Short windows accumulate into
-// the caller's zeroed output.
-private func(T) windowedTransform(input: const [*] T, raw: [*] T, blockType: u32)
+// A short block combines three overlapping windows.
+private func(T) transformShort(input: const [*] T, raw: [*] T)
 {
-    if blockType == 2
+    for window in 3'u64
     {
-        for window in 3'u64
+        var bins: [7] T // Last bin is the zero sentinel.
+        scaledCosineTransform'(6, T)(input + window, 3, &bins[0])
+
+        let start = 6 * window + 6
+        for i in 3'u64
         {
-            var shortBlock: [12] T
-            inverseMdct'(6, T)(input + window, 3, &shortBlock[0])
-            for i in 12'u64 do
-                raw[6 * window + i + 6] += shortBlock[i] * BlockWindow[2, i]
+            let first = bins[i + 3] + bins[i + 4]
+            let last  = -(bins[2 - i] + bins[3 - i])
+            raw[start + i]      += first * BlockWindow[2, i]
+            raw[start + 5 - i]  += -first * BlockWindow[2, 5 - i]
+            raw[start + 6 + i]  += last * BlockWindow[2, 6 + i]
+            raw[start + 11 - i] += last * BlockWindow[2, 11 - i]
         }
     }
-    else
+}
+
+// Produce the current block and its saved overlap directly from the long transform's
+// symmetric bins. The short transform accumulates its three windows before adding overlap.
+private func(T) transformOverlap(input: [*] T, overlap: [*] T, blockType: u32)
+{
+    // Overlap stores a row of 32 subbands for each time slot.
+    const Stride = 32 * #sizeof(f32) / #sizeof(T)
+    if blockType == 2
     {
-        inverseMdct'(18, T)(input, 1, raw)
-        for i in 36'u64 do
-            raw[i] *= BlockWindow[blockType, i]
+        var raw: [36] T
+        transformShort'T(input, &raw[0])
+        for i in 18'u64
+        {
+            input[i]            = raw[i] + overlap[i * Stride]
+            overlap[i * Stride] = raw[18 + i]
+        }
+
+        return
+    }
+
+    // The extra zero bin completes the adjacent-bin sum at the end of the DCT-II.
+    var bins: [19] T
+    scaledCosineTransform'(18, T)(input, 1, &bins[0])
+    for i in 9'u64
+    {
+        let first  = bins[9 + i] + bins[10 + i]
+        let last   = -(bins[8 - i] + bins[9 - i])
+        let mirror = 17 - i
+        input[i]                 = first * BlockWindow[blockType, i] + overlap[i * Stride]
+        input[mirror]            = -first * BlockWindow[blockType, mirror] + overlap[mirror * Stride]
+        overlap[i * Stride]      = last * BlockWindow[blockType, 18 + i]
+        overlap[mirror * Stride] = last * BlockWindow[blockType, 18 + mirror]
     }
 }
 
-// The inverse transform adds the first half to the previous block's overlap and saves the second.
 private func inverseTransform(lines: *Granule576, overlap: *SubbandOverlap, subband: u32, blockType: u32)
 {
     let base = cast(u64, subband) * 18
-    var raw: [36] f32
-    windowedTransform'f32(&lines[][base], &raw[0], blockType)
-
-    for i in 18'u64
-    {
-        lines[][base + i]     = raw[i] + overlap[][i, subband]
-        overlap[][i, subband] = raw[18 + i]
-    }
+    transformOverlap'f32(&lines[][base], &overlap[][0, subband], blockType)
 }
 
 // Vector lanes hold the same time or frequency slot in four adjacent subbands.
@@ -315,13 +325,7 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
         input[i] = cast(F32x4, [lines[][at], lines[][at + 18], lines[][at + 36], lines[][at + 54]])
     }
 
-    var raw: [36] F32x4
-    windowedTransform'F32x4(&input[0], &raw[0], blockType)
-    for i in 18'u64
-    {
-        raw[i] += load(&overlap[][i, subband])
-        store(&overlap[][i, subband], raw[18 + i])
-    }
+    transformOverlap'F32x4(&input[0], cast([*] F32x4, &overlap[][0, subband]), blockType)
 
     // Transpose back after windowing and overlap so synthesis can read continuous time slots.
     for group in 4'u64
@@ -329,8 +333,8 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
         let slot = group * 4
         let at   = base + slot
         var rows: [4] U32x4 = [
-            cast #bit(U32x4, raw[slot]), cast #bit(U32x4, raw[slot + 1]),
-            cast #bit(U32x4, raw[slot + 2]), cast #bit(U32x4, raw[slot + 3])]
+            cast #bit(U32x4, input[slot]), cast #bit(U32x4, input[slot + 1]),
+            cast #bit(U32x4, input[slot + 2]), cast #bit(U32x4, input[slot + 3])]
         transpose4x4(&rows)
         store(&lines[][at], cast #bit(F32x4, rows[0]))
         store(&lines[][at + 18], cast #bit(F32x4, rows[1]))
@@ -341,7 +345,7 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
     for i in 16 until 18'u64
     {
         let at     = base + i
-        let sample = raw[i]
+        let sample = input[i]
         lines[][at]      = sample[0]
         lines[][at + 18] = sample[1]
         lines[][at + 36] = sample[2]

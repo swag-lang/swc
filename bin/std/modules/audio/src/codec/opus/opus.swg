@@ -128,6 +128,19 @@ private func smoothFade(first, second: const [*] f32, out: [*] f32, channels: u3
     }
 }
 
+#[Swag.Inline]
+internal func roundOpusPcm16(samples: Simd.F32x4)->Simd.S32x4
+{
+    let bounded = Math.max(Simd.splat(-32768.0'f32), Math.min(Simd.splat(32767.0'f32), samples))
+    let whole   = Math.trunc(bounded)
+
+    // Compare the fractional part so even values immediately below a half stay exact.
+    let fraction     = bounded - whole
+    let positiveHalf = cast #bit(Simd.S32x4, fraction >= Simd.splat(0.5'f32))
+    let negativeHalf = cast #bit(Simd.S32x4, fraction <= Simd.splat(-0.5'f32))
+    return Simd.truncateToS32(whole) - positiveHalf + negativeHalf
+}
+
 // Decodes Opus packets, one run of Ogg pages or one raw packet per call.
 //
 // The codec keeps the SILK and CELT states across frames and, when it decodes page runs, the
@@ -375,6 +388,14 @@ private impl Decoder
             let celtFrameSize = Math.min(Frame20Ms, frameSize)
             if mode != .prevMode and .prevMode > 0 and not .prevRedundancy do
                 .celt.reset()
+            if mode == ModeCelt and not .gainQ8
+            {
+                try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm, .output.storage() + base)
+                .prevMode       = mode
+                .prevRedundancy = false
+                return
+            }
+
             try .celt.decodeFrame(data[0 until usable], &dec, celtFrameSize, pcm)
         }
         elif .prevMode == ModeHybrid and not (redundancy and celtToSilk and .prevRedundancy)
@@ -424,20 +445,6 @@ private impl Decoder
 
     mtd writePcm16(base: u64, count: u32)
     {
-        #[Swag.Inline]
-        func roundSamples(samples: Simd.F32x4)->Simd.S32x4
-        {
-            let scaled  = samples * 32768.0'f32
-            let bounded = Math.max(Simd.splat(-32768.0'f32), Math.min(Simd.splat(32767.0'f32), scaled))
-            let whole   = Math.trunc(bounded)
-
-            // Compare the fractional part so even values immediately below a half stay exact.
-            let fraction     = bounded - whole
-            let positiveHalf = cast #bit(Simd.S32x4, fraction >= Simd.splat(0.5'f32))
-            let negativeHalf = cast #bit(Simd.S32x4, fraction <= Simd.splat(-0.5'f32))
-            return Simd.truncateToS32(whole) - positiveHalf + negativeHalf
-        }
-
         let source      = .pcm.storage()
         let destination = .output.storage() + base
 
@@ -445,8 +452,8 @@ private impl Decoder
         for block in count / 8
         {
             let i    = block * 8
-            let low  = roundSamples(Simd.load(source + i))
-            let high = roundSamples(Simd.load(source + i + 4))
+            let low  = roundOpusPcm16(Simd.load(source + i) * 32768.0'f32)
+            let high = roundOpusPcm16(Simd.load(source + i + 4) * 32768.0'f32)
             Simd.store(destination + i, Simd.packSigned(low, high))
         }
     }

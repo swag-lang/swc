@@ -473,3 +473,34 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 39 focused AAC tests. Release-safe passes the same
 39 tests.
+
+## Fourteenth optimization pass
+
+This follow-up compares the changed codecs with commit `cdab4f5c1a` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round14.json)
+
+| Format | R13 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R13 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AC-3 | 9.83 | 9.24 | 7.98 | 10.00 | 9.70 | 8.26 |
+| MP3 | 10.31 | 9.91 | 8.37 | 10.27 | 9.93 | 8.35 |
+| Opus | 22.41 | 22.11 | 20.50 | 22.45 | 21.39 | 19.72 |
+
+| Format | R13 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| AC-3 | 10.09 | 9.45 | 8.31 |
+| MP3 | 5.61 | 5.20 | 8.28 |
+| Opus | 22.69 | 21.91 | 20.77 |
+
+AC-3 advances four dither states in parallel. MP3 applies its hybrid transform
+window and overlap as it unfolds each symmetric pair. Opus uses reciprocal range
+quotients and writes CELT PCM16 directly when no output gain is needed.
+
+All 22 generated fixtures match the prior Swag output within one PCM16 unit.
+The four generated AC-3 and E-AC-3 fixtures are byte-identical.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 314 audio tests. Release-safe passes
+54 focused AC-3, MP3 and Opus tests.

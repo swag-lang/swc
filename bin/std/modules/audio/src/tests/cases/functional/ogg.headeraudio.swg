@@ -431,3 +431,25 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     discard catch SoundFile.load(path.toString()) as rejected
     Swag.require(rejected.value() is InvalidFormatError)
 }
+
+// SIMD folding masks the stored checksum even at the first complete vector group.
+#test
+{
+    var page: [129] u8
+    for index in page.count do
+        page[index] = cast(u8, (index * 167 + 11) & 255)
+
+    for size in [63'u64, 64, 65, 79, 80, 89, 90, 127, 128, 129]
+    {
+        var expected: u32
+        for index in size
+        {
+            let byte = index >= 22 and index < 26 ? 0'u32 : cast(u32, page[index])
+            expected ^= byte << 24
+            for 8 do
+                expected = (expected << 1) ^ (expected & 0x8000_0000 ? 0x04C1_1DB7 : 0)
+        }
+
+        Swag.require(Ogg.pageChecksum(page[until size]) == expected)
+    }
+}

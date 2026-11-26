@@ -19,7 +19,7 @@ private func checksumPower(bits, degree, polynomial: u32)->u64
 // Folds whole 16-byte blocks to a single MSB-first block. Updating a checksum from zero
 // with the result gives the same remainder as updating it from `initial` with `bytes`.
 // The caller supplies at least four blocks and finishes any partial block separately.
-func(Degree: u32, Polynomial: u32) foldMsbChecksum(bytes: const [..] u8, initial: u32)->[16] u8
+func(Degree: u32, Polynomial: u32, OggHeader: bool = false) foldMsbChecksum(bytes: const [..] u8, initial: u32)->[16] u8
 {
     const ReverseBytes = cast(Simd.U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
     const NextBlock    = cast(Simd.U64x2, [#run checksumPower(128, Degree, Polynomial), #run checksumPower(192, Degree, Polynomial)])
@@ -38,6 +38,13 @@ func(Degree: u32, Polynomial: u32) foldMsbChecksum(bytes: const [..] u8, initial
     let seed   = [0'u64, cast(u64, initial) << (64 - Degree)]
     var first  = loadBlock(source) ^ Simd.load(cast(const [*] u64, &seed[0]))
     var second = loadBlock(source + 16)
+    #static if OggHeader
+    {
+        // Ogg's four checksum bytes are at positions six through nine in this block.
+        const ChecksumMask = cast(Simd.U8x16, [255'u8, 255, 255, 255, 255, 255, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255])
+        second &= cast #bit(Simd.U64x2, ChecksumMask)
+    }
+
     var third  = loadBlock(source + 32)
     var fourth = loadBlock(source + 48)
 

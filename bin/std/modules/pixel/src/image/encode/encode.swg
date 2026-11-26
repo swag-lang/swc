@@ -36,7 +36,10 @@ public impl Image
     // Returns the registered encoder claiming `fileName`, or `null` when none does.
     private func getEncoder(fileName: string)->const *ImageEncoder?
     {
-        for &encoder in encoders where encoder.format.matches(fileName) do
+        let ext = Path.lowercaseExtension(fileName)
+        if ext.isEmpty() do
+            return null
+        for &encoder in encoders where encoder.format.matchesLowercaseExtension(ext) do
             return encoder
         return null
     }

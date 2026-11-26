@@ -383,7 +383,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     explorer.entries.add({name: "Brief.txt", attempted: true})
     explorer.entries.add({name: "Draft.md", attempted: true})
     showBoard(&host, document, "Projects", "Notes")
-    explorer.listing.path = "Z:/Projects/Notes"
+    explorer.listing.path = "/Projects/Notes"
     explorer.updateBreadcrumb()
     explorer.setMode(.Names)
     workspace.scene()!.split = 0.22
@@ -420,7 +420,7 @@ func pictureComparisonGolden(mode: PictureComparisonMode, name: string, light: b
     openViews(&host, workspace)
     let explorer = unwrap workspace.activeDocument().explorer
     completeExplorer(&host, explorer)
-    explorer.listing.path = "Z:/Projects/Design"
+    explorer.listing.path = "/Projects/Design"
     explorer.updateBreadcrumb()
     explorer.setMode(.Names)
 

@@ -526,7 +526,7 @@ func addPictured(host: *Testing.HeadlessHost, explorer: *Explorer, name: string,
     explorer.entries.add({name: "Notes.txt", path: "Notes.txt", size: 864, attempted: true})
     addPictured(&host, explorer, "Estuary.png", boardPicture(192, 108, 0x294263, 0x52816A), 1600)
     showBoard(&host, window, "Research", "Field notes")
-    explorer.listing.path = "Z:/Research/Field notes"
+    explorer.listing.path = "/Research/Field notes"
     explorer.updateBreadcrumb()
     workspace.updateDocumentPath(window, explorer.listing.path)
     window.refreshTitle()

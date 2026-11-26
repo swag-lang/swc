@@ -130,3 +130,25 @@ func sha224DigestBytes(digest: Hash.Sha224.Digest)->[28] u8
         Swag.require(Crypto.constantTimeEqual(sha224DigestBytes(incremental.finalize()), sha224DigestBytes(expected)))
     }
 }
+
+#test
+{
+    if not Swag.hasCpuFeature(.Sha) do
+        return
+
+    var data: [257] u8
+    fillSha256Pattern(data)
+
+    var hardware, software: Hash.Sha256
+    for blocks in 1 until 5
+    {
+        hardware.reset()
+        software.reset()
+        hardware.transformShaExtensions(data.buffer + 1, blocks)
+        for block in blocks do
+            software.transformPortable(data.buffer + 1 + block * 64)
+
+        for index in hardware.state.count do
+            Swag.require(hardware.state[index] == software.state[index])
+    }
+}

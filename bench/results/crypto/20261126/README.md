@@ -82,3 +82,4 @@ optimizations moved each result.
 - [Ed25519 coordinate square-root chain](ed25519-sqrt.md)
 - [P-256 mixed affine and projective addition](p256-affine.md)
 - [SHA instruction encoding and lowering](sha-instructions.md)
+- [SHA-NI block compression](sha-ni.md)

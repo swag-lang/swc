@@ -75,3 +75,25 @@ func fillSha1Pattern(buffer: [..] u8)
     digest = split.finalize()
     assertSha1Digest(digest, 0x3B195309'u32, 0x18994923'u32, 0x77F686C2'u32, 0x66B81D84'u32, 0xB5D40F70'u32)
 }
+
+#test
+{
+    if not Swag.hasCpuFeature(.Sha) do
+        return
+
+    var data: [257] u8
+    fillSha1Pattern(data)
+
+    var hardware, software: Hash.Sha1
+    for blocks in 1 until 5
+    {
+        hardware.reset()
+        software.reset()
+        hardware.transformShaExtensions(data.buffer + 1, blocks)
+        for block in blocks do
+            software.transformPortable(data.buffer + 1 + block * 64)
+
+        for index in hardware.state.count do
+            Swag.require(hardware.state[index] == software.state[index])
+    }
+}

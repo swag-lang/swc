@@ -36,7 +36,99 @@ impl Sha256
         func sig1(x: u32)      => (Swag.ror(x, 17) ^ Swag.ror(x, 19) ^ (x >> 10))
     }
 
-    mtd transform(buf: const [*] u8)
+    mtd transformBlocks(buf: const [*] u8, blocks: u64)
+    {
+        if Swag.hasCpuFeature(.Sha)
+        {
+            .transformShaExtensions(buf, blocks)
+            return
+        }
+
+        var input = buf
+        for blocks
+        {
+            .transformPortable(input)
+            input += 64
+        }
+    }
+
+    mtd transformShaExtensions(buf: const [*] u8, blocks: u64)
+    {
+        using Math
+
+        #[Swag.Inline]
+        func rounds(words, roundConstants: Simd.U32x4, abef, cdgh: *Simd.U32x4)
+        {
+            const UpperPair = cast(Simd.U32x4, [2'u32, 3, 0, 0])
+            let input = words + roundConstants
+            cdgh[] = Swag.vecSha256Rounds2(cdgh[], abef[], input)
+            abef[] = Swag.vecSha256Rounds2(abef[], cdgh[], Simd.permute(input, UpperPair))
+        }
+
+        #[Swag.Inline]
+        func extend(oldest, older, newer, newest: Simd.U32x4)->Simd.U32x4
+        {
+            let partial = Swag.vecSha256Schedule1(oldest, older) + Simd.align(newer, newest, 4)
+            return Swag.vecSha256Schedule2(partial, newest)
+        }
+
+        // The SHA rounds consume two halves in reverse lane order.
+        let abcd  = Simd.load(.state.buffer)
+        let efgh  = Simd.load(.state.buffer + 4)
+        var abef  = Simd.permute2(abcd, efgh, cast(Simd.U32x4, [5'u32, 4, 1, 0]))
+        var cdgh  = Simd.permute2(abcd, efgh, cast(Simd.U32x4, [7'u32, 6, 3, 2]))
+        var input = cast(const [*] u32, buf)
+        for blocks
+        {
+            let savedAbef = abef
+            let savedCdgh = cdgh
+            var w0        = Math.byteSwap(Simd.load(input))
+            var w1        = Math.byteSwap(Simd.load(input + 4))
+            var w2        = Math.byteSwap(Simd.load(input + 8))
+            var w3        = Math.byteSwap(Simd.load(input + 12))
+
+            rounds(w0, Simd.load(K.buffer), &abef, &cdgh)
+            rounds(w1, Simd.load(K.buffer + 4), &abef, &cdgh)
+            rounds(w2, Simd.load(K.buffer + 8), &abef, &cdgh)
+            rounds(w3, Simd.load(K.buffer + 12), &abef, &cdgh)
+
+            w0 = extend(w0, w1, w2, w3)
+            rounds(w0, Simd.load(K.buffer + 16), &abef, &cdgh)
+            w1 = extend(w1, w2, w3, w0)
+            rounds(w1, Simd.load(K.buffer + 20), &abef, &cdgh)
+            w2 = extend(w2, w3, w0, w1)
+            rounds(w2, Simd.load(K.buffer + 24), &abef, &cdgh)
+            w3 = extend(w3, w0, w1, w2)
+            rounds(w3, Simd.load(K.buffer + 28), &abef, &cdgh)
+
+            w0 = extend(w0, w1, w2, w3)
+            rounds(w0, Simd.load(K.buffer + 32), &abef, &cdgh)
+            w1 = extend(w1, w2, w3, w0)
+            rounds(w1, Simd.load(K.buffer + 36), &abef, &cdgh)
+            w2 = extend(w2, w3, w0, w1)
+            rounds(w2, Simd.load(K.buffer + 40), &abef, &cdgh)
+            w3 = extend(w3, w0, w1, w2)
+            rounds(w3, Simd.load(K.buffer + 44), &abef, &cdgh)
+
+            w0 = extend(w0, w1, w2, w3)
+            rounds(w0, Simd.load(K.buffer + 48), &abef, &cdgh)
+            w1 = extend(w1, w2, w3, w0)
+            rounds(w1, Simd.load(K.buffer + 52), &abef, &cdgh)
+            w2 = extend(w2, w3, w0, w1)
+            rounds(w2, Simd.load(K.buffer + 56), &abef, &cdgh)
+            w3 = extend(w3, w0, w1, w2)
+            rounds(w3, Simd.load(K.buffer + 60), &abef, &cdgh)
+
+            abef  += savedAbef
+            cdgh  += savedCdgh
+            input += 16
+        }
+
+        Simd.store(.state.buffer, Simd.permute2(abef, cdgh, cast(Simd.U32x4, [3'u32, 2, 7, 6])))
+        Simd.store(.state.buffer + 4, Simd.permute2(abef, cdgh, cast(Simd.U32x4, [1'u32, 0, 5, 4])))
+    }
+
+    mtd transformPortable(buf: const [*] u8)
     {
         var m: [64] u32
 
@@ -103,13 +195,13 @@ public impl Sha256
         if used > 56
         {
             Swag.memset(.data.buffer + used, 0, 64 - used)
-            .transform(.data)
+            .transformBlocks(.data, 1)
             used = 0
         }
 
         Swag.memset(.data.buffer + used, 0, 56 - used)
         cast([*] u64, .data.buffer)[7] = Math.nativeToBigEndian(.bitLength)
-        .transform(.data)
+        .transformBlocks(.data, 1)
         return .state
     }
 
@@ -135,19 +227,21 @@ public impl Sha256
             if .dataLength < 64 do
                 return
 
-            .transform(.data)
+            .transformBlocks(.data, 1)
             .bitLength  += 512
             .dataLength = 0
             input       += copied
             remaining   -= copied
         }
 
-        while remaining >= 64
+        let blocks = remaining / 64
+        if blocks
         {
-            .transform(input)
-            .bitLength += 512
-            input      += 64
-            remaining  -= 64
+            .transformBlocks(input, blocks)
+            let processed = blocks * 64
+            .bitLength += processed * 8
+            input      += processed
+            remaining  -= processed
         }
 
         if remaining

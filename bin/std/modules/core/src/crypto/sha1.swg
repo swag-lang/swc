@@ -26,8 +26,106 @@ impl Sha1
         func f4(x, y, z: u32) => (x ^ y ^ z)
     }
 
-    // Runs the SHA-1 compression function on the 512-bit block at `buf`.
-    mtd transform(buf: const [*] u8)
+    // Compresses the complete 512-bit blocks at `buf`.
+    mtd transformBlocks(buf: const [*] u8, blocks: u64)
+    {
+        if Swag.hasCpuFeature(.Sha)
+        {
+            .transformShaExtensions(buf, blocks)
+            return
+        }
+
+        var input = buf
+        for blocks
+        {
+            .transformPortable(input)
+            input += 64
+        }
+    }
+
+    mtd transformShaExtensions(buf: const [*] u8, blocks: u64)
+    {
+        using Math
+
+        #[Swag.Inline]
+        func(phase: u8) advance(words: Simd.U32x4, abcd, previous: *Simd.U32x4)
+        {
+            let withE = Swag.vecSha1NextE(previous[], words)
+            previous[] = abcd[]
+            abcd[]     = Swag.vecSha1Rounds4(abcd[], withE, phase)
+        }
+
+        #[Swag.Inline]
+        func extend(oldest, older, newer, newest: Simd.U32x4)->Simd.U32x4
+        {
+            let partial = Swag.vecSha1Schedule1(oldest, older) ^ newer
+            return Swag.vecSha1Schedule2(partial, newest)
+        }
+
+        const ReverseWords = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+        const ReverseBytes = cast(Simd.U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+        var abcd  = Simd.permute(Simd.load(.state.buffer), ReverseWords)
+        var e     = cast(Simd.U32x4, [0'u32, 0, 0, .state[4]])
+        var input = buf
+        for blocks
+        {
+            let savedAbcd = abcd
+            var previous  = abcd
+            var w0        = cast #bit (Simd.U32x4, Simd.shuffle(Simd.load(input), ReverseBytes))
+            var w1        = cast #bit (Simd.U32x4, Simd.shuffle(Simd.load(input + 16), ReverseBytes))
+            var w2        = cast #bit (Simd.U32x4, Simd.shuffle(Simd.load(input + 32), ReverseBytes))
+            var w3        = cast #bit (Simd.U32x4, Simd.shuffle(Simd.load(input + 48), ReverseBytes))
+
+            abcd = Swag.vecSha1Rounds4(abcd, e + w0, 0)
+            advance'0(w1, &abcd, &previous)
+            advance'0(w2, &abcd, &previous)
+            advance'0(w3, &abcd, &previous)
+            w0 = extend(w0, w1, w2, w3)
+            advance'0(w0, &abcd, &previous)
+
+            w1 = extend(w1, w2, w3, w0)
+            advance'1(w1, &abcd, &previous)
+            w2 = extend(w2, w3, w0, w1)
+            advance'1(w2, &abcd, &previous)
+            w3 = extend(w3, w0, w1, w2)
+            advance'1(w3, &abcd, &previous)
+            w0 = extend(w0, w1, w2, w3)
+            advance'1(w0, &abcd, &previous)
+            w1 = extend(w1, w2, w3, w0)
+            advance'1(w1, &abcd, &previous)
+
+            w2 = extend(w2, w3, w0, w1)
+            advance'2(w2, &abcd, &previous)
+            w3 = extend(w3, w0, w1, w2)
+            advance'2(w3, &abcd, &previous)
+            w0 = extend(w0, w1, w2, w3)
+            advance'2(w0, &abcd, &previous)
+            w1 = extend(w1, w2, w3, w0)
+            advance'2(w1, &abcd, &previous)
+            w2 = extend(w2, w3, w0, w1)
+            advance'2(w2, &abcd, &previous)
+
+            w3 = extend(w3, w0, w1, w2)
+            advance'3(w3, &abcd, &previous)
+            w0 = extend(w0, w1, w2, w3)
+            advance'3(w0, &abcd, &previous)
+            w1 = extend(w1, w2, w3, w0)
+            advance'3(w1, &abcd, &previous)
+            w2 = extend(w2, w3, w0, w1)
+            advance'3(w2, &abcd, &previous)
+            w3 = extend(w3, w0, w1, w2)
+            advance'3(w3, &abcd, &previous)
+
+            e     = Swag.vecSha1NextE(previous, e)
+            abcd  += savedAbcd
+            input += 64
+        }
+
+        Simd.store(.state.buffer, Simd.permute(abcd, ReverseWords))
+        .state[4] = e[3]
+    }
+
+    mtd transformPortable(buf: const [*] u8)
     {
         var w: [80] u32
 
@@ -106,13 +204,13 @@ public impl Sha1
         if used > 56
         {
             Swag.memset(.data.buffer + used, 0, 64 - used)
-            .transform(.data)
+            .transformBlocks(.data, 1)
             used = 0
         }
 
         Swag.memset(.data.buffer + used, 0, 56 - used)
         cast([*] u64, .data.buffer)[7] = Math.nativeToBigEndian(.bitLength)
-        .transform(.data)
+        .transformBlocks(.data, 1)
         return .state
     }
 
@@ -138,19 +236,21 @@ public impl Sha1
             if .dataLength < 64 do
                 return
 
-            .transform(.data)
+            .transformBlocks(.data, 1)
             .bitLength  += 512
             .dataLength = 0
             input       += copied
             remaining   -= copied
         }
 
-        while remaining >= 64
+        let blocks = remaining / 64
+        if blocks
         {
-            .transform(input)
-            .bitLength += 512
-            input      += 64
-            remaining  -= 64
+            .transformBlocks(input, blocks)
+            let processed = blocks * 64
+            .bitLength += processed * 8
+            input      += processed
+            remaining  -= processed
         }
 
         if remaining

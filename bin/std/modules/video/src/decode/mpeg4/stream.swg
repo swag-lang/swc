@@ -198,16 +198,33 @@ impl Mpeg4Stream
                 continue
             }
 
-            try readStoredFrame(source, entry, .prefix.toSlice(), &.payload)
+            let sample = try .readSample(source, entry)
             .nextDecode += 1
             .decoder.beginSample()
-            while try .decoder.nextPicture(.payload.toSlice())
+            while try .decoder.nextPicture(sample.bytes)
             {
                 if .queued >= HeldPictures do
                     break
                 .enqueuePicture()
             }
+
+            if sample.borrowed do
+                try source.skip(entry.size)
         }
+    }
+
+    private mtd readSample(source: *ByteSource, entry: SampleEntry)->{bytes: const [..] u8, borrowed: bool} fail
+    {
+        // AVI stores the complete sample. A memory source can lend it while the decoder reads it.
+        if .slotTimestamps and not .prefix.count and not source.path().count
+        {
+            try source.seek(entry.offset)
+            let bytes = (try source.peek(entry.size))[until entry.size]
+            return {bytes, true}
+        }
+
+        try readStoredFrame(source, entry, .prefix.toSlice(), &.payload)
+        return {.payload.toSlice(), false}
     }
 
     private mtd enqueuePicture()
@@ -307,9 +324,13 @@ impl Mpeg4Stream
         .started = false
         .queued  = 0
         .decoder.reset()
-        try readStoredFrame(source, .frames[.sampleIndex(rank)], .prefix.toSlice(), &.payload)
+        let entry  = .frames[.sampleIndex(rank)]
+        let sample = try .readSample(source, entry)
         .decoder.beginSample()
-        if not (try .decoder.nextPicture(.payload.toSlice())) do
+        let decoded = try .decoder.nextPicture(sample.bytes)
+        if sample.borrowed do
+            try source.skip(entry.size)
+        if not decoded do
             return false
 
         .decoder.reference().writePlanar(&.queue[0].planes)

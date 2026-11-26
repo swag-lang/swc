@@ -557,10 +557,14 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   takes the PDFBox JPEG from about 38 to 12 ms and its bilevel scan from 46 to 11 ms
   at 1200 px. PDFium takes 4 and 2 ms respectively. Texture rendering remains the
   largest Swag cost for those two pages.
-- Measure scan conversion of joined and dashed stroke outlines and cached glyph
-  masks for transformed PDF text. Profile the remaining image span composition.
-  Retaining encoded images for later zoom levels would let decoding use the
-  requested image size.
+- [Joined and dashed strokes](../bench/results/swagscope-filesamples/pdf-raster-linux.md#joined-and-dashed-stroke-spans)
+  take the dense 1200 px curve page from 1531 to 898 ms. PDFium takes 343 ms.
+  The CPU painter blends the union of stroke bodies, caps and joins once per
+  path, moving the curve fixture's mean RGB closer to PDFium. The geometry walk
+  still creates every dash outline and the rasterizer samples four subrows.
+- Measure cached glyph masks for transformed PDF text. Profile the remaining
+  stroke coverage and image span composition. Retaining encoded images for
+  later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

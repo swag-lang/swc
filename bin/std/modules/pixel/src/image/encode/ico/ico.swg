@@ -18,8 +18,7 @@ internal impl IImageEncoder for Encoder
     // The alpha channel carries transparency; the AND mask is left fully opaque.
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {
-        var single: [1] Image = [image]
-        try appendAll(result, single)
+        try appendAll(result, Swag.makeSlice(&image, 1))
     }
 }
 
@@ -50,6 +49,8 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
     if images.count > 0xFFFF do
         fail UnsupportedFormatError{"an icon holds at most 65535 images"}
 
+    let directoryBytes = cast(u64, #sizeof(IconDir)) + images.count * #sizeof(IconDirEntry)
+    var bytes = directoryBytes
     for &image in images
     {
         if image.width <= 0 or
@@ -64,17 +65,24 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
            image.pixelFormat != .RGBA8 and
            image.pixelFormat != .BGRA8 do
             fail UnsupportedFormatError{"ICO encoding only supports RGB8, BGR8, RGBA8, and BGRA8 images"}
+        if bytes > Swag.U32.Max do
+            fail UnsupportedFormatError{"icon entry offset exceeds 32 bits"}
+        bytes += dibSizeOf(image)
     }
+
+    // All offsets are relative to this icon's header.
+    let output  = result.reserveInPlace(bytes)
+    let entries = cast([*] IconDirEntry, output + #sizeof(IconDir))
 
     // ICONDIR
     var dir: IconDir
     dir.reserved = 0
     dir.type     = 1
     dir.count    = cast(u16, images.count)
-    result.addStruct(dir)
+    cast([*] IconDir, output)[0] = dir
 
-    // Every entry points at its own DIB, so the offsets are known before any pixel is written.
-    var offset = cast(u32, (#sizeof(IconDir) + images.count * #sizeof(IconDirEntry)))
+    var offset = directoryBytes
+    var index  = 0'u64
     for &image in images
     {
         let dibBytes = dibSizeOf(image)
@@ -88,25 +96,23 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
             .planes      = 1
             .bitCount    = 32
             .bytesInRes  = cast(u32, dibBytes)
-            .imageOffset = offset
+            .imageOffset = cast(u32, offset)
         }
 
-        result.addStruct(entry)
-
-        offset += cast(u32, dibBytes)
-    }
-
-    for &image in images
-    {
+        entries[index] = entry
+        let destination = output + offset
         if image.alphaMode == .Premultiplied
         {
             let straight = image.convertedAlphaTo(.Straight)
-            appendDib(result, straight)
+            writeDib(destination, straight)
         }
         else
         {
-            appendDib(result, image)
+            writeDib(destination, image)
         }
+
+        offset += dibBytes
+        index  += 1
     }
 }
 
@@ -123,76 +129,67 @@ public func save(fileName: string, images: const [..] Image) fail
 private func dibSizeOf(image: Image)->u64
 {
     let xorStride = cast(u64, image.width) * 4
-    let andStride = ((cast(u64, image.width) + 31) / 32) * 4
+    let andStride = rowStride32(cast(u64, image.width))
     return cast(u64, #sizeof(DibHeader)) + xorStride * cast(u64, image.height) + andStride * cast(u64, image.height)
 }
 
-private func appendDib(result: *ConcatBuffer, image: Image)
+// Expands a packed RGB or BGR image to opaque BGRA.
+private func expandIconPixels(source: const [*] u8, destination: [*] u8, count: u64, swapRedBlue: bool)
 {
-    let width  = image.width
-    let height = image.height
+    const Keep = cast(Math.Simd.U8x16, [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
+    const Swap = cast(Math.Simd.U8x16, [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128])
+    let shuffle = swapRedBlue ? Swap : Keep
+    let alpha   = cast #bit(Math.Simd.U8x16, Math.Simd.splat(0xFF000000'u32))
+    var index   = 0'u64
 
-    let xorStride = cast(u64, width) * 4
-    let andStride = ((cast(u64, width) + 31) / 32) * 4
-    let xorBytes  = xorStride * cast(u64, height)
-    let andBytes  = andStride * cast(u64, height)
+    // Four output pixels use 12 source bytes, but the load reads a full vector.
+    while count - index >= 6
+    {
+        let colors = Math.Simd.load(source + index * 3)
+        let packed = Math.Simd.shuffle(colors, shuffle) | alpha
+        Math.Simd.store(destination + index * 4, packed)
+        index += 4
+    }
 
-    // BITMAPINFOHEADER (height is doubled to account for the AND mask)
+    let blue = swapRedBlue ? 2 : 0
+    let red  = 2 - blue
+    for i in index until count
+    {
+        let input  = source + i * 3
+        let output = destination + i * 4
+        output[0] = input[blue]
+        output[1] = input[1]
+        output[2] = input[red]
+        output[3] = 255
+    }
+}
+
+private func writeDib(destination: [*] u8, image: Image)
+{
+    let count    = cast(u64, image.width) * image.height
+    let xorBytes = count * 4
+    let andBytes = rowStride32(cast(u64, image.width)) * image.height
+
+    // The DIB's height includes the AND mask.
     var dib: DibHeader
     dib.size      = #sizeof(DibHeader)
-    dib.width     = width
-    dib.height    = height * 2
+    dib.width     = image.width
+    dib.height    = image.height * 2
     dib.planes    = 1
     dib.bitCount  = 32
     dib.sizeImage = cast(u32, xorBytes)
-    result.addStruct(dib)
+    cast([*] DibHeader, destination)[0] = dib
 
-    // XOR (color) data, bottom-up BGRA - matches the internal buffer convention
-    for y in height
+    // The image already stores tightly packed bottom-up rows.
+    let pixels = destination + #sizeof(DibHeader)
+    let source = image.pixels.storage()
+    switch image.pixelFormat
     {
-        var psrc = image.pixels.storage() + cast(u64, y) * image.rowStride
-
-        switch image.pixelFormat
-        {
-        case .BGRA8:
-            result.addBytes(Swag.makeSlice(psrc, xorStride))
-
-        case .BGR8:
-            for width
-            {
-                result.addNative(psrc[0])
-                result.addNative(psrc[1])
-                result.addNative(psrc[2])
-                result.addNative(255'u8)
-                psrc += 3
-            }
-
-        case .RGBA8:
-            for width
-            {
-                result.addNative(psrc[2])
-                result.addNative(psrc[1])
-                result.addNative(psrc[0])
-                result.addNative(psrc[3])
-                psrc += 4
-            }
-
-        case .RGB8:
-            for width
-            {
-                result.addNative(psrc[2])
-                result.addNative(psrc[1])
-                result.addNative(psrc[0])
-                result.addNative(255'u8)
-                psrc += 3
-            }
-
-        default:
-            break
-        }
+    case .BGRA8: Memory.copy(pixels, source, xorBytes)
+    case .RGBA8: PackedPixel.swapRedBlue32Row(source, pixels, count)
+    default:     expandIconPixels(source, pixels, count, image.pixelFormat == .RGB8)
     }
 
-    // AND (transparency) mask, fully opaque
-    for andBytes do
-        result.addNative(0'u8)
+    // Alpha carries transparency. Every bit of the AND mask stays clear.
+    Memory.clear(pixels + xorBytes, andBytes)
 }

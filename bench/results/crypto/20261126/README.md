@@ -217,3 +217,4 @@ optimizations moved each result.
 - [Parallel Adler-32 on large buffers](adler32-worker-tiles.md)
 - [Parallel CRC-32 on large buffers](crc32-workers.md)
 - [Direct HMAC-SHA-384 and SHA-512 outer blocks](hmac-sha384-sha512-outer.md)
+- [Cumulative AES comparison with OpenSSL 4.1](aes-cumulative.md)

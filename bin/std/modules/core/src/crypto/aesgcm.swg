@@ -2,79 +2,39 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math.Simd
+
 // AES-GCM uses 96-bit nonces and 128-bit authentication tags in this API.
 public const AesGcmNonceSize = 12
 
 // AES-GCM authentication tag size in bytes.
 public const AesGcmTagSize = 16
 
-private func aesGcmTogglePolynomialBit(product: *[4] u64, position: u32, mask: u64)
+#[Swag.Inline]
+private func aesGcmGhashMultiply(value, key: U64x2)->U64x2
 {
-    let word = position / 64
-    let bit  = position % 64
-    product[][word] ^= (1'u64 << bit) & mask
+    const Polynomial = cast(U64x2, [0x87'u64, 0])
+    const Zero       = cast(U64x2, [0'u64, 0])
+    let cross = clmulLowHigh(value, key) ^ clmulHighLow(value, key)
+    let low   = clmulLowLow(value, key) ^ align(Zero, cross, 8)
+    let high  = clmulHighHigh(value, key) ^ align(cross, Zero, 8)
+
+    // Replacing x^128 by x^7 + x^2 + x + 1 folds the upper 128 bits into the lower half.
+    // Fold the overflow once more. Its degree is at most six, so no third fold is needed.
+    let foldLow  = clmulLowLow(high, Polynomial)
+    let foldHigh = clmulHighLow(high, Polynomial)
+    let overflow = clmulHighLow(foldHigh, Polynomial)
+    return low ^ foldLow ^ align(Zero, foldHigh, 8) ^ overflow
 }
 
 internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
 {
-    var value:      [2] u64
-    var key:        [2] u64
-    var stateWords: [2] u64
-    var blockWords: [2] u64
-    var keyWords:   [2] u64
-    Swag.memcpy(&stateWords[0], &state[][0], 16)
-    Swag.memcpy(&blockWords[0], block, 16)
-    Swag.memcpy(&keyWords[0], &hashKey[0], 16)
-    for index in 2
-    {
-        value[index] = Math.reverse(Math.bigEndianToNative(stateWords[index] ^ blockWords[index]))
-        key[index]   = Math.reverse(Math.bigEndianToNative(keyWords[index]))
-    }
-
-    let left  = cast(Math.Simd.U64x2, value)
-    let right = cast(Math.Simd.U64x2, key)
-    var lowLow:   [2] u64
-    var lowHigh:  [2] u64
-    var highLow:  [2] u64
-    var highHigh: [2] u64
-    Math.Simd.store(&lowLow[0], Math.Simd.clmulLowLow(left, right))
-    Math.Simd.store(&lowHigh[0], Math.Simd.clmulLowHigh(left, right))
-    Math.Simd.store(&highLow[0], Math.Simd.clmulHighLow(left, right))
-    Math.Simd.store(&highHigh[0], Math.Simd.clmulHighHigh(left, right))
-
-    var product: [4] u64
-    product[0] = lowLow[0]
-    product[1] = lowLow[1] ^ lowHigh[0] ^ highLow[0]
-    product[2] = highHigh[0] ^ lowHigh[1] ^ highLow[1]
-    product[3] = highHigh[1]
-
-    // Reduce x^255..x^128 by x^128 + x^7 + x^2 + x + 1 in a fixed bit schedule.
-    for bit in 128
-    {
-        let position = 128'u32 + (127 - bit)
-        let selected = 0'u64 - ((product[position / 64] >> (position % 64)) & 1)
-        aesGcmTogglePolynomialBit(&product, position, selected)
-        aesGcmTogglePolynomialBit(&product, position - 128, selected)
-        aesGcmTogglePolynomialBit(&product, position - 127, selected)
-        aesGcmTogglePolynomialBit(&product, position - 126, selected)
-        aesGcmTogglePolynomialBit(&product, position - 121, selected)
-    }
-
-    var output: [2] u64
-    output[0] = Math.nativeToBigEndian(Math.reverse(product[0]))
-    output[1] = Math.nativeToBigEndian(Math.reverse(product[1]))
-    Swag.memcpy(&state[][0], &output[0], 16)
-    Crypto.secureClear(value)
-    Crypto.secureClear(key)
-    Crypto.secureClear(stateWords)
-    Crypto.secureClear(blockWords)
-    Crypto.secureClear(keyWords)
-    Crypto.secureClear(lowLow)
-    Crypto.secureClear(lowHigh)
-    Crypto.secureClear(highLow)
-    Crypto.secureClear(highHigh)
-    Crypto.secureClear(product)
-    Crypto.secureClear(output)
+    // GHASH assigns its first byte's most-significant bit to coefficient zero.
+    // Reverse bits within each byte to match the coefficient order used by CLMUL.
+    let value   = cast #bit (U64x2, Math.reverse(load(&state[][0]) ^ load(block)))
+    let key     = cast #bit (U64x2, Math.reverse(load(&hashKey[0])))
+    let product = aesGcmGhashMultiply(value, key)
+    store(&state[][0], Math.reverse(cast #bit (U8x16, product)))
 }
 
 internal func aesGcmGhashBlockScalar(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
@@ -129,14 +89,40 @@ private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*
 
 private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..] u8)
 {
-    var offset = 0'u64
-    while offset < data.count
+    if data.count == 0 do
+        return
+
+    let fullBlockBytes = data.count & ~15'u64
+    let tailBytes      = data.count - fullBlockBytes
+    let source         = data.buffer
+    var tail: [16] u8
+    if tailBytes != 0 do
+        Swag.memcpy(&tail[0], source + fullBlockBytes, tailBytes)
+
+    #static if not BIG_ENDIAN
     {
-        var block: [16] u8
-        let count = Math.min(data.count - offset, 16)
-        Swag.memcpy(&block[0], data.buffer + offset, count)
-        aesGcmGhashBlock(state, hashKey, &block[0])
-        offset += count
+        let key = cast #bit (U64x2, Math.reverse(load(&hashKey[0])))
+        var accumulator = cast #bit (U64x2, Math.reverse(load(&state[][0])))
+        for block in fullBlockBytes / 16
+        {
+            let value = cast #bit (U64x2, Math.reverse(load(source + block * 16)))
+            accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
+        }
+
+        if tailBytes != 0
+        {
+            let value = cast #bit (U64x2, Math.reverse(load(&tail[0])))
+            accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
+        }
+
+        store(&state[][0], Math.reverse(cast #bit (U8x16, accumulator)))
+    }
+    else
+    {
+        for block in fullBlockBytes / 16 do
+            aesGcmGhashBlockScalar(state, hashKey, source + block * 16)
+        if tailBytes != 0 do
+            aesGcmGhashBlockScalar(state, hashKey, &tail[0])
     }
 }
 

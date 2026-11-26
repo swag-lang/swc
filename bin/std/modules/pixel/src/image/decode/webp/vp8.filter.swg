@@ -5,6 +5,8 @@
 //
 #global namespace Webp
 
+using Core, Math.Simd
+
 func vp8Abs(value: s32)->s32 => value < 0 ? -value : value
 
 func vp8Clamp15(value: s32)->s32 => vp8Clip(value, -16, 15)
@@ -33,29 +35,85 @@ func vp8Filter2(pixels: [*] u8, level, index, iStep, jStep: s32)
     }
 }
 
+#[Swag.Inline]
+func vp8LoadEight(source: const [*] u8)->U16x8
+{
+    let bytes = cast #bit(U8x16, splat(cast(const [*] u64, source)[0]))
+    return widenLow(bytes)
+}
+
+#[Swag.Inline]
+func vp8StoreEight(destination: [*] u8, values: U16x8)
+{
+    storeLow8(destination, packUnsigned(cast #bit(S16x8, values), splat(0's16)))
+}
+
+#[Swag.Inline]
+func vp8FilterSamples(samples: [*] U16x8, edgeLimit, inLimit, hevLimit: S16x8, fourNotSix: bool)->bool
+{
+    let zero = splat(0's16)
+    let p3   = cast #bit(S16x8, samples[0])
+    let p2   = cast #bit(S16x8, samples[1])
+    let p1   = cast #bit(S16x8, samples[2])
+    let p0   = cast #bit(S16x8, samples[3])
+    let q0   = cast #bit(S16x8, samples[4])
+    let q1   = cast #bit(S16x8, samples[5])
+    let q2   = cast #bit(S16x8, samples[6])
+    let q3   = cast #bit(S16x8, samples[7])
+
+    let pGap     = Math.abs(p1 - p0)
+    let qGap     = Math.abs(q1 - q0)
+    let crossGap = q0 - p0
+    let across   = 2 * Math.abs(crossGap) + (Math.abs(p1 - q1) >> 1)
+    let insideP  = Math.max(pGap, Math.max(Math.abs(p3 - p2), Math.abs(p2 - p1)))
+    let insideQ  = Math.max(qGap, Math.max(Math.abs(q3 - q2), Math.abs(q2 - q1)))
+    let active   = (across <= edgeLimit) & (Math.max(insideP, insideQ) <= inLimit)
+    if not anyTrue(active) do
+        return false
+
+    let hev   = (pGap > hevLimit) | (qGap > hevLimit)
+    let extra = Math.clamp(p1 - q1, splat(-128's16), splat(127's16))
+    var a     = 3 * crossGap
+    a += fourNotSix ? select(hev, extra, zero) : extra
+
+    let a1   = Math.clamp((a + 4) >> 3, splat(-16's16), splat(15's16))
+    let a2   = Math.clamp((a + 3) >> 3, splat(-16's16), splat(15's16))
+    let wide = active & ~hev
+    if fourNotSix
+    {
+        let a3 = select(wide, (a1 + 1) >> 1, zero)
+        samples[2] = cast #bit(U16x8, (p1 + a3))
+        samples[3] = cast #bit(U16x8, (p0 + select(active, a2, zero)))
+        samples[4] = cast #bit(U16x8, (q0 - select(active, a1, zero)))
+        samples[5] = cast #bit(U16x8, (q1 - a3))
+    }
+    else
+    {
+        let saturated   = Math.clamp(a, splat(-128's16), splat(127's16))
+        let wide0       = select(wide, (27 * saturated + 63) >> 7, zero)
+        let wide1       = select(wide, (18 * saturated + 63) >> 7, zero)
+        let wide2       = select(wide, (9 * saturated + 63) >> 7, zero)
+        let narrow      = active & hev
+        let pAdjustment = wide0 + select(narrow, a2, zero)
+        let qAdjustment = wide0 + select(narrow, a1, zero)
+        samples[1] = cast #bit(U16x8, (p2 + wide2))
+        samples[2] = cast #bit(U16x8, (p1 + wide1))
+        samples[3] = cast #bit(U16x8, (p0 + pAdjustment))
+        samples[4] = cast #bit(U16x8, (q0 - qAdjustment))
+        samples[5] = cast #bit(U16x8, (q1 - wide1))
+        samples[6] = cast #bit(U16x8, (q2 - wide2))
+    }
+
+    return true
+}
+
 // The normal filter processes luma edges of sixteen samples and chroma edges of eight.
 // Each vector lane handles one position along the edge.
 func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jStep: s32, fourNotSix: bool)
 {
-    using Core, Math.Simd
-
-    #[Swag.Inline]
-    func loadEight(source: const [*] u8)->U16x8
-    {
-        let bytes = cast #bit(U8x16, splat(cast(const [*] u64, source)[0]))
-        return widenLow(bytes)
-    }
-
-    #[Swag.Inline]
-    func storeEight(destination: [*] u8, values: U16x8)
-    {
-        storeLow8(destination, packUnsigned(cast #bit(S16x8, values), splat(0's16)))
-    }
-
     let edgeLimit  = splat(cast(s16, level))
     let inLimit    = splat(cast(s16, iLevel))
     let hevLimit   = splat(cast(s16, hLevel))
-    let zero       = splat(0's16)
     let horizontal = iStep == 1
     let sampleStep = horizontal ? jStep : iStep
     let firstEdge  = pixels + index - 4 * (horizontal ? jStep : 1)
@@ -64,75 +122,84 @@ func vp8Filter246(pixels: [*] u8, count, level, iLevel, hLevel, index, iStep, jS
         let edge = firstEdge + block * 8 * iStep
         var samples: [8] U16x8
         for i in 8 do
-            samples[i] = loadEight(edge + i * sampleStep)
+            samples[i] = vp8LoadEight(edge + i * sampleStep)
 
         // A vertical edge loads contiguous rows and transposes them into sample positions.
         if not horizontal do
             transpose8x8(&samples)
 
-        let p3 = cast #bit(S16x8, samples[0])
-        let p2 = cast #bit(S16x8, samples[1])
-        let p1 = cast #bit(S16x8, samples[2])
-        let p0 = cast #bit(S16x8, samples[3])
-        let q0 = cast #bit(S16x8, samples[4])
-        let q1 = cast #bit(S16x8, samples[5])
-        let q2 = cast #bit(S16x8, samples[6])
-        let q3 = cast #bit(S16x8, samples[7])
-
-        let pGap     = Math.abs(p1 - p0)
-        let qGap     = Math.abs(q1 - q0)
-        let crossGap = q0 - p0
-        let across   = 2 * Math.abs(crossGap) + (Math.abs(p1 - q1) >> 1)
-        let insideP  = Math.max(pGap, Math.max(Math.abs(p3 - p2), Math.abs(p2 - p1)))
-        let insideQ  = Math.max(qGap, Math.max(Math.abs(q3 - q2), Math.abs(q2 - q1)))
-        let active   = (across <= edgeLimit) & (Math.max(insideP, insideQ) <= inLimit)
-        if not anyTrue(active) do
+        if not vp8FilterSamples(&samples[0], edgeLimit, inLimit, hevLimit, fourNotSix) do
             continue
-
-        let hev   = (pGap > hevLimit) | (qGap > hevLimit)
-        let extra = Math.clamp(p1 - q1, splat(-128's16), splat(127's16))
-        var a     = 3 * crossGap
-        a += fourNotSix ? select(hev, extra, zero) : extra
-
-        let a1   = Math.clamp((a + 4) >> 3, splat(-16's16), splat(15's16))
-        let a2   = Math.clamp((a + 3) >> 3, splat(-16's16), splat(15's16))
-        let wide = active & ~hev
-        if fourNotSix
-        {
-            let a3 = select(wide, (a1 + 1) >> 1, zero)
-            samples[2] = cast #bit(U16x8, (p1 + a3))
-            samples[3] = cast #bit(U16x8, (p0 + select(active, a2, zero)))
-            samples[4] = cast #bit(U16x8, (q0 - select(active, a1, zero)))
-            samples[5] = cast #bit(U16x8, (q1 - a3))
-        }
-        else
-        {
-            let saturated   = Math.clamp(a, splat(-128's16), splat(127's16))
-            let wide0       = select(wide, (27 * saturated + 63) >> 7, zero)
-            let wide1       = select(wide, (18 * saturated + 63) >> 7, zero)
-            let wide2       = select(wide, (9 * saturated + 63) >> 7, zero)
-            let narrow      = active & hev
-            let pAdjustment = wide0 + select(narrow, a2, zero)
-            let qAdjustment = wide0 + select(narrow, a1, zero)
-            samples[1] = cast #bit(U16x8, (p2 + wide2))
-            samples[2] = cast #bit(U16x8, (p1 + wide1))
-            samples[3] = cast #bit(U16x8, (p0 + pAdjustment))
-            samples[4] = cast #bit(U16x8, (q0 - qAdjustment))
-            samples[5] = cast #bit(U16x8, (q1 - wide1))
-            samples[6] = cast #bit(U16x8, (q2 - wide2))
-        }
 
         if horizontal
         {
             let first = fourNotSix ? 2 : 1
             for i in first until 8 - first do
-                storeEight(edge + i * sampleStep, samples[i])
+                vp8StoreEight(edge + i * sampleStep, samples[i])
         }
         else
         {
             transpose8x8(&samples)
             for row in 8 do
-                storeEight(edge + row * sampleStep, samples[row])
+                vp8StoreEight(edge + row * sampleStep, samples[row])
+        }
+    }
+}
+
+// The three interior edges share four columns with their neighbors. Load the
+// macroblock once, keep earlier updates in the transposed tiles, then store the tiles.
+func vp8FilterVerticalLumaInner(pixels: [*] u8, level, iLevel, hLevel, stride: s32)
+{
+    let edgeLimit = splat(cast(s16, level))
+    let inLimit   = splat(cast(s16, iLevel))
+    let hevLimit  = splat(cast(s16, hLevel))
+    for band in 2
+    {
+        let base = pixels + band * 8 * stride
+        var samples: [16] U16x8
+        for row in 8
+        {
+            let bytes = load(base + row * stride)
+            samples[row]     = widenLow(bytes)
+            samples[row + 8] = widenHigh(bytes)
+        }
+
+        let left  = cast(*[8] U16x8, &samples[0])
+        let right = cast(*[8] U16x8, &samples[8])
+        transpose8x8(left)
+        transpose8x8(right)
+
+        // The next edge reads the previous edge's clipped q0 and q1.
+        let changed4 = vp8FilterSamples(&samples[0], edgeLimit, inLimit, hevLimit, true)
+        if changed4
+        {
+            let clipped = packUnsigned(cast #bit(S16x8, samples[4]), cast #bit(S16x8, samples[5]))
+            samples[4] = widenLow(clipped)
+            samples[5] = widenHigh(clipped)
+        }
+
+        let changed8 = vp8FilterSamples(&samples[4], edgeLimit, inLimit, hevLimit, true)
+        if changed8
+        {
+            let clipped = packUnsigned(cast #bit(S16x8, samples[8]), cast #bit(S16x8, samples[9]))
+            samples[8] = widenLow(clipped)
+            samples[9] = widenHigh(clipped)
+        }
+
+        let changed12 = vp8FilterSamples(&samples[8], edgeLimit, inLimit, hevLimit, true)
+
+        if changed4 or changed8
+        {
+            transpose8x8(left)
+            for row in 8 do
+                vp8StoreEight(base + row * stride, samples[row])
+        }
+
+        if changed8 or changed12
+        {
+            transpose8x8(right)
+            for row in 8 do
+                vp8StoreEight(base + row * stride + 8, samples[row + 8])
         }
     }
 }
@@ -242,9 +309,7 @@ func vp8NormalFilter(decoder: *Vp8Decoder)
 
             if parameter.inner
             {
-                vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 4, decoder.yStride, 1, true)
-                vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 8, decoder.yStride, 1, true)
-                vp8Filter246(yData, 16, level, iLevel, hLevel, yOffset + 12, decoder.yStride, 1, true)
+                vp8FilterVerticalLumaInner(yData + yOffset, level, iLevel, hLevel, decoder.yStride)
                 vp8Filter246(cbData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
                 vp8Filter246(crData, 8, level, iLevel, hLevel, cOffset + 4, decoder.cStride, 1, true)
             }

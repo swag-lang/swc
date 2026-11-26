@@ -525,6 +525,16 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.pixels.buffer[2] == 0xAB'u8)
 }
 
+// Literal and repeated PackBits packets can cross output row boundaries.
+#test
+{
+    const Packed: [7] u8 = [3, 1, 2, 3, 4, 252, 5]
+    let buffer = buildTiff(true, 1, 3, 3, 2, 32773, 3, 8, Packed, null, false)
+    let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
+    for color, row in [0xFF010203'u32, 0xFF040505, 0xFF050505] do
+        Swag.require(image.pixelColor(0, cast(s32, row)).argb == color)
+}
+
 // Decode a multi-strip image and verify the top-down to bottom-up flip.
 #test
 {
@@ -553,6 +563,66 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.pixels.buffer[3] == 30'u8)
     Swag.require(img.pixels.buffer[6] == 20'u8)
     Swag.require(img.pixels.buffer[9] == 10'u8)
+}
+
+// Large independent LZW strips preserve their output rows and report a bad final strip.
+#test
+{
+    const Width        = 523
+    const Height       = 1345
+    const RowsPerStrip = 338
+    var samples:    Array'u8
+    var encoded:    Array'u8
+    var stripSizes: Array'u32
+    for strip in 4
+    {
+        let rows = Math.min(RowsPerStrip, Height - strip * RowsPerStrip)
+        samples.resize(cast(u64, Width * rows * 3))
+        Memory.set(samples.storage(), cast(u8, (39 + strip * 43)), samples.count)
+        let coded = packLiteralTiffLzw(nnBytes(samples.toSlice()))
+        encoded.add(coded.toSlice())
+        stripSizes.add(cast(u32, coded.count))
+    }
+
+    let bytes     = buildTiff(true, Width, Height, 3, 2, 5, RowsPerStrip, 8, nnBytes(encoded.toSlice()), null, false, stripByteCounts: stripSizes.toSlice())
+    let input     = nnBytes(bytes.toSlice())
+    let truncated = nnBytes(bytes.toSlice()[0 until bytes.count - 1])
+
+    func verifyStrips(input, truncated: const [..] u8) fail
+    {
+        let image = try decodeTiff(input)
+        Swag.require(image.width == Width and image.height == Height)
+        for row in Height
+        {
+            let gray  = cast(u8, (39 + (row / RowsPerStrip) * 43))
+            let left  = image.pixelColor(0, cast(s32, row))
+            let right = image.pixelColor(Width - 1, cast(s32, row))
+            Swag.require(left == right and left.r == gray and left.g == gray and left.b == gray)
+        }
+
+        Swag.require(tiffDecodeFails(truncated))
+    }
+
+    if Swag.jit() or Swag.workerCount() <= 1
+    {
+        expect verifyStrips(input, truncated)
+        return
+    }
+
+    // Waiting on an event keeps the caller from taking over the queued task.
+    var finished = Sync.Event.create()
+    let caller   = Env.Process.currentThreadId()
+    var group: Swag.TaskGroup
+    group.spawn(func|input, truncated, &finished, caller|() fail
+    {
+        defer finished.signal()
+        Swag.require(Env.Process.currentThreadId() != caller)
+        try verifyStrips(input, truncated)
+    })
+
+    let completed = expect finished.waitFor(Time.Duration.fromSeconds(10))
+    Swag.require(completed)
+    expect group.join()
 }
 
 // The dictionary restarts at each LZW strip and the predictor restarts at each row.

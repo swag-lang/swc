@@ -147,39 +147,51 @@ func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValu
     return values[0]
 }
 
-// PackBits run-length decoder. Decodes up to 'expected' bytes into 'dst'.
-func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
+// Decodes literal and repeated PackBits packets. For bottom-up output, packets
+// that cross a source row are split between the corresponding destination rows.
+func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8, reverseRowBytes: u64 = 0) fail
 {
-    var out: u64
-    var p = src
-    while out < expected
+    let rowBytes     = reverseRowBytes ? reverseRowBytes : expected
+    var remaining    = expected
+    var row          = dst
+    var rowRemaining = rowBytes
+    var p            = src
+    while remaining
     {
         if p >= last do
             fail InvalidFormatError{"invalid source buffer"}
-        let header = cast(s32, cast #bit (s8, p[0]))
+        let header = cast(s32, cast #bit(s8, p[0]))
         p += 1
+        if header == -128 do
+            continue
 
-        if header >= 0
+        let literal     = header >= 0
+        let count       = cast(u64, (literal ? header + 1 : 1 - header))
+        let sourceBytes = literal ? count : 1'u64
+        if count > remaining or p + sourceBytes > last do
+            fail InvalidFormatError{"invalid source buffer"}
+
+        var copied = 0'u64
+        while copied < count
         {
-            let count = cast(u64, (header + 1))
-            if out + count > expected do
-                fail InvalidFormatError{"invalid source buffer"}
-            try checkBuffer(p, last, count)
-            Memory.copy(dst + out, p, count)
-            p   += count
-            out += count
+            let size   = Math.min(count - copied, rowRemaining)
+            let target = row + (rowBytes - rowRemaining)
+            if literal do
+                Memory.copy(target, p + copied, size)
+            else do
+                Memory.set(target, p[0], size)
+
+            copied       += size
+            remaining    -= size
+            rowRemaining -= size
+            if not rowRemaining and remaining
+            {
+                row -= rowBytes
+                rowRemaining = rowBytes
+            }
         }
-        elif header != -128
-        {
-            let count = cast(u64, (1 - header))
-            if out + count > expected do
-                fail InvalidFormatError{"invalid source buffer"}
-            try checkBuffer(p, last, 1)
-            let value = p[0]
-            p += 1
-            Memory.set(dst + out, value, count)
-            out += count
-        }
+
+        p += sourceBytes
     }
 }
 
@@ -234,6 +246,114 @@ private func expandGrayRow(source: const [*] u8, destination: [*] u8, count: u64
         let target = destination + offset * 3
         target[0], target[1], target[2] = gray
         offset += 1
+    }
+}
+
+// Each strip has its own compression state and maps to a disjoint row range.
+private struct StripReader
+{
+    base, last:   const [*] u8
+    destination:  [*] u8
+    offsets:      const [..] u32
+    counts:       const [..] u32
+    palette:      const [..] u32
+    width:        u32
+    height:       u32
+    samples:      u32
+    rowStride:    u64
+    rowsPerStrip: u32
+    compression:  u32
+    predictor:    u32
+    photometric:  u32
+}
+
+private impl StripReader
+{
+    mtd const decodeRange(first, end: u64) fail
+    {
+        let rowBytes  = cast(u64, .width) * .samples
+        let samples   = .samples
+        let grayMask  = .photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
+        let grayscale = samples == 1 and .photometric != PHOTO_PALETTE
+
+        // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
+        var decoded:       Array'u8
+        var lzwDictionary: Array'u64
+        var rowStart = cast(u32, first * .rowsPerStrip)
+        for s in first until end
+        {
+            let rowsInStrip = Math.min(.rowsPerStrip, .height - rowStart)
+            let stripBytes  = rowBytes * rowsInStrip
+            let srcCount    = .counts[s]
+            let srcPtr      = .base + .offsets[s]
+            try checkBuffer(srcPtr, .last, srcCount)
+            if .compression == COMPRESSION_NONE and srcCount < stripBytes do
+                fail InvalidFormatError{"invalid source buffer"}
+
+            // True-color PackBits can write directly to the bottom-up output rows.
+            if .compression == COMPRESSION_PACKBITS and samples != 1 and .predictor == 1
+            {
+                let firstRow = .destination + cast(u64, .height - rowStart - 1) * .rowStride
+                try unpackBits(firstRow, stripBytes, srcPtr, srcPtr + srcCount, rowBytes)
+                rowStart += rowsInStrip
+                continue
+            }
+
+            var strip = srcPtr
+            if .compression != COMPRESSION_NONE or (.predictor == 2 and not grayscale)
+            {
+                decoded.reserve(stripBytes)
+                let scratch = decoded.storage()
+                switch .compression
+                {
+                case COMPRESSION_LZW:      try unpackLzw(scratch, stripBytes, srcPtr, srcCount, &lzwDictionary)
+                case COMPRESSION_PACKBITS: try unpackBits(scratch, stripBytes, srcPtr, srcPtr + srcCount)
+                default: Memory.copy(scratch, srcPtr, stripBytes)
+                }
+
+                strip = scratch
+            }
+
+            // Convert file order to the bottom-up image layout while the strip is current.
+            for y in rowsInStrip
+            {
+                let offset = cast(u64, y) * rowBytes
+                if .predictor == 2 and not grayscale
+                {
+                    let row = decoded.storage() + offset
+                    for i in rowBytes - samples do
+                        row[i + samples] += #wrap row[i]
+                }
+
+                let source = strip + offset
+                let dstY   = .height - rowStart - y - 1
+                var dst    = .destination + cast(u64, dstY) * .rowStride
+                if samples != 1
+                {
+                    Memory.copy(dst, source, rowBytes)
+                }
+                elif .photometric == PHOTO_PALETTE
+                {
+                    for x in .width
+                    {
+                        let index = cast(u32, source[x])
+                        if index >= .palette.count do
+                            fail InvalidFormatError{"invalid palette index"}
+                        let argb = .palette[index]
+                        dst[0] = cast(u8, ((argb >> 16) & 0xFF))
+                        dst[1] = cast(u8, ((argb >> 8) & 0xFF))
+                        dst[2] = cast(u8, (argb & 0xFF))
+                        dst    += 3
+                    }
+                }
+                else
+                {
+                    expandGrayRow(source, dst, rowBytes, grayMask, .predictor == 2)
+                }
+            }
+
+            rowStart += rowsInStrip
+        }
     }
 }
 
@@ -423,90 +543,56 @@ impl Decoder
             fail InvalidFormatError{"missing strip data"}
         let stripOffsets = try readValues(base, last, le, cast(*Entry, (stripOffEntry)))
         let stripCounts  = try readValues(base, last, le, cast(*Entry, (stripCntEntry)))
-        if stripOffsets.count != stripCounts.count or not stripOffsets.count do
+        let stripCount   = cast(u64, (height - 1) / rowsPerStrip + 1)
+        if stripOffsets.count != stripCounts.count or stripOffsets.count < stripCount do
             fail InvalidFormatError{"invalid strip data"}
 
         result.allocPixels()
-        let destination = result.pixels.storage()
-        let rowBytes    = cast(u64, width) * samples
-        let grayMask    = photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
-        let grayscale   = samples == 1 and photometric != PHOTO_PALETTE
-
-        // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
-        var decoded:       Array'u8
-        var lzwDictionary: Array'u64
-        var rowStart:      u32
-        for s in stripOffsets.count
+        with var strips: StripReader
         {
-            if rowStart == height do
-                break
-
-            let rowsInStrip = Math.min(rowsPerStrip, height - rowStart)
-            let stripBytes  = rowBytes * rowsInStrip
-            let srcCount    = stripCounts[s]
-            let srcPtr      = base + stripOffsets[s]
-            try checkBuffer(srcPtr, last, srcCount)
-            if compression == COMPRESSION_NONE and srcCount < stripBytes do
-                fail InvalidFormatError{"invalid source buffer"}
-
-            var strip = srcPtr
-            if compression != COMPRESSION_NONE or (predictor == 2 and not grayscale)
-            {
-                decoded.reserve(stripBytes)
-                let scratch = decoded.storage()
-                switch compression
-                {
-                case COMPRESSION_LZW:      try unpackLzw(scratch, stripBytes, srcPtr, srcCount, &lzwDictionary)
-                case COMPRESSION_PACKBITS: try unpackBits(scratch, stripBytes, srcPtr, srcPtr + srcCount)
-                default: Memory.copy(scratch, srcPtr, stripBytes)
-                }
-
-                strip = scratch
-            }
-
-            // Convert file order to the bottom-up image layout while the strip is current.
-            for y in rowsInStrip
-            {
-                let offset = cast(u64, y) * rowBytes
-                if predictor == 2 and not grayscale
-                {
-                    let row = decoded.storage() + offset
-                    for i in rowBytes - samples do
-                        row[i + samples] += #wrap row[i]
-                }
-
-                let source = strip + offset
-                let dstY   = height - rowStart - y - 1
-                var dst    = destination + cast(u64, dstY) * result.rowStride
-                if samples != 1
-                {
-                    Memory.copy(dst, source, rowBytes)
-                }
-                elif photometric == PHOTO_PALETTE
-                {
-                    for x in width
-                    {
-                        let index = cast(u32, source[x])
-                        if index >= palette.count do
-                            fail InvalidFormatError{"invalid palette index"}
-                        let argb = palette[index]
-                        dst[0] = cast(u8, ((argb >> 16) & 0xFF))
-                        dst[1] = cast(u8, ((argb >> 8) & 0xFF))
-                        dst[2] = cast(u8, (argb & 0xFF))
-                        dst    += 3
-                    }
-                }
-                else
-                {
-                    expandGrayRow(source, dst, rowBytes, grayMask, predictor == 2)
-                }
-            }
-
-            rowStart += rowsInStrip
+            .base         = base
+            .last         = last
+            .destination  = result.pixels.storage()
+            .offsets      = stripOffsets.toSlice()
+            .counts       = stripCounts.toSlice()
+            .palette      = palette.toSlice()
+            .width        = width
+            .height       = height
+            .samples      = samples
+            .rowStride    = result.rowStride
+            .rowsPerStrip = rowsPerStrip
+            .compression  = compression
+            .predictor    = predictor
+            .photometric  = photometric
         }
 
-        if rowStart != height do
-            fail InvalidFormatError{"invalid strip data"}
+        // Large true-color LZW strips cost enough to amortize the worker dispatch.
+        const MinParallelLzwBytes = 2 * 1024 * 1024
+        const MaxLzwLanes         = 4
+        var lanes = 1'u64
+        if compression == COMPRESSION_LZW and
+           samples != 1 and
+           stripCount >= MaxLzwLanes and
+           result.byteCount >= MinParallelLzwBytes do
+            lanes = Math.min(cast(u64, Swag.workerCount()), cast(u64, MaxLzwLanes))
+        if lanes > 1
+        {
+            var group: Swag.TaskGroup
+            let reader = &strips
+            for lane in 1 until lanes
+            {
+                let first = stripCount * lane / lanes
+                let end   = stripCount * (lane + 1) / lanes
+                group.spawn(func|reader, first, end|() fail { try reader.decodeRange(first, end) })
+            }
+
+            try strips.decodeRange(0, stripCount / lanes)
+            try group.join()
+        }
+        else
+        {
+            try strips.decodeRange(0, stripCount)
+        }
 
         result.orient(orientation)
         return result

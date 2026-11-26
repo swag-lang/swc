@@ -744,3 +744,31 @@ Seven interleaved Release runs on one AMD EPYC 7763 logical CPU use
 
 All 11 generated and 13 public cases retain their Swag CRC-64 and
 premultiplied pixels. The native Pixel suite passes 953 tests.
+
+## Limiting scan fills to the stencil bounds
+
+The CPU renderer tracks the bounds that can contain stencil coverage. A
+masked fill skips rows outside those bounds and clamps crossings to their
+horizontal edges. The fill keeps its original tile origin and fractional
+interpolation inside the mask. Clearing part of a mask uses the same bounds.
+
+The three new fixtures clip the same 112 large translucent curves. Eleven
+interleaved Release runs used the Scope options and matching CPU affinities.
+These are median parse-plus-raster times in milliseconds.
+
+| Fixture | CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | --- | ---: | ---: | ---: |
+| `mask-band` | One logical CPU | 135.59 | 9.07 | 5.68 |
+| `mask-column` | One logical CPU | 113.44 | 13.08 | 9.77 |
+| `mask-compact` | One logical CPU | 104.36 | 3.60 | 0.92 |
+| `mask-band` | Two logical CPUs | 138.72 | 9.65 | 6.58 |
+| `mask-column` | Two logical CPUs | 104.22 | 12.93 | 9.69 |
+| `mask-compact` | Two logical CPUs | 105.58 | 3.53 | 1.05 |
+| `mask-band` | Four logical CPUs | 133.61 | 9.49 | 6.13 |
+| `mask-column` | Four logical CPUs | 110.43 | 12.87 | 9.76 |
+| `mask-compact` | Four logical CPUs | 107.75 | 3.61 | 1.11 |
+
+The CRC-64s match for all three fixtures, the original bitmaps and thumbnails,
+generated controls and thirteen public SVGs. A renderer regression compares a
+clipped fill and partial stencil clear with the same stencil held in larger
+bounds.

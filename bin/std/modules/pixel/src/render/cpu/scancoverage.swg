@@ -183,7 +183,7 @@ internal impl ScanScratch
     }
 }
 
-internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32)
+internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32, minimumX = 0.0'f32)
 {
     #[Swag.Inline]
     func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
@@ -201,7 +201,7 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
         return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), 0.0, limit))
     }
 
-    func addEdge(rows: [..] ScanSample, a, b: Vector2, aRow, bRow: s64, width: f32)
+    func addEdge(rows: [..] ScanSample, a, b: Vector2, aRow, bRow: s64, minimumX, width: f32)
     {
         let forward = aRow < bRow
         let top     = forward ? a : b
@@ -211,7 +211,7 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
         let winding = forward ? 1 : -1
         if top.x == bottom.x
         {
-            let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
+            let crossing = Crossing{Math.clamp(top.x, minimumX, width), winding}
             for row in start until end do
                 rows[row].crossings.add(crossing)
             return
@@ -229,7 +229,7 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
 
             // Crossings outside the tile can share its boundary: between them
             // there is no span of visible pixels, only a change of winding.
-            sample.crossings.add(Crossing{Math.clamp(x, 0, width), winding})
+            sample.crossings.add(Crossing{Math.clamp(x, minimumX, width), winding})
         }
     }
 
@@ -245,7 +245,7 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
         let next = project(point, transform, density, origin, uniform)
         let row  = sampleRow(next, limit)
         if previousRow >= 0 and row >= 0 and previousRow != row do
-            addEdge(crossings, previous, next, previousRow, row, width)
+            addEdge(crossings, previous, next, previousRow, row, minimumX, width)
         previous    = next
         previousRow = row
     }

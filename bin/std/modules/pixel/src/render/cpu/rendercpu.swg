@@ -3775,7 +3775,7 @@ private impl RenderCpu
         return bands
     }
 
-    func gatherProjectedRows(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, width, height: s32, indices: const *Array'u32?)->[..] ScanSample
+    func gatherProjectedRows(scratch: *ScanScratch, painter: const *Painter, fill: const *ScanFillBatch, projected: const *ProjectedContours, origin: Vector2, minX, maxX: f32, height: s32, indices: const *Array'u32?)->[..] ScanSample
     {
         let crossings = scratch.startRows(height)
         let points    = projected.points.toSlice()
@@ -3788,7 +3788,7 @@ private impl RenderCpu
             {
                 let start = contour ? ends[contour - 1] - first : 0'u64
                 let end   = ends[contour] - first
-                addScanContour(crossings, points[start until end], &identity, 1, origin, true, cast(f32, width))
+                addScanContour(crossings, points[start until end], &identity, 1, origin, true, maxX, minX)
             }
 
             return crossings
@@ -3804,14 +3804,14 @@ private impl RenderCpu
             if not bounds.outside and
                (not bounds.finite or
                 (bounds.high - origin.y >= 0 and bounds.low - origin.y <= cast(f32, height))) do
-                addScanContour(crossings, points[point until end], &identity, 1, origin, true, cast(f32, width))
+                addScanContour(crossings, points[point until end], &identity, 1, origin, true, maxX, minX)
             point = end
         }
 
         return crossings
     }
 
-    mtd gatherScanRows(painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, origin: Vector2, width, height: s32)->[..] ScanSample
+    mtd gatherScanRows(painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, origin: Vector2, minX, maxX: f32, height: s32)->[..] ScanSample
     {
         let crossings = .scanScratch.startRows(height)
         let points    = painter.scanPoints.toSlice()
@@ -3819,7 +3819,7 @@ private impl RenderCpu
         var point     = firstScanPoint(painter, fill)
         for end in ends[fill.first until fill.end]
         {
-            addScanContour(crossings, points[point until end], transform, 1, origin, false, cast(f32, width))
+            addScanContour(crossings, points[point until end], transform, 1, origin, false, maxX, minX)
             point = end
         }
 
@@ -3840,14 +3840,14 @@ private impl RenderCpu
         return biased - 0x4B00_0000'u32 + roundUp
     }
 
-    mtd drawScanFillBand(scratch: *ScanScratch, crossings: [..] ScanSample, image: *Image, fill: const *ScanFillBatch, left, y, width, height: s32)
+    mtd drawScanFillBand(scratch: *ScanScratch, crossings: [..] ScanSample, image: *Image, fill: const *ScanFillBatch, left, y, width, height, firstRow: s32)
     {
         let color      = fill.color
         let tint       = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
         let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
         let evenOdd    = fill.rule == .EvenOdd
         let stencil    = .stencilOn ? .currentStencil().pixels.storage() : null
-        for row in height
+        for row in firstRow until height
         {
             let deviceY = y + cast(s32, row)
             let {values: coverage, first: firstX, end: endX} = scratch.resolveRow(crossings, cast(s32, row), width, evenOdd, false)
@@ -3928,19 +3928,47 @@ private impl RenderCpu
         let firstPoint = firstScanPoint(painter, fill)
         let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
         let bandHeight = scanBandHeight(pointCount)
-        let bandCount  = cast(u64, (bottom - top - 1) / bandHeight + 1)
         if .stencilWrite and .stencilMode == .Set do
             .markStencilDirty({left, top, right - 1, bottom - 1})
+
+        var visibleLeft   = left
+        var visibleRight  = right
+        var visibleTop    = top
+        var visibleBottom = bottom
+        if .stencilOn and (not .stencilWrite or .stencilMode == .Clear)
+        {
+            let dirty = .currentStencil().dirty
+            if dirty.isEmpty() or dirty.maxX < left or dirty.minX >= right do
+                return
+            // Keep a whole pixel representable at either end of the coverage interval.
+            if width <= 16_777_216
+            {
+                visibleLeft  = Math.max(left, dirty.minX)
+                visibleRight = Math.min(right, dirty.maxX + 1)
+            }
+            visibleTop    = Math.max(top, dirty.minY)
+            visibleBottom = Math.min(bottom, dirty.maxY + 1)
+            if visibleTop >= visibleBottom do
+                return
+        }
+
+        // Keep the original subrow origin in the first band touching the stencil.
+        let firstBand = top + (visibleTop - top) / bandHeight * bandHeight
+        let bandCount = cast(u64, (visibleBottom - firstBand - 1) / bandHeight + 1)
+
+        // Clamp crossings to the stencil in the original tile-local coordinates.
+        let minX = cast(f32, visibleLeft - left)
+        let maxX = cast(f32, visibleRight - left)
 
         var projected: ProjectedContours
 
         // Keep the device-point cache within the same order as a band's crossing storage.
         if fill.end - fill.first >= 128 and
            pointCount <= ScanBandCrossingBudget and
-           bottom - top > bandHeight * 2 do
-            projectContours(&projected, painter, fill, &transform, firstPoint, pointCount, left, right)
+           visibleBottom - firstBand > bandHeight * 2 do
+            projectContours(&projected, painter, fill, &transform, firstPoint, pointCount, visibleLeft, visibleRight)
 
-        var indexed = projected.bounds.count ? indexProjectedContours(&projected, top, bottom, bandHeight, bandCount) : {}
+        var indexed = projected.bounds.count ? indexProjectedContours(&projected, firstBand, visibleBottom, bandHeight, bandCount) : {}
         if projected.bounds.count and Swag.workerCount() > 1
         {
             // Each worker holds one band's crossings. Bound their total on machines with many workers.
@@ -3950,8 +3978,9 @@ private impl RenderCpu
             if jobs > 1
             {
                 let renderer = me
-                var bands    = {image: image, fill: fill, painter: painter, left: left, top: top, bottom: bottom,
-                                width: width, height: bandHeight, count: bandCount, jobs: jobs}
+                var bands    = {image: image, fill: fill, painter: painter, left: left, top: firstBand, bottom: visibleBottom,
+                                visibleTop: visibleTop, width: width, minX: minX, maxX: maxX,
+                                height: bandHeight, count: bandCount, jobs: jobs}
 
                 // A tile row belongs to one worker, and this join keeps fills in submission order.
                 parallel for |renderer, &bands, &projected, &indexed| job in jobs
@@ -3963,8 +3992,8 @@ private impl RenderCpu
                         let height    = Math.min(bands.height, bands.bottom - y)
                         let origin    = Vector2{cast(f32, bands.left), cast(f32, y)}
                         let indices   = indexed.count ? &indexed[band] : null
-                        let crossings = gatherProjectedRows(&scratch, bands.painter, bands.fill, &projected, origin, bands.width, height, indices)
-                        renderer.drawScanFillBand(&scratch, crossings, bands.image, bands.fill, bands.left, y, bands.width, height)
+                        let crossings = gatherProjectedRows(&scratch, bands.painter, bands.fill, &projected, origin, bands.minX, bands.maxX, height, indices)
+                        renderer.drawScanFillBand(&scratch, crossings, bands.image, bands.fill, bands.left, y, bands.width, height, Math.max(0, bands.visibleTop - y))
                     }
                 }
 
@@ -3974,14 +4003,14 @@ private impl RenderCpu
 
         for band in bandCount
         {
-            let y         = top + cast(s32, band) * bandHeight
-            let height    = Math.min(bandHeight, bottom - y)
+            let y         = firstBand + cast(s32, band) * bandHeight
+            let height    = Math.min(bandHeight, visibleBottom - y)
             let origin    = Vector2{cast(f32, left), cast(f32, y)}
             let indices   = indexed.count ? &indexed[band] : null
-            let crossings = projected.bounds.count ? gatherProjectedRows(&.scanScratch, painter, fill, &projected, origin, width, height, indices) :
-                            .gatherScanRows(painter, fill, &transform, origin, width, height)
+            let crossings = projected.bounds.count ? gatherProjectedRows(&.scanScratch, painter, fill, &projected, origin, minX, maxX, height, indices) :
+                            .gatherScanRows(painter, fill, &transform, origin, minX, maxX, height)
 
-            .drawScanFillBand(&.scanScratch, crossings, image, fill, left, y, width, height)
+            .drawScanFillBand(&.scanScratch, crossings, image, fill, left, y, width, height, Math.max(0, visibleTop - y))
         }
     }
 
@@ -4027,7 +4056,7 @@ private impl RenderCpu
             var covered = true
             for &shape, index in shapes
             {
-                let crossings = .gatherScanRows(painter, shape, &transform, origin, width, height)
+                let crossings = .gatherScanRows(painter, shape, &transform, origin, 0, cast(f32, width), height)
                 covered = .scanClip.intersect(&.scanScratch, crossings, shape.rule == .EvenOdd, index == 0)
                 if not covered do
                     break

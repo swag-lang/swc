@@ -189,8 +189,11 @@ ships; history lives in Git, not here.
 - Evidence: [contour lookup by scan band](../bench/workloads/svgraster/resvg-comparison.md#indexing-projected-contours-by-scan-band)
   reduces the short-contour compound fill from 62 to 54 ms at one worker and from
   44 to 37 ms at four workers. The tall-contour fallback retains its pixels.
-- Next: measure work outside narrow masks and compare alternate path parsing and
-  curve preparation on the original SVGs. Rerun the original
+- Evidence: [stencil-bounded scan fills](../bench/workloads/svgraster/resvg-comparison.md#limiting-scan-fills-to-the-stencil-bounds)
+  reduce the three narrow-mask fixtures from 104–136 ms to 4–13 ms at one worker
+  with unchanged pixels. resvg takes 1–10 ms on the same fixtures.
+- Next: compare alternate path parsing, curve preparation and crossing order on
+  the original SVGs. Rerun the original
   Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.

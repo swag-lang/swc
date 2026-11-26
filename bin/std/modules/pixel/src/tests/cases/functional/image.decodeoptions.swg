@@ -132,3 +132,26 @@ using Swag, Core.Errors
     discard catch Image.load(path, {maxDecodedBytes: bytes - 1}) as byteError
     Swag.require((byteError.value() is UnsupportedFormatError))
 }
+
+// These decoders enforce both limits in their full decode paths.
+#test
+{
+    var source = Image.create(2, 3, .RGBA8)
+    for i in source.byteCount do
+        source.pixels[i] = cast(u8, i * 7)
+
+    for name in ["limits.dds", "limits.ktx2", "limits.qoi", "limits.tga"]
+    {
+        let encoded = expect source.encodeToBytes(name)
+        let bytes   = encoded.toSlice()
+        let image   = expect Image.decode(name, bytes, {maxPixels: 6, maxDecodedBytes: 24})
+        Swag.require(image.width == 2 and image.height == 3 and image.byteCount == 24)
+
+        for limits in [DecodeOptions{maxPixels: 5}, DecodeOptions{maxPixels: 0, maxDecodedBytes: 23}]
+        {
+            var outcome: Swag.Error
+            discard catch Image.decode(name, bytes, limits) as outcome
+            Swag.require(outcome.value() is UnsupportedFormatError)
+        }
+    }
+}

@@ -109,6 +109,10 @@ impl Image
            decoderType != #typeof(Jpg.Decoder) and
            decoderType != #typeof(Exr.Decoder) and
            decoderType != #typeof(Ico.Decoder) and
+           decoderType != #typeof(Dds.Decoder) and
+           decoderType != #typeof(Ktx2.Decoder) and
+           decoderType != #typeof(Qoi.Decoder) and
+           decoderType != #typeof(Tga.Decoder) and
            options.decodePixels and
            (options.maxPixels or options.maxDecodedBytes)
         {

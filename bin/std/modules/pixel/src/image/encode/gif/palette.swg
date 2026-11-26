@@ -80,6 +80,46 @@ impl Encoder
         data.lzwMinCodeSize = Math.max(data.tableBits, 2'u8)
     }
 
+    // If the first row used every gray value, it determines the entire palette. The image's
+    // bytes can serve as LZW dictionary literals; only literal codes written to the file need
+    // translating to the palette order.
+    func tryBuildFullGrayPalette(data: *PaletteData, image: Image, order: *[256] u8)->bool
+    {
+        let first = image.pixels.storage() + cast(u64, image.height - 1) * image.rowStride
+        var seen:  [256] bool
+        var count: u32
+        for x in image.width
+        {
+            let gray = first[x]
+            if seen[gray] do
+                continue
+
+            seen[gray]         = true
+            order[][gray]      = cast(u8, count)
+            data.colors[count] = {gray, gray, gray}
+            count              += 1
+            if count == MaxPaletteColors do
+                break
+        }
+
+        if count != MaxPaletteColors do
+            return false
+
+        data.count = count
+        data.indexes.grow(image.byteCount)
+        data.indexes.count = image.byteCount
+        var destination = data.indexes.storage()
+        for y in image.height
+        {
+            let source = image.pixels.storage() + cast(u64, image.height - 1 - y) * image.rowStride
+            Memory.copy(destination, source, image.rowStride)
+            destination += image.rowStride
+        }
+
+        finishPaletteResult(data)
+        return true
+    }
+
     func tryBuildExactPalette(data: *PaletteData, image: Image, hasTransparent: bool)->bool
     {
         let pixelCount = cast(u64, image.width) * image.height

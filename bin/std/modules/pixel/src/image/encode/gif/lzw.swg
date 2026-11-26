@@ -133,14 +133,19 @@ impl Encoder
     {
         if singleIndex and indexes.count do
             return lzwCompressRepeat(indexes[0], indexes.count, minCodeSize)
-        return lzwCompress(indexes, minCodeSize)
+        return lzwCompressStream'false(indexes, minCodeSize, null)
+    }
+
+    func lzwCompressGray(indexes: const [..] u8, literals: const [*] u8)->Array'u8
+    {
+        return lzwCompressStream'true(indexes, 8, literals)
     }
 
     // Compresses palette indexes into GIF LZW codes.
     //
     // The dictionary maps a known string, as its code, followed by one more index to the code of
     // the longer string. It is reset with a clear code once every 12-bit code is taken.
-    func lzwCompress(indexes: const [..] u8, minCodeSize: u8)->Array'u8
+    func(RemapLiterals: bool) lzwCompressStream(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array'u8
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
@@ -181,7 +186,7 @@ impl Encoder
                 continue
             }
 
-            enc.writeCode(cast(u16, prefix))
+            enc.writeCode(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix))
             if nextCode < MaxLzwCode
             {
                 dictionary[slot] = key | nextCode
@@ -198,7 +203,7 @@ impl Encoder
             prefix = index
         }
 
-        enc.writeCode(cast(u16, prefix))
+        enc.writeCode(RemapLiterals and prefix < 256 ? cast(u16, (unwrap literals)[prefix]) : cast(u16, prefix))
         enc.writeCode(enc.endCode)
         enc.bits.flush()
         return enc.bits.bytes

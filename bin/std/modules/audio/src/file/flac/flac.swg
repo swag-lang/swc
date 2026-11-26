@@ -30,18 +30,50 @@ private func headerCrc8(bytes: const [..] u8)->u8
     return crc
 }
 
-// FLAC's frame trailer protects the complete header and coded subframes.
-internal func frameCrc16(bytes: const [..] u8)->u16
+// Each row gives the contribution of a byte followed by that many zero bytes.
+private const FrameCrcTable: [8, 256] u16 = #run
 {
-    var checksum = 0'u16
-    for byte in bytes
+    var table: [8, 256] u16
+    for byte in 256
     {
-        checksum ^= cast(u16, byte) << 8
+        var checksum = cast(u32, byte) << 8
         for 8 do
-            checksum = checksum & 0x8000 ? cast(u16, ((cast(u32, checksum) << 1) ^ 0x8005) & 0xFFFF) :
-                       cast(u16, (cast(u32, checksum) << 1) & 0xFFFF)
+            checksum = ((checksum << 1) ^ (checksum & 0x8000 ? 0x8005 : 0)) & 0xFFFF
+        table[0, byte] = cast(u16, checksum)
     }
 
+    for row in 1 until 8
+    {
+        for byte in 256
+        {
+            let prior = table[row - 1, byte]
+            table[row, byte] = ((prior & 0xFF) << 8) ^ table[0, prior >> 8]
+        }
+    }
+
+    return table
+}
+
+// FLAC's frame trailer protects the complete header and coded subframes.
+internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
+{
+    var checksum = initial
+    var offset   = 0'u64
+    while bytes.count - offset >= 8
+    {
+        checksum = FrameCrcTable[7, bytes[offset] ^ (checksum >> 8)] ^
+                   FrameCrcTable[6, bytes[offset + 1] ^ (checksum & 0xFF)] ^
+                   FrameCrcTable[5, bytes[offset + 2]] ^
+                   FrameCrcTable[4, bytes[offset + 3]] ^
+                   FrameCrcTable[3, bytes[offset + 4]] ^
+                   FrameCrcTable[2, bytes[offset + 5]] ^
+                   FrameCrcTable[1, bytes[offset + 6]] ^
+                   FrameCrcTable[0, bytes[offset + 7]]
+        offset += 8
+    }
+
+    for byte in bytes[offset until] do
+        checksum = ((checksum & 0xFF) << 8) ^ FrameCrcTable[0, byte ^ (checksum >> 8)]
     return checksum
 }
 
@@ -226,6 +258,9 @@ internal func findFrameEnd(source: *ByteSource,
     let boundaryBytes = Math.min(FrameHeaderBytes, remaining)
     let scanLimit     = boundedFrame > remaining - boundaryBytes ? remaining : boundedFrame + boundaryBytes
     var want          = Math.min(FrameHeaderBytes, scanLimit)
+    var scan          = 2'u64
+    var checkedBytes  = 0'u64
+    var checksum      = 0'u16
     for
     {
         try source.seek(start)
@@ -234,20 +269,35 @@ internal func findFrameEnd(source: *ByteSource,
         if not frameHeaderSize(bytes, 0) do
             fail InvalidFormatError{"FLAC file does not start a frame where one is expected"}
 
-        var scan = 2'u64
-        while scan < bytes.count
+        // Leave room to retry a header split across windows without scanning the prefix again.
+        let overlap = bytes.count < scanLimit ? Math.min(bytes.count, FrameHeaderBytes - 1) : 0
+        let scanEnd = bytes.count - overlap
+        while scan < scanEnd
         {
-            if frameHeaderSize(bytes, scan) and
-               frameCrc16(bytes[until scan - 2]) == (cast(u16, bytes[scan - 2]) << 8 | bytes[scan - 1]) do
-                return start + scan
+            let nextSync = Slice.findLinear(bytes[scan until scanEnd], 0xFF'u8)
+            if nextSync == Swag.U64.Max
+            {
+                scan = scanEnd
+                break
+            }
+
+            scan += nextSync
+
+            if frameHeaderSize(bytes, scan)
+            {
+                // Including the two-byte trailer makes the checksum of a complete frame zero.
+                checksum     = frameCrc16(bytes[checkedBytes until scan], checksum)
+                checkedBytes = scan
+                if not checksum do
+                    return start + scan
+            }
+
             scan += 1
         }
 
         if start + bytes.count >= limit
         {
-            if bytes.count < 2 or
-               frameCrc16(bytes[until bytes.count - 2]) !=
-               (cast(u16, bytes[bytes.count - 2]) << 8 | bytes[bytes.count - 1]) do
+            if bytes.count < 2 or frameCrc16(bytes[checkedBytes until], checksum) do
                 fail InvalidFormatError{"FLAC frame checksum differs from its trailer"}
             return limit
         }

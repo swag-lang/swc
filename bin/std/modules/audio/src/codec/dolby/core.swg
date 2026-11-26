@@ -89,22 +89,26 @@ private impl BitReader
 
     internal mtd read(count: u32)->u32
     {
+        var pos       = .bitPos
+        let end       = pos + count
+        let available = Math.min(end, .bitSize)
         var value: u32
-        for count
+        while pos < available
         {
-            value <<= 1
-            if .bitPos >= .bitSize
-            {
-                .overrun = true
-            }
-            else
-            {
-                let byteIndex = .bitPos >> 3
-                let bitIndex  = 7 - (.bitPos & 7)
-                value |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
-            }
+            let byteBits = 8 - cast(u32, pos & 7)
+            let take     = Math.min(cast(u32, available - pos), byteBits)
+            let bits     = cast(u32, .data[pos >> 3]) >> (byteBits - take)
+            value = (value << take) | (bits & ((1'u32 << take) - 1))
+            pos   += take
+        }
 
-            .bitPos += 1
+        .bitPos = end
+        if end > .bitSize and count
+        {
+            .overrun = true
+            if pos == end - count do
+                return 0
+            value <<= cast(u32, end - pos)
         }
 
         return value
@@ -139,59 +143,52 @@ private var g_LongSin:  [128] f64
 private var g_ShortCos: [64] f64
 private var g_ShortSin: [64] f64
 
-private func inverseFft(real, imaginary: [*] f64, size: s32)
-{
-    var bits = 0's32
-    while (1 << bits) < size do
-        bits += 1
-    for index in cast(u64, size)
-    {
-        var source = cast(u32, index)
-        var reversed: u32
-        for bits
-        {
-            reversed = (reversed << 1) | (source & 1)
-            source   >>= 1
-        }
+// The 64- and 128-point transforms share all FFT stages up through length 64.
+private var g_FftReverse:     [128] u8
+private var g_FftTwiddleReal: [128] f64
+private var g_FftTwiddleImag: [128] f64
 
-        if reversed > index
-        {
-            let savedReal = real[index]
-            let savedImag = imaginary[index]
-            real[index]         = real[reversed]
-            imaginary[index]    = imaginary[reversed]
-            real[reversed]      = savedReal
-            imaginary[reversed] = savedImag
-        }
+private func inverseFft(real, imaginary: [*] f64, size: u64)
+{
+    // The first stage has a unit twiddle and one butterfly per block.
+    for pair in size / 2
+    {
+        let left      = pair * 2
+        let right     = left + 1
+        let leftReal  = real[left]
+        let leftImag  = imaginary[left]
+        let rightReal = real[right]
+        let rightImag = imaginary[right]
+        real[left]       = leftReal + rightReal
+        imaginary[left]  = leftImag + rightImag
+        real[right]      = leftReal - rightReal
+        imaginary[right] = leftImag - rightImag
     }
 
-    var half = 1's32
+    var half = 2'u64
     while half < size
     {
-        let step     = half * 2
-        let angle    = Math.ConstF64.Pi / cast(f64, half)
-        let stepReal = Math.cos(angle)
-        let stepImag = Math.sin(angle)
-        var base     = 0's32
+        let step = half * 2
+        var base = 0'u64
         while base < size
         {
-            var twiddleReal = 1'f64
-            var twiddleImag: f64
-            for offset in cast(u64, half)
+            for pair in half / 2
             {
-                let left        = cast(u64, base) + offset
-                let right       = left + cast(u64, half)
-                let productReal = twiddleReal * real[right] - twiddleImag * imaginary[right]
-                let productImag = twiddleReal * imaginary[right] + twiddleImag * real[right]
-                let leftReal    = real[left]
-                let leftImag    = imaginary[left]
-                real[right]      = leftReal - productReal
-                imaginary[right] = leftImag - productImag
-                real[left]       = leftReal + productReal
-                imaginary[left]  = leftImag + productImag
-                let nextReal = twiddleReal * stepReal - twiddleImag * stepImag
-                twiddleImag = twiddleReal * stepImag + twiddleImag * stepReal
-                twiddleReal = nextReal
+                let offset      = pair * 2
+                let left        = base + offset
+                let right       = left + half
+                let twiddleReal = Simd.load(&g_FftTwiddleReal[half + offset])
+                let twiddleImag = Simd.load(&g_FftTwiddleImag[half + offset])
+                let rightReal   = Simd.load(real + right)
+                let rightImag   = Simd.load(imaginary + right)
+                let productReal = twiddleReal * rightReal - twiddleImag * rightImag
+                let productImag = twiddleReal * rightImag + twiddleImag * rightReal
+                let leftReal    = Simd.load(real + left)
+                let leftImag    = Simd.load(imaginary + left)
+                Simd.store(real + right, leftReal - productReal)
+                Simd.store(imaginary + right, leftImag - productImag)
+                Simd.store(real + left, leftReal + productReal)
+                Simd.store(imaginary + left, leftImag + productImag)
             }
 
             base += step
@@ -206,10 +203,11 @@ private func imdctLong(coefficients: const [*] f64, output: [*] f64)
     var real, imaginary: [128] f64
     for k in 128
     {
-        let a = coefficients[255 - 2 * k]
-        let b = coefficients[2 * k]
-        real[k]      = a * g_LongCos[k] - b * g_LongSin[k]
-        imaginary[k] = b * g_LongCos[k] + a * g_LongSin[k]
+        let a     = coefficients[255 - 2 * k]
+        let b     = coefficients[2 * k]
+        let index = g_FftReverse[k]
+        real[index]      = a * g_LongCos[k] - b * g_LongSin[k]
+        imaginary[index] = b * g_LongCos[k] + a * g_LongSin[k]
     }
 
     inverseFft(&real, &imaginary, 128)
@@ -239,14 +237,15 @@ private func imdctShort(coefficients: const [*] f64, output: [*] f64)
     var realA, imagA, realB, imagB: [64] f64
     for k in 64
     {
-        let a1 = coefficients[2 * (127 - 2 * k)]
-        let b1 = coefficients[4 * k]
-        let a2 = coefficients[2 * (128 - 2 * k - 1) + 1]
-        let b2 = coefficients[4 * k + 2]
-        realA[k] = a1 * g_ShortCos[k] - b1 * g_ShortSin[k]
-        imagA[k] = b1 * g_ShortCos[k] + a1 * g_ShortSin[k]
-        realB[k] = a2 * g_ShortCos[k] - b2 * g_ShortSin[k]
-        imagB[k] = b2 * g_ShortCos[k] + a2 * g_ShortSin[k]
+        let a1    = coefficients[2 * (127 - 2 * k)]
+        let b1    = coefficients[4 * k]
+        let a2    = coefficients[2 * (128 - 2 * k - 1) + 1]
+        let b2    = coefficients[4 * k + 2]
+        let index = g_FftReverse[k] >> 1
+        realA[index] = a1 * g_ShortCos[k] - b1 * g_ShortSin[k]
+        imagA[index] = b1 * g_ShortCos[k] + a1 * g_ShortSin[k]
+        realB[index] = a2 * g_ShortCos[k] - b2 * g_ShortSin[k]
+        imagB[index] = b2 * g_ShortCos[k] + a2 * g_ShortSin[k]
     }
 
     inverseFft(&realA, &imagA, 64)
@@ -471,6 +470,9 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
     }
 }
 
+// Dolby mantissa exponents are small integers, so their powers of two are exact.
+internal func mantissaScale(exponent: s32)->f64 => cast #bit (f64, cast(u64, (1023 - exponent)) << 52)
+
 private struct MantissaReader
 {
     reader: *BitReader
@@ -559,6 +561,29 @@ impl MantissaReader
 
 private func initializeDolbyCore()
 {
+    for index in g_FftReverse.count do
+        g_FftReverse[index] = Math.reverse(cast(u8, index)) >> 1
+
+    var half = 1'u64
+    while half < g_FftTwiddleReal.count
+    {
+        let angle    = Math.ConstF64.Pi / cast(f64, half)
+        let stepReal = Math.cos(angle)
+        let stepImag = Math.sin(angle)
+        var real     = 1'f64
+        var imag     = 0'f64
+        for offset in half
+        {
+            g_FftTwiddleReal[half + offset] = real
+            g_FftTwiddleImag[half + offset] = imag
+            let nextReal = real * stepReal - imag * stepImag
+            imag = real * stepImag + imag * stepReal
+            real = nextReal
+        }
+
+        half *= 2
+    }
+
     for index in 128
     {
         let angle = 2.0 * Math.ConstF64.Pi * (8.0 * cast(f64, index) + 1.0) / (8.0 * 512.0)

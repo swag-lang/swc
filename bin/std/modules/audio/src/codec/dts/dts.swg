@@ -11,6 +11,7 @@ private const MaxChannels        = 6
 private const MaxPrimaryChannels = 5
 private const MaxSubbands        = 32
 private const MaxSubbandSamples  = 128
+private const HistorySamples     = 512
 private const SamplesPerSubband  = 8
 
 // Dequantized subband samples and the synthesis output use the 24-bit PCM scale of ETSI TS
@@ -39,8 +40,10 @@ private const ScaleFactors:     [128] f64 = [
 private struct BitReader
 {
     data:              const [*] u8
-    bitSize:           u64
-    bitPosition:       u64
+    byteSize:          u64
+    bytePosition:      u64
+    buffer:            u64
+    bitsBuffered:      u32
     littleEndianWords: bool
     packed14:          bool
     overrun:           bool
@@ -59,53 +62,66 @@ private impl BitReader
         if not bigEndian16 and not littleEndian16 and not bigEndian14 and not littleEndian14 do
             fail InvalidFormatError{"DTS packet has no core sync word"}
 
-        let packed14 = bigEndian14 or littleEndian14
-        let bitSize  = packed14 ? (packet.count / 2) * 14 : packet.count * 8
-        return BitReader{packet.buffer, bitSize, 0, littleEndian16 or littleEndian14, packed14}
+        return {data: packet.buffer, byteSize: packet.count, littleEndianWords: littleEndian16 or littleEndian14, packed14: bigEndian14 or littleEndian14}
     }
 
-    mtd read(count: u32)->u32
+    // Keep the next bits at the low end of the buffer, in stream order. Packed words contribute
+    // only their low fourteen bits. Only an unpacked big-endian stream can end in a single byte.
+    mtd refill(count: u32)
     {
-        var result: u32
-        for count
+        if not .packed14 and .byteSize - .bytePosition >= 4
         {
-            result <<= 1
-            if .bitPosition >= .bitSize
-            {
-                .overrun = true
-            }
-            else
-            {
-                if .packed14
-                {
-                    let wordIndex = .bitPosition / 14
-                    let byteIndex = wordIndex * 2
-                    let word      = .littleEndianWords ?
-                                    cast(u32, .data[byteIndex]) | (cast(u32, .data[byteIndex + 1]) << 8) :
-                                    (cast(u32, .data[byteIndex]) << 8) | cast(u32, .data[byteIndex + 1])
-                    result |= (word >> cast(u32, (13 - .bitPosition % 14))) & 1
-                }
-                else
-                {
-                    var byteIndex = .bitPosition >> 3
-                    if .littleEndianWords do
-                        byteIndex ^= 1
-                    if byteIndex >= .bitSize / 8
-                    {
-                        .overrun = true
-                    }
-                    else
-                    {
-                        let bitIndex = 7 - (.bitPosition & 7)
-                        result |= (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1
-                    }
-                }
-            }
-
-            .bitPosition += 1
+            var bytes: u32
+            Memory.copy(&bytes, .data + .bytePosition, #sizeof(u32))
+            let word = .littleEndianWords ? Math.rol(Math.littleEndianToNative(bytes), 16) : Math.bigEndianToNative(bytes)
+            .buffer        = (.buffer << 32) | word
+            .bitsBuffered += 32
+            .bytePosition += 4
+            return
         }
 
-        return result
+        let wordBits = .packed14 ? 14'u32 : 16
+        let mask     = .packed14 ? 0x3FFF'u16 : 0xFFFF
+        while .bitsBuffered < count and .byteSize - .bytePosition >= 2
+        {
+            let first  = .data[.bytePosition]
+            let second = .data[.bytePosition + 1]
+            let word   = .littleEndianWords ? Math.make16(second, first) : Math.make16(first, second)
+            .buffer       = (.buffer << wordBits) | (word & mask)
+            .bitsBuffered += wordBits
+            .bytePosition += 2
+        }
+
+        if .bitsBuffered < count and
+           .bytePosition < .byteSize and
+           not .packed14 and
+           not .littleEndianWords
+        {
+            .buffer       = (.buffer << 8) | .data[.bytePosition]
+            .bitsBuffered += 8
+            .bytePosition += 1
+        }
+    }
+
+    // Reads at most 32 bits, padding a truncated field with zeros.
+    #[Swag.Inline]
+    mtd read(count: u32)->u32
+    {
+        if .bitsBuffered < count
+        {
+            .refill(count)
+            if .bitsBuffered < count
+            {
+                .overrun = true
+                let remaining = .bitsBuffered
+                .bitsBuffered = 0
+                let bits = .buffer & ((1'u64 << remaining) - 1)
+                return cast(u32, (bits << (count - remaining)))
+            }
+        }
+
+        .bitsBuffered -= count
+        return cast(u32, ((.buffer >> .bitsBuffered) & ((1'u64 << count) - 1)))
     }
 
     mtd readSigned(count: u32)->s32
@@ -149,11 +165,9 @@ private impl BitReader
         return ScaleFactors[index[] * 2]
     }
 
-    mtd skip(count: u64)
+    mtd skip(count: u32)
     {
-        .bitPosition += count
-        if .bitPosition > .bitSize do
-            .overrun = true
+        discard .read(count)
     }
 }
 
@@ -219,13 +233,7 @@ private func parseFrameHeader(reader: *BitReader)->FrameHeader fail
     if result.bitRateIndex >= 25 and result.bitRateIndex != 29 and result.bitRateIndex != 31 do
         fail InvalidFormatError{"DTS packet states a reserved transmission rate"}
 
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(1)
-    discard reader.read(3)
-    discard reader.read(1)
+    reader.skip(9)
     result.syncSubsubframes = reader.read(1) != 0
     result.lfe = reader.read(2)
     if result.lfe == 3 do
@@ -262,7 +270,8 @@ private struct Codec
 
     sampleRate:        u32
     channels:          u32
-    history:           [MaxPrimaryChannels, 512] f64
+    history:           [MaxPrimaryChannels, 2 * HistorySamples] f64
+    historyStart:      [MaxPrimaryChannels] u32
     predictionHistory: [MaxPrimaryChannels, MaxSubbands, 4] f64
     lfeHistory:        [8] f64
 }
@@ -272,6 +281,7 @@ private impl Codec
     mtd resetState()
     {
         Memory.set(&.history, 0, #sizeof(.history))
+        Memory.clear(&.historyStart, #sizeof(.historyStart))
         Memory.set(&.predictionHistory, 0, #sizeof(.predictionHistory))
         Memory.set(&.lfeHistory, 0, #sizeof(.lfeHistory))
     }
@@ -351,62 +361,54 @@ private impl Codec
 
     mtd synthesize(destination: [*] s16, header: const *FrameHeader, subbands: *[MaxPrimaryChannels, MaxSubbands, MaxSubbandSamples] f64)
     {
+        let filter = header.perfectFilter ? BandFirPerfect : BandFirNonPerfect
         for channel in header.primaryChannels
         {
             let outputChannel = .sourceDestination(header.mode, channel, header.lfe)
+            var historyStart  = .historyStart[channel]
             for sample in header.frames / 32
             {
+                let bands = cast(const [*] f64, &subbands[][channel, 0, sample])
                 var transformed: [32] f64
-                for output in 32
-                {
-                    var sum: f64
-                    for band in 32
-                    {
-                        let angle = Math.ConstF64.Pi * (cast(f64, band) + 0.5) * (cast(f64, output) + 0.5) / 32.0
-                        sum += subbands[][channel, band, sample] * Math.cos(angle)
-                    }
+                synthesisDct(bands, MaxSubbandSamples, &transformed)
 
-                    transformed[output] = sum * 0.25
-                }
-
+                // Mirror each block so the FIR can read a contiguous 512-sample window.
+                historyStart = (historyStart + HistorySamples - 32) & (HistorySamples - 1)
+                let history = cast([*] f64, &.history[channel, historyStart])
                 for index in 16
                 {
-                    .history[channel, index]      = transformed[index] - transformed[31 - index]
-                    .history[channel, 16 + index] = transformed[index] + transformed[31 - index]
+                    let first  = transformed[index] - transformed[31 - index]
+                    let second = transformed[index] + transformed[31 - index]
+                    history[index]                       = first
+                    history[16 + index]                  = second
+                    history[HistorySamples + index]      = first
+                    history[HistorySamples + 16 + index] = second
                 }
 
-                let filter = header.perfectFilter ? BandFirPerfect : BandFirNonPerfect
                 for index in 16
                 {
                     let reverse = 15 - index
                     var first, second: f64
-                    var tap     = 0'u64
-                    while tap < 512
+                    for phase in 8
                     {
-                        first  += .history[channel, index + tap] * filter[index + tap]
-                        second += .history[channel, reverse + tap] * filter[16 + index + tap]
-                        tap    += 64
+                        let tap = phase * 64
+                        first  += history[index + tap] * filter[index + tap]
+                        second += history[reverse + tap] * filter[16 + index + tap]
                     }
 
-                    tap = 32
-                    while tap < 512
+                    for phase in 8
                     {
-                        first  += .history[channel, 16 + index + tap] * filter[index + tap]
-                        second += .history[channel, 16 + reverse + tap] * filter[16 + index + tap]
-                        tap    += 64
+                        let tap = 32 + phase * 64
+                        first  += history[16 + index + tap] * filter[index + tap]
+                        second += history[16 + reverse + tap] * filter[16 + index + tap]
                     }
 
                     destination[(sample * 32 + index) * header.channels + outputChannel]      = cast(s16, Math.clamp(Math.round(first * OutputScale), -32_768.0, 32_767.0))
                     destination[(sample * 32 + 16 + index) * header.channels + outputChannel] = cast(s16, Math.clamp(Math.round(second * OutputScale), -32_768.0, 32_767.0))
                 }
-
-                var index = 512'u64
-                while index > 32
-                {
-                    index -= 1
-                    .history[channel, index] = .history[channel, index - 32]
-                }
             }
+
+            .historyStart[channel] = historyStart
         }
 
         if header.sumDifference or header.mode == 3

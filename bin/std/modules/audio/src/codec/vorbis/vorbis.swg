@@ -12,6 +12,13 @@ private const MinBlockSize    = 64'u32
 private const MaxBlockSize    = 8192'u32
 private const MaxCodewordBits = 32'u32
 
+// Vorbis transmits a codeword's first bit in the low bit of the packet window.
+private const PrefixBits  = 8'u32
+private const PrefixCount = 1'u32 << PrefixBits
+private const PrefixMask  = PrefixCount - 1
+private const LeafBits    = 4'u32
+private const LeafMask    = (1 << LeafBits) - 1
+
 // Speaker masks for the channel counts the format defines, in WAVE order.
 private const SpeakerMasks: [9] u32 = [0, 0x0004, 0x0003, 0x0007, 0x0033, 0x0037, 0x003F, 0x070F, 0x063F]
 
@@ -104,8 +111,9 @@ private struct Codebook
     usedEntries: u32
     lookupType:  u32
     lengths:     Array'u8
-    children:    Array's32     // Two per node; a positive value names a node, a negative one a leaf holding entry `-value - 1`, zero is unassigned.
-    values:      Array'f32     // Lookup vectors, `dimensions` values per entry, empty without a lookup.
+    children:    Array's32             // Two per node; a positive value names a node, a negative one a leaf holding entry `-value - 1`, zero is unassigned.
+    values:      Array'f32             // Lookup vectors, `dimensions` values per entry, empty without a lookup.
+    prefixes:    [PrefixCount] s32     // Continuation nodes, packed leaves, or zero for unassigned.
 }
 
 private impl Codebook
@@ -233,18 +241,68 @@ private impl Codebook
         }
     }
 
+    // Resolves short codewords and the starting nodes of longer ones in a single lookup.
+    // A negative leaf packs the entry index above the four bits that hold its length.
+    mtd buildPrefixes()
+    {
+        let children = .children.storage()
+        for prefix in PrefixCount
+        {
+            var child = 0's32
+            var depth = 0'u32
+            while depth < PrefixBits
+            {
+                let bit = (prefix >> depth) & 1
+                child = children[cast(u64, child) * 2 + bit]
+                depth += 1
+                if child <= 0 do
+                    break
+            }
+
+            .prefixes[prefix] = child < 0 ? -(((-child - 1) << LeafBits) | cast(s32, depth)) : child
+        }
+    }
+
     // Reads one codeword and returns its entry, or -1 when the packet ends or the code is invalid.
     mtd const decode(reader: *BitReader)->s32
     {
         if not .usedEntries do
             return -1
-        var node = 0'u32
-        for MaxCodewordBits
+
+        var node  = 0'u32
+        var depth = 0'u32
+
+        // Two remaining bytes suffice for the lookup at any bit alignment. The tree also
+        // handles packet tails and incomplete trees without consuming any extra bits.
+        if reader.remainingBits() >= 16
+        {
+            let data   = unwrap reader.data
+            let offset = reader.bitPos >> 3
+            let window = cast(u32, Math.make16(data[offset + 1], data[offset]))
+            let prefix = (window >> cast(u32, reader.bitPos & 7)) & PrefixMask
+            let child  = .prefixes[prefix]
+            if child < 0
+            {
+                let leaf = -child
+                reader.bitPos += cast(u64, leaf & LeafMask)
+                return leaf >> LeafBits
+            }
+
+            if child
+            {
+                reader.bitPos += PrefixBits
+                node          = cast(u32, child)
+                depth         = PrefixBits
+            }
+        }
+
+        let children = .children.storage()
+        for depth until MaxCodewordBits
         {
             let bit = reader.read(1)
             if reader.overran do
                 return -1
-            let child = .children[cast(u64, node) * 2 + bit]
+            let child = children[cast(u64, node) * 2 + bit]
             if child < 0 do
                 return -child - 1
             if not child do
@@ -300,6 +358,7 @@ private impl Codebook
         if reader.overran do
             fail InvalidFormatError{"Vorbis setup header is truncated"}
         try .buildTree()
+        .buildPrefixes()
 
         .lookupType = reader.read(4)
         if not .lookupType do
@@ -1168,8 +1227,9 @@ private impl Codec
             lowY = highY
         }
 
+        let gain = Floor1InverseDb[cast(u32, lowY)]
         for line in highX until half do
-            spectrum[line] *= Floor1InverseDb[cast(u32, lowY)]
+            spectrum[line] *= gain
     }
 
     // Decodes a residue into the channels of `list`, whose nonzero flags select what is coded.
@@ -1491,21 +1551,25 @@ private impl Codec
 
             if outputFrames
             {
-                let saved    = .saved[channel].storage()
-                let slot     = ChannelSlots[.channels, channel]
-                let previous = cast(u64, .previousSize)
-                let shift    = cast(s64, n) / 4 - cast(s64, previous) / 4
-                for frame in outputFrames
-                {
-                    var value         = 0.0'f32
-                    let previousIndex = previous / 2 + frame
-                    if previousIndex < previous do
-                        value += saved[previousIndex - previous / 2]
-                    let current = cast(s64, frame) + shift
-                    if current >= 0 and current < cast(s64, n) do
-                        value += time[cast(u64, current)]
-                    .output[(base + frame) * .channels + slot] = cast(s16, Math.clamp(Math.round(cast(f64, value) * 32767.0), -32768.0, 32767.0))
-                }
+                #[Swag.Inline]
+                func toPcm16(value: f32)->s16
+                    => cast(s16, Math.clamp(Math.round(cast(f64, value) * 32767.0), -32768.0, 32767.0))
+
+                let saved  = .saved[channel].storage()
+                let slot   = ChannelSlots[.channels, channel]
+                let output = .output.storage() + base * .channels + slot
+
+                // Different block sizes leave samples to one side of the overlap. Compute
+                // that span once, then add the two windows without bounds checks per sample.
+                let shift        = cast(s64, n) / 4 - cast(s64, .previousSize) / 4
+                let overlapStart = shift < 0 ? cast(u64, -shift) : 0
+                let overlapEnd   = Math.min(cast(u64, .previousSize) / 2, outputFrames)
+                for frame in overlapStart do
+                    output[frame * .channels] = toPcm16(saved[frame])
+                for frame in overlapStart until overlapEnd do
+                    output[frame * .channels] = toPcm16(saved[frame] + time[cast(u64, cast(s64, frame) + shift)])
+                for frame in overlapEnd until outputFrames do
+                    output[frame * .channels] = toPcm16(time[cast(u64, cast(s64, frame) + shift)])
             }
 
             Memory.copy(.saved[channel].storage(), time + half, cast(u64, half) * #sizeof(f32))
@@ -1538,23 +1602,40 @@ private impl Codec
                 endsStream = endsStream or (page.flags & Ogg.LastPage) != 0
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
-                let body = run[offset + page.headerBytes until offset + pageBytes]
-                var at   = 0'u64
+                let body          = run[offset + page.headerBytes until offset + pageBytes]
+                var at            = 0'u64
+                var packetStart   = 0'u64
                 var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
                 for index in page.segments
                 {
-                    let size = cast(u64, page.lacing[index])
-                    .packet.add(body[at until at + size])
+                    let size = page.lacing[index]
                     at += size
-                    if size < 255
+                    if size == 255 do
+                        continue
+
+                    // Borrow packets that fit on this page. Only packets with a fragment from
+                    // a preceding page need to be joined in the scratch buffer.
+                    let payload = body[packetStart until at]
+                    if headersToSkip
                     {
-                        if headersToSkip do
-                            headersToSkip -= 1
-                        elif .packet.count do
-                            produced += try .decodeAudioPacket(.packet.toSlice())
-                        .packet.clear()
+                        headersToSkip -= 1
                     }
+                    elif .packet.count
+                    {
+                        .packet.add(payload)
+                        produced += try .decodeAudioPacket(.packet.toSlice())
+                    }
+                    elif payload.count
+                    {
+                        produced += try .decodeAudioPacket(payload)
+                    }
+
+                    .packet.clear()
+                    packetStart = at
                 }
+
+                if packetStart < at do
+                    .packet.add(body[packetStart until at])
             }
 
             offset += pageBytes
@@ -1623,7 +1704,8 @@ private func renderPoint(x0, x1, y0, y1, x: s32)->s32
 }
 
 // Multiplies `target` by the line from `(x0, y0)` to `(x1, y1)`, stepping through the amplitude
-// table exactly as the specification's integer walk does.
+// table exactly as the specification's integer walk does. Both endpoints are clamped to valid
+// table indices before the interpolation, so every intermediate value is in range.
 private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 {
     let dy   = y1 - y0
@@ -1638,7 +1720,7 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
 
     let end = Math.min(limit, x1)
     if x < end do
-        target[x] *= Floor1InverseDb[cast(u32, Math.clamp(y, 0, 255))]
+        target[x] *= Floor1InverseDb[cast(u32, y)]
     x += 1
     while x < end
     {
@@ -1653,7 +1735,7 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
             y += base
         }
 
-        target[x] *= Floor1InverseDb[cast(u32, Math.clamp(y, 0, 255))]
+        target[x] *= Floor1InverseDb[cast(u32, y)]
         x         += 1
     }
 }

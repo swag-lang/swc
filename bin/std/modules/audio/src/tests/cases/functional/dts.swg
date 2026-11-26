@@ -226,6 +226,27 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     }
 }
 
+// Every basis vector exercises the mirrored output order and the transform's scale.
+#test
+{
+    const Stride = 2
+    var bands:       [32 * Stride] f64
+    var transformed: [32] f64
+    for band in 32
+    {
+        bands[band * Stride] = 1.0
+        Dts.synthesisDct(cast(const [*] f64, &bands[0]), Stride, &transformed)
+        for output in 32
+        {
+            let angle    = Math.ConstF64.Pi * (cast(f64, band) + 0.5) * (cast(f64, output) + 0.5) / 32.0
+            let expected = Math.cos(angle) * 0.25
+            Swag.require(Math.abs(transformed[output] - expected) < 1e-12)
+        }
+
+        bands[band * Stride] = 0.0
+    }
+}
+
 // A native DTS Core stream is indexed from its frame headers, decoded through the packet-codec
 // registry, and exposed in WAVE FL,FR,FC,LFE,BL,BR speaker order.
 #test

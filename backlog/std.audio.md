@@ -38,21 +38,6 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 - Done when: representative Core streams using those tools decode with validated channel order
   and bounded reference error, while unsupported extension substreams remain explicit.
 
-### std.audio.002 — MP3 synthesis has not been measured or factored
-
-- Intent: Layer III decodes at every sampling frequency of the three versions, within the
-  reference-error limits in `mp3.swg`. Its transform and filter-bank cost has not been measured.
-- What is slow by construction, and was written that way on purpose: the inverse transform is the
-  normative matrix, 648 multiplications a subband where a factored transform needs a fraction of
-  that, and the polyphase bank is the normative 64 by 32 matrixing per block. Both are stated in
-  `synthesis.swg` exactly as clause 2.4.3.4.10 states them, which is what made them checkable.
-  `Math.pow` also computes every magnitude above fifteen. Measure before replacing any of it: at
-  128 kbit/s a frame is 26 ms of audio and the whole decode may already be far below that.
-- Next: measure synthesis separately from entropy decoding, then compare factored transforms
-  against the current reference implementation on the same granules.
-- Done when: synthesis cost is recorded and any retained optimization preserves the complete
-  MPEG-1/2/2.5, channel-mode, block-type, and reservoir regression corpus.
-
 ### std.audio.003 — Gain changes have no sample-based ramp
 
 - Evidence: `Voice.setVolumeDb` and `Bus.setVolume` write the gain straight to the backend,
@@ -213,17 +198,18 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
 - Related: std.audio.011, app.capture.013
 
-### std.audio.017 — FLAC, DTS, MP3 and OGA decode need stage profiles against FFmpeg
+### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
 
-- Evidence: a Release Filesamples comparison decoded the first 10 seconds to PCM16. Scope took
-  478 ms for FLAC and 381 ms for DTS versus 11.8 ms and 37.5 ms through PyAV/FFmpeg; MP3 took
-  82 ms versus 20.7 ms, and OGA took 98 ms versus 11.9 ms. PyAV's Python conversion adds work,
-  so confirm the native gap before setting a target. Raw samples and limits are in the
-  [comparison report](../bench/results/swagscope-filesamples/README.md).
-- Next: profile container indexing and codec decode separately for the four inputs, then compare
-  the PCM16 path with a native in-process FFmpeg harness using the same ten-second window.
-- Done when: the measured gap is attributed to stages and either closed on the dominant paths or
-  documented with a bounded reason, while decoded samples retain their accepted reference error.
+- Evidence: the native Linux Release comparison measures open and decode separately for the
+  first ten seconds of all eight compressed audio cases. FLAC, OGA, DTS and MP3 have the largest
+  absolute reductions. Complete checksum-validated indexing accounts for most of the remaining
+  FLAC and OGA gap. Decode accounts for most of the remaining AAC, AC-3, DTS, MP3, Vorbis and
+  Opus gap. The report records timings and accepted PCM error on each file.
+  [Linux comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md)
+- Next: profile the remaining codec kernels against native FFmpeg on the same ten-second
+  windows. Measure full-file index validation separately when evaluating FLAC and OGA.
+- Done when: the residual gaps are closed or quantified for the required indexing and decode
+  operations, with the reference PCM tolerances preserved.
 - Related: app.scope.viewers.009.
 
 ---

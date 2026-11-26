@@ -149,13 +149,22 @@ private impl SoundFile
             var producedBytes = decodedByteCount
             if packet.byteSize
             {
-                if packetBytes.count != packet.byteSize do
-                    packetBytes.resize(packet.byteSize)
                 try source.seek(packet.sourceOffset)
-                try source.readExact(packetBytes.toSlice())
-                producedBytes = try packetCodec!.decodePacket(decodedBytes.storage(),
-                                                              decodedByteCount,
-                                                              packetBytes.toSlice())
+                var payload: const [..] u8
+                if packet.byteSize <= ByteSource.WindowSize
+                {
+                    let window = try source.peek(packet.byteSize)
+                    payload = window[until packet.byteSize]
+                }
+                else
+                {
+                    if packetBytes.count != packet.byteSize do
+                        packetBytes.resize(packet.byteSize)
+                    try source.readExact(packetBytes.toSlice())
+                    payload = packetBytes.toSlice()
+                }
+
+                producedBytes = try packetCodec!.decodePacket(decodedBytes.storage(), decodedByteCount, payload)
                 if producedBytes != decodedByteCount do
                     fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
             }

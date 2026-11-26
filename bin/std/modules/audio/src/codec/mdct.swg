@@ -16,8 +16,8 @@ struct Mdct
     n:          u32
     twiddleCos: Array'f32     // cos(2π (k + 1/8) / n), one entry per FFT point.
     twiddleSin: Array'f32     // sin(2π (k + 1/8) / n), one entry per FFT point.
-    fftCos:     Array'f32     // cos(2π j / m) for the first half of the FFT circle.
-    fftSin:     Array'f32     // sin(2π j / m) for the first half of the FFT circle.
+    fftCos:     Array'f32     // Cosines packed in butterfly order for every FFT stage.
+    fftSin:     Array'f32     // Sines packed in butterfly order for every FFT stage.
     reverse:    Array'u32     // Bit-reversed index of every FFT point.
     real:       Array'f32     // FFT scratch.
     imaginary:  Array'f32     // FFT scratch.
@@ -42,13 +42,31 @@ impl Mdct
             result.twiddleSin[k] = cast(f32, Math.sin(angle))
         }
 
-        result.fftCos.resize(m / 2)
-        result.fftSin.resize(m / 2)
+        // Each stage holds one contiguous half-span of twiddles. Earlier stages select
+        // every second, fourth, and later entry from the final stage.
+        result.fftCos.resize(m - 1)
+        result.fftSin.resize(m - 1)
+        let finalStage = m / 2 - 1
         for j in m / 2
         {
             let angle = 2.0 * Math.ConstF64.Pi * cast(f64, j) / cast(f64, m)
-            result.fftCos[j] = cast(f32, Math.cos(angle))
-            result.fftSin[j] = cast(f32, Math.sin(angle))
+            result.fftCos[finalStage + j] = cast(f32, Math.cos(angle))
+            result.fftSin[finalStage + j] = cast(f32, Math.sin(angle))
+        }
+
+        var halfLength = 1'u32
+        while halfLength < m / 2
+        {
+            let stride = (m / 2) / halfLength
+            for j in halfLength
+            {
+                let source = finalStage + j * stride
+                let target = halfLength - 1 + j
+                result.fftCos[target] = result.fftCos[source]
+                result.fftSin[target] = result.fftSin[source]
+            }
+
+            halfLength *= 2
         }
 
         var bits = 0'u32
@@ -177,21 +195,25 @@ impl Mdct
 
     private mtd fft(sign: f32)
     {
-        let m      = .n / 4
-        let re     = .real.storage()
-        let im     = .imaginary.storage()
-        var length = 2'u32
-        while length <= m
+        let m   = .n / 4
+        let re  = .real.storage()
+        let im  = .imaginary.storage()
+        let cos = .fftCos.storage()
+        let sin = .fftSin.storage()
+
+        // The first two stages have one or two butterflies in each group.
+        for stage in 2
         {
-            let halfLength = length / 2
-            let stride     = m / length
+            let halfLength = 1'u32 << stage
+            let length     = 2 * halfLength
+            let offset     = halfLength - 1
             var start      = 0'u32
             while start < m
             {
                 for j in halfLength
                 {
-                    let wr = .fftCos[j * stride]
-                    let wi = sign * .fftSin[j * stride]
+                    let wr = cos[offset + j]
+                    let wi = sign * sin[offset + j]
                     let a  = start + j
                     let b  = a + halfLength
                     let tr = re[b] * wr - im[b] * wi
@@ -204,8 +226,42 @@ impl Mdct
 
                 start += length
             }
+        }
 
-            length *= 2
+        // Later stages pair contiguous spans. Four butterflies use the same arithmetic
+        // as above, with four adjacent samples and twiddles in each vector.
+        var halfLength = 4'u32
+        while halfLength < m
+        {
+            let length = 2 * halfLength
+            let offset = halfLength - 1
+            var start  = 0'u32
+            while start < m
+            {
+                var j = 0'u32
+                while j < halfLength
+                {
+                    let wr = Simd.load(cos + offset + j)
+                    let wi = Simd.load(sin + offset + j) * sign
+                    let a  = start + j
+                    let b  = a + halfLength
+                    let ar = Simd.load(re + a)
+                    let ai = Simd.load(im + a)
+                    let br = Simd.load(re + b)
+                    let bi = Simd.load(im + b)
+                    let tr = br * wr - bi * wi
+                    let ti = br * wi + bi * wr
+                    Simd.store(re + b, ar - tr)
+                    Simd.store(im + b, ai - ti)
+                    Simd.store(re + a, ar + tr)
+                    Simd.store(im + a, ai + ti)
+                    j += 4
+                }
+
+                start += length
+            }
+
+            halfLength = length
         }
     }
 }

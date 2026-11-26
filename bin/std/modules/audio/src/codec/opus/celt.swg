@@ -44,6 +44,33 @@ private const Exp2Table8:      [8] s32    = [16384, 17866, 19483, 21247, 23170, 
 private const BitInterleave:   [16] u32   = [0, 1, 1, 1, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3]
 private const BitDeinterleave: [16] u32   = [0x00, 0x03, 0x0C, 0x0F, 0x30, 0x33, 0x3C, 0x3F, 0xC0, 0xC3, 0xCC, 0xCF, 0xF0, 0xF3, 0xFC, 0xFF]
 
+// The widest CELT band contains 22 bins in each of up to eight short blocks.
+private const MaxPulseDimensions = 176'u32
+
+// Number of signed pulse arrangements used by the entropy decoder. The recurrence is
+// symmetric, and U(15,15) already exceeds the 32-bit range coder. Keep just the upper
+// triangle with a smaller dimension below 15, saturating values that cannot be coded.
+private const PulseArrangements: [15, MaxPulseDimensions + 1] u32 = #run
+{
+    var table: [15, MaxPulseDimensions + 1] u32
+    table[0, 0] = 1
+    for small in 1 until 15
+    {
+        for large in small until MaxPulseDimensions + 1
+        {
+            let left  = small == large ? table[small - 1, large] : table[small, large - 1]
+            let total = cast(u64, left) + table[small - 1, large] + table[small - 1, large - 1]
+            table[small, large] = cast(u32, Math.min(total, cast(u64, Swag.U32.Max)))
+        }
+    }
+
+    return table
+}
+
+#[Swag.Inline]
+private func pulseArrangements(dimensions, pulses: u32)->u32
+    => PulseArrangements[Math.min(dimensions, pulses), Math.max(dimensions, pulses)]
+
 private func celtExp2(x: f32)->f32  => cast(f32, Math.exp(0.6931471805599453 * cast(f64, x)))
 private func celtLog2(x: f32)->f32  => cast(f32, (1.4426950408889634 * Math.log(cast(f64, x))))
 private func celtRsqrt(x: f32)->f32 => cast(f32, (1.0 / Math.sqrt(cast(f64, x))))
@@ -136,12 +163,14 @@ private func laplaceDecode(dec: *RangeDecoder, fs0, decay: u32)->s32
     return value
 }
 
-// One complex FFT of a fixed composite length, evaluated by decimation in time over its factors.
+// The CELT FFT lengths are 15 times a power of two. Decimation in time puts all
+// five-point butterflies first, then the three-point butterflies and the radix-two stages.
 private struct CeltFft
 {
     n:      u32
     cosine: Array'f32
     sine:   Array'f32
+    order:  Array'u32
 }
 
 private impl CeltFft
@@ -152,72 +181,121 @@ private impl CeltFft
         result.n = n
         result.cosine.resize(n)
         result.sine.resize(n)
+        result.order.resize(n)
+
+        let binarySize = n / 15
         for k in n
         {
             let angle = -2.0 * Math.ConstF64.Pi * cast(f64, k) / cast(f64, n)
             result.cosine[k] = cast(f32, Math.cos(angle))
             result.sine[k]   = cast(f32, Math.sin(angle))
+
+            // Reverse the binary digits, then place the mixed-radix digits at the low end.
+            var bits     = k % binarySize
+            var reversed = 0'u32
+            var width    = binarySize
+            while width > 1
+            {
+                reversed = (reversed << 1) | (bits & 1)
+                bits     >>= 1
+                width    >>= 1
+            }
+
+            let mixed = k / binarySize
+            result.order[k] = reversed * 15 + (mixed % 3) * 5 + mixed / 3
         }
 
         return result
     }
 
-    // Writes the transform of the `count` interleaved complex points read from `input` with
-    // `stride` points between them into `output`, in natural order.
-    mtd transform(output: [*] f32, input: const [*] f32, stride, count, twiddleStride: u32)
+    // A packed point keeps its real and imaginary components in the first two lanes.
+    // Multiplication by i exchanges the components and flips the new real component's sign.
+    #[Swag.Inline]
+    func quarterTurn(point: Simd.F32x4)->Simd.F32x4
     {
-        if count == 1
+        const Swap = cast(Simd.U32x4, [1'u32, 0, 3, 2])
+        const Sign = cast(Simd.U32x4, [0x8000_0000'u32, 0, 0x8000_0000, 0])
+        let exchanged = Swag.vecShuffle(point, Swap)
+        return cast #bit(Simd.F32x4, (cast #bit(Simd.U32x4, exchanged) ^ Sign))
+    }
+
+    #[Swag.Inline]
+    func rotate(point: Simd.F32x4, cosine, sine: f32)->Simd.F32x4
+        => point * cosine + quarterTurn(point) * sine
+
+    // The input is already in the digit-reversed order stored in `.order`.
+    mtd const transform(points: [*] Simd.F32x4)
+    {
+        const Cos72  = 0.30901699437494745'f32
+        const Cos144 = -0.80901699437494734'f32
+        const Sin72  = 0.95105651629515353'f32
+        const Sin144 = 0.58778525229247324'f32
+        const Sin120 = 0.86602540378443865'f32
+
+        // Pair conjugate weights so the two outputs share each sum and difference.
+        for group in .n / 5
         {
-            output[0] = input[0]
-            output[1] = input[1]
-            return
+            let p      = points + group * 5
+            let sum14  = p[1] + p[4]
+            let sum23  = p[2] + p[3]
+            let diff14 = p[1] - p[4]
+            let diff23 = p[2] - p[3]
+            let a      = p[0] + Cos72 * sum14 + Cos144 * sum23
+            let b      = p[0] + Cos144 * sum14 + Cos72 * sum23
+            let c      = Sin72 * diff14 + Sin144 * diff23
+            let d      = Sin144 * diff14 - Sin72 * diff23
+            let ci     = quarterTurn(c)
+            let di     = quarterTurn(d)
+            p[0] = p[0] + sum14 + sum23
+            p[1] = a - ci
+            p[2] = b - di
+            p[3] = b + di
+            p[4] = a + ci
         }
 
-        var radix = 5'u32
-        if count % 2 == 0 do
-            radix = 2
-        elif count % 3 == 0 do
-            radix = 3
-        elif count % 5 != 0 do
-            radix = count
-        let m = count / radix
-        for r in radix do
-            .transform(output + 2 * r * m, input + 2 * r * stride, stride * radix, m, twiddleStride * radix)
-
-        var re:    [8] f32
-        var im:    [8] f32
-        var outRe: [8] f32
-        var outIm: [8] f32
-        for k in m
+        // Rotate the three five-point transforms into their fifteen-point group.
+        let cosine = .cosine.storage()
+        let sine   = .sine.storage()
+        let radixThreeGroups = .n / 15
+        for group in radixThreeGroups
         {
-            for r in radix
+            let p = points + group * 15
+            for k in 5
             {
-                re[r] = output[2 * (r * m + k)]
-                im[r] = output[2 * (r * m + k) + 1]
+                let index = k * radixThreeGroups
+                let b     = rotate(p[k + 5], cosine[index], sine[index])
+                let c     = rotate(p[k + 10], cosine[2 * index], sine[2 * index])
+                let sum   = b + c
+                let mid   = p[k] - 0.5 * sum
+                let diff  = b - c
+                let cross = quarterTurn(diff) * Sin120
+                p[k]      += sum
+                p[k + 5]  = mid - cross
+                p[k + 10] = mid + cross
             }
+        }
 
-            for q in radix
+        // The remaining stages double the transformed span at each step.
+        var width  = 15'u32
+        var groups = .n / 30
+        while width < .n
+        {
+            for group in groups
             {
-                var sumRe = 0.0'f32
-                var sumIm = 0.0'f32
-                for r in radix
+                let even = points + group * 2 * width
+                let odd  = even + width
+                for k in width
                 {
-                    let index = (cast(u64, twiddleStride) * cast(u64, (k + q * m)) * cast(u64, r)) % .n
-                    let c     = .cosine[index]
-                    let s     = .sine[index]
-                    sumRe += re[r] * c - im[r] * s
-                    sumIm += re[r] * s + im[r] * c
+                    let a     = even[k]
+                    let index = k * groups
+                    let b     = rotate(odd[k], cosine[index], sine[index])
+                    even[k] = a + b
+                    odd[k]  = a - b
                 }
-
-                outRe[q] = sumRe
-                outIm[q] = sumIm
             }
 
-            for q in radix
-            {
-                output[2 * (k + q * m)]     = outRe[q]
-                output[2 * (k + q * m) + 1] = outIm[q]
-            }
+            width  *= 2
+            groups /= 2
         }
     }
 }
@@ -226,10 +304,9 @@ private impl CeltFft
 // cancellation exactly as the reference decoder lays it out.
 private struct CeltMdct
 {
-    trig:   [4] Array'f32
-    fft:    [4] CeltFft
-    input:  Array'f32
-    output: Array'f32
+    trig:    [4] Array'f32
+    fft:     [4] CeltFft
+    scratch: Array'Simd.F32x4
 }
 
 private impl CeltMdct
@@ -248,8 +325,7 @@ private impl CeltMdct
             n /= 2
         }
 
-        result.input.resize(2 * CeltFftMax)
-        result.output.resize(2 * CeltFftMax)
+        result.scratch.resize(CeltFftMax)
         return result
     }
 
@@ -261,39 +337,25 @@ private impl CeltMdct
         let n2     = n / 2
         let n4     = n / 4
         let t      = .trig[shift].storage()
-        let fftIn  = .input.storage()
-        let fftOut = .output.storage()
+        let fft    = &.fft[shift]
+        let order  = fft.order.storage()
+        let points = .scratch.storage()
 
         for i in n4
         {
-            let x1 = spectrum[2 * stride * i]
-            let x2 = spectrum[stride * (n2 - 1 - 2 * i)]
-            fftIn[2 * i]     = x1 * t[i] - x2 * t[n4 + i]
-            fftIn[2 * i + 1] = x2 * t[i] + x1 * t[n4 + i]
+            let x1    = spectrum[2 * stride * i]
+            let x2    = spectrum[stride * (n2 - 1 - 2 * i)]
+            let point = cast(Simd.F32x4, [x1, x2, 0.0, 0.0])
+            points[order[i]] = CeltFft.rotate(point, t[i], t[n4 + i])
         }
 
-        .fft[shift].transform(fftOut, fftIn, 1, n4, 1)
+        fft.transform(points)
         let yp = out + CeltOverlap / 2
-        Memory.copy(yp, fftOut, cast(u64, n2) * #sizeof(f32))
-
-        var a = 0'u32
-        var b = n2 - 2
-        for i in (n4 + 1) / 2
+        for i in n4
         {
-            let re  = yp[a + 1]
-            let im  = yp[a]
-            let yr  = re * t[i] + im * t[n4 + i]
-            let yi  = re * t[n4 + i] - im * t[i]
-            let re2 = yp[b + 1]
-            let im2 = yp[b]
-            yp[a]     = yr
-            yp[b + 1] = yi
-            let t0 = t[n4 - i - 1]
-            let t1 = t[n2 - i - 1]
-            yp[b]     = re2 * t0 + im2 * t1
-            yp[a + 1] = re2 * t1 - im2 * t0
-            a         += 2
-            b         -= 2
+            let point = points[i]
+            yp[2 * i] = point[1] * t[i] + point[0] * t[n4 + i]
+            yp[n2 - 1 - 2 * i] = point[1] * t[n4 + i] - point[0] * t[i]
         }
 
         var lowIndex  = 0'u32
@@ -827,68 +889,37 @@ internal impl CeltDecoder
         return cast(s32, CeltCacheBits[base + cast(u32, pulses)]) + 1
     }
 
-    // Decodes the pulse vector of one band as the `index`-th combination of `k` pulses over `n`
+    // Decodes the pulse vector of one band as the index-th arrangement of k pulses over n
     // positions, and returns the squared norm of the vector.
     mtd decodePulses(target: [*] s32, n, k: u32, dec: *RangeDecoder)->f32
     {
-        var u: [160] u32
-        let len = k + 2
-        u[0] = 0
-        u[1] = 1
-        for j in 2'u32 until len do
-            u[j] = (j << 1) - 1
-        for 2'u32 until n
-        {
-            // Next row of the recurrence u[i][j] = u[i-1][j] + u[i][j-1] + u[i-1][j-1].
-            var ui0 = 1'u32
-            for j in 1'u32 until k + 1
-            {
-                let ui1 = u[1 + j] + u[j] + ui0
-                u[j] = ui0
-                ui0  = ui1
-            }
-
-            u[k + 1] = ui0
-        }
-
-        var index = dec.decodeUint(u[k] + u[k + 1])
-        var yy    = 0.0'f32
-        var kk    = k
+        var index     = dec.decodeUint(pulseArrangements(n, k) + pulseArrangements(n, k + 1))
+        var remaining = k
+        var norm      = 0.0'f32
         for j in n
         {
-            var p        = u[kk + 1]
-            let negative = index >= p
+            let dimensions = n - j
+            let threshold  = pulseArrangements(dimensions, remaining + 1)
+            let negative   = index >= threshold
             if negative do
-                index -= p
-            var yj = cast(s32, kk)
-            p = u[kk]
-            while p > index
+                index -= threshold
+
+            let available = remaining
+            var offset    = pulseArrangements(dimensions, remaining)
+            while offset > index
             {
-                kk -= 1
-                p  = u[kk]
+                remaining -= 1
+                offset    = pulseArrangements(dimensions, remaining)
             }
 
-            index -= p
-            yj    -= cast(s32, kk)
-            var value = yj
-            if negative do
-                value = -yj
+            index -= offset
+            let magnitude = cast(s32, available - remaining)
+            let value     = negative ? -magnitude : magnitude
             target[j] = value
-            yy        += cast(f32, (value * value))
-
-            // Previous row of the recurrence.
-            var ui0 = 0'u32
-            for i in 1'u32 until kk + 2
-            {
-                let ui1 = u[i] - u[i - 1] - ui0
-                u[i - 1] = ui0
-                ui0      = ui1
-            }
-
-            u[kk + 1] = ui0
+            norm      += cast(f32, value * value)
         }
 
-        return yy
+        return norm
     }
 
     mtd expRotation1(x: [*] f32, len, stride: u32, c, s: f32)
@@ -948,7 +979,7 @@ internal impl CeltDecoder
 
     mtd algUnquant(x: [*] f32, n, k: u32, spread, b: u32, dec: *RangeDecoder, gain: f32)->u32
     {
-        var iy: [176] s32
+        var iy: [MaxPulseDimensions] s32
         let ryy = .decodePulses(&iy[0], n, k, dec)
         let g   = celtRsqrt(ryy) * gain
         for i in n do

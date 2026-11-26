@@ -22,6 +22,9 @@ const LastPage        = 0x04'u8
 
 // The generator every page checksum is computed with, clause 6 of RFC 3533.
 private const ChecksumPolynomial = 0x04C11DB7'u32
+private const ChecksumOffset     = 22'u64
+private const ChecksumEnd        = ChecksumOffset + #sizeof(u32)
+private const ChecksumTable      = #run buildChecksumTable()
 
 // What one page header states.
 struct PageHeader
@@ -86,19 +89,39 @@ func readPageHeader(bytes: const [..] u8, offset: u64)->PageHeader fail
 }
 
 // The checksum a page must carry, computed over the page with its own checksum field zeroed.
-internal func pageChecksum(page: const [..] u8, table: const [256] u32)->u32
+internal func pageChecksum(page: const [..] u8)->u32
 {
     var crc = 0'u32
-    for byte, index in page
+    let beforeChecksum = Math.min(page.count, ChecksumOffset)
+    let afterChecksum  = Math.min(page.count, ChecksumEnd)
+    for index in beforeChecksum do
+        crc = (crc << 8) ^ ChecksumTable[0, (crc >> 24) ^ page[index]]
+    for beforeChecksum until afterChecksum do
+        crc = (crc << 8) ^ ChecksumTable[0, crc >> 24]
+
+    // The tables fold each byte's contribution after up to seven further bytes.
+    var offset = afterChecksum
+    while page.count - offset >= #sizeof(u64)
     {
-        let value = index >= 22 and index < 26 ? 0'u8 : byte
-        crc = (crc << 8) ^ table[((crc >> 24) ^ cast(u32, value)) & 0xFF]
+        let word  = Math.bigEndianToNative(cast(const [*] u64, page.buffer + offset)[0])
+        let mixed = word ^ (cast(u64, crc) << 32)
+        crc = ChecksumTable[7, mixed >> 56] ^
+              ChecksumTable[6, (mixed >> 48) & 0xFF] ^
+              ChecksumTable[5, (mixed >> 40) & 0xFF] ^
+              ChecksumTable[4, (mixed >> 32) & 0xFF] ^
+              ChecksumTable[3, (mixed >> 24) & 0xFF] ^
+              ChecksumTable[2, (mixed >> 16) & 0xFF] ^
+              ChecksumTable[1, (mixed >> 8) & 0xFF] ^
+              ChecksumTable[0, mixed & 0xFF]
+        offset += #sizeof(u64)
     }
 
+    for index in offset until page.count do
+        crc = (crc << 8) ^ ChecksumTable[0, (crc >> 24) ^ page[index]]
     return crc
 }
 
-internal func buildChecksumTable()->[256] u32
+private func buildChecksumTable()->[8, 256] u32
 {
     var result: #returntype
     for index in 256
@@ -106,7 +129,16 @@ internal func buildChecksumTable()->[256] u32
         var value = cast(u32, index) << 24
         for 8 do
             value = value & 0x80000000 ? (value << 1) ^ ChecksumPolynomial : value << 1
-        result[index] = value
+        result[0, index] = value
+    }
+
+    for slice in 1 until 8
+    {
+        for index in 256
+        {
+            let previous = result[slice - 1, index]
+            result[slice, index] = (previous << 8) ^ result[0, previous >> 24]
+        }
     }
 
     return result
@@ -212,7 +244,6 @@ private func identify(body: const [..] u8)->StreamInfo fail
 private struct Walker
 {
     source:  ByteSource
-    table:   [256] u32
     offset:  u64     // Where the page being examined starts.
     packets: Array'SoundPacket
 }
@@ -225,15 +256,30 @@ private impl Walker
         if .offset >= .source.size() do
             return false
         try .source.seek(.offset)
-        let head = try .source.peek(Math.min(MaxPageSize, .source.remaining()))
+        let remaining = .source.remaining()
+        let head      = try .source.peek(Math.min(PageHeaderSize + MaxSegments, remaining))
         header[] = try readPageHeader(head, 0)
         let total = header.totalBytes()
-        if total > .source.remaining() do
+        if total > remaining do
             fail InvalidFormatError{"Ogg page runs past the end of the file"}
-        let page = (try .source.peek(total))[0 until total]
-        if pageChecksum(page, .table) != readU32(page, 22) do
+        let bytes = head.count < total ? try .source.peek(total) : head
+        let page  = bytes[until total]
+        if pageChecksum(page) != readU32(page, ChecksumOffset) do
             fail InvalidFormatError{"Ogg page checksum does not match its content"}
         return true
+    }
+
+    // Verifies interleaved pages while advancing to the requested stream.
+    mtd nextStreamPage(serial: u32, header: *PageHeader)->bool fail
+    {
+        while try .next(header)
+        {
+            if header.serial == serial do
+                return true
+            .offset += header.totalBytes()
+        }
+
+        return false
     }
 
     // Returns the body of the page at `.offset`, whose header was just read.
@@ -343,8 +389,7 @@ func flacSetup(config: const [..] u8)->{streamInfo: const [..] u8, serial: u32, 
 {
     var walker: Walker
     walker.source = ByteSource.openMemory(config)
-    walker.table  = buildChecksumTable()
-    var info      = try findStream(&walker)
+    var info = try findStream(&walker)
     if info.kind != .Flac do
         fail InvalidFormatError{"Ogg FLAC configuration has no FLAC identification packet"}
     var header: PageHeader
@@ -374,48 +419,32 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
     var run:       Run
     var total             = 0'u64
     var previous          = 0'u64     // Granule position at the end of the previous run.
-    var sequence          = Swag.U32.Max
+    var sequence          = 0'u32
     var hasSequence       = false
     var expectedContinued = false
-    var hasTargetPage     = false
     var firstRun          = true
     var header:    PageHeader
     var lookahead: PageHeader
-    var hasPage           = try walker.next(&header)
-    while hasPage
+    if not (try walker.nextStreamPage(info.serial, &header)) do
+        return 0
+
+    for
     {
         let pageOffset = walker.offset
         let pageBytes  = header.totalBytes()
-        if header.serial != info.serial
-        {
-            // Another stream's page inside a run stays in the run; the codec skips it.
-            if run.start != Swag.U64.Max do
-                run.bytes += pageBytes
-            walker.offset += pageBytes
-            hasPage       = try walker.next(&header)
-            continue
-        }
 
         let continued = (header.flags & ContinuedPacket) != 0
-        if hasTargetPage and continued != expectedContinued do
-            fail InvalidFormatError{"Ogg continued-packet flag disagrees with the preceding page lacing"}
-
         if hasSequence
         {
-            if sequence == Swag.U32.Max
-            {
-                if header.sequence != 0 do
-                    fail InvalidFormatError{"Ogg page sequence has a gap"}
-            }
-            elif header.sequence != sequence + 1
-            {
+            if continued != expectedContinued do
+                fail InvalidFormatError{"Ogg continued-packet flag disagrees with the preceding page lacing"}
+            let expectedSequence = sequence == Swag.U32.Max ? 0 : sequence + 1
+            if header.sequence != expectedSequence do
                 fail InvalidFormatError{"Ogg page sequence has a gap"}
-            }
         }
 
         sequence          = header.sequence
         hasSequence       = true
-        hasTargetPage     = true
         expectedContinued = false
         if header.segments do
             expectedContinued = header.lacing[header.segments - 1] == 255
@@ -456,27 +485,12 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
             }
         }
 
-        // Find the next page of this stream, to know whether a packet continues into it.
-        var probe     = pageOffset + pageBytes
-        var continues = false
-        var more      = false
-        while true
-        {
-            walker.offset = probe
-            if not try walker.next(&lookahead) do
-                break
-            if lookahead.serial == info.serial
-            {
-                more      = true
-                continues = (lookahead.flags & ContinuedPacket) != 0
-                break
-            }
-
-            probe += lookahead.totalBytes()
-        }
-
-        walker.offset = pageOffset + pageBytes
-        let last = (header.flags & LastPage) != 0 or not more
+        // Keep the verified lookahead for the next iteration.
+        let pageEnd = pageOffset + pageBytes
+        walker.offset = pageEnd
+        let more      = try walker.nextStreamPage(info.serial, &lookahead)
+        let continues = more and (lookahead.flags & ContinuedPacket) != 0
+        let last      = (header.flags & LastPage) != 0 or not more
 
         if header.granule != NoGranule and (not continues or last)
         {
@@ -527,7 +541,11 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
 
         if last do
             break
-        hasPage = try walker.next(&header)
+
+        // Interleaved pages belong to the byte range only while an audio run is open.
+        if run.start != Swag.U64.Max do
+            run.bytes += walker.offset - pageEnd
+        header = lookahead
     }
 
     return total
@@ -543,7 +561,6 @@ func openFile(path: string)->SoundFile fail
 {
     var walker: Walker
     walker.source = ByteSource.openFile(path)
-    walker.table  = buildChecksumTable()
 
     var info      = findStream(&walker)
     let headerEnd = skipHeaders(&walker, &info)
@@ -566,5 +583,6 @@ func openFile(path: string)->SoundFile fail
     case .Flac:   encoding = .Flac
     default:      unreachable
     }
+
     return SoundFile.openPacketStream(path, encoding, info.sampleRate, info.channels, total, walker.packets.toSlice(), config.toSlice(), {leadingTrimFrames: info.preSkip, speakerMask: info.speakerMask})
 }

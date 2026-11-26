@@ -23,32 +23,71 @@ private impl BitReader
 {
     func create(data: const [*] u8, length: u64)->BitReader => BitReader{data, cast(s32, length), 0, false}
 
-    mtd left()->s32 => .length * 8 - .bitPos
+    mtd const left()->s32 => .length * 8 - .bitPos
 
     mtd get(count: s32)->u32
     {
+        let available = Math.min(count, Math.max(.left(), 0))
+        var remaining = available
         var value: u32
-        for count
+        while remaining
         {
-            let byteIndex = .bitPos >> 3
-            let bitIndex  = 7 - (.bitPos & 7)
-            if byteIndex >= .length do
-                .overrun = true
-            value = (value << 1) |
-                    (byteIndex < .length ? (cast(u32, .data[byteIndex]) >> cast(u32, bitIndex)) & 1 : 0)
-            .bitPos += 1
+            let byteBits = 8 - (.bitPos & 7)
+            let take     = Math.min(remaining, byteBits)
+            let bits     = cast(u32, .data[.bitPos >> 3]) >> (byteBits - take)
+            value     = (value << take) | (bits & ((1'u32 << take) - 1))
+            .bitPos   += take
+            remaining -= take
+        }
+
+        let missing = count - available
+        if missing
+        {
+            .overrun = true
+            .bitPos  += missing
+            value    <<= missing
         }
 
         return value
     }
 
-    mtd get1()->u32 => .get(1)
+    mtd get1()->u32
+    {
+        let pos = .bitPos
+        .bitPos += 1
+        if pos >> 3 >= .length
+        {
+            .overrun = true
+            return 0
+        }
+
+        return (cast(u32, .data[pos >> 3]) >> (7 - (pos & 7))) & 1
+    }
+
+    // The caller has checked that eight bits remain.
+    mtd const peekByte()->u32
+    {
+        let index  = .bitPos >> 3
+        let offset = .bitPos & 7
+        if not offset do
+            return .data[index]
+        return ((cast(u32, .data[index]) << offset) & 0xFF) | (cast(u32, .data[index + 1]) >> (8 - offset))
+    }
+}
+
+private const HuffPrefixBits = 8
+
+private struct HuffPrefix
+{
+    next: s16
+    bits: u8
 }
 
 private struct HuffTree
 {
-    child: [600, 2] s32
-    nodes: s32 = 1
+    child:    [600, 2] s32
+    nodes:    s32 = 1
+    prefixes: [1 << HuffPrefixBits] HuffPrefix
 }
 
 private impl HuffTree
@@ -87,10 +126,36 @@ private impl HuffTree
         }
     }
 
+    mtd buildPrefixes()
+    {
+        for index in .prefixes.count
+        {
+            var next = 0's32
+            for bit in HuffPrefixBits
+            {
+                next = .child[next, (index >> (HuffPrefixBits - 1 - bit)) & 1]
+                .prefixes[index] = {cast(s16, next), cast(u8, bit + 1)}
+                if next <= 0 do
+                    break
+            }
+        }
+    }
+
     mtd const decode(reader: *BitReader)->s32
     {
-        var at = 0's32
-        for 24
+        var at   = 0's32
+        var used = 0's32
+        if reader.left() >= HuffPrefixBits
+        {
+            let prefix = .prefixes[reader.peekByte()]
+            reader.bitPos += prefix.bits
+            at   = prefix.next
+            used = prefix.bits
+            if at <= 0 do
+                return ~at
+        }
+
+        for used until 24
         {
             let next = .child[at, reader.get1()]
             if next <= 0 do
@@ -104,40 +169,41 @@ private impl HuffTree
 
 private struct ImdctPlan
 {
-    size:     s32
-    quarter:  s32
-    log2Size: s32
-    reverse:  [512] s32
-    fftReal:  [512] f64
-    fftImag:  [512] f64
-    twReal:   [512] f64
-    twImag:   [512] f64
+    size:    s32
+    quarter: s32
+    reverse: [512] u32
+    fftReal: [512] f64
+    fftImag: [512] f64
+    twReal:  [512] f64
+    twImag:  [512] f64
 }
 
 private impl ImdctPlan
 {
     mtd init(size: s32)
     {
-        .size     = size
-        .quarter  = size / 4
-        .log2Size = 0
-        while (1 << .log2Size) < .quarter do
-            .log2Size += 1
+        .size    = size
+        .quarter = size / 4
+        let quarter = cast(u32, .quarter)
+        let shift   = Swag.leadingZeros(quarter) + 1
+        for i in quarter do
+            .reverse[i] = Math.reverse(cast(u32, i)) >> shift
 
-        for i in cast(u64, .quarter)
+        // Each stage's adjacent twiddle factors are contiguous for two-wide loads.
+        let pi        = Math.ConstF64.Pi
+        var stride    = quarter / 2
+        var butterfly = 1'u32
+        while butterfly < quarter
         {
-            var value: u32
-            for bit in cast(u64, .log2Size) do
-                value = (value << 1) | ((cast(u32, i) >> cast(u32, bit)) & 1)
-            .reverse[i] = cast(s32, value)
-        }
+            for j in butterfly
+            {
+                let angle = 2.0 * pi * cast(f64, j * stride) / cast(f64, quarter)
+                .fftReal[butterfly + j] = Math.cos(angle)
+                .fftImag[butterfly + j] = Math.sin(angle)
+            }
 
-        let pi = Math.ConstF64.Pi
-        for i in cast(u64, .quarter)
-        {
-            let angle = 2.0 * pi * cast(f64, i) / cast(f64, .quarter)
-            .fftReal[i] = Math.cos(angle)
-            .fftImag[i] = Math.sin(angle)
+            stride    >>= 1
+            butterfly <<= 1
         }
 
         let half = size / 2
@@ -155,53 +221,63 @@ private impl ImdctPlan
         let quarter = .quarter
         var real: [512] f64
         var imag: [512] f64
+        let re      = cast([*] f64, &real[0])
+        let im      = cast([*] f64, &imag[0])
+        let cos     = cast(const [*] f64, &.fftReal[0])
+        let sin     = cast(const [*] f64, &.fftImag[0])
         for k in cast(u64, quarter)
         {
-            let a = spectrum[2 * k] * 0.5
-            let b = -spectrum[cast(u64, half) - 1 - 2 * k] * 0.5
-            real[k] = a * .twReal[k] + b * .twImag[k]
-            imag[k] = -a * .twImag[k] + b * .twReal[k]
+            let a     = spectrum[2 * k] * 0.5
+            let b     = -spectrum[cast(u64, half) - 1 - 2 * k] * 0.5
+            let index = .reverse[k]
+            re[index] = a * .twReal[k] + b * .twImag[k]
+            im[index] = -a * .twImag[k] + b * .twReal[k]
         }
 
-        for i in cast(u64, quarter)
+        // The first stage has one butterfly per group.
+        for group in cast(u64, quarter) / 2
         {
-            let reversed = cast(u64, .reverse[i])
-            if reversed > i
-            {
-                let savedReal = real[i]
-                let savedImag = imag[i]
-                real[i]        = real[reversed]
-                imag[i]        = imag[reversed]
-                real[reversed] = savedReal
-                imag[reversed] = savedImag
-            }
+            let a  = 2 * group
+            let b  = a + 1
+            let xr = re[b] * cos[1] - im[b] * sin[1]
+            let xi = re[b] * sin[1] + im[b] * cos[1]
+            re[b] = re[a] - xr
+            im[b] = im[a] - xi
+            re[a] += xr
+            im[a] += xi
         }
 
-        var length = 2's32
-        while length <= quarter
+        var butterfly = 2'u32
+        while butterfly < quarter
         {
-            let butterfly = length >> 1
-            let stride    = quarter / length
-            var base      = 0's32
+            let length = 2 * butterfly
+            var base   = 0'u32
             while base < quarter
             {
-                for j in cast(u64, butterfly)
+                var j = 0'u32
+                while j < butterfly
                 {
-                    let a  = cast(u64, base) + j
-                    let b  = a + cast(u64, butterfly)
-                    let tw = j * cast(u64, stride)
-                    let xr = real[b] * .fftReal[tw] - imag[b] * .fftImag[tw]
-                    let xi = real[b] * .fftImag[tw] + imag[b] * .fftReal[tw]
-                    real[b] = real[a] - xr
-                    imag[b] = imag[a] - xi
-                    real[a] += xr
-                    imag[a] += xi
+                    let a  = base + j
+                    let b  = a + butterfly
+                    let wr = Simd.load(cos + butterfly + j)
+                    let wi = Simd.load(sin + butterfly + j)
+                    let ar = Simd.load(re + a)
+                    let ai = Simd.load(im + a)
+                    let br = Simd.load(re + b)
+                    let bi = Simd.load(im + b)
+                    let xr = br * wr - bi * wi
+                    let xi = br * wi + bi * wr
+                    Simd.store(re + b, ar - xr)
+                    Simd.store(im + b, ai - xi)
+                    Simd.store(re + a, ar + xr)
+                    Simd.store(im + a, ai + xi)
+                    j += 2
                 }
 
                 base += length
             }
 
-            length <<= 1
+            butterfly = length
         }
 
         var folded: [1024] f64
@@ -226,27 +302,50 @@ private impl ImdctPlan
     }
 }
 
-private var g_SpectralTrees: [11] HuffTree
-private var g_ScaleTree:     HuffTree
-private var g_ImdctLong:     ImdctPlan
-private var g_ImdctShort:    ImdctPlan
-private var g_LongWindows:   [2, 1024] f64
-private var g_ShortWindows:  [2, 128] f64
+private var g_SpectralTrees:     [11] HuffTree
+private var g_SpectralValues:    [11, 289, 4] s32
+private var g_ScaleTree:         HuffTree
+private var g_ImdctLong:         ImdctPlan
+private var g_ImdctShort:        ImdctPlan
+private var g_LongWindows:       [2, 1024] f64
+private var g_TransitionWindows: [2, 1024] f64
+private var g_ShortWindows:      [2, 128] f64
+private var g_QuantizedPowers:   [1024] f64
 
 private func initializeTables()
 {
     for book in 11
     {
         g_SpectralTrees[book].reset()
-        let bits  = specBits(cast(u32, book))
-        let codes = specCodes(cast(u32, book))
-        for index in cast(u64, BookSize[book]) where bits[index] != 0 do
+        let bits      = specBits(cast(u32, book))
+        let codes     = specCodes(cast(u32, book))
+        let dimension = cast(s32, BookDim[book])
+        let largest   = cast(s32, BookLav[book])
+        let signed    = BookSigned[book] != 0
+        let bias      = signed ? largest : 0
+        let radix     = signed ? 2 * largest + 1 : largest + 1
+        for index in cast(u64, BookSize[book]) where bits[index] != 0
+        {
             g_SpectralTrees[book].insert(codes[index], bits[index], cast(s32, index))
+
+            var packed = cast(s32, index)
+            for component in dimension
+            {
+                g_SpectralValues[book, index, dimension - 1 - component] = packed % radix - bias
+                packed /= radix
+            }
+        }
+
+        g_SpectralTrees[book].buildPrefixes()
     }
 
     g_ScaleTree.reset()
     for index in 121 where ScfBits[index] != 0 do
         g_ScaleTree.insert(ScfCodes[index], ScfBits[index], cast(s32, index))
+    g_ScaleTree.buildPrefixes()
+
+    for magnitude in g_QuantizedPowers.count do
+        g_QuantizedPowers[magnitude] = Math.pow(cast(f64, magnitude), 4.0 / 3.0)
 
     g_ImdctLong.init(2048)
     g_ImdctShort.init(256)
@@ -257,6 +356,15 @@ private func initializeTables()
         g_ShortWindows[0, index] = Math.sin(Math.ConstF64.Pi / 256.0 * (cast(f64, index) + 0.5))
     initializeKbdWindow(&g_LongWindows[1, 0], 4.0, 1024)
     initializeKbdWindow(&g_ShortWindows[1, 0], 6.0, 128)
+
+    // The long-stop left window is also the long-start right window in reverse.
+    for shape in 2
+    {
+        for index in 128 do
+            g_TransitionWindows[shape, 448 + index] = g_ShortWindows[shape, index]
+        for index in 576 until 1024 do
+            g_TransitionWindows[shape, index] = 1
+    }
 }
 
 private func initializeKbdWindow(window: [*] f64, alpha: f64, half: s32)
@@ -413,8 +521,10 @@ private impl AacCodec
         for index in first until last
         {
             let value     = .coefficients[channel, index]
-            let magnitude = Math.abs(value)
-            .coefficients[channel, index] = (value < 0 ? -1.0 : 1.0) * Math.pow(magnitude, 4.0 / 3.0) * gain
+            let magnitude = cast(u32, Math.abs(value))
+            let power     = magnitude < g_QuantizedPowers.count ? g_QuantizedPowers[magnitude] :
+                            Math.pow(cast(f64, magnitude), 4.0 / 3.0)
+            .coefficients[channel, index] = (value < 0 ? -power : power) * gain
         }
     }
 
@@ -538,7 +648,6 @@ private impl AacCodec
     mtd imdctChannel(channel: s32, output: [*] f64)
     {
         let value         = &.ics[channel]
-        var time: [2048] f64
         let currentShape  = value.windowShape
         let previousShape = .previousShape[channel]
 
@@ -546,67 +655,37 @@ private impl AacCodec
         {
             var transformed: [2048] f64
             g_ImdctLong.run(&.coefficients[channel, 0], &transformed)
-            for index in 2048
+            let leftWindow = value.windowSequence == 3 ? cast(const [*] f64, &g_TransitionWindows[previousShape, 0]) :
+                             cast(const [*] f64, &g_LongWindows[previousShape, 0])
+            let rightWindow = value.windowSequence == 1 ? cast(const [*] f64, &g_TransitionWindows[currentShape, 0]) :
+                              cast(const [*] f64, &g_LongWindows[currentShape, 0])
+            for index in FrameSamples
             {
-                var window = 0'f64
-                if index < 1024
-                {
-                    if value.windowSequence == 3
-                    {
-                        if index < 448 do
-                            window = 0
-                        elif index < 576 do
-                            window = g_ShortWindows[previousShape, index - 448]
-                        else do
-                            window = 1
-                    }
-                    else
-                    {
-                        window = g_LongWindows[previousShape, index]
-                    }
-                }
-                else
-                {
-                    if value.windowSequence == 1
-                    {
-                        let offset = index - 1024
-                        if offset < 448 do
-                            window = 1
-                        elif offset < 576 do
-                            window = g_ShortWindows[currentShape, 575 - offset]
-                        else do
-                            window = 0
-                    }
-                    else
-                    {
-                        window = g_LongWindows[currentShape, 2047 - index]
-                    }
-                }
-
-                time[index] = transformed[index] * window
+                output[index] = (transformed[index] * leftWindow[index] + .overlap[channel, index]) / 32768.0
+                .overlap[channel, index] = transformed[FrameSamples + index] * rightWindow[FrameSamples - 1 - index]
             }
         }
         else
         {
+            var time: [2048] f64
             for window in 8
             {
                 var transformed: [256] f64
                 g_ImdctShort.run(&.coefficients[channel, 128 * window], &transformed)
                 let leftShape = window == 0 ? previousShape : currentShape
                 let base      = 448 + 128 * window
-                for index in 256
+                for index in 128
                 {
-                    let windowValue = index < 128 ? g_ShortWindows[leftShape, index] :
-                                      g_ShortWindows[currentShape, 255 - index]
-                    time[base + index] += transformed[index] * windowValue
+                    time[base + index]       += transformed[index] * g_ShortWindows[leftShape, index]
+                    time[base + 128 + index] += transformed[128 + index] * g_ShortWindows[currentShape, 127 - index]
                 }
             }
-        }
 
-        for index in FrameSamples
-        {
-            output[index] = (time[index] + .overlap[channel, index]) / 32768.0
-            .overlap[channel, index] = time[FrameSamples + index]
+            for index in FrameSamples
+            {
+                output[index] = (time[index] + .overlap[channel, index]) / 32768.0
+                .overlap[channel, index] = time[FrameSamples + index]
+            }
         }
 
         .previousShape[channel] = currentShape
@@ -750,7 +829,6 @@ private impl AacCodec
             }
 
             let dimension = cast(s32, BookDim[book - 1])
-            let largest   = cast(s32, BookLav[book - 1])
             let signed    = BookSigned[book - 1] != 0
             let end       = line + width
             var index     = line
@@ -759,28 +837,9 @@ private impl AacCodec
                 let symbol = g_SpectralTrees[book - 1].decode(reader)
                 if symbol < 0 or reader.overrun do
                     fail InvalidFormatError{"AAC spectral Huffman code is invalid"}
-                var values: [4] s32
-                var packed    = symbol
-                var component = dimension - 1
-                if signed
+                var values = g_SpectralValues[book - 1, symbol]
+                if not signed
                 {
-                    while component >= 0
-                    {
-                        values[component] = packed % (2 * largest + 1) - largest
-                        packed            /= 2 * largest + 1
-                        component         -= 1
-                    }
-                }
-                else
-                {
-                    let radix = book == 11 ? 17 : largest + 1
-                    while component >= 0
-                    {
-                        values[component] = packed % radix
-                        packed            /= radix
-                        component         -= 1
-                    }
-
                     for item in dimension where values[item] != 0 do
                         if reader.get1() do
                             values[item] = -values[item]

@@ -127,19 +127,19 @@ impl BitReader
     mtd read(count: u32)->u32
     {
         var result = 0'u32
-        for count
-        {
-            result <<= 1
-            if .bitPos < .bitEnd
-            {
-                let byte = .data![.bitPos >> 3]
-                result |= cast(u32, (byte >> (7 - cast(u32, (.bitPos & 7))))) & 1
-            }
-
-            .bitPos += 1
-        }
-
+        for count do
+            result = (result << 1) | .readBit()
         return result
+    }
+
+    #[Swag.Inline]
+    mtd readBit()->u32
+    {
+        let at = .bitPos
+        .bitPos += 1
+        if at >= .bitEnd do
+            return 0
+        return cast(u32, .data![at >> 3]) >> (7 - cast(u32, (at & 7))) & 1
     }
 
     mtd const overran()->bool => .bitPos > .bitEnd
@@ -218,12 +218,12 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
             info.longBands  = 22
             info.shortBands = 0
             info.bandKind   = 0
-            if reader.read(1) != 0
+            if reader.readBit() != 0
             {
                 info.blockType = reader.read(2)
                 if not info.blockType do
                     fail InvalidFormatError{"MP3 granule switches windows and then states a normal block"}
-                info.mixedBlock = reader.read(1) != 0
+                info.mixedBlock = reader.readBit() != 0
 
                 info.regionBands[0] = 7
                 info.regionBands[1] = 255
@@ -261,9 +261,9 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
                 info.regionBands[2] = 255
             }
 
-            info.preflag       = header.isMpeg1 ? reader.read(1) != 0 : info.scalefacCompress >= 500
-            info.scalefacScale = reader.read(1)
-            info.count1Table   = reader.read(1)
+            info.preflag       = header.isMpeg1 ? reader.readBit() != 0 : info.scalefacCompress >= 500
+            info.scalefacScale = reader.readBit()
+            info.count1Table   = reader.readBit()
 
             // `scfsi` says whether the second granule keeps what the first read, so the first
             // never shares, and a short block never shares either.
@@ -301,22 +301,107 @@ struct Codec
     ready:        bool
 }
 
-// Small magnitudes are almost all of them, so their power is stated rather than computed.
-const Pow43Small: [16] f32 = [
-    0.0, 1.0, 2.5198421, 4.32674871, 6.34960421, 8.54987973, 10.9027236, 13.3905183,
-    16.0, 18.7207544, 21.5443469, 24.4637810, 27.4731418, 30.5671579, 33.7411249, 36.9908313]
+// The largest Huffman magnitude is 15 plus a 13-bit escape value.
+private func buildPowers43()->[15 + (1 << 13)] f32
+{
+    var powers: #returntype
+    for value in powers.count do
+        powers[value] = cast(f32, Math.pow(cast(f64, value), 4.0'f64 / 3.0'f64))
+    return powers
+}
+
+private const Powers43 = #run buildPowers43()
+
+// A gain exponent is in quarter steps from global_gain minus 210. Mid/side subtracts two
+// steps. A five-bit scalefactor can cost four steps per unit and short-window gain another
+// eight per unit of its three-bit field. The long-block preemphasis fits within that bound.
+private const MinGainExponent = -210 - 2 - 4 * 31 - 8 * 7
+private const MaxGainExponent = 255 - 210
+
+private func buildBandGains()->[MaxGainExponent - MinGainExponent + 1] f32
+{
+    var gains: #returntype
+    for index in gains.count
+    {
+        let exponent = cast(s32, index) + MinGainExponent
+        gains[index] = cast(f32, Math.pow(2.0'f64, cast(f64, exponent) / 4.0'f64))
+    }
+
+    return gains
+}
+
+private const BandGains = #run buildBandGains()
+
+private const Count1TableA = 25'u32
+private const Count1TableB = 26'u32
+private const PrefixBits   = 8'u32
+private const PrefixCount  = 1'u32 << PrefixBits
+private const LeafBits     = 4'u32
+private const LeafMask     = (1'u32 << LeafBits) - 1
+
+// The decoding tree for a resolved Huffman table number.
+private func codeTree(table: u32)->const [..] s16
+{
+    switch table
+    {
+    case 1:            return Huff1Tree
+    case 2:            return Huff2Tree
+    case 3:            return Huff3Tree
+    case 5:            return Huff5Tree
+    case 6:            return Huff6Tree
+    case 7:            return Huff7Tree
+    case 8:            return Huff8Tree
+    case 9:            return Huff9Tree
+    case 10:           return Huff10Tree
+    case 11:           return Huff11Tree
+    case 12:           return Huff12Tree
+    case 13:           return Huff13Tree
+    case 15:           return Huff15Tree
+    case 16:           return Huff16Tree
+    case 24:           return Huff24Tree
+    case Count1TableA: return Count1ATree
+    case Count1TableB: return Count1BTree
+    }
+
+    return Huff1Tree
+}
+
+// Each prefix identifies a leaf and its consumed length, or the node where the
+// ordinary tree walk resumes after all eight bits have been consumed.
+private func buildHuffmanPrefixes()->[Count1TableB + 1, PrefixCount] s16
+{
+    var prefixes: #returntype
+    for table in Count1TableB + 1
+    {
+        let tree = codeTree(table)
+        for prefix in PrefixCount
+        {
+            var node = 0's16
+            for depth in 1 until PrefixBits + 1
+            {
+                let bit  = (prefix >> (PrefixBits - depth)) & 1
+                let next = tree[cast(u64, node) * 2 + bit]
+                if next < 0
+                {
+                    let symbol = cast(s32, (-next - 1))
+                    node = cast(s16, -((symbol << LeafBits) | cast(s32, depth)))
+                    break
+                }
+
+                node = next
+            }
+
+            prefixes[table, prefix] = node
+        }
+    }
+
+    return prefixes
+}
+
+private const HuffmanPrefixes = #run buildHuffmanPrefixes()
 
 impl Codec
 {
-    // The magnitude of one quantized line, `|value| ^ (4 / 3)`.
-    #[Swag.Inline]
-    mtd const power43(value: u32)->f32
-    {
-        if value < 16 do
-            return Pow43Small[cast(u64, value)]
-        return cast(f32, Math.pow(cast(f64, value), 4.0'f64 / 3.0'f64))
-    }
-
     // Reads the scalefactors of one granule and folds them into one gain per band.
     //
     // What the decoder needs is not the scalefactor but the factor every line of its band is
@@ -456,19 +541,39 @@ impl Codec
 
         for index in 40'u64
         {
-            let power = cast(f64, (exponent - (scaled[index] << shift))) / 4.0'f64
-            .bandGain[cast(u64, channel), index] = cast(f32, Math.pow(2.0'f64, power))
+            let power = exponent - (scaled[index] << shift)
+            .bandGain[cast(u64, channel), index] = BandGains[cast(u64, (power - MinGainExponent))]
         }
     }
 
-    // Walks one Huffman code through the tree of its table and returns the symbol.
+    // Resolves short codes in one lookup and resumes the tree for longer codes.
     #[Swag.Inline]
-    mtd const decodeSymbol(tree: const [..] s16, reader: *BitReader)->s32
+    mtd const decodeSymbol(tree: const [..] s16, table: u32, reader: *BitReader)->s32
     {
-        var node = 0's32
-        for 32'u32
+        var node  = 0's32
+        var depth = 0'u32
+        if reader.bitPos + 16 <= reader.bitEnd
         {
-            let slot = cast(u64, (node * 2)) + cast(u64, reader.read(1))
+            let data   = unwrap reader.data
+            let at     = reader.bitPos >> 3
+            let word   = cast(u32, data[at]) << 8 | cast(u32, data[at + 1])
+            let prefix = (word >> (8 - cast(u32, (reader.bitPos & 7)))) & (PrefixCount - 1)
+            let next   = HuffmanPrefixes[table, prefix]
+            if next < 0
+            {
+                let leaf = cast(u32, -cast(s32, next))
+                reader.bitPos += cast(u64, (leaf & LeafMask))
+                return cast(s32, (leaf >> LeafBits))
+            }
+
+            reader.bitPos += PrefixBits
+            depth         = PrefixBits
+            node          = cast(s32, next)
+        }
+
+        for depth until 32'u32
+        {
+            let slot = cast(u64, (node * 2)) + cast(u64, reader.readBit())
             if slot >= tree.count do
                 return -1
             let next = tree[slot]
@@ -478,31 +583,6 @@ impl Codec
         }
 
         return -1
-    }
-
-    // The decoding tree of one `table_select` value.
-    mtd const codeTree(select: u32)->const [..] s16
-    {
-        switch cast(u32, HuffCodeTable[cast(u64, select)])
-        {
-        case 1:  return Huff1Tree
-        case 2:  return Huff2Tree
-        case 3:  return Huff3Tree
-        case 5:  return Huff5Tree
-        case 6:  return Huff6Tree
-        case 7:  return Huff7Tree
-        case 8:  return Huff8Tree
-        case 9:  return Huff9Tree
-        case 10: return Huff10Tree
-        case 11: return Huff11Tree
-        case 12: return Huff12Tree
-        case 13: return Huff13Tree
-        case 15: return Huff15Tree
-        case 16: return Huff16Tree
-        case 24: return Huff24Tree
-        }
-
-        return Huff1Tree
     }
 
     // How many values one axis of that table holds, which is what splits a symbol into its pair.
@@ -546,8 +626,9 @@ impl Codec
 
             // Table zero codes nothing at all: its region is a run of zero pairs that occupies no
             // bit. Reading one anyway moves the bit position and loses the rest of the granule.
-            let empty  = HuffCodeTable[cast(u64, select)] == 0
-            let tree   = .codeTree(select)
+            let table  = cast(u32, HuffCodeTable[cast(u64, select)])
+            let empty  = table == 0
+            let tree   = codeTree(table)
             let axis   = .codeWidth(select)
             let escape = cast(u32, HuffLinbits[cast(u64, select)])
             var spans  = cast(s32, info.regionBands[region]) + 1
@@ -586,7 +667,7 @@ impl Codec
                         continue
                     }
 
-                    let symbol = .decodeSymbol(tree, reader)
+                    let symbol = .decodeSymbol(tree, table, reader)
                     if symbol < 0 or reader.bitPos > limit do
                         return
 
@@ -600,8 +681,8 @@ impl Codec
                         var sample = 0'f32
                         if value
                         {
-                            sample = .power43(value) * gain
-                            if reader.read(1) != 0 do
+                            sample = Powers43[value] * gain
+                            if reader.readBit() != 0 do
                                 sample = -sample
                         }
 
@@ -616,10 +697,12 @@ impl Codec
         }
 
         // The count1 region codes four lines at a time until the granule's bits run out.
-        let quadTree: const [..] s16 = info.count1Table != 0 ? Count1BTree : Count1ATree
+        let quadTable = info.count1Table != 0 ? Count1TableB : Count1TableA
+        let quadTree  = codeTree(quadTable)
+
         while line + 4 <= 576 and reader.bitPos < limit and not ended
         {
-            let symbol = .decodeSymbol(quadTree, reader)
+            let symbol = .decodeSymbol(quadTree, quadTable, reader)
             if symbol < 0 or reader.bitPos > limit do
                 break
 
@@ -649,7 +732,7 @@ impl Codec
                     if (cast(u32, symbol) & (8 >> (half * 2 + component))) != 0
                     {
                         sample = gain
-                        if reader.read(1) != 0 do
+                        if reader.readBit() != 0 do
                             sample = -sample
                     }
 
@@ -843,7 +926,7 @@ impl Codec
         invertFrequencies(lines)
 
         let base = cast(u64, granule) * 576
-        synthesizeGranule(&.state[cast(u64, channel)], lines, &.output[cast(u64, channel), base], 1)
+        synthesizeGranule(&.state[cast(u64, channel)], lines, &.output[cast(u64, channel), base])
     }
 
     // Restores the state a decode starts from.

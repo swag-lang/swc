@@ -496,6 +496,37 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     Swag.require(err != null)
 }
 
+// The first byte of a frame header can be the last byte in a read window.
+#test
+{
+    let original = audioGetTestDataPath("flac-stereo-44100.flac")
+    let sound    = expect SoundFile.load(original.toString())
+    let second   = expect sound.packet(1)
+    let bytes    = expect File.readAllBytes(original.toString())
+    let boundary = ByteSource.WindowSize - 1
+
+    // Insert a metadata padding block after the marker and STREAMINFO.
+    const StreamInfoEnd = 42
+    let padding = boundary - second.sourceOffset - 4
+    var shifted: Array'u8
+    shifted.add(bytes.toSlice()[until StreamInfoEnd])
+    shifted.add(1)
+    shifted.add(cast(u8, (padding >> 16)))
+    shifted.add(cast(u8, (padding >> 8) & 0xFF))
+    shifted.add(cast(u8, padding & 0xFF))
+    shifted.resize(shifted.count + padding)
+    shifted.add(bytes.toSlice()[StreamInfoEnd until])
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(),
+                            Format.toString("audio-flac-window-%.flac", Guid64.random()).toString())
+    defer discard catch File.delete(path.toString())
+    expect File.writeAllBytes(path.toString(), shifted.toSlice())
+
+    let loaded = expect SoundFile.load(path.toString())
+    Swag.require(loaded.packetCount() == sound.packetCount())
+    Swag.require((expect loaded.packet(1)).sourceOffset == boundary)
+}
+
 // STREAMINFO's nonzero total sample count must match the indexed frame lengths exactly.
 #test
 {

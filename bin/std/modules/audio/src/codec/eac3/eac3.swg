@@ -594,14 +594,14 @@ private impl Eac3Codec
             {
                 let bap   = block.channelBap[channel, bin]
                 let value = bap or not block.dither[channel] ? mantissas.get(bap) : .ditherValue()
-                .coefficients[channel, bin] = value * Math.pow(2.0, -cast(f64, block.channelExponents[channel, bin]))
+                .coefficients[channel, bin] = value * mantissaScale(block.channelExponents[channel, bin])
             }
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
                 let count = cast(u64, (block.couplingEndMantissa - block.couplingStart))
                 for bin in count do
-                    couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * Math.pow(2.0, -cast(f64, block.couplingExponents[bin]))
+                    couplingMantissas[bin] = mantissas.get(block.couplingBap[bin]) * mantissaScale(block.couplingExponents[bin])
                 couplingRead = true
             }
         }
@@ -611,7 +611,7 @@ private impl Eac3Codec
             let channel = bsi.nfchans
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in 7 do
-                .coefficients[channel, bin] = mantissas.get(block.lfeBap[bin]) * Math.pow(2.0, -cast(f64, block.lfeExponents[bin]))
+                .coefficients[channel, bin] = mantissas.get(block.lfeBap[bin]) * mantissaScale(block.lfeExponents[bin])
         }
 
         if block.coupling
@@ -625,7 +625,7 @@ private impl Eac3Codec
                         let source = subband * 12 + bin
                         var value  = couplingMantissas[source]
                         if not value and block.dither[channel] do
-                            value = .ditherValue() * Math.pow(2.0, -cast(f64, block.couplingExponents[source]))
+                            value = .ditherValue() * mantissaScale(block.couplingExponents[source])
                         let destination = block.couplingBegin * 12 + subband * 12 + bin + 37
                         .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
                     }

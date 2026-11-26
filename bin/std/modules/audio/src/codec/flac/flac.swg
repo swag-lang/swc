@@ -128,6 +128,29 @@ private impl BitReader
         return zeros
     }
 
+    // Decode the Rice quotient and remainder from a single word when both fit.
+    #[Swag.Inline]
+    mtd readRice(parameter: u32, mask: u64)->u64
+    {
+        let byteIndex = .bitPos >> 3
+        if .size - byteIndex >= 8
+        {
+            let bitOffset = cast(u32, .bitPos & 7)
+            let word      = Math.bigEndianToNative(cast(const [*] u64, unwrap .data + byteIndex)[0]) << bitOffset
+            let quotient  = cast(u32, Swag.leadingZeros(word))
+            let width     = quotient + 1 + parameter
+            if width <= 64 - bitOffset
+            {
+                .bitPos += width
+                let remainder = (word >> (64 - width)) & mask
+                return (cast(u64, quotient) << parameter) | remainder
+            }
+        }
+
+        let quotient = .unary()
+        return (cast(u64, quotient) << parameter) | cast(u64, .read(parameter))
+    }
+
     // Advances to the next byte boundary.
     mtd alignByte()
     {
@@ -174,15 +197,15 @@ internal struct Codec
     // this, reading back the concrete type and the allocator the instance was made with.
     using base: Audio.Codec
 
-    info:     StreamInfo
-    channels: [MaxChannels] Array's64
-    residual: Array's64
-    capacity: u32
-    inOgg:    bool
-    oggSerial: u32
-    firstAudioSequence: u32
+    info:                     StreamInfo
+    channels:                 [MaxChannels] Array's64
+    residual:                 Array's64
+    capacity:                 u32
+    inOgg:                    bool
+    oggSerial:                u32
+    firstAudioSequence:       u32
     headerPacketsOnAudioPage: u32
-    oggFrame: Array'u8
+    oggFrame:                 Array'u8
 }
 
 private impl Codec
@@ -367,12 +390,11 @@ private impl Codec
             }
             else
             {
+                let mask = (1'u64 << param) - 1
                 while index < end
                 {
-                    let quotient = reader.unary()
-                    let value    = (cast(u64, quotient) << param) | cast(u64, reader.read(param))
-
                     // Residuals are zig-zag coded: the low bit is the sign.
+                    let value = reader.readRice(param, mask)
                     output[index] = cast(s64, value >> 1) ^ -cast(s64, value & 1)
                     index         += 1
                 }
@@ -604,6 +626,7 @@ private impl Codec
             }
         }
     }
+
     mtd decodePcm(destination: [*] s16, destinationSize: u64, packet: const [..] u8)->u64 fail
     {
         let header   = try .decodeFrame(packet)
@@ -614,6 +637,15 @@ private impl Codec
             fail BadParameterError{"FLAC destination buffer is too small"}
         .writePcm16(destination, header)
         return produced
+    }
+
+    // Copies the fragment of a frame that crosses a page boundary.
+    mtd appendOggFrame(part: const [..] u8) fail
+    {
+        // STREAMINFO represents native frame sizes with 24 bits.
+        if .oggFrame.count + part.count > 0xFF_FFFF do
+            fail InvalidFormatError{"Ogg FLAC frame exceeds the FLAC frame-size limit"}
+        .oggFrame.add(part)
     }
 
     // An indexed Ogg run can hold many frames, including frames split across pages.
@@ -631,30 +663,36 @@ private impl Codec
             if page.serial != .oggSerial do
                 continue
 
-            var skip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
-            for index in page.segments
+            var start = at
+            var skip  = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
+            for size in page.lacing[until page.segments]
             {
-                let size = cast(u64, page.lacing[index])
+                at += size
+                if size == 255 do
+                    continue
+
                 if skip
                 {
-                    if size < 255 do
-                        skip -= 1
+                    skip -= 1
                 }
                 else
                 {
-                    // Native FLAC frames fit in STREAMINFO's 24-bit maximum frame size.
-                    if .oggFrame.count + size > 0xFF_FFFF do
-                        fail InvalidFormatError{"Ogg FLAC frame exceeds the FLAC frame-size limit"}
-                    .oggFrame.add(pages[at until at + size])
-                    if size < 255
+                    var frame = pages[start until at]
+                    if not .oggFrame.isEmpty()
                     {
-                        produced += try .decodePcm(destination + produced / #sizeof(s16), destinationSize - produced, .oggFrame.toSlice())
-                        .oggFrame.clear()
+                        try .appendOggFrame(frame)
+                        frame = .oggFrame.toSlice()
                     }
+
+                    produced += try .decodePcm(destination + produced / #sizeof(s16), destinationSize - produced, frame)
+                    .oggFrame.clear()
                 }
 
-                at += size
+                start = at
             }
+
+            if start < at and not skip do
+                try .appendOggFrame(pages[start until at])
         }
 
         if not .oggFrame.isEmpty() do
@@ -673,13 +711,16 @@ impl IPacketCodec for Codec
         if .inOgg
         {
             let setup = try Ogg.flacSetup(config)
-            .oggSerial                = setup.serial
+            .oggSerial = setup.serial
             .firstAudioSequence       = setup.firstAudioSequence
             .headerPacketsOnAudioPage = setup.headerPacketsOnAudioPage
             try .readStreamInfo(setup.streamInfo)
         }
-        else do
+        else
+        {
             try .readStreamInfo(config)
+        }
+
         if .info.sampleRate != sampleRateHz or .info.channels != channels do
             fail InvalidFormatError{"FLAC stream information does not match its container track"}
         .reserveBlock(.info.maxBlockSize)

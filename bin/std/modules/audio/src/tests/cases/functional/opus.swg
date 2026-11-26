@@ -308,8 +308,7 @@ private func opusAssertCloseTo(name: string, channels: u32, tolerance: f64)
     Swag.require(bytes[28 + 18] == 0)
     bytes[28 + 18] = 1
     let firstPage = expect Ogg.readPageHeader(bytes.toSlice(), 0)
-    let table     = Ogg.buildChecksumTable()
-    let checksum  = Ogg.pageChecksum(bytes.toSlice()[0 until firstPage.totalBytes()], table)
+    let checksum  = Ogg.pageChecksum(bytes.toSlice()[0 until firstPage.totalBytes()])
     for i in 4 do
         bytes[22 + i] = cast(u8, ((checksum >> cast(u32, (8 * i))) & 0xFF))
     expect File.writeAllBytes(path.toString(), bytes.toSlice())

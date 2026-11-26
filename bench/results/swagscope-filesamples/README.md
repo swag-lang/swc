@@ -73,6 +73,9 @@ slowdowns warrant confirmation with a native FFmpeg harness before setting a num
 WAV's reference includes resampling and a Python array copy, unlike Swag Scope's direct PCM16
 conversion; its apparent 30× advantage is not an equivalent-operation speedup.
 
+The [native Linux follow-up](audio-decode-linux.md) measures open and decode separately after
+optimization, with PCM verification for all nine audio fixtures.
+
 ### Video
 
 Swag Scope opened each container in picture-only mode and decoded its first key picture to RGB8.

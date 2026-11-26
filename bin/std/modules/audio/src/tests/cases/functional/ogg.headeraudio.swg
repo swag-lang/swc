@@ -34,7 +34,7 @@ private func oggRefreshTestChecksum(page: *Array'u8)
 {
     for index in 4 do
         page[22 + index] = 0
-    let checksum = Ogg.pageChecksum(page.toSlice(), Ogg.buildChecksumTable())
+    let checksum = Ogg.pageChecksum(page.toSlice())
     for index in 4 do
         page[22 + index] = cast(u8, (checksum >> cast(u32, index * 8)) & 0xFF'u32)
 }
@@ -282,6 +282,54 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     expect File.writeAllBytes(mixedPath, merged.toSlice())
     let mixed = expect SoundFile.load(mixedPath)
     Swag.require(Slice.equals((expect oggDecodePcm16(&mixed)).toSlice(), expected.toSlice()))
+}
+
+// A frame split across Ogg pages survives intervening pages of another logical stream.
+#test
+{
+    const FragmentBytes = 255'u64
+
+    let flac      = expect File.readAllBytes(audioGetTestDataPath("flac-stereo-44100.oga"))
+    let firstFlac = expect oggTestPage(flac.toSlice(), 0)
+    let audio     = expect oggTestPage(flac.toSlice(), 2)
+    let body      = audio.offset + audio.header.headerBytes
+    Swag.require(audio.header.lacing[0] == FragmentBytes and audio.header.sequence == 2)
+
+    var firstPart: Array'u8
+    firstPart.add(flac.toSlice()[audio.offset until audio.offset + Ogg.PageHeaderSize])
+    firstPart[5]  = 0
+    firstPart[26] = 1
+    for index in 8 do
+        firstPart[6 + index] = 0xFF
+    firstPart.add(255)
+    firstPart.add(flac.toSlice()[body until body + FragmentBytes])
+    oggRefreshTestChecksum(&firstPart)
+
+    var lastPart: Array'u8
+    lastPart.add(flac.toSlice()[audio.offset until audio.offset + Ogg.PageHeaderSize])
+    lastPart[5]  |= Ogg.ContinuedPacket
+    lastPart[18] += 1
+    lastPart[26] -= 1
+    lastPart.add(flac.toSlice()[audio.offset + Ogg.PageHeaderSize + 1 until body])
+    lastPart.add(flac.toSlice()[body + FragmentBytes until audio.offset + audio.bytes])
+    oggRefreshTestChecksum(&lastPart)
+
+    let other      = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.ogg"))
+    let firstOther = expect oggTestPage(other.toSlice(), 0)
+    var mixed: Array'u8
+    mixed.add(flac.toSlice()[until firstFlac.bytes])
+    mixed.add(other.toSlice()[until firstOther.bytes])
+    mixed.add(flac.toSlice()[firstFlac.bytes until audio.offset])
+    mixed.add(firstPart.toSlice())
+    mixed.add(other.toSlice()[firstOther.bytes to])
+    mixed.add(lastPart.toSlice())
+
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("audio-ogg-flac-split-%.oga", Guid64.random()))
+    defer discard catch File.delete(path)
+    expect File.writeAllBytes(path, mixed.toSlice())
+    let decoded = expect SoundFile.load(path)
+    let native  = expect SoundFile.load(audioGetTestDataPath("flac-stereo-44100.flac"))
+    Swag.require(Slice.equals((expect oggDecodePcm16(&decoded)).toSlice(), (expect oggDecodePcm16(&native)).toSlice()))
 }
 
 // Header and audio packets may share an Ogg page; indexing and decoding retain every audio packet.

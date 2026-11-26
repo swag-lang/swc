@@ -89,3 +89,4 @@ optimizations moved each result.
 - [PBKDF2 fixed SHA-224 and SHA-256 blocks](pbkdf2-fixed-blocks.md)
 - [Poly1305 paired block products](poly1305-paired.md)
 - [Ed25519 projective signature verification](ed25519-projective.md)
+- [Native-word P-256 field storage](p256-fullwords.md)

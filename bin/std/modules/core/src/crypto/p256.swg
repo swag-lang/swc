@@ -10,7 +10,7 @@ public const P256PublicKeySize = 65
 
 private struct P256Field
 {
-    limbs: [8] u32
+    limbs: [4] u64
 }
 
 private struct P256Point
@@ -20,33 +20,26 @@ private struct P256Point
     z: P256Field
 }
 
-private const P256Modulus: [8] u32 = [
-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000,
-    0x00000000, 0x00000000, 0x00000001, 0xFFFFFFFF]
+private const P256Modulus: [4] u64 = [
+    0xFFFFFFFFFFFFFFFF, 0x00000000FFFFFFFF, 0x0000000000000000, 0xFFFFFFFF00000001]
 
-private const P256Order: [8] u32 = [
-    0xFC632551, 0xF3B9CAC2, 0xA7179E84, 0xBCE6FAAD,
-    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF]
+private const P256Order: [4] u64 = [
+    0xF3B9CAC2FC632551, 0xBCE6FAADA7179E84, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFF00000000]
 
-private const P256MontgomeryOne: [8] u32 = [
-    0x00000001, 0x00000000, 0x00000000, 0xFFFFFFFF,
-    0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0x00000000]
+private const P256MontgomeryOne: [4] u64 = [
+    0x0000000000000001, 0xFFFFFFFF00000000, 0xFFFFFFFFFFFFFFFF, 0x00000000FFFFFFFE]
 
-private const P256MontgomeryR2: [8] u32 = [
-    0x00000003, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFB,
-    0xFFFFFFFE, 0xFFFFFFFF, 0xFFFFFFFD, 0x00000004]
+private const P256MontgomeryR2: [4] u64 = [
+    0x0000000000000003, 0xFFFFFFFBFFFFFFFF, 0xFFFFFFFFFFFFFFFE, 0x00000004FFFFFFFD]
 
-private const P256OrderMontgomeryOne: [8] u32 = [
-    0x039CDAAF, 0x0C46353D, 0x58E8617B, 0x43190552,
-    0x00000000, 0x00000000, 0xFFFFFFFF, 0x00000000]
+private const P256OrderMontgomeryOne: [4] u64 = [
+    0x0C46353D039CDAAF, 0x4319055258E8617B, 0x0000000000000000, 0x00000000FFFFFFFF]
 
-private const P256OrderMontgomeryR2: [8] u32 = [
-    0xBE79EEA2, 0x83244C95, 0x49BD6FA6, 0x4699799C,
-    0x2B6BEC59, 0x2845B239, 0xF3D95620, 0x66E12D94]
+private const P256OrderMontgomeryR2: [4] u64 = [
+    0x83244C95BE79EEA2, 0x4699799C49BD6FA6, 0x2845B2392B6BEC59, 0x66E12D94F3D95620]
 
-private const P256OrderInverseExponent: [8] u32 = [
-    0xFC63254F, 0xF3B9CAC2, 0xA7179E84, 0xBCE6FAAD,
-    0xFFFFFFFF, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF]
+private const P256OrderInverseExponent: [4] u64 = [
+    0xF3B9CAC2FC63254F, 0xBCE6FAADA7179E84, 0xFFFFFFFFFFFFFFFF, 0xFFFFFFFF00000000]
 
 private const P256OrderWordInverse = 0xCCD1C8AAEE00BC4F'u64
 
@@ -60,23 +53,15 @@ private func p256MultiplyAdd(left, right, addend, carry: u64)->{word: u64, carry
     return {word, high}
 }
 
-private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u64)->[8] u32
+private func p256MontgomeryMultiply(left, right, modulus: [4] u64, n0Inverse: u64)->[4] u64
 {
-    var leftWords, rightWords, modulusWords: [4] u64
-    for index in 4
-    {
-        leftWords[index]    = left[index * 2] | (cast(u64, left[index * 2 + 1]) << 32)
-        rightWords[index]   = right[index * 2] | (cast(u64, right[index * 2 + 1]) << 32)
-        modulusWords[index] = modulus[index * 2] | (cast(u64, modulus[index * 2 + 1]) << 32)
-    }
-
     var temporary: [5] u64
-    for multiplier in rightWords
+    for multiplier in right
     {
         var carry = 0'u64
         for word in 4
         {
-            let product = p256MultiplyAdd(leftWords[word], multiplier, temporary[word], carry)
+            let product = p256MultiplyAdd(left[word], multiplier, temporary[word], carry)
             temporary[word] = product.word
             carry = product.carry
         }
@@ -84,10 +69,10 @@ private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u6
         let productTop   = temporary[4] + carry
         let productCarry = cast(u64, productTop < carry)
         let reduction    = temporary[0] * n0Inverse
-        carry = p256MultiplyAdd(reduction, modulusWords[0], temporary[0], 0).carry
+        carry = p256MultiplyAdd(reduction, modulus[0], temporary[0], 0).carry
         for word in 1 until 4
         {
-            let product = p256MultiplyAdd(reduction, modulusWords[word], temporary[word], carry)
+            let product = p256MultiplyAdd(reduction, modulus[word], temporary[word], carry)
             temporary[word - 1] = product.word
             carry = product.carry
         }
@@ -102,23 +87,17 @@ private func p256MontgomeryMultiply(left, right, modulus: [8] u32, n0Inverse: u6
     var borrow = 0'u64
     for index in 4
     {
-        let word = temporary[index] - modulusWords[index]
+        let word = temporary[index] - modulus[index]
         difference[index] = word - borrow
-        borrow = cast(u64, temporary[index] < modulusWords[index]) | cast(u64, word < borrow)
+        borrow = cast(u64, temporary[index] < modulus[index]) | cast(u64, word < borrow)
     }
 
     let useDifference = cast(u64, temporary[4] != 0) | cast(u64, borrow == 0)
     let mask = 0'u64 - useDifference
     var result: #returntype
-    for index in 4
-    {
-        let word = (difference[index] & mask) | (temporary[index] & ~mask)
-        result[index * 2]     = cast(u32, word)
-        result[index * 2 + 1] = cast(u32, word >> 32)
-    }
+    for index in 4 do
+        result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
 
-    Crypto.secureClear(leftWords)
-    Crypto.secureClear(rightWords)
     Crypto.secureClear(temporary)
     Crypto.secureClear(difference)
     return result
@@ -134,66 +113,80 @@ private func p256ToMontgomery(value: P256Field)->P256Field
 private func p256FromMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0], P256Modulus, 1)
+    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0], P256Modulus, 1)
     return result
 }
 
-private func p256FieldAdd(left, right: P256Field)->P256Field
+#[Swag.Inline]
+private func p256AddWord(left, right, carry: u64)->{word: u64, carry: u64}
 {
-    var sum: [8] u32
-    var carry = 0'u64
-    for index in 8
-    {
-        let word = cast(u64, left.limbs[index]) + right.limbs[index] + carry
-        sum[index] = cast(u32, word)
-        carry      = word >> 32
-    }
-
-    var difference: [8] u32
-    var borrow = 0'u64
-    for index in 8
-    {
-        let subtrahend = cast(u64, P256Modulus[index]) + borrow
-        let word       = cast(u64, sum[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
-    }
-
-    let useDifference = cast(u32, carry != 0) | cast(u32, borrow == 0)
-    let mask = 0'u32 - useDifference
-    var result: #returntype
-    for index in 8 do
-        result.limbs[index] = (difference[index] & mask) | (sum[index] & ~mask)
-    return result
+    let sum  = left + right
+    let word = sum + carry
+    return {word, cast(u64, sum < left) | cast(u64, word < sum)}
 }
 
-private func p256FieldSubtract(left, right: P256Field)->P256Field
+#[Swag.Inline]
+private func p256SubtractWord(left, right, borrow: u64)->{word: u64, borrow: u64}
 {
-    var difference: [8] u32
+    let difference = left - right
+    return {difference - borrow, cast(u64, left < right) | cast(u64, difference < borrow)}
+}
+
+private func p256Reduce(value: P256Field, modulus: [4] u64, high: u64)->P256Field
+{
+    var reduced: P256Field
     var borrow = 0'u64
-    for index in 8
+    for index in 4
     {
-        let subtrahend = cast(u64, right.limbs[index]) + borrow
-        let word       = cast(u64, left.limbs[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
+        let difference = p256SubtractWord(value.limbs[index], modulus[index], borrow)
+        reduced.limbs[index] = difference.word
+        borrow = difference.borrow
     }
 
-    var corrected: [8] u32
+    let useReduced = cast(u64, high != 0) | cast(u64, borrow == 0)
+    return p256FieldSelect(value, reduced, useReduced != 0)
+}
+
+private func p256AddMod(left, right: P256Field, modulus: [4] u64)->P256Field
+{
+    var result: P256Field
     var carry = 0'u64
-    for index in 8
+    for index in 4
     {
-        let word = cast(u64, difference[index]) + P256Modulus[index] + carry
-        corrected[index] = cast(u32, word)
-        carry = word >> 32
+        let sum = p256AddWord(left.limbs[index], right.limbs[index], carry)
+        result.limbs[index] = sum.word
+        carry = sum.carry
     }
 
-    let mask = 0'u32 - cast(u32, borrow)
-    var result: #returntype
-    for index in 8 do
-        result.limbs[index] = (corrected[index] & mask) | (difference[index] & ~mask)
+    return p256Reduce(result, modulus, carry)
+}
+
+private func p256SubtractMod(left, right: P256Field, modulus: [4] u64)->P256Field
+{
+    var result: P256Field
+    var borrow = 0'u64
+    for index in 4
+    {
+        let difference = p256SubtractWord(left.limbs[index], right.limbs[index], borrow)
+        result.limbs[index] = difference.word
+        borrow = difference.borrow
+    }
+
+    let mask  = 0'u64 - borrow
+    var carry = 0'u64
+    for index in 4
+    {
+        let sum = p256AddWord(result.limbs[index], modulus[index] & mask, carry)
+        result.limbs[index] = sum.word
+        carry = sum.carry
+    }
+
     return result
 }
+
+private func p256FieldAdd(left, right: P256Field)->P256Field => p256AddMod(left, right, P256Modulus)
+
+private func p256FieldSubtract(left, right: P256Field)->P256Field => p256SubtractMod(left, right, P256Modulus)
 
 private func p256FieldMultiply(left, right: P256Field)->P256Field
 {
@@ -210,17 +203,17 @@ private func p256FieldTriple(value: P256Field)->P256Field => p256FieldAdd(p256Fi
 
 private func p256FieldEqual(left, right: P256Field)->bool
 {
-    var difference = 0'u32
-    for index in 8 do
+    var difference = 0'u64
+    for index in 4 do
         difference |= left.limbs[index] ^ right.limbs[index]
     return difference == 0
 }
 
 private func p256FieldSelect(left, right: P256Field, selectRight: bool)->P256Field
 {
-    let mask = 0'u32 - cast(u32, selectRight)
+    let mask = 0'u64 - cast(u64, selectRight)
     var result: #returntype
-    for index in 8 do
+    for index in 4 do
         result.limbs[index] = (right.limbs[index] & mask) | (left.limbs[index] & ~mask)
     return result
 }
@@ -261,61 +254,9 @@ private func p256FieldInverse(value: P256Field)->P256Field
     return result
 }
 
-private func p256OrderAdd(left, right: P256Field)->P256Field
-{
-    var sum: [8] u32
-    var carry = 0'u64
-    for index in 8
-    {
-        let word = cast(u64, left.limbs[index]) + right.limbs[index] + carry
-        sum[index] = cast(u32, word)
-        carry      = word >> 32
-    }
+private func p256OrderAdd(left, right: P256Field)->P256Field => p256AddMod(left, right, P256Order)
 
-    var difference: [8] u32
-    var borrow = 0'u64
-    for index in 8
-    {
-        let subtrahend = cast(u64, P256Order[index]) + borrow
-        let word       = cast(u64, sum[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
-    }
-
-    let mask = 0'u32 - (cast(u32, carry != 0) | cast(u32, borrow == 0))
-    var result: #returntype
-    for index in 8 do
-        result.limbs[index] = (difference[index] & mask) | (sum[index] & ~mask)
-    return result
-}
-
-private func p256OrderSubtract(left, right: P256Field)->P256Field
-{
-    var difference: [8] u32
-    var borrow = 0'u64
-    for index in 8
-    {
-        let subtrahend = cast(u64, right.limbs[index]) + borrow
-        let word       = cast(u64, left.limbs[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
-    }
-
-    var corrected: [8] u32
-    var carry = 0'u64
-    for index in 8
-    {
-        let word = cast(u64, difference[index]) + P256Order[index] + carry
-        corrected[index] = cast(u32, word)
-        carry = word >> 32
-    }
-
-    let mask = 0'u32 - cast(u32, borrow)
-    var result: #returntype
-    for index in 8 do
-        result.limbs[index] = (corrected[index] & mask) | (difference[index] & ~mask)
-    return result
-}
+private func p256OrderSubtract(left, right: P256Field)->P256Field => p256SubtractMod(left, right, P256Order)
 
 private func p256OrderMultiply(left, right: P256Field)->P256Field
 {
@@ -334,11 +275,11 @@ private func p256OrderToMontgomery(value: P256Field)->P256Field
 private func p256OrderFromMontgomery(value: P256Field)->P256Field
 {
     var result: #returntype
-    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0, 0, 0, 0, 0], P256Order, P256OrderWordInverse)
+    result.limbs = p256MontgomeryMultiply(value.limbs, [1, 0, 0, 0], P256Order, P256OrderWordInverse)
     return result
 }
 
-private func p256OrderPower(value: P256Field, exponent: [8] u32)->P256Field
+private func p256OrderPower(value: P256Field, exponent: [4] u64)->P256Field
 {
     var result: P256Field
     result.limbs = P256OrderMontgomeryOne
@@ -346,69 +287,42 @@ private func p256OrderPower(value: P256Field, exponent: [8] u32)->P256Field
     {
         let bit = 255 - step
         result = p256OrderMultiply(result, result)
-        if (exponent[bit / 32] >> (bit % 32)) & 1 do
+        if (exponent[bit / 64] >> (bit % 64)) & 1 do
             result = p256OrderMultiply(result, value)
     }
 
     return result
 }
 
-private func p256OrderReduce(value: P256Field)->P256Field
-{
-    var difference: [8] u32
-    var borrow = 0'u64
-    for index in 8
-    {
-        let subtrahend = cast(u64, P256Order[index]) + borrow
-        let word       = cast(u64, value.limbs[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
-    }
+private func p256OrderReduce(value: P256Field)->P256Field => p256Reduce(value, P256Order, 0)
 
-    let mask = 0'u32 - cast(u32, borrow == 0)
-    var result: #returntype
-    for index in 8 do
-        result.limbs[index] = (difference[index] & mask) | (value.limbs[index] & ~mask)
-    return result
+private func p256WriteInteger(value: P256Field, destination: [..] u8)
+{
+    let words = cast([*] u64, destination.buffer)
+    for index in 4 do
+        words[3 - index] = Math.nativeToBigEndian(value.limbs[index])
 }
 
-private func p256OrderEncode(value: P256Field, destination: [..] u8)
+private func p256LessThan(value: P256Field, bound: [4] u64)->bool
 {
-    for index in 8
-    {
-        let offset = destination.count - (cast(u64, index + 1) * 4)
-        destination[offset]     = Math.byteAt(value.limbs[index], 3)
-        destination[offset + 1] = Math.byteAt(value.limbs[index], 2)
-        destination[offset + 2] = Math.byteAt(value.limbs[index], 1)
-        destination[offset + 3] = Math.byteAt(value.limbs[index], 0)
-    }
+    var borrow = 0'u64
+    for index in 4 do
+        borrow = p256SubtractWord(value.limbs[index], bound[index], borrow).borrow
+    return borrow != 0
 }
 
 private func p256ScalarIsValid(value: P256Field)->bool
 {
-    var borrow  = 0'u64
-    var nonZero = 0'u32
-    for word in value.limbs do
-        nonZero |= word
-    for index in 8
-    {
-        let subtrahend = cast(u64, P256Order[index]) + borrow
-        let word       = cast(u64, value.limbs[index]) - subtrahend
-        borrow = word >> 63
-    }
-
-    return borrow != 0 and nonZero != 0
+    let nonZero = not p256FieldEqual(value, P256Field{})
+    return p256LessThan(value, P256Order) and nonZero
 }
 
 private func p256DigestBytes(digest: Hash.Sha256.Digest)->[32] u8
 {
     var result: #returntype
-    for index in digest.count
-    {
-        for byte in 4 do
-            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
-    }
-
+    let words = cast([*] u32, result.buffer)
+    for index in digest.count do
+        words[index] = Math.nativeToBigEndian(digest[index])
     return result
 }
 
@@ -429,7 +343,7 @@ internal func p256Rfc6979Nonce(privateKey: const [..] u8, digest: [32] u8)->[32]
     Swag.memcpy(material.buffer + 33, privateKey.buffer, P256ScalarSize)
 
     // RFC 6979 bits2octets reduces the SHA-256 digest modulo the group order.
-    p256OrderEncode(p256OrderReduce(p256ReadInteger(digest)), material[65 to])
+    p256WriteInteger(p256OrderReduce(p256ReadInteger(digest)), material[65 to])
     for marker in [0'u8, 1]
     {
         Swag.memcpy(material.buffer, value.buffer, value.count)
@@ -457,100 +371,43 @@ internal func p256Rfc6979Nonce(privateKey: const [..] u8, digest: [32] u8)->[32]
     }
 }
 
+private func p256ReadInteger(bytes: const [..] u8)->P256Field
+{
+    let words = cast(const [*] u64, bytes.buffer)
+    var result: P256Field
+    for index in 4 do
+        result.limbs[index] = Math.bigEndianToNative(words[3 - index])
+    return result
+}
+
 private func p256FieldDecode(bytes: const [..] u8)->P256Field fail
 {
     if bytes.count != P256ScalarSize do
         fail Errors.BadParameterError{"P-256 coordinates and scalars must be 32 bytes"}
-    var result: #returntype
-    for index in 8
-    {
-        let offset = bytes.count - (cast(u64, index + 1) * 4)
-        result.limbs[index] = (cast(u32, bytes[offset]) << 24) |
-                              (cast(u32, bytes[offset + 1]) << 16) |
-                              (cast(u32, bytes[offset + 2]) << 8) |
-                              cast(u32, bytes[offset + 3])
-    }
-
-    var lessThanModulus = false
-    var index = 8'u32
-    while index
-    {
-        index -= 1
-        if result.limbs[index] < P256Modulus[index]
-        {
-            lessThanModulus = true
-            break
-        }
-
-        if result.limbs[index] > P256Modulus[index]
-        {
-            break
-        }
-    }
-
-    if not lessThanModulus do
+    let coordinate = p256ReadInteger(bytes)
+    if not p256LessThan(coordinate, P256Modulus) do
         fail Errors.BadParameterError{"P-256 coordinate must be smaller than the field modulus"}
-    return p256ToMontgomery(result)
-}
-
-private func p256ReadInteger(bytes: const [..] u8)->P256Field
-{
-    var result: #returntype
-    for index in 8
-    {
-        let offset = bytes.count - (cast(u64, index + 1) * 4)
-        result.limbs[index] = (cast(u32, bytes[offset]) << 24) |
-                              (cast(u32, bytes[offset + 1]) << 16) |
-                              (cast(u32, bytes[offset + 2]) << 8) |
-                              cast(u32, bytes[offset + 3])
-    }
-
-    return result
+    return p256ToMontgomery(coordinate)
 }
 
 private func p256ScalarDecode(bytes: const [..] u8)->P256Field fail
 {
     if bytes.count != P256ScalarSize do
         fail Errors.BadParameterError{"P-256 private scalar must be 32 bytes"}
-    var result: #returntype
-    for index in 8
+    var scalar = p256ReadInteger(bytes)
+    if not p256ScalarIsValid(scalar)
     {
-        let offset = bytes.count - (cast(u64, index + 1) * 4)
-        result.limbs[index] = (cast(u32, bytes[offset]) << 24) |
-                              (cast(u32, bytes[offset + 1]) << 16) |
-                              (cast(u32, bytes[offset + 2]) << 8) |
-                              cast(u32, bytes[offset + 3])
-    }
-
-    var borrow = 0'u64
-    for index in 8
-    {
-        let subtrahend = cast(u64, P256Order[index]) + borrow
-        let word       = cast(u64, result.limbs[index]) - subtrahend
-        borrow = word >> 63
-    }
-
-    var nonZero = 0'u32
-    for word in result.limbs do
-        nonZero |= word
-    if borrow == 0 or not nonZero do
+        Crypto.secureClear(Swag.makeSlice(&scalar, 1))
         fail Errors.BadParameterError{"P-256 private scalar must be between 1 and the curve order minus one"}
-    return result
+    }
+
+    return scalar
 }
 
 private func p256FieldEncode(value: P256Field, destination: [..] u8)
 {
     var ordinary = p256FromMontgomery(value)
-    for index in 8
-    {
-        let word   = ordinary.limbs[index]
-        let offset = destination.count - (cast(u64, index + 1) * 4)
-        destination[offset]     = Math.byteAt(word, 3)
-        destination[offset + 1] = Math.byteAt(word, 2)
-        destination[offset + 2] = Math.byteAt(word, 1)
-        destination[offset + 3] = Math.byteAt(word, 0)
-    }
-
+    p256WriteInteger(ordinary, destination)
     Crypto.secureClear(Swag.makeSlice(&ordinary, 1))
 }
 
@@ -650,7 +507,7 @@ private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P25
             result = p256PointDouble(result)
 
         let nibbleIndex = 63 - window
-        let nibble      = (scalar[].limbs[nibbleIndex / 8] >> ((nibbleIndex % 8) * 4)) & 15
+        let nibble      = (scalar[].limbs[nibbleIndex / 16] >> ((nibbleIndex % 16) * 4)) & 15
         var selected    = p256Infinity()
         for index in 1 until multiples.count do
             selected = p256PointSelect(selected, multiples[index], index == nibble)
@@ -673,36 +530,36 @@ private struct P256AffinePoint
 // Entry d-1 is the Montgomery representation of the sum of [2^(64*j)]G
 // for each set bit j in d. The zero entry is the point at infinity.
 private const P256GeneratorComb: [15] P256AffinePoint = [
-    {P256Field{limbs: [0x18A9143C, 0x79E730D4, 0x5FEDB601, 0x75BA95FC, 0x77622510, 0x79FB732B, 0xA53755C6, 0x18905F76]},
-     P256Field{limbs: [0xCE95560A, 0xDDF25357, 0xBA19E45C, 0x8B4AB8E4, 0xDD21F325, 0xD2E88688, 0x25885D85, 0x8571FF18]}},
-    {P256Field{limbs: [0x16A0D2BB, 0x4F922FC5, 0x1A623499, 0x0D5CC16C, 0x57C62C8B, 0x9241CF3A, 0xFD1B667F, 0x2F5E6961]},
-     P256Field{limbs: [0xF5A01797, 0x5C15C70B, 0x60956192, 0x3D20B44D, 0x071FDB52, 0x04911B37, 0x8D6F0F7B, 0xF648F916]}},
-    {P256Field{limbs: [0xE137BBBC, 0x9E566847, 0x8A6A0BEC, 0xE434469E, 0x79D73463, 0xB1C42761, 0x133D0015, 0x5ABE0285]},
-     P256Field{limbs: [0xC04C7DAB, 0x92AA837C, 0x43260C07, 0x573D9F4C, 0x78E6CC37, 0x0C931562, 0x6B6F7383, 0x94BB725B]}},
-    {P256Field{limbs: [0xBFE20925, 0x62A8C244, 0x8FDCE867, 0x91C19AC3, 0xDD387063, 0x5A96A5D5, 0x21D324F6, 0x61D587D4]},
-     P256Field{limbs: [0xA37173EA, 0xE87673A2, 0x53778B65, 0x23848008, 0x05BAB43E, 0x10F8441E, 0x4621EFBE, 0xFA11FE12]}},
-    {P256Field{limbs: [0x2CB19FFD, 0x1C891F2B, 0xB1923C23, 0x01BA8D5B, 0x8AC5CA8E, 0xB6D03D67, 0x1F13BEDC, 0x586EB04C]},
-     P256Field{limbs: [0x27E8ED09, 0x0C35C6E5, 0x1819EDE2, 0x1E81A33C, 0x56C652FA, 0x278FD6C0, 0x70864F11, 0x19D5AC08]}},
-    {P256Field{limbs: [0xD2B533D5, 0x62577734, 0xA1BDDDC0, 0x673B8AF6, 0xA79EC293, 0x577E7C9A, 0xC3B266B1, 0xBB6DE651]},
-     P256Field{limbs: [0xB65259B3, 0xE7E9303A, 0xD03A7480, 0xD6A0AFD3, 0x9B3CFC27, 0xC5AC83D1, 0x5D18B99B, 0x60B4619A]}},
-    {P256Field{limbs: [0x1AE5AA1C, 0xBD6A38E1, 0x49E73658, 0xB8B7652B, 0xEE5F87ED, 0x0B130014, 0xAEEBFFCD, 0x9D0F27B2]},
-     P256Field{limbs: [0x7A730A55, 0xCA924631, 0xDDBBC83A, 0x9C955B2F, 0xAC019A71, 0x07C1DFE0, 0x356EC48D, 0x244A566D]}},
-    {P256Field{limbs: [0xF4F8B16A, 0x56F8410E, 0xC47B266A, 0x97241AFE, 0x6D9C87C1, 0x0A406B8E, 0xCD42AB1B, 0x803F3E02]},
-     P256Field{limbs: [0x04DBEC69, 0x7F0309A8, 0x3BBAD05F, 0xA83B85F7, 0xAD8E197F, 0xC6097273, 0x5067ADC1, 0xC097440E]}},
-    {P256Field{limbs: [0xC379AB34, 0x846A56F2, 0x841DF8D1, 0xA8EE068B, 0x176C68EF, 0x20314459, 0x915F1F30, 0xF1AF32D5]},
-     P256Field{limbs: [0x5D75BD50, 0x99C37531, 0xF72F67BC, 0x837CFFBA, 0x48D7723F, 0x0613A418, 0xE2D41C8B, 0x23D0F130]}},
-    {P256Field{limbs: [0xD5BE5A2B, 0xED93E225, 0x5934F3C6, 0x6FE79983, 0x22626FFC, 0x43140926, 0x7990216A, 0x50BBB4D9]},
-     P256Field{limbs: [0xE57EC63E, 0x378191C6, 0x181DCDB2, 0x65422C40, 0x0236E0F6, 0x41A8099B, 0x01FE49C3, 0x2B100118]}},
-    {P256Field{limbs: [0x9B391593, 0xFC68B5C5, 0x598270FC, 0xC385F5A2, 0xD19ADCBB, 0x7144F3AA, 0x83FBAE0C, 0xDD558999]},
-     P256Field{limbs: [0x74B82FF4, 0x93B88B8E, 0x71E734C9, 0xD2E03C40, 0x43C0322A, 0x9A7A9EAF, 0x149D6041, 0xE6E4C551]}},
-    {P256Field{limbs: [0x80EC21FE, 0x5FE14BFE, 0xC255BE82, 0xF6CE116A, 0x2F4A5D67, 0x98BC5A07, 0xDB7E63AF, 0xFAD27148]},
-     P256Field{limbs: [0x29AB05B3, 0x90C0B6AC, 0x4E251AE6, 0x37A9A83C, 0xC2AADE7D, 0x0A7DC875, 0x9F0E1A84, 0x77387DE3]}},
-    {P256Field{limbs: [0xA56C0DD7, 0x1E9ECC49, 0x46086C74, 0xA5CFFCD8, 0xF505AECE, 0x8F7A1408, 0xBEF0C47E, 0xB37B85C0]},
-     P256Field{limbs: [0xCC0E6A8F, 0x3596B6E4, 0x6B388F23, 0xFD6D4BBF, 0xC39CEF4E, 0xABA453FA, 0xF9F628D5, 0x9C135AC8]}},
-    {P256Field{limbs: [0x95C8F8BE, 0x0A1C7294, 0x3BF362BF, 0x2961C480, 0xDF63D4AC, 0x9E418403, 0x91ECE900, 0xC109F9CB]},
-     P256Field{limbs: [0x58945705, 0xC2D095D0, 0xDDEB85C0, 0xB9083D96, 0x7A40449B, 0x84692B8D, 0x2EEE1EE1, 0x9BC3344F]}},
-    {P256Field{limbs: [0x42913074, 0x0D5AE356, 0x48A542B1, 0x55491B27, 0xB310732A, 0x469CA665, 0x5F1A4CC1, 0x29591D52]},
-     P256Field{limbs: [0xB84F983F, 0xE76F5B6B, 0x9F5F84E1, 0xBE7EEF41, 0x80BAA189, 0x1200D496, 0x18EF332C, 0x6376551F]}}]
+    {P256Field{limbs: [0x79E730D418A9143C, 0x75BA95FC5FEDB601, 0x79FB732B77622510, 0x18905F76A53755C6]},
+     P256Field{limbs: [0xDDF25357CE95560A, 0x8B4AB8E4BA19E45C, 0xD2E88688DD21F325, 0x8571FF1825885D85]}},
+    {P256Field{limbs: [0x4F922FC516A0D2BB, 0x0D5CC16C1A623499, 0x9241CF3A57C62C8B, 0x2F5E6961FD1B667F]},
+     P256Field{limbs: [0x5C15C70BF5A01797, 0x3D20B44D60956192, 0x04911B37071FDB52, 0xF648F9168D6F0F7B]}},
+    {P256Field{limbs: [0x9E566847E137BBBC, 0xE434469E8A6A0BEC, 0xB1C4276179D73463, 0x5ABE0285133D0015]},
+     P256Field{limbs: [0x92AA837CC04C7DAB, 0x573D9F4C43260C07, 0x0C93156278E6CC37, 0x94BB725B6B6F7383]}},
+    {P256Field{limbs: [0x62A8C244BFE20925, 0x91C19AC38FDCE867, 0x5A96A5D5DD387063, 0x61D587D421D324F6]},
+     P256Field{limbs: [0xE87673A2A37173EA, 0x2384800853778B65, 0x10F8441E05BAB43E, 0xFA11FE124621EFBE]}},
+    {P256Field{limbs: [0x1C891F2B2CB19FFD, 0x01BA8D5BB1923C23, 0xB6D03D678AC5CA8E, 0x586EB04C1F13BEDC]},
+     P256Field{limbs: [0x0C35C6E527E8ED09, 0x1E81A33C1819EDE2, 0x278FD6C056C652FA, 0x19D5AC0870864F11]}},
+    {P256Field{limbs: [0x62577734D2B533D5, 0x673B8AF6A1BDDDC0, 0x577E7C9AA79EC293, 0xBB6DE651C3B266B1]},
+     P256Field{limbs: [0xE7E9303AB65259B3, 0xD6A0AFD3D03A7480, 0xC5AC83D19B3CFC27, 0x60B4619A5D18B99B]}},
+    {P256Field{limbs: [0xBD6A38E11AE5AA1C, 0xB8B7652B49E73658, 0x0B130014EE5F87ED, 0x9D0F27B2AEEBFFCD]},
+     P256Field{limbs: [0xCA9246317A730A55, 0x9C955B2FDDBBC83A, 0x07C1DFE0AC019A71, 0x244A566D356EC48D]}},
+    {P256Field{limbs: [0x56F8410EF4F8B16A, 0x97241AFEC47B266A, 0x0A406B8E6D9C87C1, 0x803F3E02CD42AB1B]},
+     P256Field{limbs: [0x7F0309A804DBEC69, 0xA83B85F73BBAD05F, 0xC6097273AD8E197F, 0xC097440E5067ADC1]}},
+    {P256Field{limbs: [0x846A56F2C379AB34, 0xA8EE068B841DF8D1, 0x20314459176C68EF, 0xF1AF32D5915F1F30]},
+     P256Field{limbs: [0x99C375315D75BD50, 0x837CFFBAF72F67BC, 0x0613A41848D7723F, 0x23D0F130E2D41C8B]}},
+    {P256Field{limbs: [0xED93E225D5BE5A2B, 0x6FE799835934F3C6, 0x4314092622626FFC, 0x50BBB4D97990216A]},
+     P256Field{limbs: [0x378191C6E57EC63E, 0x65422C40181DCDB2, 0x41A8099B0236E0F6, 0x2B10011801FE49C3]}},
+    {P256Field{limbs: [0xFC68B5C59B391593, 0xC385F5A2598270FC, 0x7144F3AAD19ADCBB, 0xDD55899983FBAE0C]},
+     P256Field{limbs: [0x93B88B8E74B82FF4, 0xD2E03C4071E734C9, 0x9A7A9EAF43C0322A, 0xE6E4C551149D6041]}},
+    {P256Field{limbs: [0x5FE14BFE80EC21FE, 0xF6CE116AC255BE82, 0x98BC5A072F4A5D67, 0xFAD27148DB7E63AF]},
+     P256Field{limbs: [0x90C0B6AC29AB05B3, 0x37A9A83C4E251AE6, 0x0A7DC875C2AADE7D, 0x77387DE39F0E1A84]}},
+    {P256Field{limbs: [0x1E9ECC49A56C0DD7, 0xA5CFFCD846086C74, 0x8F7A1408F505AECE, 0xB37B85C0BEF0C47E]},
+     P256Field{limbs: [0x3596B6E4CC0E6A8F, 0xFD6D4BBF6B388F23, 0xABA453FAC39CEF4E, 0x9C135AC8F9F628D5]}},
+    {P256Field{limbs: [0x0A1C729495C8F8BE, 0x2961C4803BF362BF, 0x9E418403DF63D4AC, 0xC109F9CB91ECE900]},
+     P256Field{limbs: [0xC2D095D058945705, 0xB9083D96DDEB85C0, 0x84692B8D7A40449B, 0x9BC3344F2EEE1EE1]}},
+    {P256Field{limbs: [0x0D5AE35642913074, 0x55491B2748A542B1, 0x469CA665B310732A, 0x29591D525F1A4CC1]},
+     P256Field{limbs: [0xE76F5B6BB84F983F, 0xBE7EEF419F5F84E1, 0x1200D49680BAA189, 0x6376551F18EF332C]}}]
 
 private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
 {
@@ -711,14 +568,12 @@ private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
     for step in 64
     {
         result = p256PointDouble(result)
-        let bitIndex  = 63 - step
-        let wordIndex = bitIndex / 32
-        let shift     = bitIndex % 32
-        let digits0   = (scalar[].limbs[wordIndex] >> shift) & 1
-        let digits1   = (scalar[].limbs[wordIndex + 2] >> shift) & 1
-        let digits2   = (scalar[].limbs[wordIndex + 4] >> shift) & 1
-        let digits3   = (scalar[].limbs[wordIndex + 6] >> shift) & 1
-        let digit     = digits0 | (digits1 << 1) | (digits2 << 2) | (digits3 << 3)
+        let shift   = 63 - step
+        let digits0 = (scalar[].limbs[0] >> shift) & 1
+        let digits1 = (scalar[].limbs[1] >> shift) & 1
+        let digits2 = (scalar[].limbs[2] >> shift) & 1
+        let digits3 = (scalar[].limbs[3] >> shift) & 1
+        let digit   = digits0 | (digits1 << 1) | (digits2 << 2) | (digits3 << 3)
 
         var selection: P256Point
         for index in P256GeneratorComb.count
@@ -746,10 +601,9 @@ private func p256ValidatePublicPoint(point: P256Point)->bool
     let xCubed    = p256FieldMultiply(xSquared, point.x)
     let ySquared  = p256FieldSquare(point.y)
     let threeX    = p256FieldTriple(point.x)
-    let curveBRaw = P256Field{limbs: [0x27D2604B, 0x3BCE3C3E, 0xCC53B0F6, 0x651D06B0,
-                                      0x769886BC, 0xB3EBBD55, 0xAA3A93E7, 0x5AC635D8]}
-    let curveB   = p256ToMontgomery(curveBRaw)
-    let expected = p256FieldAdd(p256FieldSubtract(xCubed, threeX), curveB)
+    let curveBRaw = P256Field{limbs: [0x3BCE3C3E27D2604B, 0x651D06B0CC53B0F6, 0xB3EBBD55769886BC, 0x5AC635D8AA3A93E7]}
+    let curveB    = p256ToMontgomery(curveBRaw)
+    let expected  = p256FieldAdd(p256FieldSubtract(xCubed, threeX), curveB)
     return p256FieldEqual(ySquared, expected)
 }
 
@@ -835,24 +689,8 @@ func p256EcdsaSign(privateKey, message: const [..] u8, signature: [..] u8) fail
     if not p256ScalarIsValid(r) do
         fail Errors.BadParameterError{"P-256 ECDSA generated an invalid nonce"}
 
-    let zRaw = P256Field{limbs: [
-        (cast(u32, messageDigest[28]) << 24) | (cast(u32, messageDigest[29]) << 16) |
-        (cast(u32, messageDigest[30]) << 8) | cast(u32, messageDigest[31]),
-        (cast(u32, messageDigest[24]) << 24) | (cast(u32, messageDigest[25]) << 16) |
-        (cast(u32, messageDigest[26]) << 8) | cast(u32, messageDigest[27]),
-        (cast(u32, messageDigest[20]) << 24) | (cast(u32, messageDigest[21]) << 16) |
-        (cast(u32, messageDigest[22]) << 8) | cast(u32, messageDigest[23]),
-        (cast(u32, messageDigest[16]) << 24) | (cast(u32, messageDigest[17]) << 16) |
-        (cast(u32, messageDigest[18]) << 8) | cast(u32, messageDigest[19]),
-        (cast(u32, messageDigest[12]) << 24) | (cast(u32, messageDigest[13]) << 16) |
-        (cast(u32, messageDigest[14]) << 8) | cast(u32, messageDigest[15]),
-        (cast(u32, messageDigest[8]) << 24) | (cast(u32, messageDigest[9]) << 16) |
-        (cast(u32, messageDigest[10]) << 8) | cast(u32, messageDigest[11]),
-        (cast(u32, messageDigest[4]) << 24) | (cast(u32, messageDigest[5]) << 16) |
-        (cast(u32, messageDigest[6]) << 8) | cast(u32, messageDigest[7]),
-        (cast(u32, messageDigest[0]) << 24) | (cast(u32, messageDigest[1]) << 16) |
-        (cast(u32, messageDigest[2]) << 8) | cast(u32, messageDigest[3])]}
-    var z = p256OrderReduce(zRaw)
+    let zRaw = p256ReadInteger(messageDigest)
+    var z    = p256OrderReduce(zRaw)
     defer Crypto.secureClear(Swag.makeSlice(&z, 1))
 
     var nonceMontgomery = p256OrderToMontgomery(nonce)
@@ -877,8 +715,8 @@ func p256EcdsaSign(privateKey, message: const [..] u8, signature: [..] u8) fail
     if not p256ScalarIsValid(s) do
         fail Errors.BadParameterError{"P-256 ECDSA generated an invalid signature"}
 
-    p256OrderEncode(r, signature[until 32])
-    p256OrderEncode(s, signature[32 to])
+    p256WriteInteger(r, signature[until 32])
+    p256WriteInteger(s, signature[32 to])
     Crypto.secureClear(Swag.makeSlice(&r, 1))
 }
 
@@ -916,24 +754,8 @@ func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
 
     var messageDigest = p256DigestBytes(Hash.Sha256.compute(message))
     defer Crypto.secureClear(Swag.makeSlice(&messageDigest, 1))
-    let zRaw = P256Field{limbs: [
-        (cast(u32, messageDigest[28]) << 24) | (cast(u32, messageDigest[29]) << 16) |
-        (cast(u32, messageDigest[30]) << 8) | cast(u32, messageDigest[31]),
-        (cast(u32, messageDigest[24]) << 24) | (cast(u32, messageDigest[25]) << 16) |
-        (cast(u32, messageDigest[26]) << 8) | cast(u32, messageDigest[27]),
-        (cast(u32, messageDigest[20]) << 24) | (cast(u32, messageDigest[21]) << 16) |
-        (cast(u32, messageDigest[22]) << 8) | cast(u32, messageDigest[23]),
-        (cast(u32, messageDigest[16]) << 24) | (cast(u32, messageDigest[17]) << 16) |
-        (cast(u32, messageDigest[18]) << 8) | cast(u32, messageDigest[19]),
-        (cast(u32, messageDigest[12]) << 24) | (cast(u32, messageDigest[13]) << 16) |
-        (cast(u32, messageDigest[14]) << 8) | cast(u32, messageDigest[15]),
-        (cast(u32, messageDigest[8]) << 24) | (cast(u32, messageDigest[9]) << 16) |
-        (cast(u32, messageDigest[10]) << 8) | cast(u32, messageDigest[11]),
-        (cast(u32, messageDigest[4]) << 24) | (cast(u32, messageDigest[5]) << 16) |
-        (cast(u32, messageDigest[6]) << 8) | cast(u32, messageDigest[7]),
-        (cast(u32, messageDigest[0]) << 24) | (cast(u32, messageDigest[1]) << 16) |
-        (cast(u32, messageDigest[2]) << 8) | cast(u32, messageDigest[3])]}
-    var z = p256OrderReduce(zRaw)
+    let zRaw = p256ReadInteger(messageDigest)
+    var z    = p256OrderReduce(zRaw)
     defer Crypto.secureClear(Swag.makeSlice(&z, 1))
     var rMontgomery = p256OrderToMontgomery(r)
     defer Crypto.secureClear(Swag.makeSlice(&rMontgomery, 1))

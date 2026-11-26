@@ -375,19 +375,16 @@ ships; history lives in Git, not here.
   retain bounds protection, and every retained kernel improves representative decoding.
 - Related: std.core.043, std.core.044, compiler.codegen.022.
 
-### std.pixel.image.054 — The JPEG forward transform and quantization remain scalar
+### std.pixel.image.054 — Reduce the remaining JPEG encode cost on textured photographs
 
-- Evidence: the JPEG decoder and the encoder's colour conversion (`loadFromRGB` in
-  `encode/jpg/dct.swg`) are packed. The encoder's float AAN forward transform and the
-  quantization that follows it are scalar and now dominate encoding. Their samples go
-  through an `s16` staging array because no packed `s32` to `f32` lane conversion exists
-  (std.core.042).
-- Next: decide whether byte-exactness with today's encoded output must be kept. Lane-by-lane
-  float order can still change the last bit under multiply-add contraction, and an integer
-  transform changes the bytes outright. Then profile the encoder stages before writing the
-  kernel.
-- Done when: fixtures preserve accepted pixel tolerances, coefficient extremes are covered,
-  and encode throughput improves in an interleaved A/B on a quiet machine.
+- Evidence: the forward transform and quantization use packed lanes. The
+  [Motion JPEG comparison](../bench/results/video/20261126-encode-comparison/README.md#motion-jpeg-against-ffmpeg-91-and-libjpeg-turbo-321)
+  uses the same JPEG encoder on 30 camera frames. At matched RGB PSNR, Swag spends
+  2.03× libjpeg-turbo's process CPU time and emits within 1% of its bytes.
+- Next: profile the packed forward transform, coefficient stores and dense AC output
+  separately on the camera clip using the current encoder.
+- Done when: at comparable RGB PSNR and packet size, camera encode time falls in
+  an interleaved A/B and uniform, saturated and odd-sized inputs retain their output.
 - Related: std.core.042, compiler.codegen.022.
 
 ### std.pixel.image.055 — Remaining WebP decode stages need performance decisions

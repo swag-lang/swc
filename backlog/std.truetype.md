@@ -188,7 +188,7 @@ here. Compiler issues belong in [compiler.frontend.md](compiler.frontend.md), [c
 - Evidence: copied input accounts for about 90–93% of the six CJK opens. Pillow uses a
   file-backed FreeType mapping, which reads glyph programs from the file on demand. With
   the same whole-file snapshot for the standalone OTF cases, Swag takes 1.81–2.93 ms and
-  FreeType takes 2.61–3.66 ms. [CJK file ownership timings](../bench/results/swagscope-filesamples/font-decode-linux.md#cjk-file-ownership-and-cff-parsing)
+  FreeType takes 2.61–3.66 ms.
 - Next: isolate acquisition of the CFF charstring payload on the first standalone file
   open. Measure the effect of large read sizes and destination allocation without
   changing the independence of the face from later file changes.

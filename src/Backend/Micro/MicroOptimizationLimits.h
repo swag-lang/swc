@@ -14,7 +14,6 @@ SWC_BEGIN_NAMESPACE();
 // Role tags distinguish optional analysis work, output growth, profitability/pressure models,
 // convergence guards and representation/proof-domain constraints. Larger is not generally better:
 // a guard only matters when reached, growth can create spills, and exact shapes are not tunable.
-// See bench/results/optimizer-policy/20261019/limits.csv for the per-constant assessment.
 // An implementation recursion cap is not a proof that every supported host stack can sustain it.
 //
 // Instruction widths, operand positions, ABI rules, sentinels, exact pattern arities and

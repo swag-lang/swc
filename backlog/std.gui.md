@@ -506,9 +506,8 @@ missing-monitor rectangles and ignores panes the application no longer registers
 - Reproduction: `%LOCALAPPDATA%/swc-agent-builds/startup-midnight-20261030` contains the
   `baseline-document-*` and `document-*` launch records, artifact hashes, CPU/memory measurements,
   `document-content-*` attribution and `compare-release.log` for exact-size versus reduced rasters.
-  The [startup report](../bench/results/startup/20261030/README.md) preserves all samples and
-  distinguishes visibility from the instrumented document-publication diagnostic (512-558 ms
-  in the two final traces, versus 794-798 ms for baseline; debugger overhead is included).
+  Instrumented document publication took 512–558 ms in the final traces and 794–798 ms in
+  the baseline. These times include debugger overhead and are separate from visibility.
   `probe.py` and `ab-document.py`
   reproduce the external milestones through `tools/apps.bat`.
   Recreate both builds from the same source/compiler before replaying; their temporary worktrees

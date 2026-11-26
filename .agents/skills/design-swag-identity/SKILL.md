@@ -206,13 +206,11 @@ It writes `bin/help/imgs/swag_mark.svg`, `bin/help/imgs/swag_mark.png`, `bin/hel
 `bin/help/favicon.svg` and `bin/help/favicon.ico`. Never edit those files by hand. The favicon's
 16, 32 and 48 pixel entries are each cut at their own size.
 
-When the geometry changes, update four places in the same change:
+When changing the geometry, update the generator, styles and VSCode icon together.
 
 1. Run the generator.
 2. Paste the new path and its `viewBox` into `--swag-mark` in `DocPage::styles()`.
-3. Paste the same path into `bench/page_template.html` and into the `bench/reports/bench.html` it
-   produced.
-4. Copy the icon into the VSCode extension with `tools/vsix.bat`.
+3. Copy the icon into the VSCode extension with `tools/vsix.bat`.
 
 ## Regenerate The Syntax Image
 

@@ -1573,10 +1573,8 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     using MicroOptimizationLimits::RegisterAllocation::K_DENSITY_SCALE;
 
     // How far below the best candidate a value may rank and still be granted a register the
-    // function names elsewhere (the span-scoped path further down). Measured on bench/: without a
-    // bound the extra supply reached every candidate that earns anything at all, and the local
-    // allocator pressure that caused cost more than the reservations returned - sha256 and leven
-    // each lost 7%. Bounding it kept their gains and left wordfreq and csvagg's intact.
+    // function names elsewhere (the span-scoped path further down). Without a bound, even
+    // low-benefit candidates receive a reservation and increase local allocator pressure.
     using MicroOptimizationLimits::RegisterAllocation::K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     struct GlobalCandidate
@@ -3951,11 +3949,8 @@ void MicroRegisterAllocationPass::expireDeadMappings(uint32_t stamp)
     // one holds a register. flushAllMappedVirtuals and
     // spillMappedVirtualsForConcreteTouches likewise skip dead values.
     //
-    // Lifting the guard was measured (2026-07-31) on the six bench/ tasks: same
-    // instruction count, same stack-access count, only different register
-    // names. The real cost in those loops is the boundary flush in
-    // rewriteInstructions, which round-trips every live value through memory at
-    // each terminator and join.
+    // The boundary flush in rewriteInstructions still moves live values through
+    // memory at terminators and joins. Eager expiry cannot change those transfers.
     if (hasControlFlow_)
         return;
 

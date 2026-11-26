@@ -61,7 +61,6 @@ file. Do not add status, dates, or progress summaries to the index.
 | [app.scope.xlsx.md](app.scope.xlsx.md) | Swag Scope XLSX viewer |
 | [app.scope.xml.md](app.scope.xml.md) | Swag Scope XML viewer |
 | [app.vault.md](app.vault.md) | Swag Vault |
-| [clones.md](clones.md) | Independent application clones |
 | [compiler.build.md](compiler.build.md) | Workspace compilation, caching, parallelism and compiler build performance |
 | [compiler.codegen.md](compiler.codegen.md) | Lowering, ABI, Micro backend and emitted-code generation |
 | [compiler.command.doc.md](compiler.command.doc.md) | Compiler `doc` command |
@@ -79,7 +78,7 @@ file. Do not add status, dates, or progress summaries to the index.
 | [language.parallelism.md](language.parallelism.md) | Native concurrency and parallelism |
 | [platform.portability.md](platform.portability.md) | Operating-system ports and portable contracts |
 | [repo.prompts.md](repo.prompts.md) | Prompts for long-running campaigns |
-| [repo.tooling.md](repo.tooling.md) | Build, benchmark, and test tools |
+| [repo.tooling.md](repo.tooling.md) | Build and test tools |
 | [runtime.allocator.md](runtime.allocator.md) | Runtime allocator |
 | [std.audio.md](std.audio.md) | `std/audio` |
 | [std.core.md](std.core.md) | `std/core` |

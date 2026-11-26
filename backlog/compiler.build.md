@@ -193,13 +193,12 @@ before relying on them.
   six-worker application observations reach 1,443.543 MiB for the latest DevMode checkpoint;
   the final integrated Release checkpoint reaches 1,221.801 MiB. Different compiler
   checkpoints, host load and publication variation prevent treating these as a controlled
-  configuration gap. See the [memory report](../bench/results/memory/20261030-devmode/README.md).
+  configuration gap.
   Earlier focused GUI layout tests reached 2,842.3 MiB; `core` and hello also exceeded their
   250 MiB and 50 MiB targets. Refresh those workloads rather than extrapolating the application
-  saving; see the [lifetime report](../bench/results/memory/20261029-lifetimes/README.md) and
-  [core report](../bench/results/memory/20261023-alternate45/README.md).
+  saving.
 - Next: attribute the remaining per-module peak and establish host-normalized limits across the
-  benchmark workloads. Measure compiler memory while an application remains open: native
+  affected workloads. Measure compiler memory while an application remains open: native
   `runAfterLink` currently waits for the child while its compiler state remains alive. The build-only
   measurements do not cover that lifetime. Keep compilation and JIT-test execution distinct;
   file filters reduce test execution while retaining whole-module compilation.
@@ -335,9 +334,7 @@ before relying on them.
   partitions 150.688 MiB of arena backing: 45.421 MiB of `AttributeList`, 45.253 MiB of
   `SymbolFunction`, 20.960 MiB of `SymbolVariable`, 15.497 MiB of `SemaInlinePayload`,
   5.913 MiB of `CodeGenLoweringPayload`, 4.663 MiB of finalizers and only 1.295 MiB of unused
-  tails. Do not add the two diagnostic runs as if they shared one process peak. See the
-  [occupation report](../bench/results/memory/20261030-devmode/README.md) and
-  [typed-arena census](../bench/results/memory/20261030-devmode/arena-types.json).
+  tails. The two diagnostic runs have separate process peaks.
 - Next: work down the concrete owners below. Keep useful buffer reuse, stable pointers,
   publication ordering and compilation speed; do not exchange a small memory reduction for
   extra allocations, lookups or repeated analysis without a justified measurement.
@@ -351,7 +348,7 @@ before relying on them.
 | Other retained Micro buffers | Refresh the census after mask/operand-list compaction, then inspect SSA, generic instruction use/def records, rewrite queues and per-worker high-water capacities. Avoid unconditional shrink/reallocation between functions. |
 | Linker, native emission and caches | At a separate traced peak linker storage was 111.198 MiB and native emission 35.639 MiB. Attribute merged sections, relocations, final image buffers and outstanding record owners after current move/mapping changes before removing another copy or shortening a lifetime. |
 | AST and semantic containers | Count clone pages, node payloads and nested small vector/map capacities by module and phase; page occupancy was already high, so do not infer a saving from smaller pages alone. |
-| Allocator page slack | An exploratory `MI_ENABLE_LARGE_PAGES=0` run initially looked promising, but its baseline and candidate came from different source revisions. A same-source DevMode comparison found no RSS reduction on `doc_std` or `hello_build` and only 4.6% on `core_rebuild`; the default was restored. An immediate-purge trial reduced RSS but increased CPU time by 12–21%. See the [2026-11-17 report](../bench/results/memory/20261117-large-pages/README.md). Re-evaluate page slack against the current source on Windows before proposing another allocator default. |
+| Allocator page slack | An exploratory `MI_ENABLE_LARGE_PAGES=0` run initially looked promising, but its baseline and candidate came from different source revisions. A same-source DevMode comparison found no RSS reduction on `doc_std` or `hello_build` and only 4.6% on `core_rebuild`; the default was restored. An immediate-purge trial reduced RSS but increased CPU time by 12–21%. Re-evaluate page slack against the current source on Windows before proposing another allocator default. |
 | Missing ownership coverage | Add small C++ allocations, direct mimalloc allocations and OS/proximity mappings to synchronized accounting, with module/phase/worker identity and shared backing deduplicated. Keep requested bytes, allocator rounding, committed capacity and residency separate. |
 
 - Done when: the dominant retained owners are reduced with preserved behavior and accepted
@@ -369,9 +366,7 @@ before relying on them.
   admission. Lower observed wall/CPU time does not prove an optimization is speed-neutral.
   The latest DevMode effects/cache pair observes 1,472.266 to 1,443.543 MiB working set; the
   corresponding host CPU averages are 63.37% and 50.84%. Earlier constant packing and compact
-  acyclic liveness checkpoints have the same unresolved timing limitation. Exact observations,
-  binary hashes, source revisions and exclusions are in the
-  [memory report](../bench/results/memory/20261030-devmode/README.md).
+  acyclic liveness checkpoints have the same unresolved timing limitation.
 - Next: compare preserved adjacent checkpoints on identical frozen sources, isolated caches,
   verified affinity and stable host load, in DevMode and Release. Cover constant-page packing,
   compact acyclic matrices (including wide dense rows), physical effect masks, fixed virtual

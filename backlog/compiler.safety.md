@@ -79,9 +79,8 @@ is the current scorecard.
 ### compiler.safety.030 — Measure the runtime cost of value-borrow guards
 
 - Evidence: `bin/unittests/native/functions/value_borrow_cost.swg` compares identical
-  native small-argument and block-sum calls with only `.ValueBorrow` toggled. The
-  [focused measurements](../bench/results/safety/20261016-value-borrow.md) retain samples
-  and compiler rebuild CPU/memory controls, but shared-machine drift prevents a tight bound.
+  native small-argument and block-sum calls with only `.ValueBorrow` toggled. Shared-machine
+  drift prevents a tight timing bound.
   Frame-write proofs and an inline address-extent test avoid unnecessary runtime checks.
   `Pass.ValueBorrowFastPath` also hoists the extent load before eligible loops, or to function
   entry when the function calls only write checks and fault reports; a call-free function
@@ -90,9 +89,8 @@ is the current scorecard.
   and do not establish their current overhead.
   On the full `aoc2024` console workload with always-active result checks,
   `release-safe` took 2585 ms median versus 545 ms with only `.ValueBorrow`
-  disabled (twelve alternating samples each). The [application samples](../bench/results/safety/20261108-release-safe-aoc2024.md)
-  isolate this guard family to a 4.74x cost on that workload; dropping `.BoundCheck`
-  or `.Overflow` separately did not produce a comparable reduction.
+  disabled (twelve alternating samples each). Disabling `.BoundCheck` or `.Overflow`
+  individually yielded a smaller reduction.
   CPU backdrop convolution also exposes process-wide registration-lock contention: a native
   DevMode Gaussian pass exceeded 300 seconds with the default worker pool, while a single
   worker completed the scene. Small `Vector4` arithmetic repeatedly enters and leaves the
@@ -118,8 +116,8 @@ is the current scorecard.
 
 ### compiler.safety.019 — Bound current sanity cost and attribute retained-state storage
 
-- Evidence: the [current profile](../bench/results/safety/20261016-moved-writes-and-sanity.md)
-  observes sanity at 5.5% of compiler CPU cycles on core devmode and 2.8% on full-std
+- Evidence: a prior profile puts sanity at 5.5% of compiler CPU cycles on core devmode
+  and 2.8% on full-std
   release, with no iteration-cap hits. Propagation and checking perform most transfer
   work. Logical retained register/stack payload peaks at 1.26/1.86 MiB per invocation;
   spare capacity, hash storage, transient copies and allocator overhead remain unattributed.
@@ -135,14 +133,11 @@ is the current scorecard.
 
 - Evidence: `release` builds without runtime guards; `devmode`, and any build enabling
   `.BoundCheck`, pays them. Range and repeated-guard proofs plus cold-block layout already
-  remove settled checks and move failure paths off the common path. The guards still cost
-  `devmode` about 1.24x across the twelve `bench/` programs against the same build without
-  runtime guards. Hot gaps: loop-bounded indices, repeatedly loaded counts, and
-  loop-invariant `late` checks.
+  remove settled checks and move failure paths off the common path. Remaining costs include
+  loop-bounded indices, repeatedly loaded counts and loop-invariant `late` checks.
 - A full `aoc2024` comparison found that removing `.BoundCheck` alone did not
   reduce the measured wall time. Its large whole-preset gap is mainly
-  `.ValueBorrow`; see compiler.safety.030 and
-  [the application samples](../bench/results/safety/20261108-release-safe-aoc2024.md).
+  `.ValueBorrow` (compiler.safety.030).
 - A first guarded `late` read inside a loop still leaves the check at the body read site on
   every trip: `SemaInitFlow::walkLoopBody` analyzes the body once and does not carry that
   fact across a loop that may execute zero times. A safe hoist must run only after the first

@@ -26,8 +26,7 @@ This file owns lexer, parser, semantic analysis, type resolution, and diagnostic
   micro optimization loops. It failed once with the original session output and work roots,
   then passed with fresh roots and with the same source outside the checkout. Cache or
   work-directory state is therefore not yet separated from scheduling. Repeated filtered
-  Release runs with six workers have not reproduced it. Artifact:
-  [generated-code session](../bench/disassembly/generated-code/20260916/README.md).
+  Release runs with six workers have not reproduced it.
 - Next: when it reappears, preserve the failing pre-sanity capture lowering and its output
   and work roots. Then separate cache reuse from shared code-generation state when the
   macro's closure is cloned.

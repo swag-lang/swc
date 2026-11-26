@@ -18,33 +18,16 @@ being compiled by it.
 - Done when: each application has a deterministic local journey selectable by the common tag,
   failure reports name the stage, and ordinary tests still need no desktop or privileges.
 
-### repo.tooling.011 — No validation step compiles the Swag benchmark modules
-
-- Evidence: `tools/build.bat` covers std, examples, apps, and the reference. Nothing in the
-  build or test launchers compiles the eleven
-  `bench/*/module.swg` modules, so a language or std change can break them unnoticed.
-  `argon2`, `chacha20`, and `resize` are test-only modules meant for
-  `test --no-test-jit -bc release`. Their JIT run trips the `Swag.workerCount()` assertion,
-  so a compile check must not execute them.
-- Next: give `build.bat` a benchmark step: `sema --module` for program modules, and a compile
-  of the test-only modules that runs none of their timed `#test` bodies (a compiler option to
-  build a test executable without running it, or a dedicated tag), in each configuration.
-- Done when: breaking any `bench/*/module.swg` source fails `tools/build.bat`.
-
 ### repo.tooling.010 — Separate cross-language build scenarios from compiler throughput
 
-- Evidence: since protocol 3 every toolchain is timed in one recorded state, a warm toolchain
-  and a clean project (Go's standard library and Zig's global cache warm, Swag's runtime
-  machine code warm), with intervals. C++ still reparses headers, including unused `<cmath>`
-  through `src/cpp/common.h`, Swag collects its runtime sources even for hello, and the report
-  combines native executable builds with Java and C# bytecode generation: valid recipe timings,
-  not equal compiler workloads.
+- Evidence: warm toolchain caches, dependency verification and linking can dominate a small
+  build. C++ processes included headers and Swag collects runtime sources. Native executables
+  and managed bytecode exercise distinct output paths.
 - Next: define versioned scenarios for application rebuilds with prepared dependencies,
   dependency rebuilds, and a real source edit. Keep bytecode and native outputs distinct.
-  Add a separate generated-code workload at several sizes, with equivalent operations and
-  minimal imports, and time semantic checking, object generation, and linking where supported.
-  Record cache policy, flags, worker counts, repetitions and dispersion with every scenario;
-  retain old campaigns under their original protocol rather than reinterpreting them.
+  Generate temporary equivalent sources at several sizes with minimal imports. Time semantic
+  checking, object generation and linking where supported. Record cache policy, flags, worker
+  counts, repetitions and dispersion with every scenario.
 - References: [compiler-benchmark](https://github.com/nordlow/compiler-benchmark) separates
   synthetic checking, compilation and linking;
   [rustc-perf](https://github.com/rust-lang/rustc-perf/blob/main/collector/README.md) separates
@@ -55,8 +38,7 @@ being compiled by it.
 
 ### repo.tooling.007 — Separate formatter input preparation from formatter cost
 
-- Evidence: in the `format_tree` workload (`bench/scripts/toolchains.py`), formatting a fresh private
-  copy spends most sampled worker time opening files (`SourceFile::loadContent`, mostly
+- Evidence: formatting a fresh private copy spends most sampled worker time opening files (`SourceFile::loadContent`, mostly
   `NtCreateFile`). Formatting the original sources spends most of it in `Formatter::prepare`,
   with little in indentation. Sharing the indentation pass's two line-column computations
   gave no measurable gain and was removed. Do not retry it without a new profile.
@@ -113,11 +95,9 @@ being compiled by it.
 
 ### repo.tooling.008 — Record module timings with load observed during each sample
 
-- Evidence: `bench/scripts/compile.py` has no module-only GUI, Pixel, or OGL workload. A campaign starting during a sample goes unrecorded;
-  paired GUI samples of one compiler have varied more than fivefold. Two observations remain
-  unexplained ([report](../bench/results/compilation/20260907/README.md)): a GUI resident and
-  committed peak about 4–5% higher under fixed dependencies, and a roughly 2.5x `doc_std`
-  slowdown with no proven load cause. Pinned (performance-core affinity) results must stay
+- Evidence: paired GUI samples of one compiler have varied more than fivefold. A GUI resident
+  and committed peak about 4–5% higher under fixed dependencies and a roughly 2.5x slowdown
+  during std documentation generation remain unexplained. Pinned (performance-core affinity) results must stay
   separate from ordinary unpinned builds.
 - A three-worker `std/gui --rebuild` with compiler 0.1.1175 took 93 s and 85 s for GUI alone;
   the latter used 305 CPU seconds. Two otherwise matching runs with `--optimizer-stats` took
@@ -127,8 +107,8 @@ being compiled by it.
   dependencies, two Release-compiler GUI rebuilds took 15.7 s and 16.2 s for GUI alone; a
   pair of Pixel rebuilds took 27.2 s and 21.3 s. These are unpinned observations, not a
   historical comparison.
-- Next: add opt-in module-only workloads to the recorded compilation instrument and retain
-  system CPU deltas across the timed process. Distinguish warm
+- Next: time the affected modules directly and retain system CPU deltas across the timed
+  process. Distinguish warm
   dependencies (`--rebuild-module`), whole dependency rebuilds, pinned controls, and ordinary
   builds in the results.
   Repeat the GUI control under steady load, including the `--optimizer-stats` path, and isolate

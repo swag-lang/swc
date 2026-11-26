@@ -84,7 +84,8 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   (`inline_nullable_assert.swg`).
 - Next: evaluate automatic nullable value-pointer eligibility without adding unnecessary homes
   or volunteering one-time setup. Broad nullable eligibility previously added frame
-  loads/stores to wordfreq's hot scan; keep that sentinel and inspect actual call-site conversions.
+  loads and stores to an inlined scan. Inspect actual call-site conversions and use a nullable
+  scan as a control.
 - Done when: repeated wrappers with nullable value-pointer parameters auto-inline with their
   flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
 - Related: compiler.codegen.008, compiler.optimization.117.
@@ -114,8 +115,7 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   Write-only private spill homes can use the existing free-XMM loop cache.
 - Evidence: two SHA-256 rounds execute 95 instructions / four memory reads / zero frame
   accesses, against 100 / four / zero before, but whole `main` gains 42 instructions and
-  six explicit RSP accesses outside that compression loop
-  ([code evidence](../bench/disassembly/generated-code/20261006-partial-counted-unroll/README.md)).
+  six explicit RSP accesses outside that compression loop.
   A four-round prototype executed 180 instructions with a back-edge register copy and four
   frame stores per group: its three transient XMM registers for integer values left too
   few for all four write-only homes.
@@ -134,7 +134,7 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   read. Pure leaf inlines already borrow a plain array from a stable caller variable when
   every argument is a same-type bare variable or constant; parameter writes,
   addresses/buffers, captures, calls, generated source and nontrivial copy/drop types keep
-  snapshots ([code evidence](../bench/disassembly/generated-code/20261006-inline-array-borrow/README.md)).
+  snapshots.
   A by-value `[4] U32x4` transpose inlined into a caller cost 40 instructions and a 0x1C8
   frame against 28 and 0x80 for the pointer form, which `Core.Math.Simd.transpose4x4` now
   takes. Read-only syntax alone does not prove the caller's storage stays unchanged while
@@ -155,8 +155,8 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   Fannkuch slowed by 4.8% to 5.1% in independent paired comparisons despite fewer memory
   operations. Account for the guard, wide-store forwarding and critical-path costs; amortize
   an indexed-loop guard outside the repeated region rather than assuming packing alone wins.
-- Next: compare the current candidate with a clean paired Leven run and inspect native code. Keep
-  the unroll only if measurements confirm the hot-path estimate without a loss; investigate SIMD
+- Next: reproduce the row-copy shape with current sources and inspect native code in a paired
+  comparison. Keep the unroll only if measurements confirm the hot-path estimate without a loss; investigate SIMD
   separately with an alias/disjointness proof and cost model.
 - Done when: outer-region accesses are eliminated or attributed to unavoidable carry
   initialization/lifetime costs while preserving any confirmed inner-loop gain.
@@ -177,8 +177,7 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 
 - Evidence: late pre-allocation scheduling folds a single-use constant-offset address into
   indexed and ordinary memory operands. Cross-block candidates need an SSA proof that the
-  base is unchanged
-  ([structural evidence](../bench/disassembly/generated-code/20261006-late-addresses/README.md)).
+  base is unchanged.
   It costs `Slice.parsePartitions` three instructions and two memory operations. Shared
   addresses stay outside the single-use rule, including the context-array base at
   Slice + 0x98 that feeds four copies in `residualCabac`.
@@ -195,8 +194,7 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   instead of reconstructing them from an executable. DevMode `fannkuch` lost 7.14% when its
   `main` moved from RVA `0xaee0` to `0xafd0` with unchanged hot instructions. Blanket
   modulo-32 alignment (candidate `5d3338007`, not on master) recovered 5.10% on `fannkuch`
-  but cost 4.50% on `binarytrees` and grew text by 3.32%, so it fails the performance gate
-  ([evidence](../bench/disassembly/generated-code/20261005-runtime-layout/README.md)).
+  but cost 4.50% on `binarytrees` and grew text by 3.32%, so the trial was discarded.
 - Next: investigate selective alignment and repeat independent quiet blocks across native
   execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
   layout metadata through object/cache boundaries and reorder functions by weighted
@@ -626,10 +624,8 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 
 ### compiler.optimization.133 — Calibrate optional optimizer work independently of convergence guards
 
-- Evidence: the [policy review](../bench/results/optimizer-policy/20261019/analysis.txt) classifies
-  all 149 defaults. The [observations](../bench/results/optimizer-policy/20261019/implementation.txt)
-  show no pre-RA/post-RA stops in the two benchmark probes, but frequent changing final
-  pre-prologue sweeps. Reducing SLP depth from 512 to 32 doubles a supported deep chain's Micro
+- Evidence: two earlier probes reached no pre-RA/post-RA stops and often changed code in the
+  final pre-prologue sweeps. Reducing SLP depth from 512 to 32 doubles a supported deep chain's Micro
   instructions. Timing controls remain too noisy to select a replacement default or O3 multiplier.
 - Workspace `build --optimizer-stats` reports zero pipelines even when module compilers ran
   the optimizer: each `CompilerInstance` owns its totals, and the driver report does not include

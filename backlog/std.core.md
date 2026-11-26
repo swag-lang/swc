@@ -360,8 +360,7 @@ outcomes owned by `core` together.
     slower, because lane regrouping and state materialization erased the arithmetic gain.
 - Next: retry only with a lowering that keeps the eight-word state in registers across both
   G halves and regroups 64-bit lanes from two sources without scalar extraction, or with a
-  wider layout that amortizes the regrouping. Measure with the fixed-worker
-  [lane-scaling benchmark](../bench/workloads/argon2/README.md).
+  wider layout that amortizes the regrouping. Measure lane scaling at fixed worker counts on identical inputs.
 - Done when: published vectors pass for all supported parameters and profile benchmarks
   isolate the packed kernel gain from independent-lane parallelism.
 

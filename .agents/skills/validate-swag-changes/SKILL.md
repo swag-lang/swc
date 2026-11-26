@@ -113,25 +113,22 @@ selects tests tagged `integration.renderer.opengl` that exercise the renderers d
 
 ### Generated-code optimizations
 
-For every optimization batch that can change generated code, compare final Micro listings for
-all twelve benchmark tasks against the pre-change compiler, even when only one task is targeted.
-Use `bench/scripts/microdiff.py --base <preserved-compiler> --new <checkout-compiler> --verbose` with
-the relevant program configuration. Preserve the baseline compiler and runtime outside the
-checkout before rebuilding; keep caches separate and force regeneration. Reuse captures only
-while their compiler, sources, runtime and configuration remain unchanged.
+For an optimization that can change generated code, select the affected workload and callers
+from existing applications, modules or language tests. Use a fresh equivalent example in external
+scratch storage when isolating an operation or comparing against another compiler. Include an
+independent code shape reached by the same rule and a counterexample when applicable.
 
-This is a static regression check, not a timing campaign: compile each task once per side and
-execute it once for its checksum. Inspect every changed task hot path and reachable shared
-runtime path, including functions added or removed by inlining or generated-name changes.
-Compare loop instructions, memory traffic, spills, calls, branches and dependency chains per
-execution; equal totals do not prove equal work. Resolve every apparent hot-path loss before
-accepting the batch, or explain a trade with its execution counts. A gain in one task cannot
-conceal a loss in another.
+Preserve the baseline compiler and runtime before rebuilding. Use the same sources, inputs,
+program configuration and worker count for both revisions, force regeneration and isolate caches.
+Verify outputs with a focused test or checksum. Check final disassembly with the platform's
+disassembler and use `--print-micro` to explain Swag lowering. Inspect the changed executed paths
+and shared callees, including changes with equal instruction totals. Compare memory traffic, calls,
+branches, spills and dependency chains per iteration or call. Resolve hot-path losses or explain
+the trade with its execution counts.
 
-Run focused correctness tests as usual. Do not run long timing campaigns for each optimization;
-reserve measurements for an unresolved static trade, an observed runtime regression, or an
-explicit campaign milestone. Static evidence establishes generated-code changes, not a measured
-speedup or a guarantee that runtime performance cannot regress.
+Follow [Prompt 2](../../../backlog/repo.prompts.md#2-generated-code-performance) for comparisons
+with production compilers on matching contracts. Static evidence can justify keeping a change.
+A runtime gain needs a controlled before/after measurement on the affected workload.
 
 ### Non-executable changes
 

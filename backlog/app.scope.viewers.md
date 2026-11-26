@@ -95,11 +95,8 @@ product capabilities. [File Viewer Plus coverage](https://fileviewerplus.com/sup
   subtitles, HTML and CSV. Their source, licence or generation steps and SHA-256 hashes are recorded
   in the fixture guide. Text covers queued encoding changes, cancellation and CRLF search offsets; shared
   document outlines have their own [integration suite](../bin/apps/modules/swagscope/src/tests/cases/functional/viewer.outline.swg).
-  A Release API comparison now covers the FileSamples image, sound, video, PDF and font readers;
-  its matched decoder timings and raw samples are in the
-  [format comparison report](../bench/results/swagscope-filesamples/README.md). It does not measure
-  application first-content latency or the DOCX, XLSX, PPTX, ODT, ODS, ODP, RTF, EPUB, HTML, CSV,
-  source-code or text transformations.
+  The earlier Release comparison covered the decoder APIs for images, sound, video, PDFs and
+  fonts. Application first-content latency and document and text transformations remain open.
   These tests still do not declare a complete matrix for real-world variants,
   malformed input, large files, cancellation, keyboard-only use, themes, DPI, memory ceilings, or
   selection-to-first-content latency under rapid adjacent-file browsing.

@@ -28,7 +28,7 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.001 — Reduce the remaining serial cost of H.264 decoding
 
-- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measures one-slice 1080p Baseline at
+- Evidence: a one-slice 1080p comparison measured Baseline at
   2.27× native single-threaded FFmpeg and High at 1.47×. The Baseline profile attributes about a
   fifth of samples to CAVLC residuals and VLC lookup. High's CABAC residual loop remains the
   largest sampled kernel.
@@ -47,9 +47,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.005 — Reduce the measured serial cost of H.265 decoding
 
-- Evidence: [the follow-up comparison](../bench/results/video/20261126-decode-comparison/README.md#prediction-and-sao-follow-up) measured serial Main10 at
+- Evidence: a serial Main10 comparison put Swag at
   1.46× native single-threaded FFmpeg at 3840×2076. In a separate run,
-  [32-bit CABAC look-ahead](../bench/results/video/20261126-decode-comparison/README.md#hevc-cabac-look-ahead)
+  32-bit CABAC look-ahead
   lowered 4K time by 3.1%. Alternating runs found 5.7% lower wall time on Main10 texture
   and 6.6% on Main WPP. The residual coding routine accounted for about a quarter of samples
   before the CABAC change. The Main and Main10 conformance digests and container reference

@@ -470,8 +470,7 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.045 — First-page rendering trails PDFium on FileSamples
 
-- Evidence: the [comparison report](../bench/results/swagscope-filesamples/README.md) records the
-  original Windows timings. A Linux x86-64 Release recheck at `3bb8cc76d7` used one Swag worker
+- Evidence: a Linux x86-64 Release recheck at `3bb8cc76d7` used one Swag worker
   and nine interleaved runs after warm-up. Both paths materialized a BGRA bitmap with a 1200 px
   long side. PDFium 159.0.8149.0 used its raw bitmap API. Times are medians in milliseconds.
 
@@ -542,23 +541,19 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   1200, and 2400 px. Timing changes on `sample1.pdf` and `sample2.pdf` were small.
   The painter still emits the full dash geometry. Caching character-to-glyph
   lookups during PDF recording showed little benefit in isolation.
-- The [expanded comparison](../bench/results/swagscope-filesamples/pdf-raster-linux.md)
-  measures 31 pages at 1200 px, including 26 public PDFs. Swag's packed grayscale
+- A comparison covered 31 pages at 1200 px, including 26 public PDFs. Swag's packed grayscale
   conversion cuts the PDF.js one-bit scan from 422 to 121 ms with the same bitmap CRC-32.
   PDFium takes 26 ms. On the PDFBox JPEG and scan, most of the remaining time is in
   scaled image painting. The curves fixture submits about 3.15 million stroke
   triangles. Nested clips add polygon intersection at load and stencil writes at render.
   The transformed-text fixture spends about 0.79 s in MSDF triangle draws.
-- [Device-space clip intersection](../bench/results/swagscope-filesamples/pdf-raster-linux.md#nested-clips-in-device-space)
-  brings the 1200 px public clip fixture from 244 to 54 ms end to end. Loading
+- Device-space clip intersection brings the 1200 px public clip fixture from 244 to 54 ms end to end. Loading
   takes about 8 ms in both engines. PDFium takes 43 ms total. The curved strokes
   fixture remains dominated by multi-segment and dashed stroke geometry.
-- [Separable image resampling](../bench/results/swagscope-filesamples/pdf-raster-linux.md#axis-aligned-image-resampling)
-  takes the PDFBox JPEG from about 38 to 12 ms and its bilevel scan from 46 to 11 ms
+- Separable image resampling takes the PDFBox JPEG from about 38 to 12 ms and its bilevel scan from 46 to 11 ms
   at 1200 px. PDFium takes 4 and 2 ms respectively. Texture rendering remains the
   largest Swag cost for those two pages.
-- [Joined and dashed strokes](../bench/results/swagscope-filesamples/pdf-raster-linux.md#joined-and-dashed-stroke-spans)
-  take the dense 1200 px curve page from 1531 to 898 ms. PDFium takes 343 ms.
+- Packed joins and dashes take the dense 1200 px curve page from 1531 to 898 ms. PDFium takes 343 ms.
   The CPU painter blends the union of stroke bodies, caps and joins once per
   path, moving the curve fixture's mean RGB closer to PDFium. The geometry walk
   still creates every dash outline and the rasterizer samples four subrows.

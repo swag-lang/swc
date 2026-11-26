@@ -13,8 +13,3 @@ tools/package-linux.py text eol=lf
 bin/**/datas/** -text
 bin/**/src/tests/datas/*.pdf -diff
 bin/std/modules/video/src/tests/goldens/*.yuv binary
-
-# Static reference manifests and compressed listings are byte-exact across hosts.
-bench/disassembly/** -text
-# Patch context preserves original whitespace, including blank context lines.
-bench/disassembly/**/*.patch -whitespace

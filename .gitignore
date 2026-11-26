@@ -16,6 +16,3 @@ __pycache__/
 *.parity.cpu.png
 *.parity.gpu.png
 *.actual.txt
-
-# Disposable benchmark builds and prepared platform sources.
-/bench/out/

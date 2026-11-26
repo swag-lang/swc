@@ -229,10 +229,10 @@ submitted by hand has no such protection: a [[Swag.Task]] or a
 [[Swag.TaskGroup]] child carrying a fraction of a microsecond costs more to
 schedule than to run.
 
-Treat the shape as the rule rather than an exact figure, because the figure
-belongs to a machine, a body and a moment. 'bench/scheduler' measures it by
-halving one range down to leaves of different sizes: leaves of a few hundred
-elements never gain from more workers, and leaves of tens of thousands do.
+The break-even point depends on the machine and the loop body. Measure it by
+running the same range with one worker and several workers while varying the
+work in each iteration. Include a short range to expose the scheduling cost
+and a longer range to see when additional workers help.
 
 # Nesting
 

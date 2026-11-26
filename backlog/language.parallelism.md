@@ -210,19 +210,18 @@ of simplicity when every useful helper needs an unchecked contract.
 ### language.parallelism.006 — One locked ready stack, so fine-grained work does not scale
 
 - Evidence: every `submitWork` takes one process-wide mutex to push, and every `popWork`
-  takes it to claim (`bin/runtime/scheduler.swg`). In `bench/scheduler`, fork/join over
+  takes it to claim (`bin/runtime/scheduler.swg`). In a focused fork/join comparison over
   64-element leaves costs 115 ms on 22 workers against 13.7 ms on one, and spawn throughput
   falls from 2.1 to 0.5 children per microsecond over the same range. The pool does not know
-  which class of hybrid core a worker runs on. The benchmark README states the
-  alternating-worktree protocol these numbers need.
+  which class of hybrid core a worker runs on.
 - Constraints: the worker cap stays at 64, because a parallel range reserves one runner per
   worker in its dispatch frame. Nesting stays unrestricted, because one process has one
   pool.
 - Next: shard the ready list so that a submission and a claim do not serialize on one lock.
   Give each shard its own list and lock, choose the shard from the node's address so that a
   targeted claim still finds it in constant time, and let an idle worker scan the other
-  shards. Keep the change only if it wins under the benchmark's alternating protocol on a
-  quiet machine. Settle in the same change whether a worker spins before parking, and
+  shards. Keep the change only if it wins under alternating runs with the same inputs on a quiet
+  machine. Settle in the same change whether a worker spins before parking, and
   whether the pool should know its core class.
 - Done when: fork/join over 64-element leaves stops getting slower as workers are added, and
   spawn throughput stops falling between one worker and every worker.

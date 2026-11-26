@@ -549,11 +549,10 @@ consumer. Runner option routing, failure propagation, and fixture ordering are c
 
 | Launcher | Purpose |
 | --- | --- |
-| `format.bat [dm] [options...]` | Format sources under `bin/` and `bench/src/` |
+| `format.bat [dm] [options...]` | Format sources under `bin/` |
 | `help.bat [dm] [options...]` | Regenerate the standard-library and language-reference pages in `bin/help/` |
 | `goldens.bat [dm] test [options...]` | Run tests tagged `golden` with the program built as Release |
 | `goldens.bat accept` / `python3 tools/tool.py goldens accept` | Promote every reviewed pending `.actual.txt` and `.actual.png` under `bin/` |
-| `bench.bat [options...]` | Run the Python benchmark campaign |
 | `vsix.bat` | Test and package the VSCode extension |
 | `setup.bat` | Add this checkout's `bin/` to the user `PATH` and set `SWAG_PATH` |
 | `setup.sh` | Configure Bash or Zsh with this checkout's Linux compiler and `SWAG_PATH` |

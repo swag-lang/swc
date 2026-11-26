@@ -50,8 +50,7 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 - The generated GUI API also varies: `Lens.View.create(owner: *Wnd)->*View` exports a
   `BorrowSummary` return mask of zero in one frozen-input control and one in other captures,
   including captures without the allocator experiment. This is semantic metadata, not an image
-  timestamp; retain it in reproducibility comparisons. See the
-  [memory experiment](../bench/results/memory/20261030-devmode/no-large-pages-experiment.json).
+  timestamp. Retain it in reproducibility comparisons.
 - Linux DevMode control with three workers and frozen `std` sources: the native location sort
   assigned the same key to distinct generic struct and constant-function instances. Including
   both sets of arguments removed those collisions; only cloned local `isLowerUtf8` and
@@ -112,16 +111,13 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 - Evidence: after removing the permanent integer legalization reserve,
   `Slice.parsePlaneResidualCabac` gained one memory operation and
   `Slice.parsePlaneResidualCavlc` gained six plus thirteen instructions.
-  The full register pool remains available; the
-  [retained comparison](../bench/disassembly/generated-code/20261006-legalize-reserve/README.md)
-  owns the exact baseline.
+  The full register pool remains available.
 - Additional case: promoting whole-copied locals with scalar lane reads removes
   frame traffic in ChaCha, nbody and H.264. In CSV data generation, a copied region
   string's pointer/length become GP values live across several multiplications.
   The printed bodies gain 18 instructions / 11 memory operations, 14 explicit
   RSP accesses and 64 frame bytes. The suffix from the first timing call remains
   444 instructions / 151 memory operations, and the checksum remains 24828641.
-  [Allocation diff](../bench/disassembly/generated-code/20261006-vector-lanes/csvagg-allocation.diff).
 - Next: inspect splitting and rematerialization around the implicit multiply
   claims in CSV setup, and compare the two H.264 functions' interval choices.
   Preserve the extra register and legal packed promotion while correcting these
@@ -193,21 +189,11 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 - Rejected: hoisting every invariant field load across a read-only call, and inlining
   `mapInit` to expose the mask constant. Both enlarged the probe or `main` with spills,
   frame reloads and jumps.
-- Regression lead: [protocol 3 csvagg samples](../bench/results/windows/20261021-173259.json) put
-  native Release at a 22.694 ms median against Odin's 20.861 ms. Earlier protocol 2 reports
-  selected minima, so their displayed advantage is not a paired regression measurement.
-  The preserved October 12 and October 19 timed row loops have 194 instructions and 60
-  memory operands, including indexed extensions; the current loop has 191 and 57. The
-  byte-scan loops retain their instruction and memory counts. This narrows the lead to
-  executed dependencies, callees, emitted layout or measurement rather than a larger row loop.
-- Next: compare wordfreq's complete probe paths and measure its retained mask at a clean
-  paired campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot
-  update with Odin's executed path, focusing on dependencies, register and frame traffic;
-  inspect emitted layout against the preserved compiler before attributing the reported
-  slowdown to an optimization pass. Use the twelve-task static comparison for each candidate.
-- Done when: a focused rule retains the mask without increasing spill traffic and improves
-  paired wordfreq runs, or measurements show that retaining it is not profitable; csvagg's
-  reported gap is attributed to an executed-path difference or a measurement effect.
+- Next: find a real map lookup where retaining the mask across a read-only comparison can
+  remove a repeated load. Inspect dependencies, register and frame traffic, and emitted
+  layout against a preserved compiler. Include collision-free queries as a control.
+- Done when: a general rule improves executed probe work in a representative map lookup
+  without increasing spill traffic, or evidence rules out the remaining opportunity.
 
 ### compiler.codegen.012 — Reuse one relocation base for indexed constant arrays
 
@@ -252,10 +238,8 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 ### compiler.codegen.015 — Finish the AVX boundary cost and caller-state audit
 
 - Evidence: native, JIT, foreign-return and callback dirty-AVX-state probes match
-  clean-state results and performance after the boundary fix
-  ([evidence](../bench/disassembly/generated-code/20261006-avx-vex/README.md)). Two things are
-  not established: which AVX state reached the unmodified benchmark when its timing
-  changed, and the compiler cost of the boundary handling.
+  clean-state results and performance after the boundary fix. The compiler cost of the
+  boundary handling remains unmeasured.
 - Next: at a measurement milestone, check the compiler cost of the boundary handling and
   establish which AVX state reaches the unmodified benchmark. Do not repeat the completed
   encoding work.

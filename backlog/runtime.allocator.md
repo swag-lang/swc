@@ -69,12 +69,10 @@ replace the allocator; a similar architecture alone does not establish comparabl
 
 ### runtime.allocator.001 — Complete comparable allocator workload and retention measurements
 
-- Evidence: `bench/allocator` (`allocbench.swg`, `allocbench.c`, `run.py`; protocol in its
-  README) measures the synthetic, gated (`spreadrep`), latency, system-call, and retention
-  (`retain`) figures in fresh pinned processes with rotated order. No quiet-machine record of
-  those figures exists, and no representative application trace is measured.
-- Next: run and record the campaign with the gated, latency, and system-call figures on a quiet
-  machine, then add representative application traces.
+- Evidence: application allocation and retention have no comparable quiet-host measurement.
+- Next: capture representative application allocations. Replay their sizes, lifetimes and
+  thread handoffs with both allocators in fresh, pinned processes. Measure gated throughput,
+  latency, system calls and idle retention.
 - Parity gate: geometric-mean throughput within 10% of mimalloc, no representative workload
   more than 25% slower, and no unbounded retained-memory case.
 - Done when: repeated comparable results cover the listed workloads and parity gate, with
@@ -87,10 +85,9 @@ replace the allocator; a similar architecture alone does not establish comparabl
   blocks under 2 MiB, with live headers sharded eight ways. On a front miss, each operation
   still pays the live-byte atomic, the shard lock, the clock read on free, the global cache
   lock with its linear best-fit scan, and page faults on blocks fresh from the system.
-  `large:4` reaches the throughput gate in the
-  [controlled comparison](../bench/results/allocator/20261018/README.md), but the machine is
-  shared and mixed-workload retention after `trim()` remains above mimalloc.
-- Next: separate retained current-page bytes from header-cache bytes, then repeat `large:4`
+  A four-worker large-block trial reached the throughput gate on a shared host.
+  Mixed-workload retention after `trim()` remains above mimalloc.
+- Next: separate retained current-page bytes from header-cache bytes, then repeat the four-worker case
   and representative application traces on a quiet machine before changing the front policy.
 - Done when: four threads cycling large buffers are within the parity gate of
   runtime.allocator.001 without more retained memory than mimalloc.

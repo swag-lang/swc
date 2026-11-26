@@ -124,42 +124,31 @@ ships; history lives in Git, not here.
   `bf29681a8b952f06b8d5a61a4ac5a18e0194e9f6a207e57ab6ab9b32f4e64801`.
   Benchmark host: Windows 11 x64, Intel Core Ultra 9 185H. The comparison measures this corpus
   and these output sizes only; it does not establish whole-format correctness or universal speed.
-- Evidence: the [Linux Release benchmark](../bench/workloads/svgraster/README.md#original-filesamples-svgs)
-  uses the same four originals. Its one-worker medians are 14.36×, 6.39×, 3.95× and 5.93×
+- Evidence: Linux Release one-worker medians for the four originals are 14.36×, 6.39×, 3.95× and 5.93×
   resvg. The largest remaining absolute gap is the 7.9 MiB sample. Its raster profile spans
   triangle drawing, contour intersection tests, transforms and scan edge construction.
-- Evidence: the [resvg code comparison](../bench/workloads/svgraster/resvg-comparison.md)
-  attributes most of the remaining gap to the ordinary fill path. Routing eligible black fills
+- Evidence: comparison with resvg attributes most of the remaining gap to the ordinary fill path. Routing eligible black fills
   through the existing scan converter closes 68–98% of the time gap on these inputs and
   changes alpha coverage. The two largest paths in the 7.9 MiB file already scan-convert.
-- Evidence: [direct CPU composition](../bench/workloads/svgraster/resvg-comparison.md#direct-cpu-composition)
-  brings the largest original down to 359 ms against 269 ms for resvg on the Linux host. The
+- Evidence: direct CPU composition brings the largest original down to 359 ms against 269 ms for resvg on the Linux host. The
   other originals take 1.00× to 1.39× as long as resvg. Scope also uses the path for eligible
   thumbnails at its existing sample count.
-- Evidence: an [active-edge prototype](../bench/workloads/svgraster/resvg-comparison.md#contour-culling-and-crossing-sort)
-  improved the generated dense fill and slowed the largest original. Contour culling and
+- Evidence: an active-edge prototype improved the generated dense fill and slowed the largest original. Contour culling and
   short-line sorting improved the original corpus with matching raster checksums.
-- Evidence: [phase measurements](../bench/workloads/svgraster/resvg-comparison.md#curve-projection-and-parallel-scan-rows)
-  put most of the largest original's first raster in flattening and crossing collection.
+- Evidence: phase measurements put most of the largest original's first raster in flattening and crossing collection.
   Parallel row resolution complements the reduction in work per contour. At four workers,
   Swag is faster on three originals and takes 263 ms against resvg's 255 ms on the largest.
-- Evidence: [parallel contour preparation](../bench/workloads/svgraster/resvg-comparison.md#parallel-contour-preparation-and-shared-sample-rows)
-  cuts the largest four-worker thumbnail by 18% with identical pixels. Swag leads resvg
+- Evidence: parallel contour preparation cuts the largest four-worker thumbnail by 18% with identical pixels. Swag leads resvg
   on all four original bitmaps with four workers on Linux. At one worker, the mid-size
   and largest files still spend more time rasterizing than resvg.
-- Evidence: [medium scan line sorting](../bench/workloads/svgraster/resvg-comparison.md#sorting-medium-scan-lines)
-  cuts the 1920 × 1280 single-worker raster phase by 11%. Full-width scan strips save work
+- Evidence: medium scan line sorting cuts the 1920 × 1280 single-worker raster phase by 11%. Full-width scan strips save work
   on the largest bitmap but change coverage within the second horizontal tile.
-- Evidence: [shared contour traversal](../bench/workloads/svgraster/resvg-comparison.md#sharing-contour-traversal-between-columns)
-  retains tile-local rounding but adds enough work to slow the four-worker bitmap.
-- Evidence: [cached scan sample positions](../bench/workloads/svgraster/resvg-comparison.md#cached-scan-sample-positions)
-  cut the largest four-worker raster phase from 134 to 124 ms with matching pixels. A
+- Evidence: shared contour traversal retains tile-local rounding but adds enough work to slow the four-worker bitmap.
+- Evidence: cached scan sample positions cut the largest four-worker raster phase from 134 to 124 ms with matching pixels. A
   prototype storing four crossings in the sample record reduced the one-worker
   raster time on the largest bitmap.
-- Evidence: [sparse and dense scan comparisons](../bench/workloads/svgraster/resvg-comparison.md#crossing-storage-on-sparse-and-dense-samples)
-  show a gain from inline buffers on sparse rows and slower parallel scans on the largest
-  original. A shared crossing store also slowed its one-worker bitmap. The
-  [short integer path](../bench/workloads/svgraster/resvg-comparison.md#short-svg-integers)
+- Evidence: sparse and dense scan comparisons show a gain from inline buffers on sparse rows and slower parallel scans on the largest
+  original. A shared crossing store also slowed its one-worker bitmap. The short integer path
   cut the largest original's parse time in repeated one-worker runs.
 - Next: measure the cost of evaluating cubic sample positions after contours have chosen
   their segment counts. Rerun the original Windows comparison at one worker and at the
@@ -356,8 +345,6 @@ ships; history lives in Git, not here.
   compressed alpha directly, and uses packed horizontal and vertical alpha unfilters.
   VP8L combines the red, blue, and alpha lookups for groups with short enough literal codes
   and reads and writes color-cache pixels as packed RGBA words.
-  [Source comparison](../bench/results/swagscope-filesamples/README.md#vp8-decoder-follow-up-against-libwebp-150)
-  · [Expanded WebP corpus](../bench/results/swagscope-filesamples/README.md#webp-packed-deblocking-and-alpha-decoding)
 - Next: profile vertical deblocking and coefficient parsing against libwebp. Profile the
   VP8L noisy RGBA fixture and rerun the original Windows comparison.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is
@@ -382,8 +369,7 @@ ships; history lives in Git, not here.
 ### std.pixel.image.058 — EXR and GIF need a Windows FileSamples rerun
 
 - Evidence: the original Windows Release decode lagged ImageMagick on both fixtures, while
-  the revised paths beat the local reference in the Linux follow-up. The API boundaries and
-  reference versions are recorded in [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
+  the revised paths beat the local reference in the Linux follow-up.
 - Next: rerun the interleaved comparison on Windows with the original EXR and GIF files and
   verify the decoded pixel checksums against the baseline.
 - Done when: both revised decoders preserve the baseline pixels and meet the original Windows

@@ -12,7 +12,7 @@ public const AesMaxKeySize = 32
 
 // Performs AES-128, AES-192, or AES-256 block operations with a key schedule that is cleared on drop.
 //
-// The software substitution avoids secret-indexed lookup tables and has a fixed operation path.
+// Software substitution follows a fixed operation path and avoids secret-dependent memory accesses.
 // AES supplies no mode, padding, or message authentication; use a separately reviewed construction for complete messages.
 #[Swag.NoCopy, Swag.Opaque]
 public struct Aes
@@ -24,12 +24,6 @@ public struct Aes
 }
 
 #[Swag.Inline]
-private func aesRotateByte(value: u8, bits: u8)->u8
-{
-    return cast(u8, (value << bits) | (value >> (8 - bits)))
-}
-
-#[Swag.Inline]
 private func aesDouble(value: u8)->u8
 {
     let highMask = cast(u8, 0'u8 - (value >> 7))
@@ -37,72 +31,82 @@ private func aesDouble(value: u8)->u8
 }
 
 #[Swag.Inline]
-private func aesMultiply(left, right: u8)->u8
+private func aesDouble(value: U8x16)->U8x16
 {
-    var a         = left
-    var b         = right
-    var result    = 0'u8
-    var iteration = 0'u32
-    while iteration < 8
-    {
-        let selected = cast(u8, 0'u8 - (b & 1))
-        result    ^= a & selected
-        a         = aesDouble(a)
-        b         >>= 1
-        iteration += 1
-    }
-
-    return result
-}
-
-private func aesInverse(value: u8)->u8
-{
-    let square2   = aesMultiply(value, value)
-    let square4   = aesMultiply(square2, square2)
-    let square8   = aesMultiply(square4, square4)
-    let square16  = aesMultiply(square8, square8)
-    let square32  = aesMultiply(square16, square16)
-    let square64  = aesMultiply(square32, square32)
-    let square128 = aesMultiply(square64, square64)
-    var result    = aesMultiply(square128, square64)
-    result = aesMultiply(result, square32)
-    result = aesMultiply(result, square16)
-    result = aesMultiply(result, square8)
-    result = aesMultiply(result, square4)
-    result = aesMultiply(result, square2)
-    return result
+    const Zero = Swag.vecSplat(0'u8)
+    let highMask = Zero - (value >> 7)
+    return (value + value) ^ (highMask & 0x1B'u8)
 }
 
 #[Swag.Inline]
-private func aesSubstitute(value: u8)->u8
+private func aesNibbleMap(value, lowTable, highTable: U8x16)->U8x16
 {
-    let inverse = aesInverse(value)
-    return inverse ^ aesRotateByte(inverse, 1) ^ aesRotateByte(inverse, 2) ^
-           aesRotateByte(inverse, 3) ^ aesRotateByte(inverse, 4) ^ 0x63
+    return shuffle(lowTable, value & 0x0F'u8) ^ shuffle(highTable, value >> 4)
 }
 
 #[Swag.Inline]
-private func aesInverseSubstitute(value: u8)->u8
+private func aesGf16Multiply(left, right: U8x16)->U8x16
 {
-    let affine = aesRotateByte(value, 1) ^ aesRotateByte(value, 3) ^ aesRotateByte(value, 6) ^ 0x05
-    return aesInverse(affine)
+    const Zero   = Swag.vecSplat(0'u8)
+    const Logs   = cast(U8x16, [0x00, 0x00, 0x01, 0x04, 0x02, 0x08, 0x05, 0x0A, 0x03, 0x0E, 0x09, 0x07, 0x06, 0x0D, 0x0B, 0x0C])
+    const Powers = cast(U8x16, [0x01, 0x02, 0x04, 0x08, 0x03, 0x06, 0x0C, 0x0B, 0x05, 0x0A, 0x07, 0x0E, 0x0F, 0x0D, 0x09, 0x01])
+    let sum = shuffle(Logs, left) + shuffle(Logs, right)
+
+    // Since 16 is congruent to 1 modulo 15, fold the carry back into the low nibble.
+    let product = shuffle(Powers, (sum & 0x0F'u8) + (sum >> 4))
+    return product & (left != Zero) & (right != Zero)
+}
+
+#[Swag.Inline]
+private func aesInvertTower(value: U8x16)->U8x16
+{
+    const Reciprocal   = cast(U8x16, [0x00, 0x01, 0x09, 0x0E, 0x0D, 0x0B, 0x07, 0x06, 0x0F, 0x02, 0x0C, 0x05, 0x0A, 0x04, 0x03, 0x08])
+    const ScaledSquare = cast(U8x16, [0x00, 0x0B, 0x0A, 0x01, 0x0E, 0x05, 0x04, 0x0F, 0x0D, 0x06, 0x07, 0x0C, 0x03, 0x08, 0x09, 0x02])
+
+    // In the tower basis a*z + b, z^2 + z is the subfield element 0x0B.
+    // The norm is b*(a+b) + 0x0B*a^2. The conjugate has coefficients a and a+b.
+    let a           = value >> 4
+    let b           = value & 0x0F'u8
+    let complement  = a ^ b
+    let norm        = aesGf16Multiply(b, complement) ^ shuffle(ScaledSquare, a)
+    let inverseNorm = shuffle(Reciprocal, norm)
+    return (aesGf16Multiply(a, inverseNorm) << 4) | aesGf16Multiply(complement, inverseNorm)
+}
+
+#[Swag.Inline]
+private func aesSubstitute(value: U8x16)->U8x16
+{
+    // The subfield uses t^4 + t + 1. Its generator is 0x5C in AES coordinates and z is 0x12.
+    // Each byte maps through register shuffles. No secret selects a memory address.
+    const EncodeLow        = cast(U8x16, [0x00, 0x01, 0x2B, 0x2A, 0x43, 0x42, 0x68, 0x69, 0x49, 0x48, 0x62, 0x63, 0x0A, 0x0B, 0x21, 0x20])
+    const EncodeHigh       = cast(U8x16, [0x00, 0x3B, 0xD6, 0xED, 0x33, 0x08, 0xE5, 0xDE, 0xE1, 0xDA, 0x37, 0x0C, 0xD2, 0xE9, 0x04, 0x3F])
+    const DecodeAffineLow  = cast(U8x16, [0x00, 0x1F, 0xB2, 0xAD, 0xAB, 0xB4, 0x19, 0x06, 0x36, 0x29, 0x84, 0x9B, 0x9D, 0x82, 0x2F, 0x30])
+    const DecodeAffineHigh = cast(U8x16, [0x00, 0xCF, 0xA5, 0x6A, 0xD1, 0x1E, 0x74, 0xBB, 0xE4, 0x2B, 0x41, 0x8E, 0x35, 0xFA, 0x90, 0x5F])
+    let tower = aesNibbleMap(value, EncodeLow, EncodeHigh)
+    return aesNibbleMap(aesInvertTower(tower), DecodeAffineLow, DecodeAffineHigh) ^ 0x63'u8
+}
+
+#[Swag.Inline]
+private func aesInverseSubstitute(value: U8x16)->U8x16
+{
+    const EncodeInverseAffineLow  = cast(U8x16, [0x00, 0x51, 0x99, 0xC8, 0x9E, 0xCF, 0x07, 0x56, 0x23, 0x72, 0xBA, 0xEB, 0xBD, 0xEC, 0x24, 0x75])
+    const EncodeInverseAffineHigh = cast(U8x16, [0x00, 0x74, 0x7B, 0x0F, 0xF1, 0x85, 0x8A, 0xFE, 0x94, 0xE0, 0xEF, 0x9B, 0x65, 0x11, 0x1E, 0x6A])
+    const DecodeLow               = cast(U8x16, [0x00, 0x01, 0x5C, 0x5D, 0xE0, 0xE1, 0xBC, 0xBD, 0x50, 0x51, 0x0C, 0x0D, 0xB0, 0xB1, 0xEC, 0xED])
+    const DecodeHigh              = cast(U8x16, [0x00, 0x12, 0x0F, 0x1D, 0x59, 0x4B, 0x56, 0x44, 0xD7, 0xC5, 0xD8, 0xCA, 0x8E, 0x9C, 0x81, 0x93])
+
+    // The inverse affine constant 0x05 maps to 0x42 in the tower basis.
+    let tower = aesNibbleMap(value, EncodeInverseAffineLow, EncodeInverseAffineHigh) ^ 0x42'u8
+    return aesNibbleMap(aesInvertTower(tower), DecodeLow, DecodeHigh)
 }
 
 #[Swag.Inline]
 private func aesSubWord(value: u32, useHardware: bool)->u32
 {
-    if useHardware
-    {
-        // With four identical columns, ShiftRows leaves every row unchanged.
-        const Zero = Swag.vecSplat(0'u8)
-        let columns = cast #bit (U8x16, splat(value))
-        return cast #bit (U32x4, Swag.vecAesEncryptLastRound(columns, Zero))[0]
-    }
-
-    return cast(u32, aesSubstitute(Math.byteAt(value, 0))) |
-           (cast(u32, aesSubstitute(Math.byteAt(value, 1))) << 8) |
-           (cast(u32, aesSubstitute(Math.byteAt(value, 2))) << 16) |
-           (cast(u32, aesSubstitute(Math.byteAt(value, 3))) << 24)
+    // With four identical columns, ShiftRows leaves every row unchanged.
+    const Zero = Swag.vecSplat(0'u8)
+    let columns     = cast #bit (U8x16, splat(value))
+    let substituted = useHardware ? Swag.vecAesEncryptLastRound(columns, Zero) : aesSubstitute(columns)
+    return cast #bit (U32x4, substituted)[0]
 }
 
 public impl Aes
@@ -184,24 +188,16 @@ public impl Aes
             return
         }
 
-        var state: [AesBlockSize] u8
-        Swag.memcpy(&state[0], source.buffer, AesBlockSize)
-        .addRoundKey(&state, 0)
-
+        const ShiftRows = cast(U8x16, [0'u8, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 1, 6, 11])
+        var state: [1] U8x16
+        state[0] = load(source.buffer) ^ .roundKey(0)
         for round in 1 until .rounds
         {
-            for index in AesBlockSize do
-                state[index] = aesSubstitute(state[index])
-            .shiftRows(&state)
-            .mixColumns(&state)
-            .addRoundKey(&state, round)
+            let shifted = shuffle(aesSubstitute(state[0]), ShiftRows)
+            state[0] = .mixColumns(shifted) ^ .roundKey(round)
         }
 
-        for index in AesBlockSize do
-            state[index] = aesSubstitute(state[index])
-        .shiftRows(&state)
-        .addRoundKey(&state, .rounds)
-        Swag.memcpy(destination.buffer, &state[0], AesBlockSize)
+        store(destination.buffer, shuffle(aesSubstitute(state[0]), ShiftRows) ^ .roundKey(.rounds))
         Crypto.secureClear(state)
     }
 
@@ -217,24 +213,16 @@ public impl Aes
             return
         }
 
-        var state: [AesBlockSize] u8
-        Swag.memcpy(&state[0], source.buffer, AesBlockSize)
-        .addRoundKey(&state, .rounds)
-
+        const ShiftRows = cast(U8x16, [0'u8, 13, 10, 7, 4, 1, 14, 11, 8, 5, 2, 15, 12, 9, 6, 3])
+        var state: [1] U8x16
+        state[0] = load(source.buffer) ^ .roundKey(.rounds)
         for round in 1 until .rounds
         {
-            .inverseShiftRows(&state)
-            for index in AesBlockSize do
-                state[index] = aesInverseSubstitute(state[index])
-            .addRoundKey(&state, .rounds - round)
-            .inverseMixColumns(&state)
+            let substituted = aesInverseSubstitute(shuffle(state[0], ShiftRows))
+            state[0] = .inverseMixColumns(substituted ^ .roundKey(.rounds - round))
         }
 
-        .inverseShiftRows(&state)
-        for index in AesBlockSize do
-            state[index] = aesInverseSubstitute(state[index])
-        .addRoundKey(&state, 0)
-        Swag.memcpy(destination.buffer, &state[0], AesBlockSize)
+        store(destination.buffer, aesInverseSubstitute(shuffle(state[0], ShiftRows)) ^ .roundKey(0))
         Crypto.secureClear(state)
     }
 
@@ -311,66 +299,22 @@ public impl Aes
         return Swag.vecAesDecryptLastRound(state, .roundKey(0))
     }
 
-    private mtd addRoundKey(state: *[AesBlockSize] u8, round: u32)
+    #[Swag.Inline]
+    private mtd mixColumns(state: U8x16)->U8x16
     {
-        store(&state[][0], load(&state[][0]) ^ .roundKey(round))
+        const Adjacent = cast(U8x16, [1'u8, 2, 3, 0, 5, 6, 7, 4, 9, 10, 11, 8, 13, 14, 15, 12])
+        const Opposite = cast(U8x16, [2'u8, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13])
+        let difference = state ^ shuffle(state, Adjacent)
+        let sum        = difference ^ shuffle(difference, Opposite)
+        return state ^ sum ^ aesDouble(difference)
     }
 
-    private mtd shiftRows(state: *[AesBlockSize] u8)
+    #[Swag.Inline]
+    private mtd inverseMixColumns(state: U8x16)->U8x16
     {
-        var shifted: [AesBlockSize] u8
-        for column in 4
-        {
-            for row in 4 do
-                shifted[column * 4 + row] = state[][((column + row) % 4) * 4 + row]
-        }
-
-        state[] = shifted
-    }
-
-    private mtd inverseShiftRows(state: *[AesBlockSize] u8)
-    {
-        var shifted: [AesBlockSize] u8
-        for column in 4
-        {
-            for row in 4 do
-                shifted[column * 4 + row] = state[][((column + 4 - row) % 4) * 4 + row]
-        }
-
-        state[] = shifted
-    }
-
-    private mtd mixColumns(state: *[AesBlockSize] u8)
-    {
-        for column in 4
-        {
-            let offset = column * 4
-            let a      = state[][offset]
-            let b      = state[][offset + 1]
-            let c      = state[][offset + 2]
-            let d      = state[][offset + 3]
-            let total  = a ^ b ^ c ^ d
-            state[][offset]     = a ^ total ^ aesDouble(a ^ b)
-            state[][offset + 1] = b ^ total ^ aesDouble(b ^ c)
-            state[][offset + 2] = c ^ total ^ aesDouble(c ^ d)
-            state[][offset + 3] = d ^ total ^ aesDouble(d ^ a)
-        }
-    }
-
-    private mtd inverseMixColumns(state: *[AesBlockSize] u8)
-    {
-        for column in 4
-        {
-            let offset = column * 4
-            let a      = state[][offset]
-            let b      = state[][offset + 1]
-            let c      = state[][offset + 2]
-            let d      = state[][offset + 3]
-            state[][offset]     = aesMultiply(a, 14) ^ aesMultiply(b, 11) ^ aesMultiply(c, 13) ^ aesMultiply(d, 9)
-            state[][offset + 1] = aesMultiply(a, 9) ^ aesMultiply(b, 14) ^ aesMultiply(c, 11) ^ aesMultiply(d, 13)
-            state[][offset + 2] = aesMultiply(a, 13) ^ aesMultiply(b, 9) ^ aesMultiply(c, 14) ^ aesMultiply(d, 11)
-            state[][offset + 3] = aesMultiply(a, 11) ^ aesMultiply(b, 13) ^ aesMultiply(c, 9) ^ aesMultiply(d, 14)
-        }
+        const Opposite = cast(U8x16, [2'u8, 3, 0, 1, 6, 7, 4, 5, 10, 11, 8, 9, 14, 15, 12, 13])
+        let correction = aesDouble(aesDouble(state ^ shuffle(state, Opposite)))
+        return .mixColumns(state ^ correction)
     }
 
     // Clears the expanded key schedule when this value leaves scope.

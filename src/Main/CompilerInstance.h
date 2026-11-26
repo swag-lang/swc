@@ -22,6 +22,7 @@ SWC_BEGIN_NAMESPACE();
 struct AstCompilerFunc;
 enum class TokenId : uint16_t;
 class Job;
+class Diagnostic;
 class SourceView;
 class Sema;
 class TaskContext;
@@ -290,7 +291,7 @@ public:
     void                                          registerRuntimeFunctionSymbol(IdentifierRef idRef, SymbolFunction* symbol);
     SymbolFunction*                               runtimeFunctionSymbol(IdentifierRef idRef) const;
     SymbolFunction*                               runtimeFunctionSymbol(IdentifierManager::RuntimeFunctionKind kind) const;
-    bool                                          tryRegisterReportedDiagnostic(std::string_view message);
+    bool                                          registerReportedDiagnostic(bool& outExpected, const TaskContext& ctx, const Diagnostic& diagnostic, std::string_view message);
     bool                                          hasErrorDiagnostic() const { return hasErrorDiagnostic_.load(std::memory_order_acquire); }
     void                                          recordErrorDiagnostic() { hasErrorDiagnostic_.store(true, std::memory_order_release); }
     void                                          addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check);

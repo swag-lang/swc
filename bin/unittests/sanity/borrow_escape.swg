@@ -451,9 +451,12 @@ func borrowEscapeMemberRead(itf: Swag.Interface)->*void?
 
 // A structural cast of an rvalue is materialized into a frame-lifetime runtime
 // storage: binding it locally is supported and must stay silent.
+var borrowEscapeArrayFirst = 10_u16
+
+#[Swag.NoInline]
 func borrowEscapeMakeArray()->[4] u16
 {
-    return [10_u16, 20, 30, 40]
+    return [borrowEscapeArrayFirst, 20, 30, 40]
 }
 
 func borrowEscapeMaterializedTemp()->u16
@@ -495,8 +498,7 @@ func borrowEscapeMaterializedLocalField()->u16
 {
     var holder: BorrowEscapeSliceField
     holder.values = cast(const [..] u16, borrowEscapeMakeArray())
-    let values = unwrap holder.values
-    return values[0]
+    return holder.values[0]
 }
 
 func borrowEscapeMaterializedLocalFieldInitializer()->u16

@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Support/Report/Diagnostic.h"
 #include "Compiler/Lexer/SourceView.h"
-#include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Stats.h"
@@ -342,33 +341,12 @@ void Diagnostic::report(TaskContext& ctx) const
     addGeneratedSourceOrigin(ctx, reportedDiagnostic);
 
     DiagnosticBuilder eng(ctx, reportedDiagnostic);
-    const Utf8        msg     = eng.build();
-    bool              dismiss = false;
+    const Utf8        msg = eng.build();
 
-    // Display deduplication does not own source expectation matching or task/file state.
-    // Distinct owners can report identical text, including diagnostics without a span.
-    const bool firstReport = !ctx.hasCompiler() || ctx.compiler().tryRegisterReportedDiagnostic(msg);
-
-    // Match expectations in every source file represented by this diagnostic.
-    SourceFile* ownerFile = nullptr;
-    if (fileOwner_.isValid())
-    {
-        SWC_ASSERT(ctx.hasCompiler());
-        ownerFile              = &ctx.compiler().file(fileOwner_);
-        const SourceFile& file = *ownerFile;
-        dismiss                = file.unitTest().verifyExpected(ctx, reportedDiagnostic);
-
-        std::unordered_set verifiedFiles = {&file};
-        for (const std::shared_ptr<DiagnosticElement>& element : reportedDiagnostic.elements())
-        {
-            const SourceView* sourceView = element->srcView();
-            const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
-            if (!sourceFile || !verifiedFiles.insert(sourceFile).second)
-                continue;
-
-            dismiss = sourceFile->unitTest().verifyExpected(ctx, reportedDiagnostic) || dismiss;
-        }
-    }
+    SWC_ASSERT(!fileOwner_.isValid() || ctx.hasCompiler());
+    bool        dismiss     = false;
+    const bool  firstReport = !ctx.hasCompiler() || ctx.compiler().registerReportedDiagnostic(dismiss, ctx, reportedDiagnostic, msg);
+    SourceFile* ownerFile   = fileOwner_.isValid() ? &ctx.compiler().file(fileOwner_) : nullptr;
 
     if (dismiss && shouldReportExpectedFrontEndError(ctx, reportedDiagnostic))
         dismiss = false;

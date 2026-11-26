@@ -890,18 +890,26 @@ namespace
         return !isDirectBorrowCarrier(type) && SemaHelpers::isByValueAggregateType(type);
     }
 
-    const TypeInfo* structuralBorrowCarrierType(Sema& sema, TypeRef typeRef)
+    const TypeInfo* structuralBorrowCarrierType(Sema& sema, TypeRef typeRef, bool deferIncomplete = false)
     {
         if (typeRef.isInvalid())
             return nullptr;
 
         const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
-        return type.isStructOrArray() && typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
+        if (!type.isStructOrArray())
+            return nullptr;
+
+        // A call snapshot can keep a possible route until the callee's final
+        // indirect summary says whether the aggregate actually carries a borrow.
+        if (deferIncomplete && !type.isCompleted(sema.ctx()))
+            return &type;
+
+        return typeCanCarryBorrowImpl(sema, type.typeRef()) ? &type : nullptr;
     }
 
     // A copied aggregate keeps the borrows in its fields, not the address used to
     // reach its slot. Unknown/deeper routes retain the original conservative borrow.
-    SemaEscapeInfo aggregatePointeeBorrowInfo(Sema& sema, AstNodeRef pointerRef, TypeRef valueTypeRef, uint32_t& budget)
+    SemaEscapeInfo aggregatePointeeBorrowInfo(Sema& sema, AstNodeRef pointerRef, TypeRef valueTypeRef, uint32_t& budget, const TypeInfo* knownCarrier = nullptr)
     {
         pointerRef             = argumentValueRef(sema, pointerRef);
         SemaEscapeInfo pointer = expressionEscapeInfoRec(sema, pointerRef, budget);
@@ -928,7 +936,7 @@ namespace
         if (pointer.viaErasedPayload)
             return pointer;
 
-        const TypeInfo* valueType = structuralBorrowCarrierType(sema, valueTypeRef);
+        const TypeInfo* valueType = knownCarrier ? knownCarrier : structuralBorrowCarrierType(sema, valueTypeRef);
         if (!valueType)
             return pointer;
 
@@ -2377,8 +2385,9 @@ namespace
             if (paramTypeRef.isValid())
             {
                 const TypeInfo& paramType = sema.typeMgr().get(paramTypeRef);
-                if (paramType.isPointerOrReference() && structuralBorrowCarrierType(sema, paramType.payloadTypeRef()))
-                    indirectInfo = aggregatePointeeBorrowInfo(sema, arg.argRef, paramType.payloadTypeRef(), budget);
+                const TypeInfo* carrier   = paramType.isPointerOrReference() ? structuralBorrowCarrierType(sema, paramType.payloadTypeRef(), true) : nullptr;
+                if (carrier)
+                    indirectInfo = aggregatePointeeBorrowInfo(sema, arg.argRef, paramType.payloadTypeRef(), budget, carrier);
                 else if (directInfo.kind == SemaEscapeKind::Parameter && !directInfo.viaStoredField &&
                          !directInfo.viaOwnedPayload && !directInfo.parameterIndirectOriginsMask &&
                          paramType.isPointerOrReference() &&

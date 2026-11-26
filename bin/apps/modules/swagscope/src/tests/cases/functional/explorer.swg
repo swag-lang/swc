@@ -157,7 +157,7 @@ internal func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     {
         for 200
         {
-            host.fireTimer(explorer.watchTimer)
+            host.tickTimer(explorer.watchTimer)
             if explorer.load.started
             {
                 completeExplorer(host, explorer)

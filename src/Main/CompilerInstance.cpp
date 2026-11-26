@@ -19,6 +19,7 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Compiler/SourceFile.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerCacheStore.h"
@@ -1514,11 +1515,33 @@ SymbolFunction* CompilerInstance::runtimeFunctionSymbol(const IdentifierManager:
     return runtimeFunctionSymbols_[static_cast<size_t>(kind)].load(std::memory_order_acquire);
 }
 
-bool CompilerInstance::tryRegisterReportedDiagnostic(const std::string_view message)
+bool CompilerInstance::registerReportedDiagnostic(bool& outExpected, const TaskContext& ctx, const Diagnostic& diagnostic, const std::string_view message)
 {
+    // Match expectations before another task can consume one for the same display text.
     const std::scoped_lock lock(reportedDiagnosticsMutex_);
     Utf8                   messageUtf8(message);
-    return reportedDiagnostics_.insert(std::move(messageUtf8)).second;
+    const bool             firstReport = reportedDiagnostics_.insert(std::move(messageUtf8)).second;
+
+    outExpected = false;
+    if (!diagnostic.fileOwner().isValid())
+        return firstReport;
+
+    // Identical display text can come from different source files with their own expectations.
+    const SourceFile& ownerFile = file(diagnostic.fileOwner());
+    outExpected                = ownerFile.unitTest().verifyExpected(ctx, diagnostic);
+
+    std::unordered_set verifiedFiles = {&ownerFile};
+    for (const std::shared_ptr<DiagnosticElement>& element : diagnostic.elements())
+    {
+        const SourceView* sourceView = element->srcView();
+        const SourceFile* sourceFile = sourceView ? sourceView->file() : nullptr;
+        if (!sourceFile || !verifiedFiles.insert(sourceFile).second)
+            continue;
+
+        outExpected = sourceFile->unitTest().verifyExpected(ctx, diagnostic) || outExpected;
+    }
+
+    return firstReport;
 }
 
 void CompilerInstance::addDeferredEscapeCheck(SemaEscapeDeferredCheck&& check)

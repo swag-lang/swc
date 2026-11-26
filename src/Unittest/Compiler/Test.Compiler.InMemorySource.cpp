@@ -488,8 +488,6 @@ SWC_TEST_BEGIN(Compiler_DuplicateDisplayStillVerifiesEachOwner)
             diag.report(fileCtx);
             if (!file.hasError() || !fileCtx.hasError() || file.unitTest().hasUntouchedErrorDirectiveInLineRange(1, 1, "sema_err_"))
                 return Result::Error;
-            if (compiler.tryRegisterReportedDiagnostic(text))
-                return Result::Error;
 
             // A second task reporting the same site still fails, but adds neither display text
             // nor an unexpected-error statistic after the expectation has been consumed.

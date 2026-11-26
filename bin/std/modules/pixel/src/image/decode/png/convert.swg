@@ -166,6 +166,15 @@ func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64
     }
 }
 
+#[Swag.NoInline]
+private func(HAS_ALPHA: bool) convertSmallPalette(source: const [*] u8, destination: [*] u8, count: u64, palette: const [*] u32, paletteSize: s32)->u64
+{
+    var tables   = PackedPixel.smallPaletteTables(palette, cast(u64, paletteSize))
+    var combined = Math.Simd.splat(0'u8)
+    // The 2 GiB output limit keeps the signed pixel and byte offsets in range.
+    return cast(u64, PackedPixel.writeSmallPaletteRow'(HAS_ALPHA)(source, destination, cast(s32, count), &tables[0], &combined))
+}
+
 impl Decoder
 {
     func read16(src: const [*] u8)->u16 => (cast(u16, src[0]) << 8) | src[1]
@@ -202,6 +211,16 @@ impl Decoder
         var src       = .safeDstPixels()
         var dst       = cast([*] u8, result.pixels.storage())
         var remaining = pixelCount
+
+        if .paletteCount <= 16
+        {
+            let written = convertSmallPalette'(false)(src, dst, remaining, &packedPalette[0], .paletteCount)
+            src       += written
+            dst       += written * 3
+            remaining -= written
+            if not remaining do
+                return
+        }
 
         // The fourth byte lands on the next pixel and is overwritten there; four
         // independent lookups per step keep the table loads in flight together. Stop
@@ -265,6 +284,14 @@ impl Decoder
         var src       = .safeDstPixels()
         var dst       = cast([*] u32, result.pixels.storage())
         var remaining = pixelCount
+        if .paletteCount <= 16
+        {
+            let written = convertSmallPalette'(true)(src, cast([*] u8, dst), remaining, &packedPalette[0], .paletteCount)
+            src       += written
+            dst       += written
+            remaining -= written
+        }
+
         while remaining >= 4
         {
             dst[0]    = packedPalette[src[0]]

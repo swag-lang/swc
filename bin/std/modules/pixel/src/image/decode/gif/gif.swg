@@ -347,49 +347,6 @@ impl SetDecoder
     }
 }
 
-private const GifDropAlpha = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
-
-#[Swag.Inline]
-private func(HAS_ALPHA: bool) writeSmallPaletteHalf(target: [*] u8, redGreen, blueAlpha: Math.Simd.U8x16)
-{
-    let rg     = cast #bit(Math.Simd.U16x8, redGreen)
-    let ba     = cast #bit(Math.Simd.U16x8, blueAlpha)
-    let first  = cast #bit(Math.Simd.U8x16, Math.Simd.interleaveLow(rg, ba))
-    let second = cast #bit(Math.Simd.U8x16, Math.Simd.interleaveHigh(rg, ba))
-    #static if HAS_ALPHA
-    {
-        Math.Simd.store(target, first)
-        Math.Simd.store(target + 16, second)
-    }
-    else
-    {
-        Image.storeLow12(target, Math.Simd.shuffle(first, GifDropAlpha))
-        Image.storeLow12(target + 12, Math.Simd.shuffle(second, GifDropAlpha))
-    }
-}
-
-#[Swag.Inline]
-private func(HAS_ALPHA: bool) writeSmallPaletteRow(source: const [*] u8, target: [*] u8, width: s32, tables: const [*] Math.Simd.U8x16, combined: *Math.Simd.U8x16)->s32
-{
-    const Step = HAS_ALPHA ? 4 : 3
-    var x = 0
-    while width - x >= 16
-    {
-        let keys = Math.Simd.load(source + x)
-        combined[] |= keys
-        let r = Math.Simd.shuffle(tables[0], keys)
-        let g = Math.Simd.shuffle(tables[1], keys)
-        let b = Math.Simd.shuffle(tables[2], keys)
-        let a = Math.Simd.shuffle(tables[3], keys)
-        let destination = target + x * Step
-        writeSmallPaletteHalf'(HAS_ALPHA)(destination, Math.Simd.interleaveLow(r, g), Math.Simd.interleaveLow(b, a))
-        writeSmallPaletteHalf'(HAS_ALPHA)(destination + 8 * Step, Math.Simd.interleaveHigh(r, g), Math.Simd.interleaveHigh(b, a))
-        x += 16
-    }
-
-    return x
-}
-
 #[Swag.Inline]
 private func(HAS_ALPHA: bool) writeGatheredColors(target: [*] u8, table: const [*] s32, keys: Math.Simd.U32x4)
 {
@@ -397,7 +354,7 @@ private func(HAS_ALPHA: bool) writeGatheredColors(target: [*] u8, table: const [
     #static if HAS_ALPHA do
         Math.Simd.store(target, pixels)
     else do
-        Image.storeLow12(target, Math.Simd.shuffle(pixels, GifDropAlpha))
+        Image.storeLow12(target, Math.Simd.shuffle(pixels, PackedPixel.PaletteDropAlpha))
 }
 
 impl Decoder
@@ -488,21 +445,7 @@ impl Decoder
         let indices     = .frame.storage()
         let step        = hasAlpha ? 4 : 3
 
-        // One byte table per channel, indexed by the low four bits of each source byte.
-        var channels: [4 * 16] u8
-        for index in paletteSize
-        {
-            let word = packed[index]
-            channels[index + 0]  = cast(u8, (word & 255))
-            channels[index + 16] = cast(u8, ((word >> 8) & 255))
-            channels[index + 32] = cast(u8, ((word >> 16) & 255))
-            channels[index + 48] = cast(u8, (word >> 24))
-        }
-
-        var tables: [4] Math.Simd.U8x16
-        for channel in 4 do
-            tables[channel] = Math.Simd.load(&channels[channel * 16])
-
+        var tables          = PackedPixel.smallPaletteTables(packed, cast(u64, paletteSize))
         let tableData       = cast(const [*] Math.Simd.U8x16, &tables[0])
         var combinedIndices = 0'u8
         var combinedVectors = Math.Simd.splat(0'u8)
@@ -511,8 +454,8 @@ impl Decoder
             let source = indices + cast(u64, y) * width
             let row    = indexed.interlaced ? Decoder.interlacedLineIndex(height, y) : y
             let target = pixels + cast(u64, (height - row - 1)) * stride
-            let start  = hasAlpha ? writeSmallPaletteRow'(true)(source, target, width, tableData, &combinedVectors) :
-                         writeSmallPaletteRow'(false)(source, target, width, tableData, &combinedVectors)
+            let start  = hasAlpha ? PackedPixel.writeSmallPaletteRow'(true)(source, target, width, tableData, &combinedVectors) :
+                         PackedPixel.writeSmallPaletteRow'(false)(source, target, width, tableData, &combinedVectors)
             for x in start until width
             {
                 let paletteIndex = source[x]

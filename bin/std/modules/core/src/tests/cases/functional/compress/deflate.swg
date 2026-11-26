@@ -69,6 +69,28 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel, s
     }
 }
 
+// Probe batches preserve candidate order and the search limit across dictionary wraps.
+#test
+{
+    const RowBytes = 1025'u64
+    const Rows     = 132
+    var data: Array'u8
+    data.resize(RowBytes * Rows)
+    for row in Rows
+    {
+        let start = row * RowBytes
+        data[start] = cast(u8, row % 5)
+        if row % 5 == 0 do
+            fillRandom(data.toSlice()[start + 1 until start + RowBytes], cast(u32, row + 1))
+    }
+
+    var deflater: Compress.Deflate
+    deflater.init(.Default)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, data.toSlice())
+    Swag.require(Hash.Crc64.compute(compressed.toSlice()) == 0x4FE2E238BFEA4C70)
+}
+
 // Every level and strategy round-trips random, textual, and constant data whose sizes straddle
 // the match limit, the stored writer's block split, the 32 KiB window, and the 64 KiB format limit.
 #test

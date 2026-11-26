@@ -306,10 +306,28 @@ impl Decoder
         .forward     = {}
         .backward    = {}
 
-        let total = cast(u64, .layer.mbWidth) * cast(u64, .layer.mbHeight)
-        var index = 0'u64
+        let columns = cast(u64, .layer.mbWidth)
+        let total   = columns * cast(u64, .layer.mbHeight)
+        var index   = 0'u64
         while index < total
         {
+            // A predicted macroblock with a leading one spends that bit alone. A run of
+            // eight ones therefore cannot contain a video packet boundary.
+            if active.codingType == VopPredicted and
+               (reader.bitPos & 7) == 0 and
+               reader.bitPos + 8 <= reader.bitEnd and
+               reader.data![reader.bitPos >> 3] == 0xFF
+            {
+                let x = index % columns
+                if x + 8 <= columns
+                {
+                    .copyUncodedRun(index, x, index / columns)
+                    reader.bitPos += 8
+                    index         += 8
+                    continue
+                }
+            }
+
             if index and not .layer.resyncDisabled
             {
                 let after = .findResyncMarker(reader, &active)
@@ -322,7 +340,6 @@ impl Decoder
                     {
                         // A B macroblock whose future anchor is uncoded spends no bits. A
                         // marker can therefore appear before the preceding packet is filled.
-                        let columns = cast(u64, .layer.mbWidth)
                         for skipped in first until index
                         {
                             if .coLocated[skipped].coded do
@@ -339,7 +356,7 @@ impl Decoder
                 }
             }
 
-            try .decodeMacroblock(reader, &active, cast(s32, (index % cast(u64, .layer.mbWidth))), cast(s32, (index / cast(u64, .layer.mbWidth))))
+            try .decodeMacroblock(reader, &active, cast(s32, (index % columns)), cast(s32, (index / columns)))
             index += 1
         }
 
@@ -879,6 +896,31 @@ impl Decoder
         result.x = median(candidates[0].x, candidates[1].x, candidates[2].x)
         result.y = median(candidates[0].y, candidates[1].y, candidates[2].y)
         return result
+    }
+
+    // Copies eight adjacent skipped P macroblocks in one group of scanline spans.
+    private mtd copyUncodedRun(index, x, y: u64)
+    {
+        let lumaAt = .current.lumaOrigin() + y * 16 * .current.strideLuma + x * 16
+        for row in 16'u64
+        {
+            let at = lumaAt + row * .current.strideLuma
+            Memory.copy(.current.luma.storage() + at, .anchorNew.luma.storage() + at, 8 * 16)
+        }
+
+        let chromaAt = .current.chromaOrigin() + y * 8 * .current.strideChroma + x * 8
+        for row in 8'u64
+        {
+            let at = chromaAt + row * .current.strideChroma
+            Memory.copy(.current.chromaB.storage() + at, .anchorNew.chromaB.storage() + at, 8 * 8)
+            Memory.copy(.current.chromaR.storage() + at, .anchorNew.chromaR.storage() + at, 8 * 8)
+        }
+
+        for at in index until index + 8
+        {
+            .macroblocks[at] = {}
+            .clearBlockState(at)
+        }
     }
 
     private mtd copyMacroblock(anchor: const *Frame, mbX, mbY: s32)

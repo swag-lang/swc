@@ -186,6 +186,58 @@ private func(T) poly44Carry(low, high: [3] T, result: *[3] T)
     result[][2] = top & Limb42Mask
 }
 
+#[Swag.Inline]
+private func(High: bool) poly44Dot(a0, b0, a1, b1, a2, b2: Simd.U64x2)->Simd.U64x2
+{
+    let zero = Simd.splat(0'u64)
+    #static if High do
+        return Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(zero, a0, b0), a1, b1), a2, b2)
+    else do
+        return Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(zero, a0, b0), a1, b1), a2, b2)
+}
+
+#[Swag.Inline]
+private func poly44Pairs(words: const [*] u64, count: u64, state: *Poly44Lanes,
+                        factor: Poly44Lanes, scaled: [2] Simd.U64x2)
+{
+    var first = state[][0]
+    var middle = state[][1]
+    var top = state[][2]
+    let r0 = factor[0]
+    let r1 = factor[1]
+    let r2 = factor[2]
+    let s1 = scaled[0]
+    let s2 = scaled[1]
+    for pair in count
+    {
+        let left = Simd.load(words + pair * 4)
+        let right = Simd.load(words + pair * 4 + 2)
+        let low = Simd.interleaveLow(left, right)
+        let high = Simd.interleaveHigh(left, right)
+        let a0 = first + (low & Limb44Mask)
+        let a1 = middle + (((low >> 44) | (high << 20)) & Limb44Mask)
+        let a2 = top + ((high >> 24) | (1'u64 << 40))
+
+        let p0 = poly44Dot'(false)(a0, r0, a1, s2, a2, s1)
+        let h0 = poly44Dot'(true)(a0, r0, a1, s2, a2, s1)
+        let p1 = poly44Dot'(false)(a0, r1, a1, r0, a2, s2)
+        let h1 = poly44Dot'(true)(a0, r1, a1, r0, a2, s2)
+        let p2 = poly44Dot'(false)(a0, r2, a1, r1, a2, r0)
+        let h2 = poly44Dot'(true)(a0, r2, a1, r1, a2, r0)
+        let d1 = p1 + (h0 << 8)
+        let d2 = p2 + (h1 << 8)
+        let wrap = (d2 >> 42) + (h2 << 10)
+        let d0 = (p0 & Limb44Mask) + wrap + (wrap << 2)
+        first = d0 & Limb44Mask
+        middle = (d1 & Limb44Mask) + (p0 >> 44) + (d0 >> 44)
+        top = (d2 & Limb42Mask) + (d1 >> 44)
+    }
+
+    state[][0] = first
+    state[][1] = middle
+    state[][2] = top
+}
+
 // Authenticates a message under a one-time key, following RFC 8439.
 //
 // A Poly1305 key authenticates exactly one message. Reusing it across two
@@ -518,18 +570,9 @@ public impl Poly1305
             .uniformScaled = poly44Scale(.uniform)
             .finalScaled = poly44Scale(.final)
 
-            var words = cast(const [*] u64, blocks)
-            for count - 1
-            {
-                .message = poly44LoadPair(words)
-                for limb in 3 do
-                    .state[limb] += .message[limb]
-                poly44Multiply(.state, .uniform, .uniformScaled, &.product)
-                poly44Carry(.product.low, .product.high, &.state)
-                words += 4
-            }
-
-            .message = poly44LoadPair(words)
+            let words = cast(const [*] u64, blocks)
+            poly44Pairs(words, count - 1, &.state, .uniform, .uniformScaled)
+            .message = poly44LoadPair(words + (count - 1) * 4)
             for limb in 3 do
                 .state[limb] += .message[limb]
             poly44Multiply(.state, .final, .finalScaled, &.product)

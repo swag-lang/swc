@@ -1,0 +1,579 @@
+{
+  "utc": "2026-11-26T15:16:00.242248+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "workers": {
+    "baseline": 4,
+    "ifma": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 4.1.0 23 Oct 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1 | libsodium 1.0.22",
+  "reference_sha256": "39399586e1452af6ad77285658c5b49d8ee410ae6b8bf3c732ed087288b26331",
+  "swag_builds": {
+    "baseline": "998439c8e64257ce96f31d01be1b8bef13981b4faf04148981b3c3cc0b12fc79",
+    "ifma": "9880cf287d41e90d2040bc106c8f660c09898f80a7e43307e9f2b3c804a0a733"
+  },
+  "rounds": 7,
+  "target_ms": 18,
+  "clock": "wall",
+  "rows": [
+    {
+      "algorithm": "poly1305",
+      "bytes": 4194304,
+      "offset": 1,
+      "input_sha256": "4ee2735a5e1ca0bd9393d207d8489acce6dcf269c676ab36dc04862aebbc2d0c",
+      "output_sha256": "4087491e79acdc7182453bbdf48ad26bd3a2f5edeca2cf274690fb8d7b124da6",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 30,
+          "wall": [
+            0.01439497,
+            0.014080491,
+            0.01808172,
+            0.00991962,
+            0.010401978,
+            0.010087623,
+            0.010231761
+          ],
+          "cpu": [
+            0.010080303,
+            0.010082529,
+            0.010053442,
+            0.00991798,
+            0.010399397,
+            0.010085029,
+            0.010230195
+          ]
+        },
+        "libsodium": {
+          "iterations": 3,
+          "wall": [
+            0.00722037,
+            0.006608827,
+            0.003183711,
+            0.004811215,
+            0.003192044,
+            0.003204863,
+            0.003175339
+          ],
+          "cpu": [
+            0.003219394,
+            0.003726139,
+            0.003180296,
+            0.004808401,
+            0.00318992,
+            0.003198003,
+            0.003173546
+          ]
+        },
+        "baseline": {
+          "iterations": 11,
+          "wall": [
+            0.010637934,
+            0.008164183,
+            0.011773076,
+            0.007550367,
+            0.006925014,
+            0.006537089,
+            0.006605632
+          ],
+          "cpu": [
+            0.019730724,
+            0.016855135,
+            0.018971213,
+            0.021406987,
+            0.019932855,
+            0.019249223,
+            0.020266202
+          ]
+        },
+        "ifma": {
+          "iterations": 13,
+          "wall": [
+            0.018163553,
+            0.012196003,
+            0.020313034,
+            0.004613698,
+            0.004663263,
+            0.00421708,
+            0.005508267
+          ],
+          "cpu": [
+            0.015455086,
+            0.014534293,
+            0.013170922,
+            0.014199151,
+            0.013631261,
+            0.013566568,
+            0.014156813
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "libsodium",
+          "ifma"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "baseline",
+          "ifma"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "baseline",
+          "ifma"
+        ],
+        [
+          "OpenSSL",
+          "ifma",
+          "libsodium",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "ifma",
+          "baseline"
+        ],
+        [
+          "ifma",
+          "baseline",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "OpenSSL",
+          "baseline",
+          "ifma"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 16777216,
+      "offset": 1,
+      "input_sha256": "8be873a9ee8f8577f6f77b30e68534428fc86c06eb70d0da2f250ce2bb57074a",
+      "output_sha256": "d87fdf70330297c23d28062aa0fd6b50fbd432d48aab00e5fde1697279c712d6",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 13,
+          "wall": [
+            0.017281613,
+            0.017337849,
+            0.017463769,
+            0.023060369,
+            0.017346091,
+            0.01721289,
+            0.017892314
+          ],
+          "cpu": [
+            0.017278642,
+            0.017334826,
+            0.017453923,
+            0.023056636,
+            0.017343138,
+            0.017209899,
+            0.017846979
+          ]
+        },
+        "libsodium": {
+          "iterations": 4,
+          "wall": [
+            0.0174917,
+            0.017006618,
+            0.017290907,
+            0.017516878,
+            0.0170074,
+            0.019274069,
+            0.017101821
+          ],
+          "cpu": [
+            0.01747128,
+            0.017003562,
+            0.017288527,
+            0.01748529,
+            0.016982401,
+            0.01927149,
+            0.017099285
+          ]
+        },
+        "baseline": {
+          "iterations": 6,
+          "wall": [
+            0.014405766,
+            0.016745785,
+            0.016235246,
+            0.012622176,
+            0.011232731,
+            0.014216631,
+            0.013634964
+          ],
+          "cpu": [
+            0.04345931,
+            0.047503103,
+            0.042995924,
+            0.041648975,
+            0.036009061,
+            0.042369109,
+            0.041803297
+          ]
+        },
+        "ifma": {
+          "iterations": 14,
+          "wall": [
+            0.017173821,
+            0.022502357,
+            0.017668597,
+            0.018510787,
+            0.018072316,
+            0.02172181,
+            0.022251089
+          ],
+          "cpu": [
+            0.056035734,
+            0.066406099,
+            0.056913109,
+            0.057938228,
+            0.05754906,
+            0.060940998,
+            0.057841468
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ifma",
+          "libsodium",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "libsodium",
+          "OpenSSL",
+          "ifma"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "ifma",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "ifma",
+          "libsodium"
+        ],
+        [
+          "ifma",
+          "libsodium",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "ifma",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "libsodium",
+          "baseline",
+          "ifma",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 4194304,
+      "offset": 1,
+      "input_sha256": "4ee2735a5e1ca0bd9393d207d8489acce6dcf269c676ab36dc04862aebbc2d0c",
+      "output_sha256": "307e0484e5a382246ad1247633ebdc5232d05a43aa61ee8623b8f66d2e2a7da6",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 2,
+          "wall": [
+            0.002245757,
+            0.002284665,
+            0.002272698,
+            0.002395854,
+            0.002243604,
+            0.002270835,
+            0.002269784
+          ],
+          "cpu": [
+            0.002242219,
+            0.00228267,
+            0.00226973,
+            0.00239094,
+            0.002240427,
+            0.002268969,
+            0.002267857
+          ]
+        },
+        "libsodium": {
+          "iterations": 6,
+          "wall": [
+            0.017985275,
+            0.018408352,
+            0.020360297,
+            0.019567551,
+            0.018594083,
+            0.01933455,
+            0.017745589
+          ],
+          "cpu": [
+            0.017957943,
+            0.018392254,
+            0.020357356,
+            0.019552409,
+            0.018591567,
+            0.01931821,
+            0.017743239
+          ]
+        },
+        "baseline": {
+          "iterations": 12,
+          "wall": [
+            0.024528041,
+            0.021522288,
+            0.026438113,
+            0.021852657,
+            0.020430111,
+            0.020416681,
+            0.018371577
+          ],
+          "cpu": [
+            0.08324378,
+            0.06730511,
+            0.080259224,
+            0.058119143,
+            0.069256459,
+            0.065724232,
+            0.060508503
+          ]
+        },
+        "ifma": {
+          "iterations": 12,
+          "wall": [
+            0.020709072,
+            0.023653573,
+            0.015172563,
+            0.015545285,
+            0.021179412,
+            0.018364587,
+            0.016313073
+          ],
+          "cpu": [
+            0.064403407,
+            0.064734094,
+            0.050187439,
+            0.050490231,
+            0.067491347,
+            0.060512705,
+            0.051341612
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "ifma",
+          "baseline",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "ifma",
+          "libsodium"
+        ],
+        [
+          "baseline",
+          "ifma",
+          "libsodium",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "ifma",
+          "baseline",
+          "libsodium"
+        ],
+        [
+          "baseline",
+          "libsodium",
+          "ifma",
+          "OpenSSL"
+        ],
+        [
+          "ifma",
+          "OpenSSL",
+          "baseline",
+          "libsodium"
+        ],
+        [
+          "ifma",
+          "OpenSSL",
+          "baseline",
+          "libsodium"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 16777216,
+      "offset": 1,
+      "input_sha256": "8be873a9ee8f8577f6f77b30e68534428fc86c06eb70d0da2f250ce2bb57074a",
+      "output_sha256": "f9790e845b671e77f8074bdbc8fa64f974ff989cd807b1a1990c4a6de5a512f2",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 4,
+          "wall": [
+            0.018689597,
+            0.018245588,
+            0.018898111,
+            0.018381011,
+            0.018360539,
+            0.01940793,
+            0.019193708
+          ],
+          "cpu": [
+            0.01823102,
+            0.018241857,
+            0.018895079,
+            0.018376958,
+            0.018356727,
+            0.019403736,
+            0.0191907
+          ]
+        },
+        "libsodium": {
+          "iterations": 1,
+          "wall": [
+            0.011739415,
+            0.012165006,
+            0.011890363,
+            0.015117749,
+            0.012168933,
+            0.011954148,
+            0.011897804
+          ],
+          "cpu": [
+            0.011736038,
+            0.012161101,
+            0.011887634,
+            0.01511486,
+            0.012157795,
+            0.011936857,
+            0.011894834
+          ]
+        },
+        "baseline": {
+          "iterations": 3,
+          "wall": [
+            0.022337162,
+            0.017235704,
+            0.020234757,
+            0.019736566,
+            0.037352895,
+            0.019840212,
+            0.021531617
+          ],
+          "cpu": [
+            0.062122211,
+            0.057662024,
+            0.062372189,
+            0.062506428,
+            0.096863833,
+            0.070716211,
+            0.072270802
+          ]
+        },
+        "ifma": {
+          "iterations": 4,
+          "wall": [
+            0.020251553,
+            0.01993841,
+            0.025177412,
+            0.021703962,
+            0.02687352,
+            0.023444959,
+            0.022101927
+          ],
+          "cpu": [
+            0.066465164,
+            0.068285782,
+            0.083710784,
+            0.074980161,
+            0.086487259,
+            0.074108519,
+            0.077646935
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "ifma",
+          "baseline",
+          "libsodium"
+        ],
+        [
+          "OpenSSL",
+          "libsodium",
+          "baseline",
+          "ifma"
+        ],
+        [
+          "ifma",
+          "baseline",
+          "OpenSSL",
+          "libsodium"
+        ],
+        [
+          "ifma",
+          "baseline",
+          "OpenSSL",
+          "libsodium"
+        ],
+        [
+          "libsodium",
+          "baseline",
+          "OpenSSL",
+          "ifma"
+        ],
+        [
+          "ifma",
+          "libsodium",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "ifma",
+          "libsodium",
+          "baseline",
+          "OpenSSL"
+        ]
+      ]
+    }
+  ]
+}

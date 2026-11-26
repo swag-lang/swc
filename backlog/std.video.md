@@ -482,8 +482,11 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   slots, and a finalized fragmented MP4. This controls average rate; it cannot bound one packet or
   guarantee a file size when even QP 51 falls back to PCM, and the recorder has no scene-cut
   detection. Treat a failed MP4 packet submission as terminal or make submission transactional.
-  Remaining work is measuring changing screens and scene cuts through Reader and FFmpeg, exposing
-  per-frame encode latency and dropped-frame counters, and meeting the 1080p60/4K60 capture target.
+  [The scene-transition comparison](../bench/results/video/20261126-encode-comparison/README.md#h264-adaptive-bitrate-across-scene-changes)
+  measures 43.34 dB luma PSNR at 1.502 Mbit/s for Swag and 44.52 dB at 1.421 Mbit/s for x264
+  on the same input. Preserve the measured rate accuracy while improving bit allocation.
+  Remaining work includes exposing per-frame encode latency and dropped-frame counters and
+  meeting the 1080p60/4K60 capture target.
   Use a platform encoder only if the software path cannot meet the required profile; do not add an
   external codec library for a capability that can be implemented in Swag.
 - Done when: captured 1080p60 and 4K60 sequences produce playable H.264 files at useful

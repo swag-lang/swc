@@ -77,3 +77,17 @@ Repeat with a new `--output` and `--skip-x264`. Compare the source hashes first.
 intended to preserve quality exactly, compare the decoded hashes as well as sizes. Repeated
 measurements are needed before interpreting small timing differences.
 `--library-bin` selects the `bin` tree of an external source snapshot for a preserved baseline.
+
+## Adaptive bitrate
+
+`compare-rate.py` joins four two-second scenes from the 640×360 RGB corpus. Swag's software
+recorder uses four slices and a half-second reservoir. The reference is libx264 Baseline
+veryfast with the same target rate, four slices and a half-second VBV buffer. Both encoders
+start a new key picture every 120 slots. The report includes actual packet bitrate,
+one-second totals, luma PSNR by scene and Swag's per-frame QP.
+
+```sh
+taskset -c 0,1 python3 bench/workloads/h264/compare-rate.py \
+    --compiler /absolute/build/release/swc --input-dir /tmp/h264-input \
+    --output /tmp/h264-adaptive-rate
+```

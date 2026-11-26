@@ -161,6 +161,25 @@ ffmpeg -v error -f lavfi -i 'testsrc2=size=3840x2160:rate=30' \
 Use QPs 21, 25 and 29 with `--discard-planes` in the H.264 workload to retain
 the compressed files, decoded hashes and quality results with lower disk usage.
 
+### H.264 adaptive bitrate across scene changes
+
+The [adaptive-rate workload](../../../workloads/h264/README.md#adaptive-bitrate) joins 240
+640×360 frames of scrolling desktop, changing tiles, camera and a return to the desktop.
+It compares the software recorder with x264 Baseline veryfast from FFmpeg 9.1, using
+identical BT.709 NV12, four slices and two CPUs. Each encoder receives the same requested
+bitrate and a half-second buffer budget. The quality pass validates all packet timestamps,
+then compares decoded luma samples in display order. [Packet and QP traces](h264-adaptive-rate.json)
+
+| Target | Swag actual | x264 actual | Swag luma PSNR | x264 luma PSNR |
+| --- | ---: | ---: | ---: | ---: |
+| 0.8 Mbit/s | 0.832 Mbit/s | 0.769 Mbit/s | 40.78 dB | 40.45 dB |
+| 1.5 Mbit/s | 1.502 Mbit/s | 1.421 Mbit/s | 43.34 dB | 44.52 dB |
+| 2.5 Mbit/s | 2.473 Mbit/s | 2.333 Mbit/s | 44.87 dB | 47.96 dB |
+
+The biggest 2.5 Mbit/s quality difference is in the changing tiles. The camera segment
+has similar luma PSNR. The measurements include achieved bitrate because the two
+controllers spend different numbers of bits at the same requested rate.
+
 ## Motion JPEG 4:4:4
 
 The same four RGB clips were encoded with the JPEG codec used by Swag's AVI and MP4

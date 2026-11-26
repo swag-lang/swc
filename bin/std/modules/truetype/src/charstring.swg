@@ -444,7 +444,8 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             if entry < 0 or cast(u32, entry) >= table.count() do
                 try fault(0x86)
             try execType2(state, table.item(cast(u32, entry)), depth + 1)
-            if state.finished do
+            // The first stack-clearing operator fixes the width even inside a subroutine.
+            if state.finished or (state.widthOnly and state.haveWidth) do
                 return
 
         case 11:

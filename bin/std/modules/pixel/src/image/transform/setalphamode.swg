@@ -19,7 +19,24 @@ impl Image
            (.pixelFormat == .RGBA8 or .pixelFormat == .BGRA8)
         {
             let pixels = .pixels.storage()
-            PackedPixel.writeStraightAlpha8(pixels, pixels, .byteCount / 4, false)
+            let count  = .byteCount / 4
+            const ParallelBytes = 64'u64 * 1024 * 1024
+            let workers = .byteCount >= ParallelBytes ? cast(u64, Swag.workerCount()) : 0
+            if workers > 1
+            {
+                // Every batch owns a separate range of pixels in the packed buffer.
+                let length  = (count + workers - 1) / workers
+                let batches = (count + length - 1) / length
+                parallel for |pixels, length, count| batch in batches
+                {
+                    let start = batch * length
+                    let range = Math.min(count - start, length)
+                    let target = pixels + start * 4
+                    PackedPixel.writeStraightAlpha8(target, target, range, false)
+                }
+            }
+            else do
+                PackedPixel.writeStraightAlpha8(pixels, pixels, count, false)
             .alphaMode = newMode
             return
         }

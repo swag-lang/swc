@@ -1290,3 +1290,26 @@ dimensions and CRC-64. The pathname runs include 31 opens per batch.
 | `NimbusMonoPS-Regular.cff` | U+0069 | 285.56 | 1.20 |
 | `SourceSans3-Regular.cff` | U+0043 | 894.74 | 1.28 |
 | `SourceSans3-Regular.cff` | U+0045 | 798.63 | 1.15 |
+
+## CFF advances set in subroutines
+
+Width-only execution now stops across the call chain when a subroutine
+sets the glyph advance. Outline execution still visits the remaining
+commands. The native test puts the move that sets the width two calls
+deep and checks that outline decoding still detects a truncated operand.
+
+Across 13 interleaved batches of 61 pathname opens on one CPU, the
+six bare CFF cases take 12–26% less time than `8fcc21a3bb`. The four
+Nimbus cases are ahead of Pillow. Source Sans 3 is within 17% of the
+reference. All glyph indices, advances, dimensions and CRC-64 match
+between the Swag builds.
+[Raw timings and fingerprints](font-decode-linux-cff-width.json)
+
+| Fixture | Character | Open and render before (µs) | After | Pillow |
+| --- | ---: | ---: | ---: | ---: |
+| `NimbusSans-Regular.cff` | U+0041 | 257.28 | 219.97 | 279.45 |
+| `NimbusSans-Regular.cff` | U+0067 | 268.56 | 229.82 | 302.21 |
+| `NimbusMonoPS-Regular.cff` | U+0057 | 288.77 | 218.75 | 307.48 |
+| `NimbusMonoPS-Regular.cff` | U+0069 | 292.37 | 217.50 | 301.88 |
+| `SourceSans3-Regular.cff` | U+0043 | 812.75 | 708.20 | 616.29 |
+| `SourceSans3-Regular.cff` | U+0045 | 805.35 | 704.66 | 605.52 |

@@ -98,3 +98,4 @@ optimizations moved each result.
 - [AES-256-GCM with associated data only](aes-gcm-aad.md)
 - [Four-round Keccak state alternation](sha3-four-rounds.md)
 - [Full-width unsigned multiplication intrinsic](wide-multiply-instruction.md)
+- [Full-width multiplication in public-key arithmetic](crypto-wide-multiply.md)

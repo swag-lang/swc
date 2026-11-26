@@ -9,29 +9,12 @@
 using Swag
 
 // Returns the full 128-bit product of `x` and `y`, split into its high and low 64-bit halves.
-#[Swag.Safety(.Overflow, false), Swag.Inline]
+#[Swag.Inline]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 {
-    const Low32Mask = (1'u64 << 32) - 1
-    let xLow  = x & Low32Mask
-    let xHigh = x >> 32
-    let yLow  = y & Low32Mask
-    let yHigh = y >> 32
-
-    // Carry each partial product into the next 32-bit column.
-    let lowProduct    = xLow * yLow
-    let middleProduct = (xHigh * yLow) + (lowProduct >> 32)
-    var middleLow     = middleProduct & Low32Mask
-    let middleHigh    = middleProduct >> 32
-    middleLow += xLow * yHigh
-
-    with var result: #returntype
-    {
-        .hi = (xHigh * yHigh) + middleHigh + (middleLow >> 32)
-        .lo = x * y
-    }
-
-    return result
+    var high: u64
+    let low = Swag.mulWide(x, y, &high)
+    return {hi: high, lo: low}
 }
 
 // Stores a signed 128-bit integer in two's complement, as two 64-bit halves.

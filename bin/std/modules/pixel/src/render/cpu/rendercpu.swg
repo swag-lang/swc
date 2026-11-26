@@ -2347,11 +2347,10 @@ private impl RenderCpu
             }
         }
 
-        // The opaque interior of a textured triangle needs only bilinear sampling and
-        // compositing. Keep the general fragment path for coverage fringes and other paint.
+        // Interior texture spans only need bilinear sampling and compositing, including
+        // through a stencil. Coverage fringes and other paint use the general shader.
         if fastAlpha and
            narrowRows and
-           not stencilTest and
            not .stencilWrite and
            not batch.solidPaint and
            not batch.paintPlanar and
@@ -2374,27 +2373,27 @@ private impl RenderCpu
                 switch source.pixelFormat
                 {
                 case .BGRA8:
-                    drawLinearTextureTriangle'(.BGRA8)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    drawLinearImageTriangle'(.BGRA8)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
                 case .RGBA8:
-                    drawLinearTextureTriangle'(.RGBA8)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    drawLinearImageTriangle'(.RGBA8)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
                 case .BGR8:
-                    drawLinearTextureTriangle'(.BGR8)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    drawLinearImageTriangle'(.BGR8)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
                 case .RGB8:
-                    drawLinearTextureTriangle'(.RGB8)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    drawLinearImageTriangle'(.RGB8)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
                 case .RGB16:
-                    drawLinearTextureTriangle'(.RGB16)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    drawLinearImageTriangle'(.RGB16)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
                 case .RGBA16:
-                    drawLinearTextureTriangle'(.RGBA16)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    drawLinearImageTriangle'(.RGBA16)(batch, source, &triangle, paint.boundRect, whiteMatte, stencilTest)
                     return
 
                 default:
@@ -2750,7 +2749,15 @@ private impl RenderCpu
             cached.colors[index] = lerpBgra8(loadColor8'Format(pixels, sample.low), loadColor8'Format(pixels, sample.high), sample.weight)
     }
 
-    func(const Format: PixelFormat) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?)
+    func(const Format: PixelFormat) drawLinearImageTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?, stenciled: bool)
+    {
+        if stenciled do
+            drawLinearTextureTriangle'(Format, true)(batch, source, triangle, paintRect, matte)
+        else do
+            drawLinearTextureTriangle'(Format, false)(batch, source, triangle, paintRect, matte)
+    }
+
+    func(const Format: PixelFormat, const Stenciled: bool) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?)
     {
         let paintWidth  = Math.max(paintRect.z - paintRect.x, 0.000001)
         let paintHeight = Math.max(paintRect.w - paintRect.y, 0.000001)
@@ -2769,7 +2776,8 @@ private impl RenderCpu
         let deviceW  = t.m11 * paintWidth
         let deviceH  = t.m22 * paintHeight
         var columns: Array'LinearSample
-        if batch.painter!.useScanlineFills and t.m12 == 0 and t.m21 == 0 and paintMin.isFinite() and
+        // A stencil path previously sampled barycentrically, so keep that rounding.
+        if not Stenciled and batch.painter!.useScanlineFills and t.m12 == 0 and t.m21 == 0 and paintMin.isFinite() and
            Math.isFinite(deviceW) and Math.isFinite(deviceH) and deviceW != 0 and deviceH != 0 and
            cast(u64, triangle.bounds.maxX - triangle.bounds.minX + 1) *
            cast(u64, triangle.bounds.maxY - triangle.bounds.minY + 1) >= 4096
@@ -2932,8 +2940,12 @@ private impl RenderCpu
                 continue
             }
 
+            let maskOffset = cast(u64, y) * batch.width
             for x in x0 until x1 + 1
             {
+                let clip = Stenciled ? batch.stencil[maskOffset + cast(u64, x)] : 255'u8
+                if not clip do
+                    continue
                 let sx = cast(f32, x) + 0.5
                 let w0 = Math.mulAdd(-dy[0], sx - origin[0].x, c0) * invArea
                 let w1 = Math.mulAdd(-dy[1], sx - origin[1].x, c1) * invArea
@@ -2954,10 +2966,22 @@ private impl RenderCpu
                 let xHi = Math.clamp(col + 1, 0, source.width - 1)
                 let yLo = Math.clamp(src, 0, source.height - 1)
                 let yHi = Math.clamp(src + 1, 0, source.height - 1)
-                let ink = sampleColor8Bilinear'Format(source, xLo, xHi, yLo, yHi, bilinearWeight(fx - ix), bilinearWeight(fy - iy))
-                writeLinearTexturePixel'Format(row + cast(u64, x) * 4, ink)
-                if white do
-                    writeLinearTexturePixel'Format(white + cast(u64, x) * 4, ink)
+                var ink = sampleColor8Bilinear'Format(source, xLo, xHi, yLo, yHi, bilinearWeight(fx - ix), bilinearWeight(fy - iy))
+                #static if Stenciled
+                {
+                    ink.a = cast(u8, (cast(u32, ink.a) * clip) / 255)
+                    if not ink.a do
+                        continue
+                    blendAlphaBgra8(row + cast(u64, x) * 4, ink)
+                    if white do
+                        blendAlphaBgra8(white + cast(u64, x) * 4, ink)
+                }
+                else
+                {
+                    writeLinearTexturePixel'Format(row + cast(u64, x) * 4, ink)
+                    if white do
+                        writeLinearTexturePixel'Format(white + cast(u64, x) * 4, ink)
+                }
             }
         }
     }

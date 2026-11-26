@@ -526,6 +526,41 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     assertPixel(image, 9, 5, Argb.Zero)
 }
 
+// A linearly sampled texture multiplies its source alpha by stencil coverage.
+#test
+{
+    const Texels = [240'u8, 120, 80, 128, 240, 120, 80, 128,
+                    240, 120, 80, 128, 240, 120, 80, 128]
+    let source = Image.create(2, 2, .RGBA8, Texels)
+    var cpu: RenderCpu
+    cpu.begin(16, 12)
+    let render: IRenderer = &cpu
+    var texture = render.addImage(source)
+    defer render.removeTexture(&texture)
+    defer render.end()
+
+    var painter = Painter.createScanline(&cpu)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.Black))
+    painter.setColorMaskColor()
+    painter.setAntialiased(false)
+    painter.startClippingRegion()
+    painter.fillRect({4, 0, 8, 12}, Color.fromArgb(128'u8, 255, 255, 255))
+    painter.endClippingRegion()
+    painter.setInterpolationMode(.Linear)
+    painter.drawTexture({0, 0, 16, 12}, texture)
+    painter.resetClippingRegion()
+    painter.end()
+    expect render.draw(&painter)
+
+    let image = cpu.surfaceImage()
+    assertPixel(image, 1, 3, Argb.Black)
+    assertPixel(image, 6, 3, Color.fromRgb(60, 30, 20))
+    assertPixel(image, 6, 9, Color.fromRgb(60, 30, 20))
+    assertPixel(image, 14, 9, Argb.Black)
+}
+
 // A replacement region clears the old footprint even when the new scissor excludes it.
 #test
 {

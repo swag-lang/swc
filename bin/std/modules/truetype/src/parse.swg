@@ -391,32 +391,32 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             if cast(u64, groupCount) > (subTable.count - 16) / 12 do
                 try fault(0x03)
 
+            let glyphCount      = faceData.face.glyphCount
+            var record          = subTable.buffer + 16
             var previousEndCode = 0'u32
-            var hasPrevious     = false
             for index in groupCount
             {
-                let base       = 16'u64 + cast(u64, index) * 12
-                let startCode  = try readU32(subTable, base)
-                let endCode    = try readU32(subTable, base + 4)
-                let startGlyph = try readU32(subTable, base + 8)
+                let startCode  = Math.make32(record[0], record[1], record[2], record[3])
+                let endCode    = Math.make32(record[4], record[5], record[6], record[7])
+                let startGlyph = Math.make32(record[8], record[9], record[10], record[11])
                 if startCode > endCode or
                    endCode > 0x10FFFF or
-                   (hasPrevious and startCode <= previousEndCode) do
+                   (index and startCode <= previousEndCode) do
                     try fault(0x03)
 
                 if format == 12
                 {
                     let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
-                    if lastGlyph >= faceData.face.glyphCount do
+                    if lastGlyph >= glyphCount do
                         try fault(0x03)
                 }
-                elif startGlyph and startGlyph >= faceData.face.glyphCount
+                elif startGlyph and startGlyph >= glyphCount
                 {
                     try fault(0x03)
                 }
 
                 previousEndCode = endCode
-                hasPrevious     = true
+                record += 12
             }
         }
 
@@ -497,36 +497,32 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     if vhea.count < 36 do
         try fault(0x98)
 
-    let numLongMetrics = try readU16(vhea, 34)
-    let glyphCount     = faceData.face.glyphCount
-    if not numLongMetrics or numLongMetrics > glyphCount do
+    let longMetricCount = cast(u32, (try readU16(vhea, 34)))
+    let glyphCount      = faceData.face.glyphCount
+    if not longMetricCount or longMetricCount > glyphCount do
         try fault(0x98)
 
     let vmtx = try getSlice(faceData.fontData.toSlice(), vmtxTable.offset, vmtxTable.length)
-    let shortMetricCount = glyphCount - numLongMetrics
-    let requiredBytes    = cast(u64, numLongMetrics) * 4 + cast(u64, shortMetricCount) * 2
+    let requiredBytes = cast(u64, longMetricCount) * 4 + cast(u64, glyphCount - longMetricCount) * 2
     if vmtx.count < requiredBytes do
         try fault(0x98)
 
-    faceData.verticalGlyphMetrics.resize(glyphCount)
-    var lastAdvance = 0'u16
-    for index in glyphCount
+    let metrics = faceData.verticalGlyphMetrics.emplaceAddress(glyphCount)
+    var entry   = vmtx.buffer
+    for index in longMetricCount
     {
-        let base = index < numLongMetrics
-                   ? cast(u64, index) * 4
-                   : cast(u64, numLongMetrics) * 4 + cast(u64, index - numLongMetrics) * 2
-        var metric: GlyphVerticalMetrics
-        if index < numLongMetrics
-        {
-            lastAdvance = try readU16(vmtx, base)
-            metric.set(lastAdvance, try readS16(vmtx, base + 2))
-        }
-        else
-        {
-            metric.set(lastAdvance, try readS16(vmtx, base))
-        }
+        let advance = Math.make16(entry[0], entry[1])
+        let bearing = cast #bit(s16, Math.make16(entry[2], entry[3]))
+        metrics[index].set(advance, bearing)
+        entry += 4
+    }
 
-        faceData.verticalGlyphMetrics[index] = metric
+    // Short records reuse the last advance and supply their own top side bearing.
+    let lastAdvance = metrics[longMetricCount - 1].advanceHeight
+    for index in longMetricCount until glyphCount
+    {
+        metrics[index].set(lastAdvance, cast #bit(s16, Math.make16(entry[0], entry[1])))
+        entry += 2
     }
 
     faceData.hasVerticalMetrics = true

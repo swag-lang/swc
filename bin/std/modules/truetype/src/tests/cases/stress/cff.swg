@@ -27,11 +27,10 @@ using Core
 
     let index = expect readCffIndex(bytes.toSlice(), 0)
     Swag.require(index.count() == Count)
-    Swag.require(index.starts.count == Count + 1)
     Swag.require(index.end == bytes.count)
     for i in Count
     {
-        let item = expect index.item(bytes.toSlice(), cast(u32, i))
+        let item = index.item(cast(u32, i))
         Swag.require(item.count == 1 and item[0] == cast(u8, i % 251))
     }
 }

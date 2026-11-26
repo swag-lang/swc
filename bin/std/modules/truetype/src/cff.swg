@@ -59,29 +59,42 @@ const CffExpertEncoding: [256] u16 = [
     347, 348, 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359, 360, 361, 362,
     363, 364, 365, 366, 367, 368, 369, 370, 371, 372, 373, 374, 375, 376, 377, 378]
 
-// One CFF INDEX: a counted array of byte strings addressed through an offset table.
+// A CFF INDEX borrows its validated packed offsets and item bytes from the font.
 struct CffIndex
 {
-    starts: Array'u32     // Absolute offset of every item, plus the end of the last one.
-    end:    u64           // First byte after the whole structure.
+    late offsets: const [..] u8
+    late data:    const [..] u8
+    itemCount:    u32
+    offsetSize:   u8
+    end:          u64     // First byte after the whole structure.
+}
+
+#[Swag.Inline]
+private func readCffOffset(entry: const [*] u8, width: u8)->u32
+{
+    switch width
+    {
+    case 1:  return entry[0]
+    case 2:  return Math.make16(entry[0], entry[1])
+    case 3:  return Math.make32(0, entry[0], entry[1], entry[2])
+    default: return Math.make32(entry[0], entry[1], entry[2], entry[3])
+    }
 }
 
 impl CffIndex
 {
-    mtd const count()->u32 => .starts.count ? cast(u32, (.starts.count - 1)) : 0
+    mtd const count()->u32 => .itemCount
 
     // Returns one item of the index, or an empty slice for a position it does not hold.
-    mtd const item(block: const [..] u8, index: u32)->const [..] u8 fail
+    mtd const item(index: u32)->const [..] u8
     {
-        // A position the index does not hold answers empty, not absent: every reader loops to
-        // 'count', so an empty program is the benign outcome a malformed font deserves.
-        if cast(u64, index) + 1 >= .starts.count do
-            return block[until 0]
-        let from = .starts[index]
-        let stop = .starts[index + 1]
-        if stop < from do
-            try fault(0x08)
-        return try getSlice(block, from, stop - from)
+        if index >= .itemCount do
+            return ""
+
+        let entry = .offsets.buffer + cast(u64, index) * .offsetSize
+        let from  = readCffOffset(entry, .offsetSize)
+        let stop  = readCffOffset(entry + .offsetSize, .offsetSize)
+        return Swag.makeSlice(.data.buffer + (from - 1), stop - from)
     }
 }
 
@@ -144,11 +157,12 @@ struct CffFont
     strings:     CffIndex
 
     // Names borrow the font program's string INDEX or the static CFF vocabulary.
-    glyphNames: Array'string
-    nameToGid:  HashTable'(string, u32)
-    encoding:   CffEncoding
-    codeToGid:  HashTable'(u32, u32)
-    cidToGid:   HashTable'(u32, u32)
+    glyphNames:    Array'string
+    nameToGid:     HashTable'(string, u32)
+    encoding:      CffEncoding
+    codeToGid:     HashTable'(u32, u32)
+    cidToGid:      HashTable'(u32, u32)
+    cidIsIdentity: bool
 
     // A CID-keyed font splits its private data across font dictionaries, one selected
     // per glyph, so the subroutines and width defaults are per dictionary rather than
@@ -212,6 +226,13 @@ impl CffFont
         }
     }
 
+    mtd const glyphIndexByCid(cid: u32)->u32
+    {
+        if .cidIsIdentity do
+            return cid < .charStrings.count() ? cid : 0
+        return .cidToGid.getOrDefault(cid, 0)
+    }
+
     // Returns the name a string identifier selects, from the standard vocabulary or the
     // font's own string INDEX.
     mtd const stringOf(sid: u32)->string fail
@@ -223,7 +244,7 @@ impl CffFont
         let customSid = sid - cast(u32, StandardStrings.count)
         if customSid >= .strings.count() do
             try fault(0x08)
-        let custom = try .strings.item(.block, customSid)
+        let custom = .strings.item(customSid)
         return cast(string?, custom) orelse ""
     }
 }
@@ -262,36 +283,34 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
     if offSize < 1 or offSize > 4 do
         try fault(0x08)
 
-    // Item offsets are one-based and relative to the byte before the data block, which
-    // is what makes the first item start exactly where the offset table ends.
-    let table      = offset + 3
-    let entryCount = cast(u32, count) + 1
-    let offsets    = try getSlice(block, table, cast(u64, entryCount) * offSize)
-    let dataBase   = table + offsets.count - 1
+    // Offsets are one-based. The last offset gives the end of the data and bounds
+    // all the preceding items once the offsets have been checked for monotonicity.
+    let table     = offset + 3
+    let offsets   = try getSlice(block, table, (cast(u64, count) + 1) * offSize)
+    let dataStart = table + offsets.count
+    if readCffOffset(offsets.buffer, offSize) != 1 do
+        try fault(0x08)
 
-    result.starts.reserve(entryCount)
-    let starts         = result.starts.storage()
-    var entry          = offsets.buffer
-    var previousOffset = 0'u32
-    for index in entryCount
+    var previousOffset = 1'u32
+    var entry = offsets.buffer + offSize
+    for count
     {
-        var value = 0'u32
-        for byteIndex in offSize do
-            value = value << 8 | entry[byteIndex]
-        entry += offSize
-
-        if not value or (index == 0 and value != 1) or value < previousOffset do
+        let value = readCffOffset(entry, offSize)
+        if value < previousOffset do
             try fault(0x08)
-
-        let itemOffset = dataBase + cast(u64, value)
-        if itemOffset > block.count or itemOffset > Swag.U32.Max do
-            try fault(0x08)
-        starts[index]  = cast(u32, itemOffset)
         previousOffset = value
+        entry += offSize
     }
 
-    result.starts.count = entryCount
-    result.end = result.starts.back()
+    let dataLength = cast(u64, previousOffset) - 1
+    if dataLength > block.count - dataStart or dataStart + dataLength > Swag.U32.Max do
+        try fault(0x08)
+
+    result.offsets    = offsets
+    result.data       = Swag.makeSlice(block.buffer + dataStart, dataLength)
+    result.itemCount  = count
+    result.offsetSize = offSize
+    result.end        = dataStart + dataLength
     return result
 }
 
@@ -604,8 +623,20 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
     // the same table answers two different questions depending on the font's kind.
     if font.isCid
     {
-        for sid, gid in sids do
-            font.cidToGid[sid] = cast(u32, gid)
+        // Identity charsets can resolve a CID by bounds check alone.
+        font.cidIsIdentity = true
+        for sid, gid in sids where sid != gid
+        {
+            font.cidIsIdentity = false
+            break
+        }
+
+        if not font.cidIsIdentity
+        {
+            for sid, gid in sids do
+                font.cidToGid[sid] = cast(u32, gid)
+        }
+
         return
     }
 
@@ -741,7 +772,7 @@ private func readCffFdArray(font: *CffFont, offset: u64) fail
     let fdArray = try readCffIndex(font.block, offset)
     for index in fdArray.count()
     {
-        let dict        = try parseCffDict(try fdArray.item(font.block, index))
+        let dict        = try parseCffDict(fdArray.item(index))
         let privateData = try readCffPrivate(font, &dict)
         font.fdLocalSubrs.add(privateData.subrs)
         font.fdDefaultWidth.add(privateData.defaultWidth)
@@ -766,7 +797,7 @@ func parseCffFont(block: const [..] u8)->CffFont fail
     if not topDict.count() do
         try fault(0x08)
 
-    let top = try parseCffDict(try topDict.item(block, 0))
+    let top = try parseCffDict(topDict.item(0))
     result.isCid = top.has(CFF_OP_ROS)
     result.charstringType = cast(u32, top.value(CFF_OP_CHARSTRING_TYPE, 0, 2))
     if result.charstringType != 2 do
@@ -787,7 +818,7 @@ func parseCffFont(block: const [..] u8)->CffFont fail
         try fault(0x08)
     result.charStrings = try readCffIndex(block, charStrings)
 
-    result.fontName = String.from(cast(string?, (try names.item(block, 0))))
+    result.fontName = String.from(cast(string?, names.item(0)))
     result.xMin     = clampToS16(top.value(CFF_OP_FONT_BBOX, 0, 0))
     result.yMin     = clampToS16(top.value(CFF_OP_FONT_BBOX, 1, 0))
     result.xMax     = clampToS16(top.value(CFF_OP_FONT_BBOX, 2, cast(f64, result.unitsPerEm)))

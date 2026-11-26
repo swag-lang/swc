@@ -182,6 +182,46 @@ Glyph indices, bitmap dimensions and bitmap checksums matched between the Swag b
 scenario. The Slick and Shavian `A` workloads both finish ahead of Pillow on this host. Open Sans
 and Font Awesome retain the largest gaps. The Windows timings are from the earlier comparison.
 
+#### Packed CFF indexes and public font samples
+
+The next Release run compares directly with `9f43abffa8`, the published font optimization, and
+adds five upstream font files. Swag retains the validated CFF offsets in their packed form, skips
+the CID hash table for identity charsets, and reads grouped Unicode maps and vertical metrics
+from validated spans.
+
+The timings use the same Linux host, pinned CPU, 20 px size and Pillow 12.3.0 with FreeType 2.14.3.
+Each result is the median of 11 interleaved batches. A batch opens and renders 501 fresh faces,
+or 11 for the 16.5 MB CJK font. The file cache stays warm. The total includes reading, parsing,
+setting the size and rendering a glyph. The repeated-glyph check renders 4,001 times with a face
+already open in each batch.
+
+| Fixture | Character | Published Swag (µs) | New Swag (µs) | Pillow (µs) | Swag time saved |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `slick.otf` | `a` | 40.55 | 36.94 | 111.70 | +8.9% |
+| `NotoSansShavian-Regular.otf` | `U+10450` | 37.49 | 32.73 | 73.70 | +12.7% |
+| `Lato-Regular.otf` | `A` | 68.87 | 66.09 | 98.80 | +4.0% |
+| `OpenSans-Regular.otf` | `A` | 141.11 | 118.84 | 109.87 | +15.8% |
+| `SourceCodePro-Regular.otf` | `A` | 96.94 | 84.67 | 102.69 | +12.7% |
+| `fontawesome-webfont.otf` | `U+F000` | 184.15 | 154.04 | 128.24 | +16.4% |
+| `SourceSans3-Regular.otf` | `A` | 504.32 | 262.63 | 241.58 | +47.9% |
+| `SourceSerif4-Regular.otf` | `g` | 317.62 | 176.73 | 225.67 | +44.4% |
+| `NimbusSans-Regular.otf` | `A` | 104.27 | 82.36 | 116.92 | +21.0% |
+| `NotoSans-Regular.ttf` | `A` | 638.13 | 667.29 | 1513.33 | -4.6% |
+| `NotoSansCJKjp-Regular.otf` | `U+65E5` | 18758.16 | 9176.11 | 1325.83 | +51.1% |
+
+Glyph indices, bitmap dimensions and bitmap checksums matched in all 11 cases. Median repeated
+render times ranged from 7% faster to 3% slower. The Noto Sans TTF control took 4.6% longer at
+its load median, with faster and slower batches on both sides. Noto Sans CJK retains the largest
+absolute gap against Pillow.
+
+The public fixtures were fetched directly from these upstream revisions.
+
+- Adobe Source Sans 3 OTF, 334,924 bytes. [Upstream file](https://github.com/adobe-fonts/source-sans/blob/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/OTF/SourceSans3-Regular.otf)
+- Adobe Source Serif 4 OTF, 241,392 bytes. [Upstream file](https://github.com/adobe-fonts/source-serif/blob/80d3f8894c09c937bebfa9011247d2e1c79fd6f4/OTF/SourceSerif4-Regular.otf)
+- URW Nimbus Sans OTF, 82,264 bytes. [Upstream file](https://github.com/ArtifexSoftware/urw-base35-fonts/blob/3c0ba3b5687632dfc66526544a4e811fe0ec0cd9/fonts/NimbusSans-Regular.otf)
+- Noto Sans TTF, 348,408 bytes. [Upstream file](https://github.com/notofonts/noto-fonts/blob/v20201206-phase3/hinted/ttf/NotoSans/NotoSans-Regular.ttf)
+- Noto Sans CJK JP OTF, 16,467,736 bytes. [Upstream file](https://github.com/notofonts/noto-cjk/blob/Sans2.004/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

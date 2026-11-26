@@ -123,10 +123,12 @@ using Swag, Core
     for MaxCharstringStack + 1 do
         code.add(32)
 
+    var indexBytes: Array'u8
+    indexBytes.add([0, 1, 1, 1, cast(u8, code.count + 1)])
+    indexBytes.add(code.toSlice())
     var type2: CffFont
-    type2.block = code.toSlice()
-    type2.charStrings.starts.add(0)
-    type2.charStrings.starts.add(cast(u32, code.count))
+    type2.block       = indexBytes.toSlice()
+    type2.charStrings = expect readCffIndex(type2.block, 0)
     var type2Outcome: Swag.Error
     discard catch runType2Charstring(&type2, 0, null) as type2Outcome
     Swag.require(type2Outcome.value() != null)

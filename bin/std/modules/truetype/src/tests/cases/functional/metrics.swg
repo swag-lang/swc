@@ -31,18 +31,15 @@ using Swag, Core
 // CFF and Type 1 advances use the widths their charstrings declare.
 #test
 {
-    var cffBytes: Array'u8
-    cffBytes.add(189'u8)     // 50
-    cffBytes.add(14'u8)      // endchar
-    cffBytes.add(14'u8)      // zero-width endchar
+    const CffIndexBytes: [9] u8 = [
+        0, 2, 1, 1, 3, 4,     // Two charstrings with one-byte offsets.
+        189, 14, 14]          // Width 50, endchar, then zero-width endchar.
 
     var cffFace: FaceImpl
     cffFace.face.setGlyphCount(2)
-    cffFace.outlineSource = .Cff
-    cffFace.cff.block     = cffBytes.toSlice()
-    cffFace.cff.charStrings.starts.add(0)
-    cffFace.cff.charStrings.starts.add(2)
-    cffFace.cff.charStrings.starts.add(3)
+    cffFace.outlineSource   = .Cff
+    cffFace.cff.block       = CffIndexBytes
+    cffFace.cff.charStrings = expect readCffIndex(CffIndexBytes, 0)
     expect buildCharstringMetrics(&cffFace)
     Swag.require(expect cffFace.face.getAdvanceWidth(0) == 50)
     Swag.require(expect cffFace.face.getAdvanceWidth(1) == 0)

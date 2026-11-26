@@ -241,7 +241,7 @@ impl FaceImpl
     {
         if .outlineSource != .Cff or not .cff.isCid do
             return 0
-        return .cff.cidToGid.getOrDefault(cid, 0)
+        return .cff.glyphIndexByCid(cid)
     }
 }
 

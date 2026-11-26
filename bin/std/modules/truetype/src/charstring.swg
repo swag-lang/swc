@@ -409,7 +409,7 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             let entry = cast(s32, index) + subrBias(table.count())
             if entry < 0 or cast(u32, entry) >= table.count() do
                 try fault(0x86)
-            try execType2(state, try table.item(state.font.block, cast(u32, entry)), depth + 1)
+            try execType2(state, table.item(cast(u32, entry)), depth + 1)
             if state.finished do
                 return
 
@@ -727,7 +727,7 @@ func runType2Charstring(font: *CffFont, gid: u32, builder: *OutlineBuilder?)->f6
         .widthOnly    = builder == null
     }
 
-    try execType2(&state, try font.charStrings.item(font.block, gid), 0)
+    try execType2(&state, font.charStrings.item(gid), 0)
     builder?.closeContour()
 
     // A composed glyph is drawn as its base plus its accent, placed by the offsets the

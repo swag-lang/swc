@@ -131,6 +131,25 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // A packed INDEX can start inside a table and give an item zero bytes.
+    const IndexBytes: [17] u8 = [0xAA, 0, 2, 4,
+                                 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 2,
+                                 0xBB]
+    let index = expect readCffIndex(IndexBytes, 1)
+    Swag.require(index.count() == 2 and index.end == IndexBytes.count)
+    Swag.require(index.item(0).count == 0 and index.item(2).count == 0)
+    let item = index.item(1)
+    Swag.require(item.count == 1 and item[0] == 0xBB)
+
+    var invalidEnd = IndexBytes
+    invalidEnd[15] = 3
+    var rejected: Swag.Error
+    discard catch readCffIndex(invalidEnd, 1) as rejected
+    Swag.require(rejected.value() != null)
+}
+
+#test
+{
     // The predefined Expert charsets map glyph IDs through their canonical SIDs.
     var expertBytes = buildPredefinedCffCharset(1)
     let expert      = expect parseCffFont(expertBytes.toSlice())
@@ -295,6 +314,33 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
     rejected = {}
     discard catch parseCffFont(invalidFormat3.toSlice()) as rejected
     Swag.require(rejected.value() != null)
+}
+
+#test
+{
+    var bytes: Array'u8
+    bytes.add([
+        0x01, 0x00, 0x04, 0x04,                       // Header
+        0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
+        0x00, 0x01, 0x01, 0x01, 0x0C,                 // Top DICT INDEX
+        0xF8, 0x1B, 0xF8, 0x1C, 0x8B, 0x0C, 0x1E,     // ROS Adobe Identity 0
+        0xC4, 0x0F, 0xBA, 0x11,                       // Charset at 57, CharStrings at 47
+        0x00, 0x02, 0x01, 0x01, 0x06, 0x0E,           // String INDEX
+        0x41, 0x64, 0x6F, 0x62, 0x65, 0x49, 0x64, 0x65, 0x6E, 0x74, 0x69, 0x74, 0x79,
+        0x00, 0x00,     // GlobalSubrs INDEX
+        0x00, 0x03, 0x01, 0x01, 0x02, 0x03, 0x04, 0x0E, 0x0E, 0x0E,
+        0x00, 0x00, 0x01, 0x00, 0x02])     // Format-0 identity charset
+
+    let identity = expect Face.load(bytes.toSlice())
+    defer identity.destroy()
+    Swag.require(identity.glyphIndexByCid(1) == 1 and identity.glyphIndexByCid(2) == 2)
+    Swag.require(identity.glyphIndexByCid(3) == 0)
+
+    // Sparse charsets preserve the final glyph index for a repeated CID.
+    bytes[59], bytes[61] = 7
+    let sparse = expect Face.load(bytes.toSlice())
+    defer sparse.destroy()
+    Swag.require(sparse.glyphIndexByCid(1) == 0 and sparse.glyphIndexByCid(7) == 2)
 }
 
 #test

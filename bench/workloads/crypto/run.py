@@ -37,6 +37,10 @@ REFERENCES = {
     "aes-256-ctr": {"OpenSSL": "aes-256-ctr"},
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
     "aes-256-gcm-aad": {"OpenSSL": "aes-256-gcm-aad"},
+    "aes-256-kw": {"OpenSSL": "aes-256-kw"},
+    "aes-256-kwp": {"OpenSSL": "aes-256-kwp"},
+    "aes-256-kw-unwrap": {"OpenSSL": "aes-256-kw-unwrap"},
+    "aes-256-kwp-unwrap": {"OpenSSL": "aes-256-kwp-unwrap"},
     "aes-256-cmac": {"OpenSSL": "aes-256-cmac"},
     "aes-256-siv": {"OpenSSL": "aes-256-siv"},
     "aes-256-ccm": {"OpenSSL": "aes-256-ccm"},
@@ -116,7 +120,16 @@ def compare(work, name, size, offset, runners, rounds, target_ms, clock, verify_
     source = random.Random(0x5A6D_2026).randbytes(size + offset)
     fixture.write_bytes(source)
     reference = next(iter(runners.values()))
+    unwrap = name in ("aes-256-kw-unwrap", "aes-256-kwp-unwrap")
+    if unwrap:
+        executable, _, workers = reference
+        _, wrapped = invoke((executable, name.removesuffix("-unwrap"), workers), fixture, output, 1, offset)
+        fixture.write_bytes(source[:offset] + wrapped)
     _, expected = invoke(reference, fixture, output, 1, offset)
+    if unwrap:
+        length = (size + 7) & ~7 if name == "aes-256-kwp-unwrap" else size
+        original = source[offset:] + bytes(length - size)
+        require_output(expected, original, "OpenSSL unwrap", name, size, offset)
     samples = {}
     for label, runner in runners.items():
         elapsed, result = invoke(runner, fixture, output, 1, offset)
@@ -249,6 +262,12 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
             parser.error(f"{name} requires a 16-byte to 16-MiB data unit")
     if "aes-256-ccm" in sizes and any(size >= 1 << 24 for size in sizes["aes-256-ccm"]):
         parser.error("aes-256-ccm requires a payload below 16 MiB with its 12-byte nonce")
+    for name in ("aes-256-kw", "aes-256-kw-unwrap"):
+        if name in sizes and any(size < 16 or size % 8 for size in sizes[name]):
+            parser.error(f"{name} requires at least 16 bytes in whole eight-byte blocks")
+    for name in ("aes-256-kwp", "aes-256-kwp-unwrap"):
+        if name in sizes and any(size < 1 for size in sizes[name]):
+            parser.error(f"{name} requires at least one byte")
     if any(offset < 0 for offset in offsets):
         parser.error("offsets must be nonnegative")
     if args.rounds < 6 or args.target_ms < 1:

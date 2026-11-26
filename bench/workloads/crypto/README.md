@@ -151,6 +151,13 @@ fixed 256-bit keys and one 16-byte tweak. The decryption case treats the
 input file as ciphertext. Try sizes such as 17 and 145 to exercise
 ciphertext stealing.
 
+## AES key wrap
+
+Select `aes-256-kw`, `aes-256-kwp`, `aes-256-kw-unwrap` or `aes-256-kwp-unwrap`.
+The harness prepares wrapped input with OpenSSL before timing unwrapping. Sizes and rates
+use the original key-data length. The KWP unwrap adapters zero the unused output capacity
+so the comparison checks the complete result buffer.
+
 ## HKDF
 
 Select `hkdf-sha224`, `hkdf-sha256`, `hkdf-sha384` or `hkdf-sha512` with

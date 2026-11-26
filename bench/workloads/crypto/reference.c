@@ -49,6 +49,7 @@ static size_t mac_size;
 static int authenticated;
 static int use_aes_ctr;
 static int decrypt_xts;
+static int wrap_padded;
 static EC_GROUP *p256_group;
 static EC_POINT *p256_point;
 static BN_CTX *p256_context;
@@ -217,6 +218,31 @@ static void encrypt_siv_evp(const unsigned char *p, size_t n, unsigned char *out
             (size_t)(used + tail) == n &&
             EVP_CIPHER_CTX_ctrl(cipher_context, EVP_CTRL_AEAD_GET_TAG, 16, out + n),
             "OpenSSL SIV encryption failed");
+}
+
+static void encrypt_keywrap_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    int used = 0;
+    int tail = 0;
+    const size_t expected = wrap_padded ? ((n + 7) & ~(size_t)7) + 8 : n + 8;
+    require(EVP_EncryptInit_ex2(cipher_context, NULL, key, NULL, NULL) &&
+            EVP_EncryptUpdate(cipher_context, out, &used, p, (int)n) &&
+            EVP_EncryptFinal_ex(cipher_context, out + used, &tail) &&
+            (size_t)(used + tail) == expected, "OpenSSL key wrap failed");
+}
+
+static void decrypt_keywrap_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    int used = 0;
+    int tail = 0;
+    require(EVP_DecryptInit_ex2(cipher_context, NULL, key, NULL, NULL) &&
+            EVP_DecryptUpdate(cipher_context, out, &used, p, (int)n) &&
+            EVP_DecryptFinal_ex(cipher_context, out + used, &tail), "OpenSSL key unwrap failed");
+    const size_t length = (size_t)(used + tail);
+    const size_t capacity = n - 8;
+    require(length <= capacity && (wrap_padded ? length > capacity - 8 : length == capacity),
+            "OpenSSL key unwrap returned an invalid length");
+    memset(out + length, 0, capacity - length);
 }
 
 static void authenticate_aad_evp(const unsigned char *p, size_t n, unsigned char *out)
@@ -557,6 +583,31 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
                 "OpenSSL could not initialize the SIV cipher context");
         *result_size = input_size + 16;
         return encrypt_siv_evp;
+    }
+
+    if (!strcmp(name, "aes-256-kw") || !strcmp(name, "aes-256-kwp") ||
+        !strcmp(name, "aes-256-kw-unwrap") || !strcmp(name, "aes-256-kwp-unwrap")) {
+        const int unwrap = strstr(name, "-unwrap") != NULL;
+        wrap_padded = !strcmp(name, "aes-256-kwp") || !strcmp(name, "aes-256-kwp-unwrap");
+        if (unwrap)
+            require(input_size % 8 == 0 && input_size >= (wrap_padded ? 16 : 24),
+                    "Invalid AES key-unwrap input size");
+        else
+            require(wrap_padded ? input_size != 0 : input_size >= 16 && input_size % 8 == 0,
+                    "Invalid AES key-wrap input size");
+        cipher = EVP_CIPHER_fetch(NULL, wrap_padded ? "aes-256-wrap-pad" : "aes-256-wrap", NULL);
+        require(cipher != NULL, "OpenSSL could not fetch AES key wrap");
+        cipher_context = EVP_CIPHER_CTX_new();
+        require(cipher_context != NULL, "OpenSSL could not allocate a cipher context");
+        EVP_CIPHER_CTX_set_flags(cipher_context, EVP_CIPHER_CTX_FLAG_WRAP_ALLOW);
+        require(EVP_CipherInit_ex2(cipher_context, cipher, NULL, NULL, !unwrap, NULL),
+                "OpenSSL could not initialize the key-wrap cipher context");
+        if (unwrap) {
+            *result_size = input_size - 8;
+            return decrypt_keywrap_evp;
+        }
+        *result_size = wrap_padded ? ((input_size + 7) & ~(size_t)7) + 8 : input_size + 8;
+        return encrypt_keywrap_evp;
     }
 
     if (!strcmp(name, "aes-256-gcm-aad")) {

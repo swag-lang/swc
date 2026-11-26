@@ -84,6 +84,22 @@ func aes256Cmac(input: const [..] u8, output: [..] u8)
 func aes256Siv(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesSivEncryptWithAssociatedData(DualAesKey, AssociatedData, input, output[until input.count], output[input.count until output.count])
 
+func aes256KeyWrap(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesKeyWrap(Key, input, output)
+
+func aes256PaddedKeyWrap(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesKeyWrapWithPadding(Key, input, output)
+
+func aes256KeyUnwrap(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.aesKeyUnwrap(Key, input, output)
+
+func aes256PaddedKeyUnwrap(input: const [..] u8, output: [..] u8)
+{
+    let length = expect Crypto.aesKeyUnwrapWithPadding(Key, input, output)
+    if length < output.count do
+        Memory.set(output.buffer + length, 0'u8, output.count - length)
+}
+
 func aes256GcmAad(input: const [..] u8, output: [..] u8) =>
     expect Crypto.aesGcmEncrypt(Key, Nonce, input, "", output[until 0], output)
 
@@ -164,6 +180,10 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "aes-256-ccm":       return {&aes256Ccm, size + 16}
     case "aes-256-cmac":      return {&aes256Cmac, 16}
     case "aes-256-siv":       return {&aes256Siv, size + 16}
+    case "aes-256-kw":        return {&aes256KeyWrap, size + 8}
+    case "aes-256-kwp":       return {&aes256PaddedKeyWrap, ((size + 7) & ~7'u64) + 8}
+    case "aes-256-kw-unwrap":  return {&aes256KeyUnwrap, size - 8}
+    case "aes-256-kwp-unwrap": return {&aes256PaddedKeyUnwrap, size - 8}
     case "aes-256-gcm-aad":   return {&aes256GcmAad, 16}
     case "aes-256-xts-encrypt": return {&aes256XtsEncrypt, size}
     case "aes-256-xts-decrypt": return {&aes256XtsDecrypt, size}

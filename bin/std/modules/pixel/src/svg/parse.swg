@@ -72,7 +72,8 @@ struct Shape
         hasFill:      bool        // Whether the shape is filled.
         evenOdd:      bool        // Whether the fill uses the even-odd rule.
 
-        hidden: bool     // Whether the shape is a reusable definition, not painted directly.
+        hidden:   bool     // Whether the shape is a reusable definition, not painted directly.
+        lazyRect: bool     // The path-list bounds hold the corners until geometry is needed.
 
         stroke: u64     // Index plus one of authored stroke properties.
 
@@ -2097,7 +2098,7 @@ private impl Parser
         .emitShapeOne(#move list, state, scanFill)
     }
 
-    mtd emitShapeOne(list: #move LinePathList, state: *GroupState, scanFill = false)
+    mtd emitShapeOne(list: #move LinePathList, state: *GroupState, scanFill = false, rect: Rectangle = {})
     {
         let shapeIndex = .drawing.shapes.count
         let shape      = .drawing.shapes.emplaceInitAddress()
@@ -2110,6 +2111,11 @@ private impl Parser
 
         shape.pathList = #move list
         shape.hidden   = state.inDefs
+        if rect.width > 0
+        {
+            shape.lazyRect = true
+            shape.pathList.setBounds(Vector2{rect.x, rect.y}, Vector2{rect.right(), rect.bottom()})
+        }
 
         shape.hasFill = state.hasFill
         if state.hasFill
@@ -2159,29 +2165,43 @@ private impl Parser
             return
 
         var list: LinePathList
-        let path = list.newPath()
-        let crx  = Math.min(rx, w * 0.5)
-        let cry  = Math.min(ry, h * 0.5)
+        let crx = Math.min(rx, w * 0.5)
+        let cry = Math.min(ry, h * 0.5)
 
         if crx >= w * 0.5 - 0.001 and cry >= h * 0.5 - 0.001
         {
             // Full horizontal and vertical corner radii form an ellipse.
-            appendEllipse(path, state, x + w * 0.5, y + h * 0.5, w * 0.5, h * 0.5)
+            appendEllipse(list.newPath(), state, x + w * 0.5, y + h * 0.5, w * 0.5, h * 0.5)
         }
         elif isAxisAligned(state.transform)
         {
             let origin = mapPoint(state, x, y)
             let scale  = state.transform.axisScale()
-            let sx     = scale.x
-            let sy     = scale.y
-            if crx > 0 and cry > 0 do
-                path.setRoundRectRaw(origin.x, origin.y, w * sx, h * sy, crx * sx, cry * sy)
-            else do
-                path.setRectRaw(origin.x, origin.y, w * sx, h * sy)
+            let rect   = Rectangle{origin.x, origin.y, w * scale.x, h * scale.y}
+            if crx > 0 and cry > 0
+            {
+                list.newPath().setRoundRectRaw(rect.x, rect.y, rect.width, rect.height, crx * scale.x, cry * scale.y)
+            }
+            elif not state.inDefs and
+                 not state.hasStroke and
+                 not state.fillPaintId.count and
+                 not state.filterId.count and
+                 finitePoint(origin) and
+                 finitePoint(Vector2{rect.right(), rect.bottom()}) and
+                 not Math.isEqualEpsilon(rect.x, rect.right()) and
+                 not Math.isEqualEpsilon(rect.y, rect.bottom())
+            {
+                .emitShapeOne(#move list, state, rect: rect)
+                return
+            }
+            else
+            {
+                list.newPath().setRectRaw(rect.x, rect.y, rect.width, rect.height)
+            }
         }
         else
         {
-            appendRectContour(path, state, x, y, w, h, crx, cry)
+            appendRectContour(list.newPath(), state, x, y, w, h, crx, cry)
         }
 
         .emitShapeOne(#move list, state)
@@ -2630,6 +2650,8 @@ private impl Parser
         for i in count
         {
             let shape = &.drawing.shapes[first + i]
+            if shape.lazyRect do
+                shape.materializeRect()
             shape.pathList.flatten(.Normal)
             for path in shape.pathList.paths
             {
@@ -4137,6 +4159,17 @@ private impl Parser
 // against a viewport is widened by so an item touching the edge is never rejected.
 private const InkFringeMargin = 2.0'f32
 
+private impl Shape
+{
+    mtd materializeRect()
+    {
+        let min = .pathList.minBounds
+        let max = .pathList.maxBounds
+        .pathList.newPath().setRectCornersRaw(min.x, min.y, max.x, max.y)
+        .lazyRect = false
+    }
+}
+
 private impl Drawing
 {
     mtd const strokeFor(shape: const *Shape)->*ShapeStroke?
@@ -4150,6 +4183,12 @@ private impl Drawing
     {
         if shape.scanFill do
             return .scanFills[shape.scanFill - 1].bounds
+        if shape.lazyRect
+        {
+            let min  = shape.pathList.minBounds
+            let size = shape.pathList.maxBounds - min
+            return Rectangle{min.x, min.y, size.x, size.y}
+        }
 
         var result: #returntype = shape.pathList.controlBounds()
         let stroke = .strokeFor(shape)
@@ -4461,6 +4500,8 @@ impl Drawing
     {
         if paintFill and shape.hasFill
         {
+            if shape.lazyRect do
+                shape.materializeRect()
             if shape.scanFill do
                 .scanFills[shape.scanFill - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do

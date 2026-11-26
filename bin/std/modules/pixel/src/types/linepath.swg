@@ -443,9 +443,11 @@ public impl LinePath
     // geometry, such as a parsed vector document, stays untouched.
     mtd setRectRaw(l, t, w, h: f32)
     {
-        let r = l + w
-        let b = t + h
+        .setRectCornersRaw(l, t, l + w, t + h)
+    }
 
+    internal mtd setRectCornersRaw(l, t, r, b: f32)
+    {
         .start(l, t)
         if not .elements.capacity and not Math.isEqualEpsilon(l, r) and not Math.isEqualEpsilon(t, b) do
             .elements.reserve(4)

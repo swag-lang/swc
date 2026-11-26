@@ -341,6 +341,27 @@ private const ManyStopSvg = """\
     Swag.require(image.pixelColor(36, 24).a > 0)
 }
 
+// A rectangle's perimeter contributes when its containing group calibrates a dashed path.
+#test
+{
+    const Grouped   = """\
+        <svg width='100' height='32'><g pathLength='20'>\
+        <rect x='4' y='4' width='5' height='5' fill='red'/>\
+        <path d='M10 22H90' fill='none' stroke='blue' stroke-width='4' stroke-dasharray='3 2'/>\
+        </g></svg>"""
+    const Reference = """\
+        <svg width='100' height='32'>\
+        <rect x='4' y='4' width='5' height='5' fill='red'/>\
+        <path d='M10 22H90' fill='none' stroke='blue' stroke-width='4' stroke-dasharray='3 2' pathLength='16'/>\
+        </svg>"""
+
+    let grouped   = expect Svg.Drawing.parse(Grouped)
+    let reference = expect Svg.Drawing.parse(Reference)
+    let image     = grouped.rasterize(100, 32, 1)
+    let expected  = reference.rasterize(100, 32, 1)
+    Swag.require(Memory.compare(image.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
+}
+
 // The public line fixture calibrates its dash pattern through pathLength=25:
 // a 200-unit line turns the authored 3/1 sequence into 24/8 user-unit spans.
 #test

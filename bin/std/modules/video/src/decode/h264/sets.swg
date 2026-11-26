@@ -53,15 +53,21 @@ func dequantLevel(level: s32, scale: u32, shift: u32)->s16 => cast(s16, Math.cla
 
 // Stores the levels of one block, decoded in scan order, at their raster positions, dequantized
 // with one row of the scaling table.
-func storeLevels(levels: const [*] s16, count: u32, coeffs: [*] s16, order: u64, scale: [*] u32, shift: u32)
+func(COUNT: u32) storeLevels(levels: const *[16] s16, coeffs: [*] s16, order: u64, scale: [*] u32, shift: u32)
 {
-    for index in cast(u64, count)
+    using Core.Math.Simd
+    let input   = cast(const [*] u16, levels)
+    let zero    = splat(0'u16)
+    let low     = bitmask(load(input) != zero)
+    let high    = bitmask(load(input + 8) != zero)
+    var present = (low | (high << 8)) & ((1'u32 << COUNT) - 1)
+    while present
     {
-        let level = cast(s32, levels[index])
-        if level == 0 do
-            continue
+        let index  = cast(u64, Swag.trailingZeros(present))
         let raster = cast(u64, ResidualOrder[order + index])
+        let level  = cast(s32, levels[][index])
         coeffs[raster] = dequantLevel(level, scale[raster], shift)
+        present        &= present - 1
     }
 }
 

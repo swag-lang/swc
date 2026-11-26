@@ -186,6 +186,24 @@ original Swag decoder and FFmpeg exactly. The focused native Release selection p
 Generate the 1080p cases with `generate.py --avc-slices`. For the 4K case, retain the
 first 48 pictures of the default generator's six-slice clip with FFmpeg stream copy.
 
+### AVC CAVLC nonzero coefficient stores
+
+The CAVLC reader skips coefficient storage when the transform block is empty.
+On nonempty blocks, two vectors identify the nonzero positions. The decoder
+walks those bits and applies the existing scan order and inverse quantization.
+All 396 pictures matched FFmpeg 9.1 exactly, and the native Release selection
+passed 81 H.264, MP4 and Matroska tests.
+
+Seven rotating runs used one CPU and a 16-picture warm-up. The High stream
+uses CABAC and serves as the timing control.
+[Timing samples](avc-cavlc-coefficient-mask.json)
+
+| Stream | Before, ms/picture | Mask, ms/picture | Paired time change | FFmpeg 9.1 |
+| --- | ---: | ---: | ---: | ---: |
+| Baseline, 1080p | 6.403 | 5.397 | −5.3% | 2.210 |
+| Baseline with texture, 960×540 | 5.592 | 4.569 | −19.0% | 2.004 |
+| High, eight slices, 1080p | 6.790 | 7.045 | −1.8% | 3.732 |
+
 ## FFmpeg 9.1 reference
 
 The current reference uses FFmpeg `n9.1` (`74e4393`), built on Linux x86-64 with runtime

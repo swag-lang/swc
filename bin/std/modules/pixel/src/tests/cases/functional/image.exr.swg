@@ -649,31 +649,36 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 {
     for format in [PixelFormat.Gray16, PixelFormat.GrayAlpha16, PixelFormat.RGB16, PixelFormat.RGBA16]
     {
-        var input    = Image.create(257, 256, format)
-        let samples  = cast([*] u16, input.pixels.storage())
-        let channels = cast(u64, format.channels())
-        for row in 256'u64
+        for width in [257'u64, 7] where width == 257 or format.isGrayscale()
         {
-            for column in 257'u64
+            let samplesPerRow = Math.min(width, 256'u64)
+            let height        = (65536 + samplesPerRow - 1) / samplesPerRow
+            var input         = Image.create(cast(s32, width), cast(s32, height), format)
+            let samples       = cast([*] u16, input.pixels.storage())
+            let channels      = cast(u64, format.channels())
+            for row in height
             {
-                // Keep the full range in vector lanes and place rounding boundaries in the tail.
-                let value = column < 256 ? row * 256 + column : (row & 1 ? 65199 : 65487)
-                let pixel = row * 257 + column
-                for channel in channels do
-                    samples[pixel * channels + channel] = cast(u16, (value + channel * 3179) & 65535)
+                for column in width
+                {
+                    // Cover all words, including all-scalar rows and midpoint values in vector tails.
+                    let value = column < samplesPerRow ? row * samplesPerRow + column : (row & 1 ? 65199 : 65487)
+                    let pixel = row * width + column
+                    for channel in channels do
+                        samples[pixel * channels + channel] = cast(u16, (value + channel * 3179) & 65535)
+                }
             }
-        }
 
-        var halfFormat: PixelFormat
-        if format.isGrayscale() do
-            halfFormat = format.hasAlpha() ? .GrayAlphaF16 : .GrayF16
-        else do
-            halfFormat = format.hasAlpha() ? .RGBAF16 : .RGBF16
-        let converted = input.convertedTo(halfFormat)
-        let expected  = expect converted.encodeToBytes("half.exr")
-        let output    = expect input.encodeToBytes("integer.exr")
-        Swag.require(output.count == expected.count)
-        Swag.require(Memory.compare(output.storage(), expected.storage(), output.count) == 0)
+            var halfFormat: PixelFormat
+            if format.isGrayscale() do
+                halfFormat = format.hasAlpha() ? .GrayAlphaF16 : .GrayF16
+            else do
+                halfFormat = format.hasAlpha() ? .RGBAF16 : .RGBF16
+            let converted = input.convertedTo(halfFormat)
+            let expected  = expect converted.encodeToBytes("half.exr")
+            let output    = expect input.encodeToBytes("integer.exr")
+            Swag.require(output.count == expected.count)
+            Swag.require(Memory.compare(output.storage(), expected.storage(), output.count) == 0)
+        }
     }
 }
 

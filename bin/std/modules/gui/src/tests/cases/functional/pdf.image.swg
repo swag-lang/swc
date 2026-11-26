@@ -172,6 +172,21 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(image.pixelColor(3, 0).g == 255)
 }
 
+// The palette mapping honors Decode, while the color key sees the packed sample.
+#test
+{
+    let samples: [4] u8 = [0x07, 0xFD, 0x38, 0xE5]
+    let dictionary      = "/Type /XObject /Subtype /Image /Width 3 /Height 2 /ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>] /BitsPerComponent 4 /Decode [2 0] /Mask [7 7]"
+    let document        = imageDocument(dictionary, samples)
+    let image           = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    Swag.require(image.pixelColor(0, 0) == Color.fromRgb(0, 0, 255))
+    Swag.require(image.pixelColor(1, 0).a == 0)
+    Swag.require(image.pixelColor(2, 0) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(0, 1) == Color.fromRgb(0, 0, 255))
+    Swag.require(image.pixelColor(1, 1) == Color.fromRgb(0, 255, 0))
+    Swag.require(image.pixelColor(2, 1) == Color.fromRgb(255, 0, 0))
+}
+
 // An ICCBased space is reduced to the family its component count names.
 #test
 {

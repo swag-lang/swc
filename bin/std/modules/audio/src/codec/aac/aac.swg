@@ -1274,6 +1274,42 @@ private impl AacCodec
             .applyStereoPair(channel)
     }
 
+    #[Swag.NoInline]
+    mtd reconstructMono(destination: [*] s16)
+    {
+        var pcm: [FrameSamples] f32
+        .synthesizeChannel(0, &pcm)
+        let source = cast(const [*] f32, &pcm[0])
+        for group in FrameSamples / 8
+        {
+            let index = 8 * group
+            let low   = roundNonStereoPcm32(Simd.load(source + index))
+            let high  = roundNonStereoPcm32(Simd.load(source + index + 4))
+            Simd.store(destination + index, Simd.packSigned(low, high))
+        }
+    }
+
+    #[Swag.NoInline]
+    mtd reconstructSurround(destination: [*] s16)
+    {
+        var pcm: [6, FrameSamples] f32
+        for channel in 6 do
+            .synthesizeChannel(.sourceChannel(cast(s32, channel)), &pcm[channel, 0])
+
+        let source = cast(const [*] f32, &pcm[0, 0])
+        for group in FrameSamples / 4
+        {
+            let index = 4 * group
+            let first = packSurroundPair(Simd.load(source + index),
+                                         Simd.load(source + FrameSamples + index))
+            let second = packSurroundPair(Simd.load(source + 2 * FrameSamples + index),
+                                          Simd.load(source + 3 * FrameSamples + index))
+            let third = packSurroundPair(Simd.load(source + 4 * FrameSamples + index),
+                                         Simd.load(source + 5 * FrameSamples + index))
+            storeSurroundPcm16(destination + 6 * index, first, second, third)
+        }
+    }
+
     mtd reconstruct(destination: [*] s16)
     {
         .prepareSpectrum()
@@ -1292,6 +1328,18 @@ private impl AacCodec
                 Simd.store(destination + 2 * index, packStereoPcm16(l, r))
             }
 
+            return
+        }
+
+        if .channels == 1
+        {
+            .reconstructMono(destination)
+            return
+        }
+
+        if .channels == 6
+        {
+            .reconstructSurround(destination)
             return
         }
 
@@ -1403,6 +1451,58 @@ private func packStereoPcm16(left, right: Simd.F32x4)->Simd.S16x8
     return Simd.packSigned(low, high)
 }
 
+private const PcmSafety        = #run Swag.compiler().getBuildCfg()!.safetyGuards
+private const GuardPcmOverflow = (PcmSafety & Swag.SafetyWhat.Overflow) != Swag.SafetyWhat.None
+
+#[Swag.Inline]
+private func roundNonStereoPcm32(samples: Simd.F32x4)->Simd.S32x4
+{
+    let roundedLanes = Simd.truncateToS32(samples + Math.copysign(Simd.splat(0.5'f32), samples))
+    #static if GuardPcmOverflow
+    {
+        // The scalar nonstereo path checks the float-to-integer conversion.
+        // Reuse that check only when SIMD reports a possibly out-of-range lane.
+        if Simd.anyTrue(cast #bit(Simd.U32x4, roundedLanes) == Simd.splat(0x80000000'u32))
+        {
+            for lane in 4 do
+                discard roundPcm16(samples[lane])
+        }
+    }
+
+    return roundedLanes
+}
+
+#[Swag.Inline]
+private func packSurroundPair(left, right: Simd.F32x4)->Simd.S16x8
+{
+    let li   = cast #bit (Simd.U32x4, roundNonStereoPcm32(left))
+    let ri   = cast #bit (Simd.U32x4, roundNonStereoPcm32(right))
+    let low  = cast #bit (Simd.S32x4, Simd.interleaveLow(li, ri))
+    let high = cast #bit (Simd.S32x4, Simd.interleaveHigh(li, ri))
+    return Simd.packSigned(low, high)
+}
+
+#[Swag.Inline]
+private func storeSurroundPcm16(output: [*] s16, first, second, third: Simd.S16x8)
+{
+    // Each 32-bit lane is a channel pair for one frame.
+    let a = cast #bit(Simd.U32x4, first)
+    let b = cast #bit(Simd.U32x4, second)
+    let c = cast #bit(Simd.U32x4, third)
+    const StartAB  = cast(Simd.U32x4, [0'u32, 4, 0, 1])
+    const StartC   = cast(Simd.U32x4, [0'u32, 1, 4, 3])
+    const MiddleBC = cast(Simd.U32x4, [1'u32, 5, 2, 2])
+    const MiddleA  = cast(Simd.U32x4, [0'u32, 1, 6, 3])
+    const EndCA    = cast(Simd.U32x4, [2'u32, 7, 0, 3])
+    const EndB     = cast(Simd.U32x4, [0'u32, 1, 7, 3])
+    let start  = Simd.permute2(Simd.permute2(a, b, StartAB), c, StartC)
+    let middle = Simd.permute2(Simd.permute2(b, c, MiddleBC), a, MiddleA)
+    let end    = Simd.permute2(Simd.permute2(c, a, EndCA), b, EndB)
+    Simd.store(output, cast #bit(Simd.S16x8, start))
+    Simd.store(output + 8, cast #bit(Simd.S16x8, middle))
+    Simd.store(output + 16, cast #bit(Simd.S16x8, end))
+}
+
 #[Swag.Inline]
 private func roundPcm16(sample: f32)->s16
 {
@@ -1495,6 +1595,46 @@ private func synthesizeChunk(states: [*] AacCodec, heads: [*] f32, initialShape:
     }
 }
 
+#[Swag.NoInline]
+private func mergeMonoPcm16(head, tail: const [*] f32, packetOutput: [*] s16)
+{
+    for group in FrameSamples / 8
+    {
+        let index = 8 * group
+        let low   = roundNonStereoPcm32(Simd.load(head + index) + Simd.load(tail + index))
+        let high  = roundNonStereoPcm32(Simd.load(head + index + 4) + Simd.load(tail + index + 4))
+        Simd.store(packetOutput + index, Simd.packSigned(low, high))
+    }
+}
+
+#[Swag.NoInline]
+private func mergeSurroundPcm16(worker: [*] AacCodec, head: const [*] f32, prev: const *[MaxChannels, FrameSamples] f32, packetOutput: [*] s16)
+{
+    let channel0 = worker.sourceChannel(0)
+    let channel1 = worker.sourceChannel(1)
+    let channel2 = worker.sourceChannel(2)
+    let channel3 = worker.sourceChannel(3)
+    let channel4 = worker.sourceChannel(4)
+    let channel5 = worker.sourceChannel(5)
+    let inputs: [6] const [*] f32 = [head + channel0 * FrameSamples, head + channel1 * FrameSamples,
+                                     head + channel2 * FrameSamples, head + channel3 * FrameSamples,
+                                     head + channel4 * FrameSamples, head + channel5 * FrameSamples]
+    let history: [6] const [*] f32 = [&prev[][channel0, 0], &prev[][channel1, 0], &prev[][channel2, 0],
+                                      &prev[][channel3, 0], &prev[][channel4, 0], &prev[][channel5, 0]]
+
+    for group in FrameSamples / 4
+    {
+        let frame = 4 * group
+        let a     = Simd.load(inputs[0] + frame) + Simd.load(history[0] + frame)
+        let b     = Simd.load(inputs[1] + frame) + Simd.load(history[1] + frame)
+        let c     = Simd.load(inputs[2] + frame) + Simd.load(history[2] + frame)
+        let d     = Simd.load(inputs[3] + frame) + Simd.load(history[3] + frame)
+        let e     = Simd.load(inputs[4] + frame) + Simd.load(history[4] + frame)
+        let f     = Simd.load(inputs[5] + frame) + Simd.load(history[5] + frame)
+        storeSurroundPcm16(packetOutput + 6 * frame, packSurroundPair(a, b), packSurroundPair(c, d), packSurroundPair(e, f))
+    }
+}
+
 private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverlap: const *[MaxChannels, FrameSamples] f32, count, stride: u64, output: [*] s16)
 {
     for index in count
@@ -1516,6 +1656,14 @@ private func mergeChunk(states: [*] AacCodec, heads: const [*] f32, initialOverl
                 let r     = Simd.load(right + frame) + Simd.load(rightTail + frame)
                 Simd.store(packetOutput + 2 * frame, packStereoPcm16(l, r))
             }
+        }
+        elif worker.channels == 1
+        {
+            mergeMonoPcm16(head, &prev[][0, 0], packetOutput)
+        }
+        elif worker.channels == 6
+        {
+            mergeSurroundPcm16(worker, head, prev, packetOutput)
         }
         else
         {

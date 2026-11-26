@@ -231,8 +231,42 @@ func writeSourcePixel(dst: [*] u8, header: Header, palette: Palette, src: const 
     }
 }
 
+private func writeOpaqueSpan(destination: [*] u8, source: const [*] u8, count: u64, rightOrigin: bool)
+{
+    using Math.Simd
+
+    const Reverse = cast(U8x16, [12'u8, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3])
+    const Opaque  = 0xFF00_0000'u32
+    let mask      = splat(Opaque)
+    let samples   = cast(const [*] u32, source)
+    let pixels    = cast([*] u32, destination)
+    var offset    = 0'u64
+    while count - offset >= 4
+    {
+        let start = rightOrigin ? count - offset - 4 : offset
+        var values = load(samples + start) | mask
+        if rightOrigin do
+            values = cast #bit(U32x4, shuffle(cast #bit(U8x16, values), Reverse))
+        store(pixels + offset, values)
+        offset += 4
+    }
+
+    while offset < count
+    {
+        let index = rightOrigin ? count - offset - 1 : offset
+        pixels[offset] = samples[index] | Opaque
+        offset += 1
+    }
+}
+
 private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u64, header: Header, palette: Palette, sourceBytes: u8, destinationBytes: s32, rightOrigin: bool) fail
 {
+    if header.bitsPerPixel == 32 and isRgbType(header.imageTypeCode) and not hasAttributeBits(header)
+    {
+        writeOpaqueSpan(destination, source, count, rightOrigin)
+        return
+    }
+
     let step  = rightOrigin ? -destinationBytes : destinationBytes
     let first = destination + (rightOrigin ? (count - 1) * destinationBytes : 0)
     for x in count do

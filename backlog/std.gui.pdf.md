@@ -562,6 +562,10 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   The CPU painter blends the union of stroke bodies, caps and joins once per
   path, moving the curve fixture's mean RGB closer to PDFium. The geometry walk
   still creates every dash outline and the rasterizer samples four subrows.
+- [Indexed image decoding](../bench/results/swagscope-filesamples/pdf-raster-linux.md#indexed-image-decoding)
+  brings the 1200 px indexed stress page from 389 to 55 ms. Palette conversion
+  now happens once per entry. The page loads in 20 ms, down from 356 ms.
+  PDFium takes 34 ms total. All 43 supported cases retain their bitmap CRC-32.
 - Measure cached glyph masks for transformed PDF text. Profile the remaining
   stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.

@@ -100,6 +100,64 @@ using Swag, Core
     }
 }
 
+// Canonical byte literals must work for every bit alignment and leave the following field unread.
+#test
+{
+    func(CHANNELS: u32) check(source: const [*] u8, shift, color: u32)
+    {
+        const Count = 23'u32
+        const Guard = 0xE2A76D61'u32
+        var actual: [Count + 2] u32
+        actual[0]         = Guard
+        actual[Count + 1] = Guard
+
+        var reader    = Webp.LosslessBitReader{ptr: source, last: source + 112}
+        var reference = reader
+        discard expect reader.read(shift)
+        discard expect reference.read(shift)
+        let decoded = Webp.losslessDecodeByteLiterals'CHANNELS(&reader, &actual[1], Count, color)
+        Swag.require(decoded)
+
+        for i in Count
+        {
+            let code = expect reference.read(8 * CHANNELS)
+            var rgba = color | (cast(u32, Webp.losslessReverseByte(cast(u8, (code & 0xFF)))) << 8)
+            #static if CHANNELS >= 3
+            {
+                rgba |= Webp.losslessReverseByte(cast(u8, ((code >> 8) & 0xFF)))
+                rgba |= cast(u32, Webp.losslessReverseByte(cast(u8, ((code >> 16) & 0xFF)))) << 16
+            }
+
+            #static if CHANNELS == 4 do
+                rgba |= cast(u32, Webp.losslessReverseByte(cast(u8, (code >> 24)))) << 24
+            Swag.require(actual[i + 1] == rgba)
+        }
+
+        Swag.require(actual[0] == Guard and actual[Count + 1] == Guard)
+        let suffix         = expect reader.read(13)
+        let expectedSuffix = expect reference.read(13)
+        Swag.require(suffix == expectedSuffix)
+
+        var short = Webp.LosslessBitReader{ptr: source, last: source + Count * CHANNELS - 1}
+        discard expect short.read(shift)
+        let saved  = short
+        let danger = Webp.losslessDecodeByteLiterals'CHANNELS(&short, &actual[1], Count, color)
+        Swag.require(not danger)
+        Swag.require(short.ptr == saved.ptr and short.nBits == saved.nBits and short.bits == saved.bits)
+    }
+
+    var source: [112] u8
+    for i in source.count do
+        source[i] = cast(u8, ((i * 173 + 19) & 0xFF))
+
+    for shift in 8'u32
+    {
+        check'1(&source[0], shift, 0xA042000F)
+        check'3(&source[0], shift, 0xA0000000)
+        check'4(&source[0], shift, 0)
+    }
+}
+
 // The coefficient sign path matches the probability-half reader across refill and EOF boundaries.
 #test
 {

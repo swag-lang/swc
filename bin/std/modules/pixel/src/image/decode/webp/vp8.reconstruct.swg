@@ -137,16 +137,9 @@ func vp8InverseWht(decoder: *Vp8Decoder)
     }
 }
 
-// Magnitudes above one share this less frequent subtree.
-private func vp8ReadLargeCoefficient(partition: *Vp8Partition, probabilities: const [*] u8)->s32
+// Magnitudes above four share the less frequent category subtree.
+private func vp8ReadCoefficientCategory(partition: *Vp8Partition, probabilities: const [*] u8)->s32
 {
-    if not partition.readBit(probabilities[3])
-    {
-        if not partition.readBit(probabilities[4]) do
-            return 2
-        return 3 + cast(s32, partition.readBit(probabilities[5]))
-    }
-
     if not partition.readBit(probabilities[6])
     {
         if not partition.readBit(probabilities[7]) do
@@ -261,9 +254,21 @@ private func vp8ParseResidualValues(partition: *Vp8Partition, probabilities, fir
         var value    = 1
         if readLocalBit(probability[2])
         {
-            saveLocal()
-            value = vp8ReadLargeCoefficient(partition, probability)
-            loadLocal()
+            if readLocalBit(probability[3])
+            {
+                saveLocal()
+                value = vp8ReadCoefficientCategory(partition, probability)
+                loadLocal()
+            }
+            elif readLocalBit(probability[4])
+            {
+                value = 3 + cast(s32, readLocalBit(probability[5]))
+            }
+            else
+            {
+                value = 2
+            }
+
             probability = nextBand + 2 * VP8_TOKEN_PROBS
         }
         else

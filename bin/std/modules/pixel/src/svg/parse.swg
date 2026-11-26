@@ -105,6 +105,7 @@ private struct ShapeStroke
     miter:   f32 = 3
 
     sharedPattern: bool
+    sharedStyle:   bool
     enabled:       bool         = true
     capStyle:      LineCapStyle = None
     joinStyle:     JoinStyle    = Miter
@@ -469,24 +470,25 @@ private struct Parser
     // Shapes defined inside `defs`, by id, instantiated by `use` elements. The
     // ranges index the drawing's shape array: defs shapes are parsed in place and
     // withheld from painting. These lookup tables borrow identifiers from the source.
-    defs:           HashTable'(string, { first: u64, count: u64 })
-    clipPaths:      HashTable'(string, { first: u64, count: u64 })
-    symbols:        HashTable'(string, SymbolViewport)
-    markers:        HashTable'(string, MarkerDefinition)
-    gradients:      HashTable'(string, Gradient)
-    referenceIds:   HashTable'(string, u64)
-    referenceNames: Array'string
-    patterns:       HashTable'(u64, Pattern)
-    filters:        HashTable'(u64, SvgFilter)
-    styles:         StyleSheet
-    dashPatterns:   HashTable'(string, ParsedDashPattern)
-    embeddedImages: HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
-    externalImages: HashTable'(string, CachedExternalRaster)     // Encoded bytes and raster indices for small files.
-    options:        ParseOptions
-    typeFaces:      [FontFamilyKind.count] (*TypeFace?)
-    svgDepth:       u32
-    inDefs:         bool     // Whether parsing currently sits inside a `defs` element.
-    dimensionsOnly: bool
+    defs:            HashTable'(string, { first: u64, count: u64 })
+    clipPaths:       HashTable'(string, { first: u64, count: u64 })
+    symbols:         HashTable'(string, SymbolViewport)
+    markers:         HashTable'(string, MarkerDefinition)
+    gradients:       HashTable'(string, Gradient)
+    referenceIds:    HashTable'(string, u64)
+    referenceNames:  Array'string
+    patterns:        HashTable'(u64, Pattern)
+    filters:         HashTable'(u64, SvgFilter)
+    styles:          StyleSheet
+    dashPatterns:    HashTable'(string, ParsedDashPattern)
+    lastSolidStroke: u64
+    embeddedImages:  HashTable'(string, u64)     // Raster indices plus one, keyed by the authored URI.
+    externalImages:  HashTable'(string, CachedExternalRaster)     // Encoded bytes and raster indices for small files.
+    options:         ParseOptions
+    typeFaces:       [FontFamilyKind.count] (*TypeFace?)
+    svgDepth:        u32
+    inDefs:          bool     // Whether parsing currently sits inside a `defs` element.
+    dimensionsOnly:  bool
 
     paintTransforms: Array'Math.Transform2     // Element transforms used to resolve paint references.
     instanceBounds:  HashTable'(u64, {min, max: Vector2})     // Bounds of reused definitions before placement.
@@ -2220,6 +2222,11 @@ private func(Candidates) appendHoles(group: *LinePathList, paths: const *LinePat
     }
 }
 
+private func applyPaintOpacity(color: Color, opacity: f32)->Color
+{
+    return color.withAlphaF32((cast(f32, color.a) / 255.0) * Math.saturate(opacity))
+}
+
 private impl Parser
 {
     mtd appendDashValues(lengths: const [..] SvgLength, geometryScale, viewportDiagonal: f32)->DashRange
@@ -2371,6 +2378,49 @@ private impl Parser
         .emitShapeOne(#move list, state, scanFill)
     }
 
+    mtd storeStroke(state: const *GroupState)->u64
+    {
+        var stroke: ShapeStroke
+        stroke.color   = state.strokeColor
+        stroke.paintId = .internReference(state.strokePaintId)
+        stroke.opacity = state.strokeOpacity * state.opacity
+
+        let geometryScale = transformScale(state.transform)
+        stroke.width = state.strokeWidth * geometryScale
+        let diagonal = state.strokePattern.count or state.strokeOffset.isPercent ?
+                       Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2 :
+                       0'f32
+        stroke.offset = (state.strokeOffset.isPercent ? state.strokeOffset.value * diagonal : state.strokeOffset.value) * geometryScale
+        stroke.miter  = state.strokeMiter
+        .resolveStrokePattern(&stroke, state.strokePattern, geometryScale, diagonal)
+        stroke.capStyle  = state.capStyle
+        stroke.joinStyle = state.joinStyle
+
+        if not stroke.paintId
+        {
+            stroke.color = applyPaintOpacity(stroke.color, stroke.opacity)
+            if not stroke.pattern.count and stroke.offset == 0
+            {
+                stroke.sharedStyle = true
+                if .lastSolidStroke
+                {
+                    let previous = &.drawing.strokes[.lastSolidStroke - 1]
+                    if previous.color.argb == stroke.color.argb and
+                       cast #bit(u32, previous.width) == cast #bit(u32, stroke.width) and
+                       cast #bit(u32, previous.miter) == cast #bit(u32, stroke.miter) and
+                       previous.capStyle == stroke.capStyle and
+                       previous.joinStyle == stroke.joinStyle do
+                        return .lastSolidStroke
+                }
+
+                .lastSolidStroke = .drawing.strokes.count + 1
+            }
+        }
+
+        .drawing.strokes.add(stroke)
+        return .drawing.strokes.count
+    }
+
     mtd emitShapeOne(list: #move LinePathList, state: *GroupState, scanFill = false, geometry: DeferredGeometry = {})
     {
         let shapeIndex = .drawing.shapes.count
@@ -2403,28 +2453,11 @@ private impl Parser
             shape.evenOdd     = state.evenOdd
         }
 
-        var hasPaintReference = shape.fillPaintId != 0
-        if state.hasStroke
-        {
-            let stroke = .drawing.strokes.emplaceInitAddress()
-            shape.stroke   = .drawing.strokes.count
-            stroke.color   = state.strokeColor
-            stroke.paintId = .internReference(state.strokePaintId)
-            stroke.opacity = state.strokeOpacity * state.opacity
+        if state.hasStroke do
+            shape.stroke = .storeStroke(state)
 
-            hasPaintReference = hasPaintReference or stroke.paintId != 0
-            let geometryScale = transformScale(state.transform)
-            stroke.width = state.strokeWidth * geometryScale
-            let viewportDiagonal = Math.sqrt(.drawing.width * .drawing.width + .drawing.height * .drawing.height) / Math.ConstF32.Sqrt2
-            stroke.offset = (state.strokeOffset.isPercent ? state.strokeOffset.value * viewportDiagonal : state.strokeOffset.value) * geometryScale
-            stroke.miter  = state.strokeMiter
-            .resolveStrokePattern(stroke, state.strokePattern, geometryScale, viewportDiagonal)
-
-            stroke.capStyle  = state.capStyle
-            stroke.joinStyle = state.joinStyle
-        }
-
-        if hasPaintReference do
+        let stroke = .drawing.strokeFor(shape)
+        if shape.fillPaintId or (stroke and stroke.paintId) do
             shape.paintTransform = .storePaintTransform(&state.transform)
         shape.filterId = .internReference(state.filterId)
 
@@ -3074,8 +3107,9 @@ private impl Parser
         let scale = actualLength / (authoredLength * Math.abs(geometryScale))
         for i in count
         {
-            let shape = &.drawing.shapes[first + i]
-            if let stroke = .drawing.strokeFor(shape)
+            let shape  = &.drawing.shapes[first + i]
+            let stroke = .drawing.strokeFor(shape)
+            if stroke and not stroke.sharedStyle
             {
                 .scaleDashValues(stroke, scale)
                 stroke.offset *= scale
@@ -4476,30 +4510,24 @@ private impl Parser
 
     mtd resolvePaints()
     {
-        func applyOpacity(color: Color, opacity: f32)->Color
-        {
-            return color.withAlphaF32((cast(f32, color.a) / 255.0) * Math.saturate(opacity))
-        }
-
         for &shape in .drawing.shapes
         {
             if shape.hasFill
             {
                 if not shape.fillPaintId do
-                    shape.fillColor = applyOpacity(shape.fillColor, shape.fillOpacity)
+                    shape.fillColor = applyPaintOpacity(shape.fillColor, shape.fillOpacity)
                 elif let gradient = .gradients.tryFind(.referenceNames[shape.fillPaintId - 1]) do
                     shape.fillGradient = .storeGradient(&gradient.value, shape, shape.fillOpacity)
                 elif .patterns.tryFind(shape.fillPaintId) do
-                    shape.fillColor = applyOpacity(Color.fromArgb(Argb.White), shape.fillOpacity)
+                    shape.fillColor = applyPaintOpacity(Color.fromArgb(Argb.White), shape.fillOpacity)
                 else do
                     shape.hasFill = false
             }
 
-            if let stroke = .drawing.strokeFor(shape)
+            let stroke = .drawing.strokeFor(shape)
+            if stroke and stroke.paintId
             {
-                if not stroke.paintId do
-                    stroke.color = applyOpacity(stroke.color, stroke.opacity)
-                elif let gradient = .gradients.tryFind(.referenceNames[stroke.paintId - 1]) do
+                if let gradient = .gradients.tryFind(.referenceNames[stroke.paintId - 1]) do
                     stroke.gradient = .storeGradient(&gradient.value, shape, stroke.opacity)
                 else do
                     stroke.enabled = false
@@ -4583,22 +4611,30 @@ private impl Parser
                 var hasPaintReference = fillPaintId != 0
                 if let original = .drawing.strokeFor(src)
                 {
-                    var stroke = original[]
-                    let scale  = transformScale(state.transform)
-                    hasPaintReference = hasPaintReference or stroke.paintId != 0
-                    stroke.width      *= scale
-                    stroke.offset     *= scale
-                    if stroke.pattern.count
+                    let scale = transformScale(state.transform)
+                    hasPaintReference = hasPaintReference or original.paintId != 0
+                    if original.sharedStyle and scale == 1
                     {
-                        stroke.sharedPattern = true
-                        if scale == 1 do
-                            original.sharedPattern = true
-                        else do
-                            .scaleDashValues(&stroke, scale)
+                        strokeIndex = src.stroke
                     }
+                    else
+                    {
+                        var stroke = original[]
+                        stroke.sharedStyle = false
+                        stroke.width       *= scale
+                        stroke.offset      *= scale
+                        if stroke.pattern.count
+                        {
+                            stroke.sharedPattern = true
+                            if scale == 1 do
+                                original.sharedPattern = true
+                            else do
+                                .scaleDashValues(&stroke, scale)
+                        }
 
-                    .drawing.strokes.add(stroke)
-                    strokeIndex = .drawing.strokes.count
+                        .drawing.strokes.add(stroke)
+                        strokeIndex = .drawing.strokes.count
+                    }
                 }
 
                 if hasPaintReference

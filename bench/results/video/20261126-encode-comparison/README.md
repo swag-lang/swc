@@ -87,6 +87,28 @@ The 552-picture corpus again retains byte-identical MP4 output, including QP 1 a
 and partial macroblocks with one and eight slices. All decoded sample planes match
 FFmpeg. The targeted Release selection passed 23 tests. [Measurements](h264-quantize-simd.json)
 
+### SIMD whole-sample motion scoring
+
+The encoder accumulates wide SAD lanes, checks the first row separately for a cheap
+rejection, reduces the remaining rows in pairs and compares vertical motion profiles in
+packed groups. A separate packed loop splits the NV12 chroma row into Cb and Cr and
+keeps a scalar tail for cropped macroblocks. Motion scores below the rejection bound
+and tie-breaking retain their original values.
+
+Seven rotated repetitions used one CPU and one slice at QP 25. Each timed run encoded
+six independent sequences of 30 pictures. The baseline uses the encoder from `f754ca61c6`.
+
+| Input | Median paired wall change | Median paired process CPU change |
+| --- | ---: | ---: |
+| Scrolling desktop | −11.8% | −11.8% |
+| Changing tiles | −15.9% | −14.9% |
+| Animated test pattern | −15.0% | −16.3% |
+| Camera | −7.7% | −8.3% |
+
+The four-clip QP sweep and the 650×370 one- and eight-slice cases produced the same MP4
+bytes on all 552 pictures. Their independently decoded planes match FFmpeg. All 23
+focused native Release tests passed. [Measurements](h264-motion-sad.json)
+
 ### Reproduction
 
 Build the Linux Release compiler and the native x264 reference using the [workload

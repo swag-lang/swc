@@ -540,7 +540,8 @@ impl Reader
     // Decoding frames in order never seeks and never rereads what it already read, so a player
     // costs one frame of memory and one frame of work per displayed frame, whatever the length
     // of the stream. Fails past the end of the stream, which is how the end of a stream with an
-    // unknown frame count is reached.
+    // unknown frame count is reached. Failing to decode a damaged picture may leave
+    // a matching destination partially written.
     mtd decodeFrameInto(target: *Image, index: u64) fail
     {
         if not .decoder do

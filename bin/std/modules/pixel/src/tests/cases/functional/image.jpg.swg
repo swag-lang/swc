@@ -30,6 +30,39 @@ func assertLoadedJpg(fileName: string, width, height: s32, b, g, r: u8)
     assertJpgPixelNear(img, b, g, r, 8'u8)
 }
 
+// Direct RGB output keeps the existing JPEG colours and reuses matching pixel storage.
+#test
+{
+    for name in ["gray.jpg", "h1v1.jpg", "h2v1.jpg", "h2v2.jpg", "sampling-thirds.jpg", "progh1v1.jpg", "cmyk.jpg", "ycck-odd-grid.jpg"]
+    {
+        let input    = expect File.readAllBytes(getTestDataPath(name))
+        let expected = (expect Image.decode(name, input.toSlice())).convertedTo(.RGB8)
+        var actual: Image
+        expect Jpg.decodeRgbInto(&actual, input.toSlice(), expected.width, expected.height)
+        Swag.require(actual.isValid() and actual.pixelFormat == .RGB8)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+        let pixels = actual.pixels.buffer
+        expect Jpg.decodeRgbInto(&actual, input.toSlice())
+        Swag.require(actual.pixels.buffer == pixels)
+
+        var errorOutcome: Swag.Error
+        catch { try Jpg.decodeRgbInto(&actual, input.toSlice(), expected.width + 1, expected.height) } as errorOutcome
+        Swag.require(errorOutcome.value() is InvalidFormatError)
+        Swag.require(actual.pixels.buffer == pixels)
+        Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+
+        if name == "h1v1.jpg"
+        {
+            Swag.require(input.count <= actual.byteCount)
+            Memory.copy(actual.pixels.storage(), input.storage(), input.count)
+            let overlapping = actual.pixels.toSlice()[until input.count]
+            expect Jpg.decodeRgbInto(&actual, overlapping)
+            Swag.require(actual.pixels.buffer != pixels)
+            Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.byteCount) == 0)
+        }
+    }
+}
+
 func assertJpgHasMarker(bytes: const [..] u8, marker: u8)
 {
     for i in bytes.count - 1

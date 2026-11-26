@@ -37,6 +37,7 @@ def arguments():
     parser.add_argument("--mpeg4-max-sample-difference", type=int, default=0,
                         help="allow this per-sample difference from FFmpeg for MPEG-4 Part 2")
     parser.add_argument("--reference", type=Path, help="prebuilt ffmpeg_native executable")
+    parser.add_argument("--jpeg-reference", type=Path, help="prebuilt libjpeg-turbo decoder for Motion JPEG RGB timings")
     parser.add_argument("input", type=Path, nargs="+")
     args = parser.parse_args()
     if not 0 < args.lanes <= 0x7FFFFFFF:
@@ -47,6 +48,10 @@ def arguments():
         parser.error("--warmup must be positive and fit in 32 bits")
     if not 0 <= args.mpeg4_max_sample_difference <= 255:
         parser.error("--mpeg4-max-sample-difference must be in 0 through 255")
+    if args.jpeg_reference and not args.rgb:
+        parser.error("--jpeg-reference requires --rgb")
+    if args.jpeg_reference:
+        args.jpeg_reference = args.jpeg_reference.resolve()
     args.output = args.output.resolve()
     roots = [REPO, args.library_bin.resolve()]
     if args.baseline_bin:
@@ -192,8 +197,11 @@ def benchmark_fixture(args, reference, executables, path, prefix):
     if args.quality_only:
         return result
 
-    timing = {name: [] for name in (*executables, "ffmpeg", "ffmpeg_no_simd")}
-    native_cpu = {"ffmpeg": [], "ffmpeg_no_simd": []}
+    native = ["ffmpeg", "ffmpeg_no_simd"]
+    if args.jpeg_reference and stream["codec_name"] == "mjpeg":
+        native.append("jpeg_turbo")
+    timing = {name: [] for name in (*executables, *native)}
+    native_cpu = {name: [] for name in native}
     order = list(timing)
     for repetition in range(args.repetitions):
         for name in order:
@@ -204,13 +212,16 @@ def benchmark_fixture(args, reference, executables, path, prefix):
                 count, ticks, frequency = map(int, SWAG_TIMING.findall(text)[0])
                 elapsed = ticks / frequency
             else:
-                command = [reference, path, "1", str(int(name == "ffmpeg_no_simd"))]
-                if args.warmup != WARMUP or args.lanes != 1 or rgb:
-                    command.append(str(args.warmup))
-                if args.lanes != 1 or rgb:
-                    command.append(str(args.lanes))
-                if rgb:
-                    command.append("rgb")
+                if name == "jpeg_turbo":
+                    command = [args.jpeg_reference, path, "1", str(args.warmup)]
+                else:
+                    command = [reference, path, "1", str(int(name == "ffmpeg_no_simd"))]
+                    if args.warmup != WARMUP or args.lanes != 1 or rgb:
+                        command.append(str(args.warmup))
+                    if args.lanes != 1 or rgb:
+                        command.append(str(args.lanes))
+                    if rgb:
+                        command.append("rgb")
                 text = run(command, log)
                 count_text, wall, cpu = FFMPEG_TIMING.findall(text)[0]
                 count, elapsed = int(count_text), float(wall)
@@ -224,6 +235,8 @@ def benchmark_fixture(args, reference, executables, path, prefix):
     result["warmup_frames"] = args.warmup
     result["wall_ms_per_frame"] = {name: {"samples": samples, "median": statistics.median(samples)}
                                    for name, samples in timing.items()}
+    if "jpeg_turbo" in native_cpu:
+        result["jpeg_turbo_cpu_ms_per_frame"] = native_cpu.pop("jpeg_turbo")
     result["ffmpeg_cpu_ms_per_frame"] = native_cpu
     return result
 
@@ -246,6 +259,12 @@ def main():
     report = {"ffmpeg": version, "lanes": args.lanes, "rgb": args.rgb,
               "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
               "results": results}
+    if reference:
+        native_version = subprocess.run([reference, "--version"], capture_output=True, text=True)
+        if native_version.returncode == 0:
+            report["ffmpeg_native"] = native_version.stdout.strip()
+    if not args.quality_only and args.jpeg_reference:
+        report["jpeg_reference"] = subprocess.check_output([args.jpeg_reference, "--version"], text=True).strip()
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     if not args.rgb:
         for result in results:

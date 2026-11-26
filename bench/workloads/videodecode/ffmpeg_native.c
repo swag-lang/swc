@@ -81,6 +81,11 @@ static void receive(AVCodecContext *codec, AVFrame *frame, unsigned *count,
 
 int main(int argc, char **argv)
 {
+    if (argc == 2 && !strcmp(argv[1], "--version"))
+    {
+        puts(av_version_info());
+        return 0;
+    }
     if (argc < 4 || argc > 7 || (argc == 7 && strcmp(argv[6], "rgb")))
         return 2;
     const unsigned repeats = strtoul(argv[2], NULL, 10);

@@ -25,7 +25,8 @@ Use Python 3.11 or later and ImageMagick 7. Set `MAGICK_CODER_MODULE_PATH` and
 `MAGICK_CONFIGURE_PATH` if your shared library uses modules outside its normal search path.
 Select an HDRI build to compare floating-point images without clamping the reference samples.
 The generator makes odd-sized images, sampled and progressive JPEGs, palette, grain and Adam7
-PNGs, grayscale LZW and color TIFFs, VP8 with and without alpha, VP8L, and transparent GIFs.
+PNGs, grayscale LZW and color TIFFs, VP8 with and without alpha, VP8L, BC1 and BC3 DDS textures,
+and transparent GIFs.
 You can pass additional raster files directly to the runner. Use a shared encoder version when
 regenerating a corpus, and verify the reported SHA-256 digests before comparing separate runs.
 

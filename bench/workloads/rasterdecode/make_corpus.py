@@ -29,6 +29,8 @@ def main():
           "-depth", "8", "-define", "png:color-type=2")
     write("adam7.png", "-resize", "641x427!", "-depth", "16", "-interlace", "PNG",
           "-define", "png:color-type=2", "-define", "png:bit-depth=16")
+    write("gray-adam7.png", "-resize", "769x513!", "-colorspace", "gray", "-depth", "8",
+          "-interlace", "PNG", "-define", "png:color-type=0")
     write("packbits.tiff", "-resize", "1025x683!", "-depth", "8", "-compress", "RLE")
     write("lzw-predictor.tiff", "-resize", "1025x683!", "-depth", "8", "-compress", "LZW",
           "-define", "tiff:predictor=2", "-define", "tiff:rows-per-strip=31")
@@ -38,6 +40,10 @@ def main():
     write("vp8-alpha.webp", "-resize", "1281x847!", "(", "-size", "1281x847", "gradient:", ")",
           "-alpha", "off", "-compose", "CopyAlpha", "-composite", "-quality", "82")
     write("vp8l.webp", "-resize", "1009x673!", "-define", "webp:lossless=true")
+    write("texture-bc1.dds", "-resize", "1537x1025!", "-define", "dds:mipmaps=0",
+          "-define", "dds:compression=dxt1")
+    write("texture-bc3.dds", "-resize", "1537x1025!", "-alpha", "set", "-channel", "A",
+          "-evaluate", "set", "63%", "+channel", "-define", "dds:mipmaps=0", "-define", "dds:compression=dxt5")
     write("transparent.gif", "-resize", "641x427!", "-alpha", "set", "-channel", "A",
           "-region", "128x128+0+0", "-evaluate", "set", "0", "+region", "+channel", "-colors", "128")
     subprocess.run([args.magick, "-delay", "8", output / "transparent.gif",

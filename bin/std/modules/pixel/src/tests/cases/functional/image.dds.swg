@@ -84,6 +84,29 @@ func ddsRoundtrip(source: Image)->Image
     return expect Image.decode("roundtrip.dds", nnBytes(encoded.toSlice()))
 }
 
+// BC3 packs interpolated alpha over a full block and clips the neighboring partial block.
+#test
+{
+    const Blocks: [32] u8 = [
+        255, 0, 0x88, 0xC6, 0xFA, 0, 0, 0, 0, 0xF8, 0, 0xF8, 0, 0, 0, 0,
+        0, 255, 6, 0x70, 0, 0, 0, 0, 0, 0xF8, 0, 0xF8, 0, 0, 0, 0]
+    const ExpectedAlpha: [8] u8 = [255, 0, 218, 182, 145, 109, 72, 36]
+    var image = Image.create(5, 2, .RGBA8)
+    for topDown in [true, false]
+    {
+        expect TextureBlocks.decode(&image, Blocks, .BC3, topDown)
+        for alpha, index in ExpectedAlpha
+        {
+            let y     = cast(s32, (index / 4))
+            let pixel = image.pixelColor(cast(s32, (index % 4)), topDown ? y : 1 - y)
+            Swag.require(pixel.r == 255 and pixel.g == 0 and pixel.b == 0 and pixel.a == alpha)
+        }
+
+        Swag.require(image.pixelColor(4, topDown ? 0 : 1).a == 0)
+        Swag.require(image.pixelColor(4, topDown ? 1 : 0).a == 255)
+    }
+}
+
 // The alpha mask is meaningful only when DDPF_ALPHAPIXELS is declared.
 #test
 {

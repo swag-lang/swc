@@ -552,7 +552,7 @@ public impl Blake3
 
         let chunkCount = (data.count - 1) / Blake3ChunkSize + 1
         let workers    = Swag.workerCount()
-        if workers <= 1 or chunkCount < cast(u64, workers) * 2
+        if workers <= 1 or chunkCount <= 32 or chunkCount < cast(u64, workers) * 2
         {
             var hash = Blake3.createWithKeyAndFlags(key, flags)
             hash.updateChunks(data, false)

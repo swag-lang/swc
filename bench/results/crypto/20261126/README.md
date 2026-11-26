@@ -157,3 +157,4 @@ optimizations moved each result.
 - [P-256 aligned local word clearing](p256-aligned-wipes.md)
 - [OpenSSL release comparison](openssl-current-references.md)
 - [Cached inverse round keys for AES-XTS](aes-xts-inverse-schedule.md)
+- [BLAKE3 worker cutoff for small one-shot inputs](blake3-oneshot-cutoff.md)

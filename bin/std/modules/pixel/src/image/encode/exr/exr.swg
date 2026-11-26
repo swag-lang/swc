@@ -5,7 +5,7 @@
 //
 #global namespace Exr
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 internal struct Encoder {}
 
@@ -41,24 +41,116 @@ func channelEntry(result: *ConcatBuffer, name: string, pixelType: u32)
     writeU32(result, 1)
 }
 
+#[Swag.ConstExpr]
+private func planeShuffle(sampleBytes, channels, channel, block: u64)->Simd.U8x16
+{
+    var indices: [16] u8
+    for index in indices.count
+    {
+        let pixel = index / sampleBytes
+        let byte  = (pixel * channels + channel) * sampleBytes + index % sampleBytes
+        indices[index] = byte / 16 == block ? cast(u8, byte % 16) : 0x80
+    }
+
+    return cast(Simd.U8x16, indices)
+}
+
+#[Swag.Inline]
+private func(SAMPLE_BYTES: u64, CHANNELS: u64, CHANNEL: u64) unpackPlane(first, second, third: Simd.U8x16)->Simd.U8x16
+{
+    const First  = planeShuffle(SAMPLE_BYTES, CHANNELS, CHANNEL, 0)
+    const Second = planeShuffle(SAMPLE_BYTES, CHANNELS, CHANNEL, 1)
+    let combined = Simd.shuffle(first, First) | Simd.shuffle(second, Second)
+    #static if CHANNELS == 3
+    {
+        const Third = planeShuffle(SAMPLE_BYTES, CHANNELS, CHANNEL, 2)
+        return combined | Simd.shuffle(third, Third)
+    }
+    else do
+        return combined
+}
+
+#[Swag.Inline]
+private func(T) unpackRgba(destination: [*] u8, planeBytes: u64, source: const [*] u8)
+{
+    let first  = cast #bit(T, Simd.load(source))
+    let second = cast #bit(T, Simd.load(source + 16))
+    let third  = cast #bit(T, Simd.load(source + 32))
+    let fourth = cast #bit(T, Simd.load(source + 48))
+    let low0   = Simd.interleaveLow(first, second)
+    let high0  = Simd.interleaveHigh(first, second)
+    let low1   = Simd.interleaveLow(third, fourth)
+    let high1  = Simd.interleaveHigh(third, fourth)
+
+    var rg0, ba0, rg1, ba1: Simd.U64x2
+    #static if T == Simd.U16x8
+    {
+        rg0 = cast #bit(Simd.U64x2, Simd.interleaveLow(low0, high0))
+        ba0 = cast #bit(Simd.U64x2, Simd.interleaveHigh(low0, high0))
+        rg1 = cast #bit(Simd.U64x2, Simd.interleaveLow(low1, high1))
+        ba1 = cast #bit(Simd.U64x2, Simd.interleaveHigh(low1, high1))
+    }
+    else
+    {
+        rg0 = cast #bit(Simd.U64x2, low0)
+        ba0 = cast #bit(Simd.U64x2, high0)
+        rg1 = cast #bit(Simd.U64x2, low1)
+        ba1 = cast #bit(Simd.U64x2, high1)
+    }
+
+    Simd.store(destination, cast #bit(Simd.U8x16, Simd.interleaveHigh(ba0, ba1)))
+    Simd.store(destination + planeBytes, cast #bit(Simd.U8x16, Simd.interleaveLow(ba0, ba1)))
+    Simd.store(destination + 2 * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveHigh(rg0, rg1)))
+    Simd.store(destination + 3 * planeBytes, cast #bit(Simd.U8x16, Simd.interleaveLow(rg0, rg1)))
+}
+
 #[Swag.Inline]
 func(T, CHANNELS: u64) writeScanlinePlanes(destination: [*] u8, source: const [*] u8, width: u64)
 {
+    const SampleBytes = #sizeof(T)
     #static if CHANNELS == 1 do
-        Memory.copy(destination, source, width * #sizeof(T))
+        Memory.copy(destination, source, width * SampleBytes)
     else
     {
+        const Block = 16 / SampleBytes
+        let planeBytes = width * SampleBytes
+        var x: u64
+        while width - x >= Block
+        {
+            let input  = source + x * CHANNELS * SampleBytes
+            let output = destination + x * SampleBytes
+            #static if CHANNELS == 4
+            {
+                #static if T == u16 do
+                    unpackRgba'(Simd.U16x8)(output, planeBytes, input)
+                else do
+                    unpackRgba'(Simd.U32x4)(output, planeBytes, input)
+            }
+            else
+            {
+                let first  = Simd.load(input)
+                let second = Simd.load(input + 16)
+                let third  = CHANNELS == 3 ? Simd.load(input + 32) : Simd.splat(0'u8)
+                Simd.store(output, unpackPlane'(SampleBytes, CHANNELS, CHANNELS - 1)(first, second, third))
+                Simd.store(output + planeBytes, unpackPlane'(SampleBytes, CHANNELS, CHANNELS - 2)(first, second, third))
+                #static if CHANNELS == 3 do
+                    Simd.store(output + 2 * planeBytes, unpackPlane'(SampleBytes, CHANNELS, 0)(first, second, third))
+            }
+
+            x += Block
+        }
+
         let packed = cast(const [*] T, source)
         let planes = cast([*] T, destination)
-        for x in width
+        for tail in x until width
         {
-            let pixel = packed + x * CHANNELS
-            planes[x]         = pixel[CHANNELS - 1]
-            planes[width + x] = pixel[CHANNELS - 2]
+            let pixel = packed + tail * CHANNELS
+            planes[tail]         = pixel[CHANNELS - 1]
+            planes[width + tail] = pixel[CHANNELS - 2]
             #static if CHANNELS >= 3 do
-                planes[2 * width + x] = pixel[CHANNELS - 3]
+                planes[2 * width + tail] = pixel[CHANNELS - 3]
             #static if CHANNELS == 4 do
-                planes[3 * width + x] = pixel[0]
+                planes[3 * width + tail] = pixel[0]
         }
     }
 }

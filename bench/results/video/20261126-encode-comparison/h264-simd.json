@@ -1,0 +1,576 @@
+{
+  "timing_baseline_source": "2276babc39",
+  "compiler_sha256": "5659528de80fb045eb0e62904ae5b9f4d76d554655b0e1288488c0afa4b38be0",
+  "validation_compiler_sha256": "fe29f22784980fc9f06c32bcb97fb95cd6739bd944c44cb090d4a58786529a7c",
+  "final_source_sha256": "0c0198a8a41f98782d7fb54e5daf16f020d54894bce924569ed0d73e76db869d",
+  "timing_trial_source_sha256": "edaf04172b8d9a18bb24af44345dbc551195400c094e8ecf412c13fef572b323",
+  "platform": "AMD EPYC 9V74 Linux",
+  "logical_cpus": [
+    0,
+    1,
+    2
+  ],
+  "qp": 25,
+  "slices": 4,
+  "pictures_per_clip_per_run": 180,
+  "repetitions": 7,
+  "timing": {
+    "desktop": {
+      "baseline": {
+        "wall_us": {
+          "samples": [
+            290872,
+            275593,
+            282185,
+            639327,
+            310240,
+            412534,
+            259847
+          ],
+          "median": 290872,
+          "paired_percent": 0.0
+        },
+        "cpu_us": {
+          "samples": [
+            558316,
+            571489,
+            592739,
+            981596,
+            588966,
+            778343,
+            564444
+          ],
+          "median": 588966,
+          "paired_percent": 0.0
+        }
+      },
+      "column_profiles": {
+        "wall_us": {
+          "samples": [
+            291125,
+            234300,
+            254180,
+            267144,
+            252545,
+            251009,
+            507601
+          ],
+          "median": 254180,
+          "paired_percent": -14.983
+        },
+        "cpu_us": {
+          "samples": [
+            575445,
+            466333,
+            537629,
+            556423,
+            507590,
+            498676,
+            811599
+          ],
+          "median": 537629,
+          "paired_percent": -13.817
+        }
+      },
+      "hadamard": {
+        "wall_us": {
+          "samples": [
+            668439,
+            286064,
+            463414,
+            272227,
+            291738,
+            234445,
+            243211
+          ],
+          "median": 286064,
+          "paired_percent": -5.964
+        },
+        "cpu_us": {
+          "samples": [
+            1021851,
+            512385,
+            751130,
+            594035,
+            577409,
+            481608,
+            497797
+          ],
+          "median": 577409,
+          "paired_percent": -10.342
+        }
+      },
+      "combined": {
+        "wall_us": {
+          "samples": [
+            254619,
+            230325,
+            221561,
+            260364,
+            264615,
+            228321,
+            233932
+          ],
+          "median": 233932,
+          "paired_percent": -16.426
+        },
+        "cpu_us": {
+          "samples": [
+            529542,
+            522748,
+            450954,
+            534311,
+            537613,
+            457515,
+            499312
+          ],
+          "median": 522748,
+          "paired_percent": -11.539
+        }
+      }
+    },
+    "gradient": {
+      "baseline": {
+        "wall_us": {
+          "samples": [
+            696323,
+            694469,
+            662082,
+            1379941,
+            749402,
+            784511,
+            633247
+          ],
+          "median": 696323,
+          "paired_percent": 0.0
+        },
+        "cpu_us": {
+          "samples": [
+            1453323,
+            1405143,
+            1385971,
+            2318655,
+            1526430,
+            1523636,
+            1376995
+          ],
+          "median": 1453323,
+          "paired_percent": 0.0
+        }
+      },
+      "column_profiles": {
+        "wall_us": {
+          "samples": [
+            671769,
+            632424,
+            693273,
+            811219,
+            666095,
+            631704,
+            608334
+          ],
+          "median": 666095,
+          "paired_percent": -8.934
+        },
+        "cpu_us": {
+          "samples": [
+            1354498,
+            1378237,
+            1320905,
+            1558761,
+            1446713,
+            1293253,
+            1259528
+          ],
+          "median": 1354498,
+          "paired_percent": -6.8
+        }
+      },
+      "hadamard": {
+        "wall_us": {
+          "samples": [
+            767965,
+            613158,
+            735364,
+            625452,
+            718495,
+            635418,
+            658995
+          ],
+          "median": 658995,
+          "paired_percent": -4.124
+        },
+        "cpu_us": {
+          "samples": [
+            1385243,
+            1325106,
+            1477414,
+            1369595,
+            1377767,
+            1317977,
+            1348899
+          ],
+          "median": 1369595,
+          "paired_percent": -5.696
+        }
+      },
+      "combined": {
+        "wall_us": {
+          "samples": [
+            632696,
+            685206,
+            582203,
+            890170,
+            660888,
+            590346,
+            563394
+          ],
+          "median": 632696,
+          "paired_percent": -11.811
+        },
+        "cpu_us": {
+          "samples": [
+            1298399,
+            1294882,
+            1194552,
+            1530653,
+            1351810,
+            1255686,
+            1196840
+          ],
+          "median": 1294882,
+          "paired_percent": -13.083
+        }
+      }
+    },
+    "testsrc": {
+      "baseline": {
+        "wall_us": {
+          "samples": [
+            335763,
+            332829,
+            383485,
+            320443,
+            329722,
+            291979,
+            308897
+          ],
+          "median": 329722,
+          "paired_percent": 0.0
+        },
+        "cpu_us": {
+          "samples": [
+            657159,
+            656545,
+            690497,
+            610911,
+            652637,
+            591279,
+            618299
+          ],
+          "median": 652637,
+          "paired_percent": 0.0
+        }
+      },
+      "column_profiles": {
+        "wall_us": {
+          "samples": [
+            249426,
+            297259,
+            249024,
+            261460,
+            236121,
+            251331,
+            268742
+          ],
+          "median": 251331,
+          "paired_percent": -18.407
+        },
+        "cpu_us": {
+          "samples": [
+            508842,
+            545229,
+            506851,
+            510158,
+            465156,
+            517083,
+            513418
+          ],
+          "median": 510158,
+          "paired_percent": -16.963
+        }
+      },
+      "hadamard": {
+        "wall_us": {
+          "samples": [
+            288078,
+            311352,
+            270916,
+            369008,
+            294453,
+            295285,
+            337320
+          ],
+          "median": 295285,
+          "paired_percent": -6.453
+        },
+        "cpu_us": {
+          "samples": [
+            588855,
+            648346,
+            559527,
+            643042,
+            559537,
+            579194,
+            663159
+          ],
+          "median": 588855,
+          "paired_percent": -2.044
+        }
+      },
+      "combined": {
+        "wall_us": {
+          "samples": [
+            240053,
+            233018,
+            257093,
+            255590,
+            265154,
+            262870,
+            361621
+          ],
+          "median": 257093,
+          "paired_percent": -20.239
+        },
+        "cpu_us": {
+          "samples": [
+            464464,
+            464598,
+            516262,
+            499971,
+            525027,
+            499845,
+            642611
+          ],
+          "median": 499971,
+          "paired_percent": -19.553
+        }
+      }
+    },
+    "street": {
+      "baseline": {
+        "wall_us": {
+          "samples": [
+            979212,
+            987321,
+            932384,
+            872725,
+            922657,
+            954266,
+            971837
+          ],
+          "median": 954266,
+          "paired_percent": 0.0
+        },
+        "cpu_us": {
+          "samples": [
+            2055734,
+            2122438,
+            1871159,
+            1858030,
+            2020313,
+            1850703,
+            1911351
+          ],
+          "median": 1911351,
+          "paired_percent": 0.0
+        }
+      },
+      "column_profiles": {
+        "wall_us": {
+          "samples": [
+            827497,
+            910567,
+            871264,
+            822352,
+            903867,
+            783367,
+            858652
+          ],
+          "median": 858652,
+          "paired_percent": -7.774
+        },
+        "cpu_us": {
+          "samples": [
+            1689312,
+            1841478,
+            1767080,
+            1711407,
+            1821794,
+            1628698,
+            1791997
+          ],
+          "median": 1767080,
+          "paired_percent": -9.826
+        }
+      },
+      "hadamard": {
+        "wall_us": {
+          "samples": [
+            829802,
+            807599,
+            926657,
+            846897,
+            806429,
+            835854,
+            792379
+          ],
+          "median": 829802,
+          "paired_percent": -12.597
+        },
+        "cpu_us": {
+          "samples": [
+            1928094,
+            1743954,
+            1948306,
+            1725751,
+            1698878,
+            1843188,
+            1633103
+          ],
+          "median": 1743954,
+          "paired_percent": -7.119
+        }
+      },
+      "combined": {
+        "wall_us": {
+          "samples": [
+            920408,
+            873397,
+            836018,
+            774364,
+            833408,
+            787868,
+            752074
+          ],
+          "median": 833408,
+          "paired_percent": -11.271
+        },
+        "cpu_us": {
+          "samples": [
+            1895219,
+            1798786,
+            1686213,
+            1684705,
+            1704433,
+            1676287,
+            1641169
+          ],
+          "median": 1686213,
+          "paired_percent": -9.884
+        }
+      }
+    }
+  },
+  "byte_identical_checks": [
+    {
+      "case": "corpus",
+      "pictures": 480,
+      "inputs": [
+        {
+          "file": "desktop.rgb",
+          "sha256": "6cee0b175252228fe0da29f99c812c079513df88a090cb346d3be5613a10e032"
+        },
+        {
+          "file": "gradient.rgb",
+          "sha256": "d8e376f1e83fffead807c15db80adfe8f208a210e5a4b01537701997a5c2bd18"
+        },
+        {
+          "file": "testsrc.rgb",
+          "sha256": "9ac40841514c267f598d864af454c59e05516db6e012bf9a619e65f7029bf0b2"
+        },
+        {
+          "file": "street.rgb",
+          "sha256": "4164fb5fe343bc315d46c9afcb10e27a3402c5df44bc724f3b963f459a05c89b"
+        }
+      ],
+      "mp4_sha256": {
+        "clip0-swag-qp21.mp4": "c490f783c6d56e8b2f6b6f3522ddf4f7ce0fd8f2e59887db6d4b55f200d5ca83",
+        "clip0-swag-qp25.mp4": "c9fe72da357f47da49dd7135ec283d2f32c68b0f892db3fb3b6e9df86287462e",
+        "clip0-swag-qp29.mp4": "88510a7d71b3289f8eafd7a06fa95066ef0c7132c63fb3a0f84d726e75506d94",
+        "clip0-swag-qp33.mp4": "15bc64949b1f472a18c4bf08d91a08ffcf15b522761e69b4639052bc282d37d7",
+        "clip1-swag-qp21.mp4": "f39a6589213ea5d7fd6574a594571309c782260968e48769b0f2ad3c1fafed51",
+        "clip1-swag-qp25.mp4": "d5abe716121efdf2c1effe21ed31a3dda16771bc48e6f6467559141a48edb3e2",
+        "clip1-swag-qp29.mp4": "714fe924f48488aaf48fd56b34a99512b8207a5a7b577a1e5c144e723fc0286e",
+        "clip1-swag-qp33.mp4": "ce1af9813ac3fee62078ed059b4decc1ff47b82dcdcf34b4c0c8460ee636a748",
+        "clip2-swag-qp21.mp4": "b16698463bcb7669d330a1d37dee9315a44b82ec08ffe36b720a9e17092997d4",
+        "clip2-swag-qp25.mp4": "d3fb7ed53bc7d873c7cb7323c92b31bf81c3c30878c085311ee7909ae975a958",
+        "clip2-swag-qp29.mp4": "4b9b1e1b11e251e14c7884d4e060b18379de2bc6025c3fa5527f1c7d4066f8fc",
+        "clip2-swag-qp33.mp4": "8daa15953118b4ce6eccc3eb11d8497482e935de3bdfbafc7ef98f3d6ba95796",
+        "clip3-swag-qp21.mp4": "c3a9ee79ededc3e71e3b213225ad05162e82a0eef3bdf12ef0699ab55db7f641",
+        "clip3-swag-qp25.mp4": "761e9f5d16bba5cecfa51d36a6794517230b197bbd68240367d52ce05e5e8d96",
+        "clip3-swag-qp29.mp4": "2e469f28725172978d029d91d76fb67d0d5f608102213496647691f057edbb27",
+        "clip3-swag-qp33.mp4": "331541125dda46fcff2980713f602cede3f2dcfa86d9cce6ad633bb32251d11f"
+      },
+      "decoded_sha256": {
+        "('desktop.rgb', 21)": "fcd366b1c7cc84e6ace0b15eae22e9c41fe883b397ead12f86a06ba52e476e0a",
+        "('desktop.rgb', 25)": "782de43c582732d896d2ac984d172e5f5139d168093e260cd0dc5d851f003457",
+        "('desktop.rgb', 29)": "ee11ca64bfbedc1f2b8d90493f7e9aae9ceb8628bd645fbb3b8b768238864f64",
+        "('desktop.rgb', 33)": "e891dc8bff191a6cc9e17b9a18b98b086291e4bb6fdac7e990f65affaeee3944",
+        "('gradient.rgb', 21)": "c91839cf08190d4c2ec51719a0a2dea2a85e89355a0cbcb8ce78e82b00b3229d",
+        "('gradient.rgb', 25)": "635ba6862f065cc272938326f0b823e62f8a1a713ce88378dcbe51256dc80fcf",
+        "('gradient.rgb', 29)": "423220f2da0546d94d5fa29cfa03014378d017a08a39b8331dc4b87863f311ad",
+        "('gradient.rgb', 33)": "77359f1436f13bc8f7a0ab58b066c30438f96d2103a51b2e47e4f7eb242bcc80",
+        "('testsrc.rgb', 21)": "a2611ae24a7fe2baea9114f985e2530122ca3eb6c6515d23fe0661e7daec5ee3",
+        "('testsrc.rgb', 25)": "26d125130be5ce3587a7ac7e7f8cb0f022d5005689d878958717eea8ebfc4a71",
+        "('testsrc.rgb', 29)": "791cc40efa17aee24eac3f90fc04b232d2587ff62461352ca64168d83ceab6b8",
+        "('testsrc.rgb', 33)": "de7c6012d9602a4cd02953bd7d7680c3b23a64b5cb3e381ad6000a1508c08d35",
+        "('street.rgb', 21)": "3d1fe9b7d780055374528d07db572db14506208fc2bd5918ca37ddfbdd53a70f",
+        "('street.rgb', 25)": "e017b1d322bca38b19e97d68aa0fce85406ae266cfd4e91c6ab0fda46b957540",
+        "('street.rgb', 29)": "4b637def7467cacd27b4a63894d43aedbd40c139434d3d7d6685c13957905825",
+        "('street.rgb', 33)": "db45fa6f824fb34ce3ef910d458ad4a10095ea16e1f79c400f0152091b4a8d78"
+      }
+    },
+    {
+      "case": "edge-after-1",
+      "pictures": 36,
+      "inputs": [
+        {
+          "file": "edge650.rgb",
+          "sha256": "b97e78605ab217e01e32fd22c026098f9079f58580377a3eae792c04b77541d8"
+        }
+      ],
+      "mp4_sha256": {
+        "swag-qp1.mp4": "f90fa511f5923950a5c7dbc2f02b5c93b20301eab6cf91b4e7adc35a514b05dd",
+        "swag-qp25.mp4": "e1f79700790a30d40d9948a360e4846195863b03766343dcc11c613bc3de0366",
+        "swag-qp51.mp4": "ccf9b6d4d8d26903e5bbc8d862a9e9765c21a670a561e88d325ec6c157cf1c6d"
+      },
+      "decoded_sha256": {
+        "('edge650.rgb', 1)": "41cadf4f09424fbc36c41289a42c2fe7fa450aae24668acfe2f71ac75321162f",
+        "('edge650.rgb', 25)": "1e7ddbbcb79ba3fb2da5ef544cd821d58e03b8add0ef58763c8b78e75974cdfa",
+        "('edge650.rgb', 51)": "d6da4d8d2ba8ea09f7aea8ff62c704969997a83881e5793aebbcc4bc0ea0908e"
+      }
+    },
+    {
+      "case": "edge-after-8",
+      "pictures": 36,
+      "inputs": [
+        {
+          "file": "edge650.rgb",
+          "sha256": "b97e78605ab217e01e32fd22c026098f9079f58580377a3eae792c04b77541d8"
+        }
+      ],
+      "mp4_sha256": {
+        "swag-qp1.mp4": "50acbb2d1cb3bf8a38f9ee51bfd16f123c3e67f7bf24b85d447b57baa7c2cf16",
+        "swag-qp25.mp4": "77e74841704a0a466aa17943ebf84b3e47121c33381eeebfb2c5aa69fa2bfd28",
+        "swag-qp51.mp4": "a7da9db3a9408d80f54570d870261957d1055e3a05b337e2741113b5d71602c8"
+      },
+      "decoded_sha256": {
+        "('edge650.rgb', 1)": "cdd5d5340bb84324a12ee09ae4b40568040a62be234faf10de8efd623727fd1b",
+        "('edge650.rgb', 25)": "362ef23bdcd6ab6b715c52a64d72eceafa07f82fb4f29239a7cc957417c9b371",
+        "('edge650.rgb', 51)": "6b4746e4b93aaa5fc20d34718cb97b797f6304d09d39dc7209fdeddbe6984473"
+      }
+    }
+  ],
+  "native_release_tests": 23
+}

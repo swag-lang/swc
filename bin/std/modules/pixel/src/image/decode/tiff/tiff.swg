@@ -177,8 +177,7 @@ func unpackBits(dst: [*] u8, expected: u64, src, last: const [*] u8) fail
             try checkBuffer(p, last, 1)
             let value = p[0]
             p += 1
-            for index in count do
-                dst[out + index] = value
+            Memory.set(dst + out, value, count)
             out += count
         }
     }
@@ -373,119 +372,90 @@ impl Decoder
         if stripOffsets.count != stripCounts.count or not stripOffsets.count do
             fail InvalidFormatError{"invalid strip data"}
 
-        let rowBytes  = cast(u64, width) * samples
-        let totalRows = height
+        result.allocPixels()
+        let destination = result.pixels.storage()
+        let rowBytes    = cast(u64, width) * samples
+        let grayMask    = photometric == PHOTO_WHITE_IS_ZERO ? 255'u8 : 0'u8
 
-        // Decode all strips into a top-down byte buffer
-        var decoded: Array'u8
-        decoded.resize(rowBytes * cast(u64, totalRows))
-
+        // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
+        var decoded:  Array'u8
         var rowStart: u32
         for s in stripOffsets.count
         {
-            if rowStart >= totalRows do
+            if rowStart == height do
                 break
 
-            var rowsInStrip = rowsPerStrip
-            if rowStart + rowsInStrip > totalRows do
-                rowsInStrip = totalRows - rowStart
-
-            let stripBytes = rowBytes * cast(u64, rowsInStrip)
-            let srcOff     = stripOffsets[s]
-            let srcCount   = cast(u64, stripCounts[s])
-            let srcPtr     = base + srcOff
+            let rowsInStrip = Math.min(rowsPerStrip, height - rowStart)
+            let stripBytes  = rowBytes * rowsInStrip
+            let srcCount    = cast(u64, stripCounts[s])
+            let srcPtr      = base + stripOffsets[s]
             try checkBuffer(srcPtr, last, srcCount)
+            if compression == COMPRESSION_NONE and srcCount < stripBytes do
+                fail InvalidFormatError{"invalid source buffer"}
 
-            let dstPtr = decoded.storage() + cast(u64, rowStart) * rowBytes
-
-            if compression == COMPRESSION_LZW
+            var strip = srcPtr
+            if compression != COMPRESSION_NONE or predictor == 2
             {
-                try unpackLzw(dstPtr, stripBytes, srcPtr, srcCount)
-            }
-            elif compression == COMPRESSION_PACKBITS
-            {
-                try unpackBits(dstPtr, stripBytes, srcPtr, srcPtr + srcCount)
-            }
-            else
-            {
-                if srcCount < stripBytes do
-                    fail InvalidFormatError{"invalid source buffer"}
-                Memory.copy(dstPtr, srcPtr, stripBytes)
-            }
-
-            rowStart += rowsInStrip
-        }
-
-        if rowStart != totalRows do
-            fail InvalidFormatError{"invalid strip data"}
-
-        if predictor == 2
-        {
-            for y in totalRows
-            {
-                let row = decoded.storage() + cast(u64, y) * rowBytes
-                for i in rowBytes - samples
+                decoded.reserve(stripBytes)
+                let scratch = decoded.storage()
+                switch compression
                 {
-                    let offset = cast(u64, samples) + i
-                    row[offset] += #wrap row[offset - samples]
+                case COMPRESSION_LZW:      try unpackLzw(scratch, stripBytes, srcPtr, srcCount)
+                case COMPRESSION_PACKBITS: try unpackBits(scratch, stripBytes, srcPtr, srcPtr + srcCount)
+                default: Memory.copy(scratch, srcPtr, stripBytes)
                 }
+
+                strip = scratch
             }
-        }
 
-        result.allocPixels()
-
-        // Convert top-down 'decoded' into the bottom-up result buffer
-        for y in cast(s32, height)
-        {
-            let srcRow = decoded.storage() + cast(u64, y) * rowBytes
-            let dstY   = result.height - y - 1
-            var dst    = cast([*] u8, result.pixels.storage()) + cast(u64, dstY) * result.rowStride
-
-            for x in cast(s32, width)
+            // Convert file order to the bottom-up image layout while the strip is current.
+            for y in rowsInStrip
             {
-                if samples == 1
+                let offset = cast(u64, y) * rowBytes
+                if predictor == 2
                 {
-                    if photometric == PHOTO_PALETTE
+                    let row = decoded.storage() + offset
+                    for i in rowBytes - samples do
+                        row[i + samples] += #wrap row[i]
+                }
+
+                let source = strip + offset
+                let dstY   = height - rowStart - y - 1
+                var dst    = destination + cast(u64, dstY) * result.rowStride
+                if samples != 1
+                {
+                    Memory.copy(dst, source, rowBytes)
+                }
+                elif photometric == PHOTO_PALETTE
+                {
+                    for x in width
                     {
-                        let index = cast(u32, srcRow[x])
+                        let index = cast(u32, source[x])
                         if index >= palette.count do
                             fail InvalidFormatError{"invalid palette index"}
                         let argb = palette[index]
                         dst[0] = cast(u8, ((argb >> 16) & 0xFF))
                         dst[1] = cast(u8, ((argb >> 8) & 0xFF))
                         dst[2] = cast(u8, (argb & 0xFF))
+                        dst    += 3
                     }
-                    else
-                    {
-                        var v = srcRow[x]
-                        if photometric == PHOTO_WHITE_IS_ZERO do
-                            v = 255 - v
-                        dst[0] = v
-                        dst[1] = v
-                        dst[2] = v
-                    }
-
-                    dst += 3
-                }
-                elif samples == 3
-                {
-                    let pix = srcRow + cast(u64, x) * 3
-                    dst[0] = pix[0]
-                    dst[1] = pix[1]
-                    dst[2] = pix[2]
-                    dst    += 3
                 }
                 else
                 {
-                    let pix = srcRow + cast(u64, x) * 4
-                    dst[0] = pix[0]
-                    dst[1] = pix[1]
-                    dst[2] = pix[2]
-                    dst[3] = pix[3]
-                    dst    += 4
+                    for x in width
+                    {
+                        let gray = source[x] ^ grayMask
+                        dst[0], dst[1], dst[2] = gray
+                        dst += 3
+                    }
                 }
             }
+
+            rowStart += rowsInStrip
         }
+
+        if rowStart != height do
+            fail InvalidFormatError{"invalid strip data"}
 
         result.orient(orientation)
         return result

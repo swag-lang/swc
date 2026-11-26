@@ -376,7 +376,7 @@ impl Decoder
                     fail InvalidFormatError{"PNG animation sequence number is invalid"}
                 sequence     += 1
                 frameHasData = true
-                if selected == currentFrame do
+                if .decOptions.decodePixels and selected == currentFrame do
                     iDataBuf.add(data[4 to])
 
             case .TRNS:
@@ -473,7 +473,7 @@ impl Decoder
                 while ch.type == IDAT
                 {
                     let chunk = try .readChunk(ch)
-                    if selected < 0 or selected == currentFrame do
+                    if .decOptions.decodePixels and (selected < 0 or selected == currentFrame) do
                         iDataBuf.add(Decoder.safeDatas(chunk))
                     if currentFrame >= 0 do
                         frameHasData = true
@@ -614,8 +614,8 @@ impl Decoder
         if not .decOptions.decodePixels do
             return result
 
-        // Allocate destination: defilter directly into result pixels when channels match
-        // to avoid an extra full-image allocation and memcpy
+        // Native-depth rows can be defiltered in the final pixel buffer. For 16-bit samples,
+        // swap byte order once the filters no longer need the encoded byte order.
         let bytesPerSample = .header.bitDepth == 16 ? 2'u64 : 1'u64
         .dstPixelsSize = cast(u64, .header.width) * .header.height * .inChannels * bytesPerSample
         var ownsDestination = false
@@ -625,7 +625,7 @@ impl Decoder
             .dstPixels = null
         }
 
-        let intoResult = .header.bitDepth == 8 and .inChannels == .outChannels
+        let intoResult = .header.bitDepth >= 8 and .inChannels == .outChannels
         if intoResult
         {
             result.allocPixels()
@@ -655,9 +655,16 @@ impl Decoder
                 fail InvalidFormatError{"PNG pixel index exceeds the palette"}
         }
 
-        // Channels match: result.pixels was already populated directly by defilter
-        if intoResult do
+        if intoResult
+        {
+            if is16Bit
+            {
+                let pixels = result.pixels.storage()
+                convert16Samples(pixels, pixels, .dstPixelsSize / 2)
+            }
+
             return result
+        }
 
         result.allocPixels()
         .convert(&result)

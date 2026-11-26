@@ -37,20 +37,6 @@ func hash(pixel: Pixel)->u8 => cast(u8, ((cast(u32, pixel.r) * 3 + cast(u32, pix
 #[Swag.Inline]
 func addWrapped(value: u8, delta: s32)->u8 => cast(u8, ((cast(s32, value) + delta) & 0xFF))
 
-#[Swag.Inline]
-func writePixel(image: *Image, sourceIndex: u64, pixel: Pixel)
-{
-    let sourceY = cast(s32, (sourceIndex / cast(u64, image.width)))
-    let sourceX = cast(s32, (sourceIndex % cast(u64, image.width)))
-    let targetY = image.height - sourceY - 1
-    let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride + cast(u64, sourceX) * image.bytesPerPixel
-    target[0] = pixel.r
-    target[1] = pixel.g
-    target[2] = pixel.b
-    if image.bytesPerPixel == 4 do
-        target[3] = pixel.a
-}
-
 internal impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"QOI - Quite OK Image", ".qoi"}
@@ -93,76 +79,96 @@ internal impl IImageDecoder for Decoder
         var index: [64] Pixel
         var previous   = Pixel{0, 0, 0, 255}
         var input      = HeaderSize
-        var output     = 0'u64
-        let pixelCount = cast(u64, width) * cast(u64, height)
+        var repeated   = 0'u64
         let chunkLimit = buffer.count - EndMarkerSize
 
-        while output < pixelCount
+        // Decode forward within each row while placing the rows bottom-up.
+        for y in height
         {
-            if input >= chunkLimit do
-                fail InvalidFormatError{"QOI data ends before every pixel is decoded"}
-
-            let tag = source[input]
-            input += 1
-            if tag == 0xFE
+            var target = result.pixels.storage() + cast(u64, (height - y - 1)) * result.rowStride
+            var x      = 0'u64
+            while x < width
             {
-                if input + 3 > chunkLimit do
-                    fail InvalidFormatError{"QOI RGB chunk is truncated"}
-                previous.r = source[input]
-                previous.g = source[input + 1]
-                previous.b = source[input + 2]
-                input      += 3
-            }
-            elif tag == 0xFF
-            {
-                if input + 4 > chunkLimit do
-                    fail InvalidFormatError{"QOI RGBA chunk is truncated"}
-                previous.r = source[input]
-                previous.g = source[input + 1]
-                previous.b = source[input + 2]
-                previous.a = source[input + 3]
-                input      += 4
-            }
-            else
-            {
-                switch tag & 0xC0
+                if repeated
                 {
-                case 0x00:
-                    previous = index[tag & 63]
-
-                case 0x40:
-                    previous.r = addWrapped(previous.r, cast(s32, ((tag >> 4) & 3)) - 2)
-                    previous.g = addWrapped(previous.g, cast(s32, ((tag >> 2) & 3)) - 2)
-                    previous.b = addWrapped(previous.b, cast(s32, (tag & 3)) - 2)
-
-                case 0x80:
-                    if input >= chunkLimit do
-                        fail InvalidFormatError{"QOI luma chunk is truncated"}
-                    let next = source[input]
-                    input += 1
-                    let greenDelta = cast(s32, (tag & 63)) - 32
-                    previous.r = addWrapped(previous.r, greenDelta + cast(s32, ((next >> 4) & 15)) - 8)
-                    previous.g = addWrapped(previous.g, greenDelta)
-                    previous.b = addWrapped(previous.b, greenDelta + cast(s32, (next & 15)) - 8)
-
-                case 0xC0:
-                    let run = cast(u64, (tag & 63)) + 1
-                    if run > pixelCount - output do
-                        fail InvalidFormatError{"QOI run exceeds the image dimensions"}
-                    for run
-                    {
-                        writePixel(&result, output, previous)
-                        output += 1
-                    }
-
-                    index[hash(previous)] = previous
+                    let span       = Math.min(repeated, cast(u64, width) - x)
+                    let pixel      = previous
+                    let pixelBytes = cast(const [*] u8, &pixel)
+                    if channels == 4 do
+                        PackedPixel.fillBgra32Row(pixelBytes, target, span)
+                    else do
+                        PackedPixel.fillBgr24Row(pixelBytes, target, span)
+                    target   += span * channels
+                    x        += span
+                    repeated -= span
                     continue
                 }
-            }
 
-            index[hash(previous)] = previous
-            writePixel(&result, output, previous)
-            output += 1
+                if input >= chunkLimit do
+                    fail InvalidFormatError{"QOI data ends before every pixel is decoded"}
+
+                let tag = source[input]
+                input += 1
+                if tag == 0xFE
+                {
+                    if input + 3 > chunkLimit do
+                        fail InvalidFormatError{"QOI RGB chunk is truncated"}
+                    previous.r = source[input]
+                    previous.g = source[input + 1]
+                    previous.b = source[input + 2]
+                    input      += 3
+                }
+                elif tag == 0xFF
+                {
+                    if input + 4 > chunkLimit do
+                        fail InvalidFormatError{"QOI RGBA chunk is truncated"}
+                    previous.r = source[input]
+                    previous.g = source[input + 1]
+                    previous.b = source[input + 2]
+                    previous.a = source[input + 3]
+                    input      += 4
+                }
+                else
+                {
+                    switch tag & 0xC0
+                    {
+                    case 0x00:
+                        previous = index[tag & 63]
+
+                    case 0x40:
+                        previous.r = addWrapped(previous.r, cast(s32, ((tag >> 4) & 3)) - 2)
+                        previous.g = addWrapped(previous.g, cast(s32, ((tag >> 2) & 3)) - 2)
+                        previous.b = addWrapped(previous.b, cast(s32, (tag & 3)) - 2)
+
+                    case 0x80:
+                        if input >= chunkLimit do
+                            fail InvalidFormatError{"QOI luma chunk is truncated"}
+                        let next = source[input]
+                        input += 1
+                        let greenDelta = cast(s32, (tag & 63)) - 32
+                        previous.r = addWrapped(previous.r, greenDelta + cast(s32, ((next >> 4) & 15)) - 8)
+                        previous.g = addWrapped(previous.g, greenDelta)
+                        previous.b = addWrapped(previous.b, greenDelta + cast(s32, (next & 15)) - 8)
+
+                    case 0xC0:
+                        repeated = cast(u64, (tag & 63)) + 1
+                        let remaining = cast(u64, (height - y - 1)) * width + width - x
+                        if repeated > remaining do
+                            fail InvalidFormatError{"QOI run exceeds the image dimensions"}
+                        index[hash(previous)] = previous
+                        continue
+                    }
+                }
+
+                index[hash(previous)] = previous
+                target[0] = previous.r
+                target[1] = previous.g
+                target[2] = previous.b
+                if channels == 4 do
+                    target[3] = previous.a
+                target += channels
+                x      += 1
+            }
         }
 
         let expectedEnd: [8] u8 = [0, 0, 0, 0, 0, 0, 0, 1]

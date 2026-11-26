@@ -62,6 +62,25 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
     Swag.require(image.pixelColor(2, 0) == Color.fromArgb(60, 30, 30, 30))
 }
 
+// A raw RGB composite uses its fourth plane for alpha and still validates extra planes.
+#test
+{
+    var bytes = psdHeader(5, 1, 2, 8, 3)
+    psdAddU16(&bytes, 0)
+    const Planes: [10] u8 = [1, 2, 10, 20, 30, 40, 50, 60, 90, 100]
+    bytes.addBytes(Planes)
+
+    let source = nnBytes(bytes.toSlice())
+    let image  = expect Image.decode("raw-extra.psd", source)
+    assertImage(image, 1, 2, .RGBA8)
+    Swag.require(image.pixelColor(0, 0) == Color.fromArgb(50, 1, 10, 30))
+    Swag.require(image.pixelColor(0, 1) == Color.fromArgb(60, 2, 20, 40))
+
+    var outcome: Swag.Error
+    discard catch Image.decode("truncated-extra.psd", source[until source.count - 1]) as outcome
+    Swag.require(outcome.value() != null)
+}
+
 #test
 {
     var bytes = psdHeader(4, 1, 1, 16, 3)

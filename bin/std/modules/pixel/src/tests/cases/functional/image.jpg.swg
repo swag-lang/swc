@@ -177,6 +177,16 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertLoadedJpg("testA.jpg", 1200, 704, 30'u8, 30'u8, 30'u8)
 }
 
+// Progressive scans may replace a Huffman table used by an earlier scan.
+// The fixture is a 13×11 grayscale pattern with samples (23*x + 17*y + 7*x*y) % 256,
+// encoded by ImageMagick at quality 87 with progressive scans and stripped metadata.
+#test
+{
+    let image = expect Image.load(getTestDataPath("progressive-huffman-redefine.jpg"))
+    Swag.require(image.width == 13 and image.height == 11 and image.pixelFormat == .BGR8)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 15585297770857937225'u64)
+}
+
 // A four-component frame is the ink layout a print-ready photograph is written in.
 //
 // The fixture is a red, green and blue band saved as CMYK, so a correct decode returns exactly

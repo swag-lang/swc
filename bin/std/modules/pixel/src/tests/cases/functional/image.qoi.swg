@@ -53,6 +53,24 @@ using Swag, Core
     Swag.require(Memory.compare(image.pixels.storage(), Expected.buffer, Expected.count) == 0)
 }
 
+// Runs span bottom-up row boundaries in both RGB and RGBA output.
+#test
+{
+    // Thirteen pixels of the first color span two complete rows and part of the third.
+    var bytes: [32] u8 = [
+        'q', 'o', 'i', 'f', 0, 0, 0, 5, 0, 0, 0, 3, 3, 0,
+        0xFE, 10, 20, 30, 0xCB, 0xFE, 40, 50, 60, 0xC0,
+        0, 0, 0, 0, 0, 0, 0, 1]
+    for channels in [3'u8, 4'u8]
+    {
+        bytes[12] = channels
+        let image = expect Image.decode("row-spanning.qoi", bytes)
+        for y in 3 do
+            for x in 5 do
+                Swag.require(image.pixelColor(x, y) == (y * 5 + x < 13 ? Color.fromRgb(10, 20, 30) : Color.fromRgb(40, 50, 60)))
+    }
+}
+
 // Round-trip every existing packed channel order without changing logical colors.
 #test
 {

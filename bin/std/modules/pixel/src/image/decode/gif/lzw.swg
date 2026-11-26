@@ -12,7 +12,14 @@
 
 using Swag, Core, Core.Errors
 
-private const LzwDictionaryLimit = 1 << 12
+private
+{
+    const LzwDictionaryLimit = 1 << 12
+    const LzwPrefixMask      = LzwDictionaryLimit - 1
+    const LzwSuffixMask      = 0xFF'u32
+    const LzwPrefixShift     = 8
+    const LzwLengthShift     = 20
+}
 
 private struct LzwBits
 {
@@ -62,28 +69,6 @@ impl LzwBits
 
 impl Decoder
 {
-    mtd initTable(keySize: s32)
-    {
-        .table.bulk     = Math.max(1 << (keySize + 1), 0x100's32)
-        .table.nentries = (1 << keySize) + 2
-        .table.entries.resize(.table.bulk)
-        for key in 1 << keySize do
-            .table.entries[key] = Entry{1, 0, cast(u8, key)}
-    }
-
-    mtd addEntry(length: u16, prefix: u16, suffix: u8)->bool
-    {
-        if .table.nentries == .table.bulk
-        {
-            .table.bulk *= 2
-            .table.entries.resize(cast(u64, .table.bulk))
-        }
-
-        .table.entries[.table.nentries] = {length, prefix, suffix}
-        .table.nentries += 1
-        return (.table.nentries & (.table.nentries - 1)) == 0
-    }
-
     mtd readImageData() fail
     {
         let minKeySize = cast(s32, (try .readU8()))
@@ -101,30 +86,34 @@ impl Decoder
         let clear       = 1 << minKeySize
         let stop        = clear + 1
         let initKeySize = minKeySize + 1
-        .initTable(minKeySize)
-        var keySize = initKeySize
-        var key     = bits.readKey(keySize)
+        var keySize     = initKeySize
+        var key         = bits.readKey(keySize)
         if key != clear do
             fail InvalidFormatError{"GIF LZW stream does not start with a clear code"}
 
+        // An entry stores an 8-bit suffix, a 12-bit prefix and a 12-bit length minus one.
+        var entries: [LzwDictionaryLimit] u32
+        for literal in clear do
+            entries[literal] = cast(u32, literal)
+
         var frameOffset = 0'u32
-        var tableIsFull = false
-        var length      = 0'u16
-        var entry: Entry
+        var nextCode    = stop + 1
+        var length      = 0'u32
+        var first       = 0'u32
         for
         {
-            var growKey = false
+            var addedEntry = false
             if key == clear
             {
-                keySize         = initKeySize
-                .table.nentries = stop + 1
-                tableIsFull     = false
+                keySize  = initKeySize
+                nextCode = stop + 1
             }
-            elif frameOffset < frameSize and not tableIsFull
+            elif frameOffset < frameSize and nextCode < LzwDictionaryLimit
             {
                 // If the next code names this new entry, its suffix is the previous string's first index.
-                growKey     = .addEntry(length + 1, key, entry.suffix)
-                tableIsFull = .table.nentries == LzwDictionaryLimit
+                entries[nextCode] = (length << LzwLengthShift) | (cast(u32, key) << LzwPrefixShift) | first
+                nextCode          += 1
+                addedEntry        = true
             }
 
             key = bits.readKey(keySize)
@@ -132,33 +121,36 @@ impl Decoder
                 continue
             if key == stop or key == LzwDictionaryLimit do
                 break
-            if key >= .table.nentries do
+            if key >= nextCode do
                 fail InvalidFormatError{"GIF LZW code is outside its dictionary"}
             if frameOffset >= frameSize do
                 fail InvalidFormatError{"GIF LZW data exceeds its frame"}
 
-            let entries = .table.entries.storage()
-            entry  = entries[key]
-            length = entry.length
-            if not length or length > frameSize - frameOffset do
+            var entry = entries[key]
+            length = (entry >> LzwLengthShift) + 1
+            if length > frameSize - frameOffset do
                 fail InvalidFormatError{"GIF LZW string exceeds its frame"}
 
             // Each dictionary entry links to a previously decoded, shorter string.
             var target = frame + frameOffset + length - 1
             for length - 1
             {
-                target[0] = entry.suffix
+                target[0] = cast(u8, (entry & LzwSuffixMask))
                 target    -= 1
-                entry     = entries[entry.prefix]
+                entry     = entries[(entry >> LzwPrefixShift) & LzwPrefixMask]
             }
 
-            target[0] = entry.suffix
+            first     = entry & LzwSuffixMask
+            target[0] = cast(u8, first)
 
             frameOffset += length
-            if growKey and not tableIsFull and frameOffset < frameSize do
-                keySize += 1
-            if key < .table.nentries - 1 and not tableIsFull do
-                entries[.table.nentries - 1].suffix = entry.suffix
+            if addedEntry and nextCode < LzwDictionaryLimit
+            {
+                if (nextCode & (nextCode - 1)) == 0 and frameOffset < frameSize do
+                    keySize += 1
+                if key < nextCode - 1 do
+                    entries[nextCode - 1] = (entries[nextCode - 1] & ~LzwSuffixMask) | first
+            }
         }
 
         if frameOffset != frameSize do

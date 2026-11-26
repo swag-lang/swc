@@ -90,7 +90,10 @@ impl Image
     // Returns the registered decoder claiming `fileName`, or `null` when none does.
     func getDecoder(fileName: string)->*ImageDecoder?
     {
-        for &decoder in decoders where decoder.format.matches(fileName) do
+        let ext = Path.lowercaseExtension(fileName)
+        if ext.isEmpty() do
+            return null
+        for &decoder in decoders where decoder.format.matchesLowercaseExtension(ext) do
             return decoder
         return null
     }
@@ -196,11 +199,12 @@ public impl Image
         let found = getDecoder(fileName)
         if not found do
             fail UnsupportedFormatError{"no matching image decoder"}
-        var file = File.MappedFile.open(fileName)
+        let decoderType = found.type
+        var file        = File.MappedFile.open(fileName)
         if options.maxInputBytes and file.size() > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
         let region = file.mapAll()
-        var result = #move decode(fileName, region.bytes(), options)
+        var result = #move decode(decoderType, region.bytes(), options)
         return #move result
     }
 

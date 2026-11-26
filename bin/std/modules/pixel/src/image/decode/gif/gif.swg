@@ -14,20 +14,6 @@ using Swag, Core, Core.Errors
 
 private
 {
-    struct Entry
-    {
-        length: u16
-        prefix: u16
-        suffix: u8
-    }
-
-    struct Table
-    {
-        bulk:     s32
-        nentries: s32
-        entries:  Array'Entry
-    }
-
     struct Palette
     {
         size:   s32
@@ -41,22 +27,6 @@ private
         disposal:     u8
         input:        s32
         transparency: s32
-    }
-}
-
-impl Entry
-{
-    mtd const opCompare(other: Entry)->s32
-    {
-        let lenCmp = .length <=> other.length
-        if lenCmp do
-            return lenCmp
-
-        let prefixCmp = .prefix <=> other.prefix
-        if prefixCmp do
-            return prefixCmp
-
-        return .suffix <=> other.suffix
     }
 }
 
@@ -86,7 +56,6 @@ public struct Decoder
         bgIndex:    u8            // Background color index of the logical screen.
         interlaced: bool          // Whether the current frame stores rows in four passes.
         frame:      Array'u8      // Palette indices of the frame in encoded row order.
-        table:      Table         // LZW dictionary of the current frame.
 
         streamStart:         const [*] u8?     // Start of the input, kept for looping.
         stream:              const [*] u8?     // Current read position in the input.

@@ -309,10 +309,10 @@ ships; history lives in Git, not here.
 
 ### std.pixel.image.055 — Remaining WebP decode stages need performance decisions
 
-- Evidence: packed normal deblocking and YUV conversion and the dedicated DC-only reconstruction
-  path cover the lossy FileSamples case. VP8 entropy decoding, full inverse transforms, and VP8L
+- Evidence: the lossy FileSamples path uses batched entropy input, packed normal deblocking
+  and YUV conversion, and dedicated DC-only reconstruction. Full inverse transforms and VP8L
   transforms still need measurements against representative inputs. The original Windows comparison
-  and the Linux follow-up are in [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
+  and the Linux follow-ups are in [the FileSamples report](../bench/results/swagscope-filesamples/README.md).
 - Next: rerun the Windows comparison, then profile the remaining VP8 stages and VP8L transforms
   on lossy and lossless fixtures before widening vectorization.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is

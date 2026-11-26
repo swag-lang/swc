@@ -43,6 +43,15 @@ impl Decoder
         return i
     }
 
+    // A marker read starts from the byte stream, with provenance for its own lookahead.
+    mtd primeMarkerBits()
+    {
+        .bitSyntheticMask = 0
+        .bitsLeft         = 16
+        .getBits1(16)
+        .getBits1(16)
+    }
+
     #[Discardable, Swag.Inline]
     mtd getBits2(numBits: s32)->u32
     {
@@ -56,7 +65,6 @@ impl Decoder
         else
         {
             .bitBuf = rol(.bitBuf, count)
-            .bitSyntheticMask = rol(.bitSyntheticMask, count)
         }
 
         return bits
@@ -67,10 +75,8 @@ impl Decoder
     {
         let shift = cast(u32, (numBits + .bitsLeft))
         .bitBuf = rol(.bitBuf, shift)
-        .bitSyntheticMask = rol(.bitSyntheticMask, shift)
 
         var c1, c2: u32
-        var c1Synthetic, c2Synthetic: bool
         let inBufOfs = unwrap .inBufOfs
 
         // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
@@ -78,44 +84,33 @@ impl Decoder
         // refill and their two calls out of the inner decoding loop.
         if .inBufLeft >= 2 and inBufOfs[0] != 0xFF and inBufOfs[1] != 0xFF
         {
-            c1          = inBufOfs[0]
-            c2          = inBufOfs[1]
-            c1Synthetic = false
-            c2Synthetic = false
-            .inBufOfs   += 2
-            .inBufLeft  -= 2
+            c1         = inBufOfs[0]
+            c2         = inBufOfs[1]
+            .inBufOfs  += 2
+            .inBufLeft -= 2
         }
         else
         {
-            c1          = .getOctet()
-            c1Synthetic = .lastOctetSynthetic
-            c2          = .getOctet()
-            c2Synthetic = .lastOctetSynthetic
+            c1 = .getOctet()
+            c2 = .getOctet()
         }
 
         .bitBuf = (.bitBuf & 0xFFFF) | (c1 << 24) | (c2 << 16)
-        .bitSyntheticMask = (.bitSyntheticMask & 0xFFFF) |
-                            (c1Synthetic ? 0xFF000000'u32 : 0) |
-                            (c2Synthetic ? 0x00FF0000'u32 : 0)
         let refillShift = cast(u32, -.bitsLeft)
-        .bitBuf           = rol(.bitBuf, refillShift)
-        .bitSyntheticMask = rol(.bitSyntheticMask, refillShift)
-        .bitsLeft         += 16
+        .bitBuf   = rol(.bitBuf, refillShift)
+        .bitsLeft += 16
     }
 
     mtd getOctet()->u8
     {
-        .lastOctetSynthetic = false
         var paddingFlag: bool
         var c = .getChar(&paddingFlag)
-        .lastOctetSynthetic = .lastCharSynthetic
         if c == 0xFF
         {
             if paddingFlag do
                 return 0xFF
 
             c = .getChar(&paddingFlag)
-            .lastOctetSynthetic = .lastOctetSynthetic or .lastCharSynthetic
             if paddingFlag
             {
                 .stuffChar(0xFF)
@@ -304,6 +299,7 @@ impl Decoder
                 fail InvalidFormatError{"JPEG Huffman table class or identifier is invalid"}
 
             index = tableId + tableClass * (MaxHuffTables >> 1)
+            .h[index].ready = false
 
             .huffNum[index].resize(17)
             .huffVal[index].resize(256)

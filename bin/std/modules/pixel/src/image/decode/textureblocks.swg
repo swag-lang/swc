@@ -86,100 +86,121 @@ func alphaPalette(result: *[8] u8, source: const [*] u8)
 }
 
 #[Swag.Inline]
-func alphaIndex(source: const [*] u8, pixel: u32)->u8
+func readAlphaIndices(source: const [*] u8)->u64 => cast(u64, readU32(source + 2)) | (cast(u64, readU16(source + 6)) << 32)
+
+#[Swag.Inline]
+func packRgba(color: Color)->u32
 {
-    var bits = 0'u64
-    for i in 6 do
-        bits |= cast(u64, source[2 + i]) << (i * 8)
-    return cast(u8, ((bits >> (pixel * 3)) & 7))
+    return cast(u32, color.r) |
+           (cast(u32, color.g) << 8) |
+           (cast(u32, color.b) << 16) |
+           (cast(u32, color.a) << 24)
 }
 
-func storePixel(image: *Image, x, sourceY: s32, color: Color, sourceTopDown: bool)
+func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, rows, oneBlock: u64, sourceTopDown: bool)
 {
-    if x >= image.width or sourceY >= image.height do
-        return
-    let targetY = sourceTopDown ? image.height - sourceY - 1 : sourceY
-    let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride + cast(u64, x) * 4
-    target[0] = color.r
-    target[1] = color.g
-    target[2] = color.b
-    target[3] = color.a
+    let width  = cast(u64, image.width)
+    let height = cast(u64, image.height)
+    for blockY in rows
+    {
+        let firstY    = blockY * 4
+        let countY    = Math.min(4'u64, height - firstY)
+        let sourceRow = source + blockY * columns * oneBlock
+        for blockX in columns
+        {
+            let firstX = blockX * 4
+            let countX = Math.min(4'u64, width - firstX)
+            let block  = sourceRow + blockX * oneBlock
+
+            var colors:                      [4] u32
+            var firstPalette, secondPalette: [8] u8
+            var firstIndices, secondIndices: u64
+            var colorIndices:                u32
+            #static if FMT == .BC1 or FMT == .BC2 or FMT == .BC3
+            {
+                let colorBlock = FMT == .BC1 ? block : block + 8
+                var palette: [4] Color
+                colorPalette(&palette, readU16(colorBlock), readU16(colorBlock + 2), FMT != .BC1)
+                for i in 4 do
+                    colors[i] = packRgba(palette[i])
+                colorIndices = readU32(colorBlock + 4)
+            }
+
+            #static if FMT == .BC2
+            {
+                firstIndices = cast(u64, readU32(block)) | (cast(u64, readU32(block + 4)) << 32)
+            }
+            elif FMT == .BC3 or FMT == .BC4 or FMT == .BC5
+            {
+                alphaPalette(&firstPalette, block)
+                firstIndices = readAlphaIndices(block)
+            }
+
+            #static if FMT == .BC5
+            {
+                alphaPalette(&secondPalette, block + 8)
+                secondIndices = readAlphaIndices(block + 8)
+            }
+
+            // Clip partial blocks once and write each visible row as packed RGBA words.
+            for row in countY
+            {
+                let sourceY = firstY + row
+                let targetY = sourceTopDown ? height - sourceY - 1 : sourceY
+                let target  = cast([*] u32, image.pixels.storage() + targetY * image.rowStride) + firstX
+                for column in countX
+                {
+                    let pixel = row * 4 + column
+                    #static if FMT == .BC4
+                    {
+                        let value = cast(u32, firstPalette[(firstIndices >> (pixel * 3)) & 7])
+                        target[column] = 0xFF000000 | (value * 0x010101)
+                    }
+                    elif FMT == .BC5
+                    {
+                        let red   = cast(u32, firstPalette[(firstIndices >> (pixel * 3)) & 7])
+                        let green = cast(u32, secondPalette[(secondIndices >> (pixel * 3)) & 7])
+                        target[column] = 0xFF000000 | red | (green << 8)
+                    }
+                    else
+                    {
+                        let rgb = colors[(colorIndices >> (pixel * 2)) & 3]
+                        #static if FMT == .BC2
+                        {
+                            let alpha = cast(u32, ((firstIndices >> (pixel * 4)) & 15)) * 17
+                            target[column] = (rgb & 0x00FFFFFF) | (alpha << 24)
+                        }
+                        elif FMT == .BC3
+                        {
+                            let alpha = cast(u32, firstPalette[(firstIndices >> (pixel * 3)) & 7])
+                            target[column] = (rgb & 0x00FFFFFF) | (alpha << 24)
+                        }
+                        else
+                        {
+                            target[column] = rgb
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 internal func decode(image: *Image, source: const [..] u8, format: Format, sourceTopDown = true) fail
 {
-    let columns  = cast(u64, (image.width + 3)) / 4
-    let rows     = cast(u64, (image.height + 3)) / 4
+    let columns  = (cast(u64, image.width) + 3) / 4
+    let rows     = (cast(u64, image.height) + 3) / 4
     let oneBlock = blockBytes(format)
     if columns > Swag.U64.Max / rows or columns * rows > source.count / oneBlock do
         fail InvalidFormatError{"block-compressed texture data is truncated"}
 
-    var offset = 0'u64
-    for blockY in rows
+    switch #complete format
     {
-        for blockX in columns
-        {
-            let block      = source.buffer + offset
-            var colors: [4] Color
-            var alpha:  [8] u8
-            var red:    [8] u8
-            var green:  [8] u8
-            var colorBlock = block
-            if format == .BC2
-            {
-                colorBlock += 8
-            }
-            elif format == .BC3
-            {
-                alphaPalette(&alpha, block)
-                colorBlock += 8
-            }
-            elif format == .BC4
-            {
-                alphaPalette(&red, block)
-            }
-            elif format == .BC5
-            {
-                alphaPalette(&red, block)
-                alphaPalette(&green, block + 8)
-            }
-
-            var indices = 0'u32
-            if format == .BC1 or format == .BC2 or format == .BC3
-            {
-                let color0 = readU16(colorBlock)
-                let color1 = readU16(colorBlock + 2)
-                colorPalette(&colors, color0, color1, format != .BC1)
-                indices = readU32(colorBlock + 4)
-            }
-
-            for pixel in 16'u32
-            {
-                let x = cast(s32, (blockX * 4 + pixel % 4))
-                let y = cast(s32, (blockY * 4 + pixel / 4))
-                var color: Color
-                if format == .BC4
-                {
-                    let value = red[alphaIndex(block, pixel)]
-                    color = Color.fromRgb(value, value, value)
-                }
-                elif format == .BC5
-                {
-                    color = Color.fromRgb(red[alphaIndex(block, pixel)], green[alphaIndex(block + 8, pixel)], 0)
-                }
-                else
-                {
-                    color = colors[(indices >> (pixel * 2)) & 3]
-                    if format == .BC2 do
-                        color.a = cast(u8, (((readU16(block + cast(u64, (pixel / 4)) * 2) >> ((pixel & 3) * 4)) & 15) * 17))
-                    elif format == .BC3 do
-                        color.a = alpha[alphaIndex(block, pixel)]
-                }
-
-                storePixel(image, x, y, color, sourceTopDown)
-            }
-
-            offset += oneBlock
-        }
+    case .None: unreachable
+    case .BC1:  decodeBlocks'(.BC1)(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
+    case .BC2:  decodeBlocks'(.BC2)(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
+    case .BC3:  decodeBlocks'(.BC3)(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
+    case .BC4:  decodeBlocks'(.BC4)(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
+    case .BC5:  decodeBlocks'(.BC5)(image, source.buffer, columns, rows, oneBlock, sourceTopDown)
     }
 }

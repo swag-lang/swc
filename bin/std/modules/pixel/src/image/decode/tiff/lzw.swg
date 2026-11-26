@@ -21,21 +21,25 @@ struct LzwBitReader
 
 impl LzwBitReader
 {
+    // A TIFF LZW code is 9 to 12 bits and spans at most three bytes.
+    #[Swag.Inline]
     mtd read(width: u32)->u32 fail
     {
         if .bitPosition + width > .bitCount do
             fail InvalidFormatError{"invalid source buffer"}
 
-        var result: u32
-        for width
+        let source    = .data + (.bitPosition >> 3)
+        let endBit    = cast(u32, .bitPosition & 7) + width
+        var word      = cast(u32, source[0]) << 8 | source[1]
+        var available = 16'u32
+        if endBit > available
         {
-            let byteIndex = .bitPosition >> 3
-            let bitIndex  = 7 - (.bitPosition & 7)
-            result       = (result << 1) | ((cast(u32, .data[byteIndex]) >> bitIndex) & 1)
-            .bitPosition += 1
+            word      = word << 8 | source[2]
+            available = 24
         }
 
-        return result
+        .bitPosition += width
+        return (word >> (available - endBit)) & ((1'u32 << width) - 1)
     }
 }
 
@@ -51,9 +55,6 @@ func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u64) fai
     var prefixes: [4096] u16
     var suffixes: [4096] u8
     var stack:    [4096] u8
-
-    for index in 256 do
-        suffixes[index] = cast(u8, index)
 
     var output: u64
     var width    = 9'u32

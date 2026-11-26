@@ -266,3 +266,38 @@ All three images match the reported byte sizes and dimensions. The follow-up use
 (`eb04e3ff38fc7ecba1f7715ca7dae26b24e03766dc7c43ddeec75d5f1af74acd`), and `sample.webp`
 (`c90994e27f7e26c6b3a94e8a4ebf2ccd46b974852ef3eaf3686d2270cf340abf`). The files came from the
 [Image Extension Dataset mirror](https://github.com/Shin-Aska/image-extension-dataset/tree/501d37367cceafbeaa0aff739ec29cc1d8c1dd2f/files).
+
+## Second raster decode pass on Linux
+
+The second Release `Image.load` comparison used `ede61bc32f` as its baseline. The elapsed
+times below are medians of 21 warmed, interleaved repetitions on a pinned CPU of the same Xeon
+8573C host. Pixel format, dimensions, and CRC64 matched on every repetition. The two QOI
+controls were encoded from a flat color and the FileSamples PNG.
+
+| Fixture | Swag before (ms) | Swag after (ms) |
+| --- | ---: | ---: |
+| `sample.bmp` | 0.133 | 0.133 |
+| `sample.tga` | 0.134 | 0.145 |
+| `sample.ico` | 0.150 | 0.035 |
+| `sample.psd` | 0.847 | 0.469 |
+| Flat QOI | 2.097 | 0.199 |
+| Photo QOI | 5.250 | 4.693 |
+| `sample.exr` | 1.251 | 0.370 |
+| `sample.gif` | 3.580 | 2.234 |
+| `sample.tiff` | 0.695 | 0.096 |
+| `sample.jpg` | 4.398 | 2.102 |
+| `sample.jfif` | 3.972 | 2.454 |
+| `sample.png` | 5.227 | 5.317 |
+| `sample.webp` | 230.482 | 203.265 |
+
+On `sample.webp`, 16 alternating thread CPU measurements gave 316.147 to 296.169 ms, with the
+same decoded CRC64. Five lossy VP8 controls used 11–17% less CPU time. The small VP8L control
+stayed near 0.27 ms. PNG's interlaced RGB8 control went from 10.515 to 10.036 ms, and RGB16
+went from 17.751 to 17.308 ms in a separate 41-pair trial. Inflate accounted for about 85% of
+the sampled FileSamples PNG decode. The BMP and TGA bulk-copy trials had no repeatable gain.
+
+The baseline executable repeated the first block row of `sample.dds`. The revised BC1 decode
+matches ImageMagick's RGBA output byte for byte. For a comparison at equal output, changing
+only source block addressing in the baseline gave 3.577 ms, versus 1.518 ms for the revised
+kernel. A KTX2 control containing the same BC1 blocks went from 3.387 to 1.510 ms. The timed
+DDS and KTX2 outputs matched that corrected baseline, as did five small BC1–BC5 controls.

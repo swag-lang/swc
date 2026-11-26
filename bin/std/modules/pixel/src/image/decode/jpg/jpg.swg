@@ -55,13 +55,14 @@ private
 
     // One decoding table of a scan.
     //
-    // A prefix of eight bits selects a `lookUp` entry that packs the code length in its high byte
-    // and the symbol in its low one, so the common case resolves in a single load. A negative
-    // entry means the code is longer and continues bit by bit through `tree`.
+    // An eight-bit prefix indexes `lookUp`. Its low bytes hold the symbol and code length.
+    // Baseline AC entries may also hold the signed coefficient and total number of bits when
+    // the code and amplitude fit in the prefix. A negative entry selects a subtree for a long code.
     struct HuffTables
     {
         lookUp: [256] s32
         tree:   [512] s32
+        ready:  bool
     }
 
     struct CoeffBuf
@@ -182,7 +183,6 @@ internal struct Decoder
         bitSyntheticMask:    u32
         lastBitsSynthetic:   bool
         lastCharSynthetic:   bool
-        lastOctetSynthetic:  bool
         lastMarkerSynthetic: bool
         bitsLeft:            s32
         inBufLeft:           s32
@@ -263,9 +263,7 @@ impl Decoder
         .streamLen  = cast(s32, buffer.count)
 
         .prepareInBuffer()
-        .bitsLeft = 16
-        .getBits1(16)
-        .getBits1(16)
+        .primeMarkerBits()
         try .locateSofMarker()
     }
 

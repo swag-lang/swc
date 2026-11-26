@@ -28,7 +28,7 @@ const PackedGrayscaleAlphaThreshold = 256'u64
 // RGB transparency expansion amortizes its shuffle and masks on image-sized inputs.
 const SimdRgbTransparencyThreshold = 4096'u64
 
-// PNG stores 16-bit samples big-endian; native image pixels use little-endian words.
+// Converts big-endian PNG samples to native 16-bit words, including in-place conversion.
 func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64)
 {
     var src       = source
@@ -44,8 +44,9 @@ func convert16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u6
 
     while remaining
     {
+        let high = src[0]
         dst[0]    = src[1]
-        dst[1]    = src[0]
+        dst[1]    = high
         src       += 2
         dst       += 2
         remaining -= 1
@@ -364,17 +365,8 @@ impl Decoder
 
     mtd convert16(result: *Image)
     {
-        var src = cast(const [*] u8, .safeDstPixels())
-        var dst = cast([*] u8, result.pixels.storage())
-
-        // Without a transparency key, each input word maps directly to one
-        // output word, independent of the number of channels.
-        if not .seenTRSN or (cast(u8, .header.colorType) & 4) != 0
-        {
-            let samples = cast(u64, result.width) * result.height * .inChannels
-            convert16Samples(src, dst, samples)
-            return
-        }
+        let src = cast(const [*] u8, .safeDstPixels())
+        let dst = result.pixels.storage()
 
         switch cast(u8, .header.colorType)
         {

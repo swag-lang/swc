@@ -202,21 +202,29 @@ func exrUnalignedFloatFixture(names: const [..] string)->ConcatBuffer
 
 #test
 {
-    var source  = Image.create(3, 2, .RGBF16)
-    let samples = cast([*] u16, source.pixels.storage())
-    const Values: [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7CF1, 0xFE03, 0xFC00]
-    for i in 18 do
-        samples[i] = Values[i % Values.count]
-
-    let encoded = expect source.encode("memory.exr")
-    let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
-    assertImage(decoded, 3, 2, .RGBF16)
-
-    // Preserve finite samples, signed zero and infinity, and canonicalize each NaN with its sign.
+    const Values:   [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7CF1, 0xFE03, 0xFC00]
     const Expected: [10] u16 = [0x0001, 0x3C00, 0x4000, 0x8000, 0xC000, 0x7BFF, 0x7C00, 0x7E00, 0xFE00, 0xFC00]
-    let decodedSamples = cast(const [*] u16, decoded.pixels.storage())
-    for i in 18 do
-        Swag.require(decodedSamples[i] == Expected[i % Expected.count])
+
+    // Exercise complete vectors, scalar tails, and rows that start at unaligned addresses.
+    for format in [PixelFormat.RGBF16, PixelFormat.RGBAF16]
+    {
+        for width in [1, 7, 8, 9, 15, 16, 17]
+        {
+            var source  = Image.create(width, 2, format)
+            let samples = cast([*] u16, source.pixels.storage())
+            for i in source.byteCount / 2 do
+                samples[i] = Values[i % Values.count]
+
+            let encoded = expect source.encode("memory.exr")
+            let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
+            assertImage(decoded, width, 2, format)
+
+            // Preserve finite samples, signed zero, infinity, and each NaN's sign.
+            let decodedSamples = cast(const [*] u16, decoded.pixels.storage())
+            for i in source.byteCount / 2 do
+                Swag.require(decodedSamples[i] == Expected[i % Expected.count])
+        }
+    }
 }
 
 #test

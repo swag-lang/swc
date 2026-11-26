@@ -352,7 +352,7 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
     scope
     {
         var left = Math.Simd.splat(0's16)
-        while offset + 8 <= count
+        while offset + 16 <= count
         {
             let up        = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(previous + offset)))
             let delta     = loadPixelLanes(source + offset)
@@ -383,7 +383,7 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
     {
         var left   = Math.Simd.splat(0's16)
         var upLeft = Math.Simd.splat(0's16)
-        while offset + 8 <= count
+        while offset + 16 <= count
         {
             let up        = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(previous + offset)))
             let delta     = loadPixelLanes(source + offset)
@@ -468,13 +468,11 @@ impl Decoder
         if not .orderDefilter do
             dest += rowStrideOut * (height - 1)
 
-        // A temporary line "before" the first one, if filter needs one
-        // Sixteen bytes of slack: the lane loops read the previous row through a
-        // sixteen-byte load whose tail is ignored.
+        // The first row's filters see all-zero bytes above it.
         var tmpRow: Array'u8
-        tmpRow.resize(rowStrideOut + 16)
+        tmpRow.resize(rowStrideIn)
         let tmpRowBuffer = tmpRow.storage()
-        Memory.clear(tmpRowBuffer, rowStrideOut + 16)
+        Memory.clear(tmpRowBuffer, rowStrideIn)
         var up = tmpRowBuffer
 
         // PNG filtering references the previous byte of the same pixel. Packed
@@ -544,18 +542,27 @@ impl Decoder
             if not .defilter(cast(u32, x), cast(u32, y), input, tmpBuffer) do
                 return false
 
-            var t = tmpBuffer
+            let rowBytes    = cast(u64, x) * pixelBytes
+            let targetStep  = cast(u64, Adam7SpacingX[p]) * pixelBytes
+            let targetStart = cast(u64, Adam7OrigX[p]) * pixelBytes
+            var source      = tmpBuffer
             for j in y
             {
-                for i in x
+                let outY   = .header.height - (j * Adam7SpacingY[p] + Adam7OrigY[p]) - 1
+                var target = dstPixels + outY * .header.width * pixelBytes + targetStart
+                if targetStep == pixelBytes
                 {
-                    let outY   = .header.height - ((j * Adam7SpacingY[p]) + Adam7OrigY[p]) - 1
-                    let outX   = (i * Adam7SpacingX[p]) + Adam7OrigX[p]
-                    var outOff = outY * .header.width * pixelBytes
-                    outOff += outX * pixelBytes
-                    for z in pixelBytes do
-                        dstPixels[outOff + z] = t[z]
-                    t += pixelBytes
+                    Memory.copy(target, source, rowBytes)
+                    source += rowBytes
+                    continue
+                }
+
+                for x
+                {
+                    for byte in pixelBytes do
+                        target[byte] = source[byte]
+                    source += pixelBytes
+                    target += targetStep
                 }
             }
 

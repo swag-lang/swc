@@ -11,15 +11,15 @@ func ddsAddU32(result: *ConcatBuffer, value: u32)
     result.addNative(cast(u8, ((value >> 24) & 0xFF)))
 }
 
-func ddsBc1Fixture()->ConcatBuffer
+func ddsBc1Fixture(height: u32 = 4)->ConcatBuffer
 {
     var result: #returntype
     ddsAddU32(&result, 0x20534444)
     ddsAddU32(&result, 124)
     ddsAddU32(&result, 0x00081007)
+    ddsAddU32(&result, height)
     ddsAddU32(&result, 4)
-    ddsAddU32(&result, 4)
-    ddsAddU32(&result, 8)
+    ddsAddU32(&result, ((height + 3) / 4) * 8)
     ddsAddU32(&result, 0)
     ddsAddU32(&result, 0)
     for 11 do
@@ -38,6 +38,12 @@ func ddsBc1Fixture()->ConcatBuffer
     result.addNative(0xE0'u8)
     result.addNative(0x07'u8)
     ddsAddU32(&result, 0xE4E4E4E4)
+    if height > 4
+    {
+        ddsAddU32(&result, 0x0000001F)
+        ddsAddU32(&result, 0)
+    }
+
     return result
 }
 
@@ -162,6 +168,16 @@ func ddsRoundtrip(source: Image)->Image
                  header.height == 4 and
                  header.pixelFormat == .RGBA8 and
                  not header.isValid())
+}
+
+// The final partial block row starts at its own position in the compressed level.
+#test
+{
+    let bytes = ddsBc1Fixture(height: 5)
+    let image = expect Image.decode("block-rows.dds", nnBytes(bytes.toSlice()))
+    assertImage(image, 4, 5, .RGBA8)
+    Swag.require(image.pixelColor(0, 3) == Color.fromRgb(255, 0, 0))
+    Swag.require(image.pixelColor(0, 4) == Color.fromRgb(0, 0, 255))
 }
 
 #test

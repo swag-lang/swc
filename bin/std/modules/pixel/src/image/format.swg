@@ -45,8 +45,11 @@ impl ImageFormat
             return false
 
         let ext = Path.lowercaseExtension(fileName)
-        if ext.isEmpty() do
-            return false
+        return not ext.isEmpty() and .matchesLowercaseExtension(ext)
+    }
+
+    internal mtd const matchesLowercaseExtension(ext: string)->bool
+    {
         for candidate in Tokenize.split(.extensions, ';'rune) where ext == candidate do
             return true
         return false

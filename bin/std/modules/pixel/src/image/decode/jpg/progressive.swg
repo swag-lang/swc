@@ -291,10 +291,7 @@ impl Decoder
 
             try .decodeScan(.spectralStart == 0, .successiveHigh != 0)
 
-            .bitsLeft = 16
-
-            .getBits1(16)
-            .getBits1(16)
+            .primeMarkerBits()
         }
 
         if .lastMarkerSynthetic do

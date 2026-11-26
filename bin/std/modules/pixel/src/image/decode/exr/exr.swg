@@ -7,7 +7,7 @@
 //
 #global namespace Exr
 
-using Core, Core.Errors
+using Core, Core.Errors, Core.Math
 
 const Magic = 20000630'u32
 
@@ -119,9 +119,113 @@ func channelComponent(name: string)->s32
     return -1
 }
 
-func writeColorChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstRow, rowCount: s32)
+#[Swag.Inline]
+func canonicalHalf(value: u16)->u16 => (value & 0x7FFF) > 0x7C00 ? (value & 0x8000) | 0x7E00 : value
+
+#[Swag.Inline]
+func loadCanonicalHalves(source: const [*] u8)->Simd.U16x8
 {
-    let halfOutput = image.pixelFormat.bitDepth() == 16
+    const Infinity = Simd.splat(0x7C00's16)
+    let values    = cast #bit(Simd.U16x8, Simd.load(source))
+    let magnitude = cast #bit(Simd.S16x8, values & 0x7FFF'u16)
+    return Simd.select(magnitude > Infinity, (values & 0x8000'u16) | 0x7E00'u16, values)
+}
+
+// Place the samples for one channel in one of the three adjacent RGB output vectors.
+#[Swag.ConstExpr]
+func rgbHalfShuffle(channel, block: u64)->Simd.U8x16
+{
+    var table: [16] u8
+    for index in table.count
+    {
+        let component = block * 8 + index / 2
+        let pixel     = component / 3
+        table[index] = component % 3 == channel ? cast(u8, pixel * 2 + index % 2) : 0x80
+    }
+
+    return cast(Simd.U8x16, table)
+}
+
+const RgbR0 = rgbHalfShuffle(0, 0)
+const RgbG0 = rgbHalfShuffle(1, 0)
+const RgbB0 = rgbHalfShuffle(2, 0)
+const RgbR1 = rgbHalfShuffle(0, 1)
+const RgbG1 = rgbHalfShuffle(1, 1)
+const RgbB1 = rgbHalfShuffle(2, 1)
+const RgbR2 = rgbHalfShuffle(0, 2)
+const RgbG2 = rgbHalfShuffle(1, 2)
+const RgbB2 = rgbHalfShuffle(2, 2)
+
+func(ALPHA: bool) writeHalfColorRow(source: const [*] u8, offsets: [4] u64, target: [*] u8, width: u64)
+{
+    const Stride = ALPHA ? 8'u64 : 6'u64
+    let red   = source + offsets[0]
+    let green = source + offsets[1]
+    let blue  = source + offsets[2]
+
+    var x: u64
+    while width - x >= 8
+    {
+        let dst = target + x * Stride
+        let r   = loadCanonicalHalves(red + x * 2)
+        let g   = loadCanonicalHalves(green + x * 2)
+        let b   = loadCanonicalHalves(blue + x * 2)
+        #static if ALPHA
+        {
+            let a      = loadCanonicalHalves(source + offsets[3] + x * 2)
+            let rgLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(r, g))
+            let rgHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(r, g))
+            let baLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(b, a))
+            let baHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(b, a))
+            Simd.store(dst, cast #bit(Simd.U8x16, Simd.interleaveLow(rgLow, baLow)))
+            Simd.store(dst + 16, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgLow, baLow)))
+            Simd.store(dst + 32, cast #bit(Simd.U8x16, Simd.interleaveLow(rgHigh, baHigh)))
+            Simd.store(dst + 48, cast #bit(Simd.U8x16, Simd.interleaveHigh(rgHigh, baHigh)))
+        }
+        else
+        {
+            let rBytes = cast #bit(Simd.U8x16, r)
+            let gBytes = cast #bit(Simd.U8x16, g)
+            let bBytes = cast #bit(Simd.U8x16, b)
+            Simd.store(dst, Simd.shuffle(rBytes, RgbR0) | Simd.shuffle(gBytes, RgbG0) | Simd.shuffle(bBytes, RgbB0))
+            Simd.store(dst + 16, Simd.shuffle(rBytes, RgbR1) | Simd.shuffle(gBytes, RgbG1) | Simd.shuffle(bBytes, RgbB1))
+            Simd.store(dst + 32, Simd.shuffle(rBytes, RgbR2) | Simd.shuffle(gBytes, RgbG2) | Simd.shuffle(bBytes, RgbB2))
+        }
+
+        x += 8
+    }
+
+    while x < width
+    {
+        let dst = cast([*] u16, target + x * Stride)
+        dst[0] = canonicalHalf(readU16(red + x * 2))
+        dst[1] = canonicalHalf(readU16(green + x * 2))
+        dst[2] = canonicalHalf(readU16(blue + x * 2))
+        #static if ALPHA do
+            dst[3] = canonicalHalf(readU16(source + offsets[3] + x * 2))
+        x += 1
+    }
+}
+
+func writeHalfColorChunk(image: *Image, offsets: [4] u64, source: const [..] u8, firstRow, rowCount: s32)
+{
+    let width    = cast(u64, image.width)
+    let rowBytes = cast(u64, image.rowStride)
+    let hasAlpha = image.pixelFormat == .RGBAF16
+    for row in rowCount
+    {
+        let targetY = image.height - firstRow - row - 1
+        let target  = image.pixels.storage() + cast(u64, targetY) * rowBytes
+        let input   = source.buffer + cast(u64, row) * rowBytes
+        if hasAlpha do
+            writeHalfColorRow'true(input, offsets, target, width)
+        else do
+            writeHalfColorRow'false(input, offsets, target, width)
+    }
+}
+
+func writeFloatColorChunk(image: *Image, channels: const [..] Channel, source: const [..] u8, firstRow, rowCount: s32)
+{
     let components = cast(u64, image.pixelFormat.channels())
     var offset     = 0'u64
     for row in rowCount
@@ -135,20 +239,7 @@ func writeColorChunk(image: *Image, channels: const [..] Channel, source: const 
             var targetIndex = cast(u64, channelComponent(channel.name))
             offset += cast(u64, image.width) * (halfInput ? 2 : 4)
 
-            // Write each plane directly without converting the other pixel components.
-            if halfOutput
-            {
-                let target = cast([*] u16, targetRow)
-                for x in image.width
-                {
-                    let value = readU16(input + cast(u64, x) * 2)
-
-                    // Canonicalize the NaN payload while preserving its sign.
-                    target[targetIndex] = (value & 0x7FFF) > 0x7C00 ? (value & 0x8000) | 0x7E00 : value
-                    targetIndex         += components
-                }
-            }
-            elif halfInput
+            if halfInput
             {
                 let target = cast([*] f32, targetRow)
                 for x in image.width
@@ -380,10 +471,21 @@ impl Part
             return result
         result.allocPixels()
         let grayscale = result.pixelFormat.isGrayscale()
+        let halfColor = result.pixelFormat == .RGBF16 or result.pixelFormat == .RGBAF16
 
         // Validated RGB(A) channels write every component, and chunk validation covers every row.
         if grayscale do
             result.fill(Argb.Black)
+
+        // Each scanline repeats the same channel planes in file order.
+        var halfOffsets: [4] u64
+        if halfColor
+        {
+            let planeBytes = cast(u64, result.width) * 2
+            for channel, position in .channels do
+                halfOffsets[cast(u64, channelComponent(channel.name))] = position * planeBytes
+        }
+
         let linesPerChunk = .compression == 3 ? 16'u64 : 1'u64
         var seenRows: Array'bool
         seenRows.resize(cast(u64, .info.height))
@@ -437,9 +539,13 @@ impl Part
             {
                 try writeGrayscaleChunk(&result, .channels.toSlice(), pixels, firstY, rows, .yMin)
             }
+            elif halfColor
+            {
+                writeHalfColorChunk(&result, halfOffsets, pixels, cast(s32, relativeY), rows)
+            }
             else
             {
-                writeColorChunk(&result, .channels.toSlice(), pixels, cast(s32, relativeY), rows)
+                writeFloatColorChunk(&result, .channels.toSlice(), pixels, cast(s32, relativeY), rows)
             }
         }
 

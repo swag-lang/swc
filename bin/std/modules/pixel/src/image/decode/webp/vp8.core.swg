@@ -20,29 +20,6 @@ const VP8_TOKEN_CONTEXTS   = 3
 const VP8_TOKEN_PROBS      = 11
 const VP8_TOKEN_PROB_COUNT = VP8_TOKEN_PLANES * VP8_TOKEN_BANDS * VP8_TOKEN_CONTEXTS * VP8_TOKEN_PROBS
 
-const VP8_LUT_SHIFT: [127] u8 = [
-    7, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 4,
-    3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-
-const VP8_LUT_RANGE_MINUS_ONE: [127] u8 = [
-    127,
-    127, 191,
-    127, 159, 191, 223,
-    127, 143, 159, 175, 191, 207, 223, 239,
-    127, 135, 143, 151, 159, 167, 175, 183, 191, 199, 207, 215, 223, 231, 239, 247,
-    127, 131, 135, 139, 143, 147, 151, 155, 159, 163, 167, 171, 175, 179, 183, 187,
-    191, 195, 199, 203, 207, 211, 215, 219, 223, 227, 231, 235, 239, 243, 247, 251,
-    127, 129, 131, 133, 135, 137, 139, 141, 143, 145, 147, 149, 151, 153, 155, 157,
-    159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185, 187, 189,
-    191, 193, 195, 197, 199, 201, 203, 205, 207, 209, 211, 213, 215, 217, 219, 221,
-    223, 225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 247, 249, 251, 253]
-
 const VP8_DEQUANT_DC: [128] u16 = [
     4, 5, 6, 7, 8, 9, 10, 10, 11, 12, 13, 14, 15, 16, 17, 17,
     18, 19, 20, 20, 21, 21, 22, 22, 23, 23, 24, 25, 25, 26, 27, 28,
@@ -69,7 +46,7 @@ struct Vp8Partition
     size:          u32
     offset:        u32
     rangeM1:       u32
-    bits:          u32
+    bits:          u64     // Valid bits start at the most significant bit.
     bitCount:      u8
     unexpectedEnd: bool
 }
@@ -91,37 +68,36 @@ impl Vp8Partition
     {
         if .bitCount < 8
         {
-            if .offset >= .size
+            let remaining = .size - .offset
+            if remaining >= 8
+            {
+                // Keep seven bytes so the refill fits even when the buffer has seven live bits.
+                let word = cast(const [*] u64, (unwrap .data) + .offset)[0]
+                .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> .bitCount
+                .offset   += 7
+                .bitCount += 56
+            }
+            elif remaining
+            {
+                .bits     |= cast(u64, .data![.offset]) << (56 - .bitCount)
+                .offset   += 1
+                .bitCount += 8
+            }
+            else
             {
                 .unexpectedEnd = true
                 return false
             }
-
-            .bits     |= cast(u32, .data![.offset]) << (8 - .bitCount)
-            .offset   += 1
-            .bitCount += 8
         }
 
-        let split = ((.rangeM1 * probability) >> 8) + 1
-        let bit   = .bits >= split << 8
-        if bit
-        {
-            .rangeM1 -= split
-            .bits    -= split << 8
-        }
-        else
-        {
-            .rangeM1 = split - 1
-        }
-
-        if .rangeM1 < 127
-        {
-            let shift = VP8_LUT_SHIFT[.rangeM1]
-            .rangeM1  = VP8_LUT_RANGE_MINUS_ONE[.rangeM1]
-            .bits     <<= shift
-            .bitCount -= shift
-        }
-
+        let split     = ((.rangeM1 * probability) >> 8) + 1
+        let threshold = cast(u64, split) << 56
+        let bit       = .bits >= threshold
+        let range     = bit ? .rangeM1 - split + 1 : split
+        let shift     = Math.leadingZeros(range) - 24
+        .bits     = (.bits - (bit ? threshold : 0)) << shift
+        .rangeM1  = (range << shift) - 1
+        .bitCount -= cast(u8, shift)
         return bit
     }
 

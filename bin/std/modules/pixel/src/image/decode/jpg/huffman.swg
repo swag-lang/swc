@@ -75,6 +75,7 @@ internal impl Decoder
     // Stores one table in the layout the scan reads: counts indexed by code length, then values.
     private mtd setHuffTable(index: s32, counts, values: const [..] u8)
     {
+        .h[index].ready = false
         .huffNum[index].resize(17)
         .huffVal[index].resize(256)
         Memory.copy(.huffNum[index].storage(), counts.buffer, 17)

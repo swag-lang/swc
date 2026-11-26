@@ -2,6 +2,40 @@
 
 using Swag, Core
 
+// Wide refills preserve the arithmetic state and stop at every partition boundary.
+#test
+{
+    const Data          = [0x73'u8, 0xE1, 0x0F, 0x29, 0x94, 0x55, 0x20, 0xDB, 0x42, 0x61, 0xD7, 0x13, 0x06, 0xFE, 0x67, 0xCA]
+    const Probabilities = [0'u8, 255, 157, 128, 2, 46, 250, 112, 76]
+    const Checkpoints   = [{bytes: 0'u32, bits: 0, code: 0'u64},
+                           {bytes: 1'u32, bits: 4, code: 0x9'u64},
+                           {bytes: 7'u32, bits: 94, code: 0x6E33129CDC6F551B'u64},
+                           {bytes: 8'u32, bits: 111, code: 0x2539B8DEAA37B8C4'u64},
+                           {bytes: 9'u32, bits: 118, code: 0x9CDC6F551BDC6236'u64},
+                           {bytes: 14'u32, bits: 193, code: 0x6EF73389C6AF71BB'u64},
+                           {bytes: 15'u32, bits: 213, code: 0x389C6AF71BBDCEE2'u64},
+                           {bytes: 16'u32, bits: 217, code: 0x89C6AF71BBDCEE26'u64}]
+    for checkpoint in Checkpoints
+    {
+        var partition: Webp.Vp8Partition
+        partition.init(&Data[0], checkpoint.bytes)
+        var bits: s32
+        var code: u64
+        for i in 256
+        {
+            let bit = partition.readBit(Probabilities[i % Probabilities.count])
+            if partition.unexpectedEnd do
+                break
+            code = (code << 1) | cast(u64, bit)
+            bits += 1
+        }
+
+        Swag.require(partition.unexpectedEnd)
+        Swag.require(bits == checkpoint.bits)
+        Swag.require(code == checkpoint.code)
+    }
+}
+
 // The DC-only inverse transform clips each block pixel without touching its neighbours.
 #test
 {

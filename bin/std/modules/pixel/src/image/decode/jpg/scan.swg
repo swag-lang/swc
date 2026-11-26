@@ -176,43 +176,49 @@ impl Decoder
                 var ac = 0's16
                 while k < 64
                 {
-                    s = .huffDecode(ph)
-                    var r = s >> 4
-                    s &= 0x0F
-
-                    if s
+                    let entry = ph.lookUp[(.bitBuf >> 8) & 0xFF]
+                    var run, amplitude: s32
+                    if entry >= 1 << 24
                     {
-                        if r
-                        {
-                            if (k + r) > 63 do
-                                fail InvalidFormatError{"decode error"}
-                            k += r
-                        }
-
-                        let rbits = .getBits2(s)
-                        if s > 15 do
-                            fail InvalidFormatError{"decode error"}
-
-                        s = extendSign(rbits, s)
-                        let value = cast(s16, (s * q[k]))
-                        p[Zag[k]] = value
-                        ac        |= value
+                        // This prefix includes both the code and the amplitude bits.
+                        .getBits2(entry >> 24)
+                        run       = (entry >> 4) & 0x0F
+                        amplitude = (entry << 8) >> 24
                     }
                     else
                     {
-                        if r == 15
+                        if entry < 0
                         {
-                            if (k + 15) > 63 do
-                                fail InvalidFormatError{"decode error"}
-                            k += 15
+                            s = .decodeLongHuffCode(ph, entry)
                         }
                         else
                         {
-                            break
+                            .getBits2(entry >> 8)
+                            s = entry & 0xFF
                         }
+
+                        run = s >> 4
+                        s   &= 0x0F
+                        if not s
+                        {
+                            if run != 15 do
+                                break
+                            if k + 15 > 63 do
+                                fail InvalidFormatError{"decode error"}
+                            k += 16
+                            continue
+                        }
+
+                        amplitude = extendSign(.getBits2(s), s)
                     }
 
-                    k += 1
+                    k += run
+                    if k > 63 do
+                        fail InvalidFormatError{"decode error"}
+                    let value = cast(s16, (amplitude * q[k]))
+                    p[Zag[k]] = value
+                    ac        |= value
+                    k         += 1
                 }
 
                 // Keep the current coefficients hot and reuse their storage for the next block.
@@ -562,6 +568,7 @@ impl Decoder
         for i in 256 do
             hs.lookUp[i] = 1 << 8
 
+        let packAmplitude = idx >= MaxHuffTables / 2 and not .progressiveFlag and .decOptions.decodePixels
         var nextFreeEntry = -1
         let huffValBuf    = .huffVal[idx].storage()
         p = 0
@@ -573,11 +580,27 @@ impl Decoder
             if codeSize <= 8
             {
                 cde <<= (8 - codeSize)
-                let entry = (cast(s32, codeSize) << 8) | cast(s32, i)
-                for var l = 1 << (8 - codeSize); l > 0; l -= 1
+                let entry         = (cast(s32, codeSize) << 8) | cast(s32, i)
+                let amplitudeSize = cast(s32, (i & 0x0F))
+                let totalSize     = cast(s32, codeSize) + amplitudeSize
+                if packAmplitude and amplitudeSize and totalSize <= 8
                 {
-                    hs.lookUp[cde] = entry
-                    cde += 1
+                    let amplitudeMask = (1 << amplitudeSize) - 1
+                    for 1 << (8 - codeSize)
+                    {
+                        let amplitudeBits = cast(u32, ((cde >> (8 - totalSize)) & amplitudeMask))
+                        let amplitude     = extendSign(amplitudeBits, amplitudeSize)
+                        hs.lookUp[cde] = entry | ((amplitude & 0xFF) << 16) | (totalSize << 24)
+                        cde += 1
+                    }
+                }
+                else
+                {
+                    for 1 << (8 - codeSize)
+                    {
+                        hs.lookUp[cde] = entry
+                        cde += 1
+                    }
                 }
             }
             else
@@ -639,12 +662,14 @@ impl Decoder
                 fail InvalidFormatError{"undefined huff table"}
         }
 
-        for i in MaxHuffTables
+        // Header-only probes validate the referenced tables but do not consume entropy codes.
+        if not .decOptions.decodePixels and (not .progressiveFlag or not .decOptions.decodeMetadata) do
+            return
+
+        for i in MaxHuffTables where .huffNum[i].count and not .h[i].ready
         {
-            if .huffNum[i].count
-            {
-                .makeHuffTable(i, &.h[i])
-            }
+            .makeHuffTable(i, &.h[i])
+            .h[i].ready = true
         }
     }
 

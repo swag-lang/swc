@@ -120,10 +120,8 @@ func packLiteralTiffLzw(data: const [..] u8)->Array'u8
     return #move writer.bytes
 }
 
-// Build a single-IFD TIFF. Pixel data is laid out top-down. When 'compression'
-// is 1 (none), data is split into strips of 'rowsPerStrip' rows; otherwise a
-// single strip is emitted holding 'pixelData' verbatim.
-func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0, orientation: u32 = 1)->Array'u8
+// Builds a single-IFD TIFF from top-down rows or a stream of precompressed strips.
+func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, bps: u32, pixelData: const [..] u8, palette: const [..] u16?, extraSamples: bool, predictor: u32 = 1, extraSampleType: u32 = 2, extraSamplesType: u16 = 3, extraSamplesCount: u32 = 1, includeBitsPerSample: bool = true, bitsPerSampleCount: u32 = 0, orientation: u32 = 1, stripByteCounts: const [..] u32 = [])->Array'u8
 {
     var cb: ConcatBuffer
 
@@ -144,6 +142,10 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
             stripLens.add(r * rowBytes)
             rows -= r
         }
+    }
+    elif stripByteCounts.count
+    {
+        stripLens.add(stripByteCounts)
     }
     else
     {
@@ -551,6 +553,21 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     Swag.require(img.pixels.buffer[3] == 30'u8)
     Swag.require(img.pixels.buffer[6] == 20'u8)
     Swag.require(img.pixels.buffer[9] == 10'u8)
+}
+
+// The dictionary restarts at each LZW strip and the predictor restarts at each row.
+#test
+{
+    var encoded = packLiteralTiffLzw([10'u8, 1, 1, 20, 2, 2])
+    let tail    = packLiteralTiffLzw([30'u8, 3, 3])
+    let sizes   = [cast(u32, encoded.count), cast(u32, tail.count)]
+    encoded.add(tail.toSlice())
+
+    let buffer = buildTiff(true, 3, 3, 1, 1, 5, 2, 8, nnBytes(encoded.toSlice()), null, false, predictor: 2, stripByteCounts: sizes)
+    let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
+    Swag.require(image.width == 3 and image.height == 3 and image.pixelFormat == .BGR8)
+    for value, index in [10'u8, 11, 12, 20, 22, 24, 30, 33, 36] do
+        Swag.require(image.pixelColor(cast(s32, index % 3), cast(s32, index / 3)).r == value)
 }
 
 // Decode metadata only: dimensions are populated but pixels are not allocated.

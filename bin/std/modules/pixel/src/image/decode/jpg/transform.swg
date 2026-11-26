@@ -332,9 +332,7 @@ impl Decoder
     {
         if not .progressiveFlag
         {
-            .bitsLeft = 16
-            .getBits1(16)
-            .getBits1(16)
+            .primeMarkerBits()
             let marker = try .processMarkers()
             if marker != .M_EOI do
                 fail InvalidFormatError{"JPEG scan is not followed by the end-of-image marker"}

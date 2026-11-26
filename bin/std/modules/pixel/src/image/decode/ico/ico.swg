@@ -164,6 +164,12 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
         }
     }
 
+    if dib.bitCount == 32 and not useAndMaskFor32
+    {
+        Memory.copy(result.pixels.storage(), xorData, result.byteCount)
+        return
+    }
+
     // Icon pixel data is bottom-up, matching the internal buffer convention
     for y in height
     {
@@ -182,10 +188,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
                 b = pix[0]
                 g = pix[1]
                 r = pix[2]
-                if useAndMaskFor32 do
-                    a = maskBit(andRow, x) ? 0'u8 : 255'u8
-                else do
-                    a = pix[3]
+                a = maskBit(andRow, x) ? 0'u8 : 255'u8
 
             case 24:
                 let pix = xorRow + cast(u64, x) * 3

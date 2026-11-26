@@ -115,6 +115,47 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
     }
 }
 
+func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64, depth: u16)
+{
+    let planeBytes = rowBytes * cast(u64, image.height)
+    if image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8
+    {
+        let hasAlpha = image.pixelFormat == .RGBA8
+        for y in image.height
+        {
+            let red   = source + cast(u64, y) * rowBytes
+            let green = red + planeBytes
+            let blue  = green + planeBytes
+            let alpha = blue + planeBytes
+            let row   = image.pixels.storage() + cast(u64, (image.height - y - 1)) * image.rowStride
+            if hasAlpha
+            {
+                let target = cast([*] u32, row)
+                for x in image.width do
+                    target[x] = cast(u32, red[x]) | (cast(u32, green[x]) << 8) |
+                                (cast(u32, blue[x]) << 16) | (cast(u32, alpha[x]) << 24)
+            }
+            else
+            {
+                var target = row
+                for x in image.width
+                {
+                    target[0] = red[x]
+                    target[1] = green[x]
+                    target[2] = blue[x]
+                    target    += 3
+                }
+            }
+        }
+
+        return
+    }
+
+    for channel in image.pixelFormat.channels() do
+        for y in image.height do
+            storeChannel(image, channel, y, Swag.makeSlice(source + channel * planeBytes + cast(u64, y) * rowBytes, rowBytes), depth)
+}
+
 internal impl IImageDecoder for Decoder
 {
     mtd impl format()->ImageFormat => {"PSD - Adobe Photoshop Document", ".psd"}
@@ -191,45 +232,35 @@ internal impl IImageDecoder for Decoder
         let rowBytes = cast(u64, width) * (depth / 8)
         if rowBytes > Swag.U32.Max or cast(u64, channels) * height > Swag.U64.Max / rowBytes do
             fail UnsupportedFormatError{"PSD composite is too large"}
-        result.allocPixels()
-        result.clear()
 
-        var rowLengths: Array'u16
-        if compression == 1
+        let rowCount = cast(u64, channels) * height
+        if compression == 0
         {
-            let rowCount = cast(u64, channels) * height
-            if rowCount > (buffer.count - offset) / 2 do
-                fail InvalidFormatError{"PSD PackBits row table is truncated"}
-            rowLengths.resize(rowCount)
-            for i in rowCount
-            {
-                rowLengths[i] = readU16(source + offset)
-                offset        += 2
-            }
+            if rowCount * rowBytes > buffer.count - offset do
+                fail InvalidFormatError{"PSD raw composite is truncated"}
+            result.allocPixels()
+            storeRawComposite(&result, source + offset, rowBytes, depth)
+            return result
         }
 
+        if rowCount > (buffer.count - offset) / 2 do
+            fail InvalidFormatError{"PSD PackBits row table is truncated"}
+        let rowLengths = source + offset
+        offset += rowCount * 2
+
+        result.allocPixels()
         var row: Array'u8
         row.resize(rowBytes)
         for channel in channels
         {
             for y in cast(s32, height)
             {
-                if compression == 0
-                {
-                    if rowBytes > buffer.count - offset do
-                        fail InvalidFormatError{"PSD raw composite is truncated"}
-                    Memory.copy(row.storage(), source + offset, rowBytes)
-                    offset += rowBytes
-                }
-                else
-                {
-                    let encodedSize = cast(u64, rowLengths[cast(u64, channel) * height + cast(u64, y)])
-                    if encodedSize > buffer.count - offset do
-                        fail InvalidFormatError{"PSD PackBits row is truncated"}
-                    try decodePackBits(row.storage(), rowBytes, Swag.makeSlice(source + offset, encodedSize))
-                    offset += encodedSize
-                }
-
+                let rowIndex    = cast(u64, channel) * height + cast(u64, y)
+                let encodedSize = cast(u64, readU16(rowLengths + rowIndex * 2))
+                if encodedSize > buffer.count - offset do
+                    fail InvalidFormatError{"PSD PackBits row is truncated"}
+                try decodePackBits(row.storage(), rowBytes, Swag.makeSlice(source + offset, encodedSize))
+                offset += encodedSize
                 storeChannel(&result, channel, y, row.toSlice(), depth)
             }
         }

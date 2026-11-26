@@ -1139,20 +1139,23 @@ private func canRetainJpeg(parser: *PdfParser, nodeId: u32, raw: const [..] u8, 
 }
 
 // Keeps one reference in the cache while each page owns its own reference.
-private func cacheDecodedImage(parser: *PdfParser, key: u64, image: #move Image)->ImageReference
+private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image)->ImageReference
 {
     var jpeg: Array'u8
-    return cacheDecodedImage(parser, key, #move image, #move jpeg)
+    return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move image, #move jpeg)
 }
 
-private func cacheDecodedImage(parser: *PdfParser, key: u64, image: #move Image, jpeg: #move Array'u8)->ImageReference
+private func cacheDecodedImage(parser: *PdfParser, nodeId, resourcesId: u32, deviceOnly: bool, image: #move Image, jpeg: #move Array'u8)->ImageReference
 {
     let size = image.byteCount + jpeg.count
     var result = #move ImageReference.create(#move image, #move jpeg)
     if parser.imageCacheBytes + size <= ImageCacheBudget
     {
         parser.imageCacheBytes += size
-        parser.imageCache[key] = result
+        if deviceOnly do
+            parser.deviceImageCache[nodeId] = result
+        else do
+            parser.imageCache[imageCacheKey(nodeId, resourcesId)] = result
     }
 
     return #move result
@@ -1169,20 +1172,26 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         return ImageReference.create(#move painted)
     }
 
-    let cacheKey = imageCacheKey(nodeId, resourcesId)
-    let cached   = parser.imageCache.tryFind(cacheKey)
-    if cached
+    let resourceIndependent = parser.deviceImageCache.tryFind(nodeId)
+    if resourceIndependent
     {
-        var result: #returntype = cached.value
+        var result: #returntype = resourceIndependent.value
+        return result
+    }
+
+    let local = parser.imageCache.tryFind(imageCacheKey(nodeId, resourcesId))
+    if local
+    {
+        var result: #returntype = local.value
         return result
     }
 
     // A soft mask, or a stencil named through /Mask, supplies the alpha channel.
-    var maskId  = parser.dict(nodeId, "SMask")
-    var stencil = false
+    var maskId      = parser.dict(nodeId, "SMask")
+    let explicitMask = parser.dict(nodeId, "Mask")
+    var stencil     = false
     if maskId == InvalidNode
     {
-        let explicitMask = parser.dict(nodeId, "Mask")
         if explicitMask != InvalidNode and parser.nodes[explicitMask].kind == .Dictionary
         {
             maskId  = explicitMask
@@ -1190,6 +1199,10 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         }
     }
 
+    // Direct device samples have no named color space to resolve in page resources.
+    let colorName  = parser.name(parser.dict(nodeId, "ColorSpace"))
+    let deviceOnly = maskId == InvalidNode and explicitMask == InvalidNode and
+                     (colorName == "DeviceRGB" or colorName == "DeviceGray" or colorName == "DeviceCMYK")
     let codec = #move parser.imageCodec(nodeId)
     var plane, mask: SamplePlane
     if not codec.isEmpty()
@@ -1211,8 +1224,8 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
             else do
                 result = decoded.convertedTo(.RGB8)
             if canRetainJpeg(parser, nodeId, raw.toSlice(), &result) do
-                return cacheDecodedImage(parser, cacheKey, #move result, #move raw)
-            return cacheDecodedImage(parser, cacheKey, #move result)
+                return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result, #move raw)
+            return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
         }
 
         mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
@@ -1221,7 +1234,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
         {
             // JPEG pixels already have the destination row order.
             var result = decoded.pixelFormat == .BGR8 ? maskedJpegImage'(true)(&decoded, &mask) : maskedJpegImage'(false)(&decoded, &mask)
-            return cacheDecodedImage(parser, cacheKey, #move result)
+            return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
         }
 
         plane.width  = decoded.width
@@ -1304,5 +1317,5 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     var result = #move planeToImage(&plane, null)
-    return cacheDecodedImage(parser, cacheKey, #move result)
+    return cacheDecodedImage(parser, nodeId, resourcesId, deviceOnly, #move result)
 }

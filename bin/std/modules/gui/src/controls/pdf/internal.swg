@@ -96,7 +96,8 @@ struct PdfParser
     // time. The pair is the key because a named color space is defined by the resources in
     // force, so the same object under different resources is not the same image.
     retainJpeg:      bool
-    imageCache:      HashTable'(u64, ImageReference)
+    imageCache:       HashTable'(u64, ImageReference)
+    deviceImageCache: HashTable'(u32, ImageReference)
     imageCacheBytes: u64
 
     // Fonts already decoded from this document, keyed by the font object.

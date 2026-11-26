@@ -822,3 +822,44 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     Swag.require(found)
 }
+
+
+// The same image can appear below two different page resource dictionaries.
+#test
+{
+    let source = Image.create(1, 1, .RGB8, [12'u8, 36, 249])
+    var document = Document.create()
+    for pageIndex in 2
+    {
+        var page = Page.create(20, 20)
+        page.addImage(source, cast(f32, pageIndex), 0, 10, 10)
+        document.addPage(#move page)
+    }
+
+    let bytes   = expect document.encode()
+    let decoded = expect Document.decode(bytes.toSlice())
+    let first   = unwrap decoded.pages[0].items[0].imageValue()
+    let second  = unwrap decoded.pages[1].items[0].imageValue()
+    Swag.require(first == second)
+    Swag.require(second.pixelColor(0, 0) == Color.fromRgb(12, 36, 249))
+}
+
+// An image that names a color space can resolve to a different model on each page.
+#test
+{
+    var bytes: Array'u8
+    bytes.add(cast(const [..] u8, "%PDF-1.7\n"))
+    addObject(&bytes, 1, "<< /Type /Catalog /Pages 2 0 R >>")
+    addObject(&bytes, 2, "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] >>")
+    addObject(&bytes, 3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << /ColorSpace << /Shared /DeviceGray >> /XObject << /Im 6 0 R >> >> /Contents 5 0 R >>")
+    addObject(&bytes, 4, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 20 20] /Resources << /ColorSpace << /Shared /DeviceRGB >> /XObject << /Im 6 0 R >> >> /Contents 5 0 R >>")
+    addStreamObject(&bytes, 5, "", cast(const [..] u8, "q 10 0 0 10 0 0 cm /Im Do Q"))
+    addStreamObject(&bytes, 6, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /Shared /BitsPerComponent 8", [52'u8, 69, 101])
+    bytes.add(cast(const [..] u8, "trailer\n<< /Root 1 0 R >>\n%%EOF\n"))
+
+    let document = expect Document.decode(bytes.toSlice())
+    let gray     = unwrap document.pages[0].items[0].imageValue()
+    let rgb      = unwrap document.pages[1].items[0].imageValue()
+    Swag.require(gray.pixelColor(0, 0) == Color.fromRgb(52, 52, 52))
+    Swag.require(rgb.pixelColor(0, 0) == Color.fromRgb(52, 69, 101))
+}

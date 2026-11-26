@@ -13,12 +13,12 @@ public const RsaSha256Size = 32
 
 private struct RsaMontgomery
 {
-    modulus:   [128] u32
-    one:       [128] u32
-    r2:        [128] u32
+    modulus:   [64] u64
+    one:       [64] u64
+    r2:        [64] u64
     limbCount: u32
     byteCount: u32
-    n0Inverse: u32
+    n0Inverse: u64
 }
 
 private func rsaMontgomeryClear(context: *RsaMontgomery)
@@ -31,26 +31,46 @@ private func rsaMontgomeryClear(context: *RsaMontgomery)
     context[].n0Inverse = 0
 }
 
-// Initialization derives this value only from the public modulus.
-private func rsaDoubleModulo(value: *[128] u32, context: *RsaMontgomery)
+private func rsaReadWords(bytes: const [..] u8)->[64] u64
 {
-    var difference: [128] u32
+    var result: #returntype
+    let fullWords = bytes.count / 8
+    for index in fullWords
+    {
+        let offset = bytes.count - (index + 1) * 8
+        var word: u64
+        Swag.memcpy(&word, bytes.buffer + offset, 8)
+        result[index] = Swag.byteSwap(word)
+    }
+    if bytes.count % 8
+    {
+        result[fullWords] = (cast(u64, bytes[0]) << 24) | (cast(u64, bytes[1]) << 16) |
+                            (cast(u64, bytes[2]) << 8) | cast(u64, bytes[3])
+    }
+    return result
+}
+
+// Initialization derives this value only from the public modulus.
+private func rsaDoubleModulo(value: *[64] u64, context: *RsaMontgomery)
+{
+    var difference: [64] u64
     var carry  = 0'u64
     var borrow = 0'u64
     for index in context[].limbCount
     {
-        let doubled = (cast(u64, value[][index]) << 1) | carry
-        let low     = cast(u32, doubled)
-        value[][index] = low
-        carry = doubled >> 32
+        let word    = value[][index]
+        let doubled = (word << 1) | carry
+        value[][index] = doubled
+        carry = word >> 63
 
-        let word = cast(u64, low) - context[].modulus[index] - borrow
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
+        let modulus    = context[].modulus[index]
+        let subtracted = doubled - modulus
+        difference[index] = subtracted - borrow
+        borrow = cast(u64, doubled < modulus) | cast(u64, subtracted < borrow)
     }
 
     if carry != 0 or borrow == 0 do
-        Swag.memcpy(&value[][0], &difference[0], cast(u64, context[].limbCount) * 4)
+        Swag.memcpy(&value[][0], &difference[0], cast(u64, context[].limbCount) * 8)
 }
 
 private func rsaMontgomeryCreate(modulus: const [..] u8)->RsaMontgomery fail
@@ -64,50 +84,40 @@ private func rsaMontgomeryCreate(modulus: const [..] u8)->RsaMontgomery fail
 
     var result: RsaMontgomery
     result.byteCount = cast(u32, modulus.count)
-    result.limbCount = cast(u32, modulus.count / 4)
-    for index in result.limbCount
-    {
-        let offset = modulus.count - (cast(u64, index + 1) * 4)
-        result.modulus[index] = (cast(u32, modulus[offset]) << 24) |
-                                (cast(u32, modulus[offset + 1]) << 16) |
-                                (cast(u32, modulus[offset + 2]) << 8) |
-                                cast(u32, modulus[offset + 3])
-    }
+    result.limbCount = cast(u32, (modulus.count + 7) / 8)
+    result.modulus = rsaReadWords(modulus)
 
-    var inverse = 1'u32
-    for 5 do
+    var inverse = 1'u64
+    for 6 do
         inverse *= 2 - result.modulus[0] * inverse
-    result.n0Inverse = 0'u32 - inverse
+    result.n0Inverse = 0'u64 - inverse
 
-    // The modulus has its highest bit set, so R mod n is R minus n.
+    // The modulus has its highest encoded bit set, so 2^bits mod n is 2^bits minus n.
     var borrow = 0'u64
     for index in result.limbCount
     {
-        let word = 0'u64 - result.modulus[index] - borrow
-        result.one[index] = cast(u32, word)
-        borrow = word >> 63
+        let word = 0'u64 - result.modulus[index]
+        result.one[index] = word - borrow
+        borrow = cast(u64, result.modulus[index] != 0) | cast(u64, word < borrow)
+    }
+    if result.byteCount % 8
+    {
+        result.one[result.limbCount - 1] &= 0xFFFFFFFF
+        for 32 do
+            rsaDoubleModulo(&result.one, &result)
     }
     result.r2 = result.one
-    for result.limbCount * 32 do
+    for result.limbCount * 64 do
         rsaDoubleModulo(&result.r2, &result)
     return result
 }
 
-private func rsaDecodeNumber(bytes: const [..] u8, context: *RsaMontgomery)->[128] u32 fail
+private func rsaDecodeNumber(bytes: const [..] u8, context: *RsaMontgomery)->[64] u64 fail
 {
     if bytes.count != context[].byteCount do
         fail Errors.BadParameterError{"RSA integer must match the modulus width"}
 
-    var result: #returntype
-    for index in context[].limbCount
-    {
-        let offset = bytes.count - (cast(u64, index + 1) * 4)
-        result[index] = (cast(u32, bytes[offset]) << 24) |
-                        (cast(u32, bytes[offset + 1]) << 16) |
-                        (cast(u32, bytes[offset + 2]) << 8) |
-                        cast(u32, bytes[offset + 3])
-    }
-
+    let result = rsaReadWords(bytes)
     var lessThanModulus = false
     var equalToModulus  = true
     var index = context[].limbCount
@@ -133,51 +143,60 @@ private func rsaDecodeNumber(bytes: const [..] u8, context: *RsaMontgomery)->[12
     return result
 }
 
-private func rsaMontgomeryMultiply(left, right: [128] u32, context: *RsaMontgomery)->[128] u32
+#[Swag.Inline]
+private func rsaMultiplyAdd(left, right, addend, carry: u64)->{word: u64, carry: u64}
 {
-    var temporary: [129] u32
-    for index in context[].limbCount
+    let product = Math.mulU64(left, right)
+    let sum     = product.lo + addend
+    let word    = sum + carry
+    let high    = product.hi + cast(u64, sum < product.lo) + cast(u64, word < sum)
+    return {word, high}
+}
+
+private func rsaMontgomeryMultiply(left, right: [64] u64, context: *RsaMontgomery)->[64] u64
+{
+    let words = context[].limbCount
+    var temporary: [65] u64
+    for index in words
     {
+        let multiplier = right[index]
         var carry = 0'u64
-        for word in context[].limbCount
+        for word in words
         {
-            let product = cast(u64, left[word]) * right[index] + temporary[word] + carry
-            temporary[word] = cast(u32, product)
-            carry = product >> 32
+            let product = rsaMultiplyAdd(left[word], multiplier, temporary[word], carry)
+            temporary[word] = product.word
+            carry = product.carry
         }
 
-        let productTop = cast(u64, temporary[context[].limbCount]) + carry
-        temporary[context[].limbCount] = cast(u32, productTop)
-
-        let reduction = temporary[0] * context[].n0Inverse
-        carry = 0
-        for word in context[].limbCount
+        let productTop   = temporary[words] + carry
+        let productCarry = cast(u64, productTop < carry)
+        let reduction   = temporary[0] * context[].n0Inverse
+        carry = rsaMultiplyAdd(reduction, context[].modulus[0], temporary[0], 0).carry
+        for word in 1 until words
         {
-            let product = cast(u64, reduction) * context[].modulus[word] + temporary[word] + carry
-            if word do
-                temporary[word - 1] = cast(u32, product)
-            carry = product >> 32
+            let product = rsaMultiplyAdd(reduction, context[].modulus[word], temporary[word], carry)
+            temporary[word - 1] = product.word
+            carry = product.carry
         }
-
-        let top = cast(u64, temporary[context[].limbCount]) + carry
-        temporary[context[].limbCount - 1] = cast(u32, top)
-        temporary[context[].limbCount]     = cast(u32, (top >> 32) + (productTop >> 32))
+        let top = productTop + carry
+        temporary[words - 1] = top
+        temporary[words]     = productCarry + cast(u64, top < carry)
     }
 
-    var difference: [128] u32
+    var difference: [64] u64
     var borrow = 0'u64
-    for index in context[].limbCount
+    for index in words
     {
-        let subtrahend = cast(u64, context[].modulus[index]) + borrow
-        let word       = cast(u64, temporary[index]) - subtrahend
-        difference[index] = cast(u32, word)
-        borrow = word >> 63
+        let modulus = context[].modulus[index]
+        let word    = temporary[index] - modulus
+        difference[index] = word - borrow
+        borrow = cast(u64, temporary[index] < modulus) | cast(u64, word < borrow)
     }
 
     var result: #returntype
-    let useDifference = cast(u32, (temporary[context[].limbCount] != 0) or (borrow == 0))
-    let mask = 0'u32 - useDifference
-    for index in context[].limbCount do
+    let useDifference = cast(u64, temporary[words] != 0) | cast(u64, borrow == 0)
+    let mask = 0'u64 - useDifference
+    for index in words do
         result[index] = (difference[index] & mask) | (temporary[index] & ~mask)
     Crypto.secureClear(temporary)
     Crypto.secureClear(difference)
@@ -190,9 +209,9 @@ private func rsaExponentBit(exponent: const [..] u8, bit: u64)->u32
     return (cast(u32, exponent[byte]) >> cast(u32, bit % 8)) & 1
 }
 
-private func rsaPrivatePower(base: [128] u32, exponent: const [..] u8, context: *RsaMontgomery)->[128] u32
+private func rsaPrivatePower(base: [64] u64, exponent: const [..] u8, context: *RsaMontgomery)->[64] u64
 {
-    var powers: [16][128] u32
+    var powers: [16][64] u64
     powers[0] = context[].one
     powers[1] = base
     for digit in 2 until powers.count do
@@ -212,10 +231,10 @@ private func rsaPrivatePower(base: [128] u32, exponent: const [..] u8, context: 
 
         let shift = (1 - (step & 1)) * 4
         let digit = (exponent[step / 2] >> shift) & 15
-        var selected: [128] u32
+        var selected: [64] u64
         for index in powers.count
         {
-            let mask = 0'u32 - cast(u32, index == digit)
+            let mask = 0'u64 - cast(u64, index == digit)
             for limb in context[].limbCount do
                 selected[limb] |= powers[index][limb] & mask
         }
@@ -229,7 +248,7 @@ private func rsaPrivatePower(base: [128] u32, exponent: const [..] u8, context: 
     return result
 }
 
-private func rsaPublicPower(base: [128] u32, exponent: const [..] u8, context: *RsaMontgomery)->[128] u32
+private func rsaPublicPower(base: [64] u64, exponent: const [..] u8, context: *RsaMontgomery)->[64] u64
 {
     var bits = exponent.count * 8
     while bits and not rsaExponentBit(exponent, bits - 1) do
@@ -248,9 +267,9 @@ private func rsaPublicPower(base: [128] u32, exponent: const [..] u8, context: *
     return result
 }
 
-private func rsaModularPower(base: [128] u32, exponent: const [..] u8, fixedTime: bool, context: *RsaMontgomery)->[128] u32
+private func rsaModularPower(base: [64] u64, exponent: const [..] u8, fixedTime: bool, context: *RsaMontgomery)->[64] u64
 {
-    var one: [128] u32
+    var one: [64] u64
     one[0] = 1
     var baseMontgomery = rsaMontgomeryMultiply(base, context[].r2, context)
     defer Crypto.secureClear(baseMontgomery)
@@ -259,18 +278,24 @@ private func rsaModularPower(base: [128] u32, exponent: const [..] u8, fixedTime
     return rsaMontgomeryMultiply(result, one, context)
 }
 
-private func rsaEncodeNumber(value: [128] u32, context: *RsaMontgomery)->[512] u8
+private func rsaEncodeNumber(value: [64] u64, context: *RsaMontgomery)->[512] u8
 {
     var result: #returntype
-    for index in context[].limbCount
+    let fullWords = context[].byteCount / 8
+    for index in fullWords
     {
-        let offset = context[].byteCount - (cast(u64, index + 1) * 4)
-        result[offset]     = Math.byteAt(value[index], 3)
-        result[offset + 1] = Math.byteAt(value[index], 2)
-        result[offset + 2] = Math.byteAt(value[index], 1)
-        result[offset + 3] = Math.byteAt(value[index], 0)
+        let offset = context[].byteCount - (cast(u32, index + 1) * 8)
+        let word   = Swag.byteSwap(value[index])
+        Swag.memcpy(&result[offset], &word, 8)
     }
-
+    if context[].byteCount % 8
+    {
+        let word = cast(u32, value[fullWords])
+        result[0] = Math.byteAt(word, 3)
+        result[1] = Math.byteAt(word, 2)
+        result[2] = Math.byteAt(word, 1)
+        result[3] = Math.byteAt(word, 0)
+    }
     return result
 }
 

@@ -184,3 +184,5 @@ optimizations moved each result.
 
 - [RSA Montgomery setup and private exponent windows](rsa-fixed-windows.md)
 - [YMM AES rounds in XTS and CTR](aes-vaes-xts-ctr.md)
+
+- [RSA Montgomery multiplication with 64-bit words](rsa-64-bit-words.md)

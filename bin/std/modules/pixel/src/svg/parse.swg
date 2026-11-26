@@ -37,6 +37,19 @@ struct ParseOptions
     }
 }
 
+private enum DeferredKind: u8
+{
+    None
+    Rect
+    Ellipse
+}
+
+private struct DeferredGeometry
+{
+    kind:     DeferredKind
+    min, max: Vector2
+}
+
 private struct ShapeStroke
 {
     gradient: u64
@@ -73,8 +86,8 @@ struct Shape
         hasFill:      bool        // Whether the shape is filled.
         evenOdd:      bool        // Whether the fill uses the even-odd rule.
 
-        hidden:   bool     // Whether the shape is a reusable definition, not painted directly.
-        lazyRect: bool     // The path-list bounds hold the corners until geometry is needed.
+        hidden:   bool             // Whether the shape is a reusable definition, not painted directly.
+        deferred: DeferredKind     // The path list holds only the bounds until geometry is needed.
 
         stroke: u64     // Index plus one of authored stroke properties.
 
@@ -342,6 +355,14 @@ private impl GroupState
     #[Swag.Inline]
     mtd const drawsShape(strokeOnly = false)->bool =>
         .isDisplayed and .isVisible and (.hasStroke or (not strokeOnly and .hasFill))
+
+    #[Swag.Inline]
+    mtd const canDeferPrimitive()->bool =>
+        .hasFill and
+        not .inDefs and
+        not .hasStroke and
+        not .fillPaintId.count and
+        not .filterId.count
 
     // Definitions keep their own geometry without placing markers on it.
     #[Swag.Inline]
@@ -2122,7 +2143,7 @@ private impl Parser
         .emitShapeOne(#move list, state, scanFill)
     }
 
-    mtd emitShapeOne(list: #move LinePathList, state: *GroupState, scanFill = false, rect: Rectangle = {})
+    mtd emitShapeOne(list: #move LinePathList, state: *GroupState, scanFill = false, geometry: DeferredGeometry = {})
     {
         let shapeIndex = .drawing.shapes.count
         let shape      = .drawing.shapes.emplaceInitAddress()
@@ -2135,10 +2156,10 @@ private impl Parser
 
         shape.pathList = #move list
         shape.hidden   = state.inDefs
-        if rect.width > 0
+        if geometry.kind != .None
         {
-            shape.lazyRect = true
-            shape.pathList.setBounds(Vector2{rect.x, rect.y}, Vector2{rect.right(), rect.bottom()})
+            shape.deferred = geometry.kind
+            shape.pathList.setBounds(geometry.min, geometry.max)
         }
 
         shape.hasFill = state.hasFill
@@ -2206,16 +2227,14 @@ private impl Parser
             {
                 list.newPath().setRoundRectRaw(rect.x, rect.y, rect.width, rect.height, crx * scale.x, cry * scale.y)
             }
-            elif not state.inDefs and
-                 not state.hasStroke and
-                 not state.fillPaintId.count and
-                 not state.filterId.count and
+            elif state.canDeferPrimitive() and
                  finitePoint(origin) and
                  finitePoint(Vector2{rect.right(), rect.bottom()}) and
                  not Math.isEqualEpsilon(rect.x, rect.right()) and
                  not Math.isEqualEpsilon(rect.y, rect.bottom())
             {
-                .emitShapeOne(#move list, state, rect: rect)
+                let opposite = Vector2{rect.right(), rect.bottom()}
+                .emitShapeOne(#move list, state, geometry: DeferredGeometry{.Rect, origin, opposite})
                 return
             }
             else
@@ -2237,8 +2256,36 @@ private impl Parser
             return
 
         var list: LinePathList
-        let path = list.newPath()
-        appendEllipse(path, state, cx, cy, rx, ry)
+        if isAxisAligned(state.transform)
+        {
+            let center = mapPoint(state, cx, cy)
+            let scale  = state.transform.axisScale()
+            let radii  = Vector2{rx * scale.x, ry * scale.y}
+            if state.canDeferPrimitive()
+            {
+                let min = center - radii
+                let max = center + radii
+                if finitePoint(min) and finitePoint(max)
+                {
+                    // Require exact recovery of the ellipse from its bounds.
+                    let restoredRadii  = (max - min) * 0.5
+                    let restoredCenter = min + restoredRadii
+                    if Memory.compare(&radii, &restoredRadii, #sizeof(Vector2)) == 0 and
+                       Memory.compare(&center, &restoredCenter, #sizeof(Vector2)) == 0
+                    {
+                        .emitShapeOne(#move list, state, geometry: DeferredGeometry{.Ellipse, min, max})
+                        return
+                    }
+                }
+            }
+
+            list.newPath().setEllipseRaw(center.x, center.y, radii.x, radii.y)
+        }
+        else
+        {
+            appendEllipse(list.newPath(), state, cx, cy, rx, ry)
+        }
+
         .emitShapeOne(#move list, state)
     }
 
@@ -2721,12 +2768,19 @@ private impl Parser
                 break
             }
         }
+
         if not calibrateStroke
         {
             // Keep the original tolerance for curves before a draft-quality paint.
-            for i in count do
-                for path in .drawing.shapes[first + i].pathList.paths where path.hasCurves() do
+            for i in count
+            {
+                let shape = &.drawing.shapes[first + i]
+                if shape.deferred == .Ellipse do
+                    shape.materializePrimitive()
+                for path in shape.pathList.paths where path.hasCurves() do
                     path.flatten(.Normal)
+            }
+
             return
         }
 
@@ -2734,8 +2788,8 @@ private impl Parser
         for i in count
         {
             let shape = &.drawing.shapes[first + i]
-            if shape.lazyRect do
-                shape.materializeRect()
+            if shape.deferred != .None do
+                shape.materializePrimitive()
             shape.pathList.flatten(.Normal)
             for path in shape.pathList.paths
             {
@@ -4255,12 +4309,25 @@ private const InkFringeMargin = 2.0'f32
 
 private impl Shape
 {
-    mtd materializeRect()
+    mtd materializePrimitive()
     {
         let min = .pathList.minBounds
         let max = .pathList.maxBounds
-        .pathList.newPath().setRectCornersRaw(min.x, min.y, max.x, max.y)
-        .lazyRect = false
+        switch #complete .deferred
+        {
+        case .None:
+            return
+
+        case .Rect:
+            .pathList.newPath().setRectCornersRaw(min.x, min.y, max.x, max.y)
+
+        case .Ellipse:
+            let radii  = (max - min) * 0.5
+            let center = min + radii
+            .pathList.newPath().setEllipseRaw(center.x, center.y, radii.x, radii.y)
+        }
+
+        .deferred = .None
     }
 }
 
@@ -4277,7 +4344,7 @@ private impl Drawing
     {
         if shape.scanFill do
             return .scanFills[shape.scanFill - 1].bounds
-        if shape.lazyRect
+        if shape.deferred != .None
         {
             let min  = shape.pathList.minBounds
             let size = shape.pathList.maxBounds - min
@@ -4628,8 +4695,8 @@ impl Drawing
     {
         if paintFill and shape.hasFill
         {
-            if shape.lazyRect do
-                shape.materializeRect()
+            if shape.deferred != .None do
+                shape.materializePrimitive()
             if shape.scanFill do
                 .scanFills[shape.scanFill - 1].paint(painter, &shape.pathList, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do

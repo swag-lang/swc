@@ -105,31 +105,34 @@ impl Ifd
     }
 }
 
-// Read 'count' scalar values (BYTE/SHORT/LONG) of an entry into an array.
-func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
+private func valuesAt(base, last: const [*] u8, entry: const *Entry, valueSize: u32)->const [*] u8 fail
 {
-    var result: #returntype
+    let size = cast(u64, entry.count) * valueSize
+    if size <= 4 do
+        return entry.fieldAt
+    let data = base + entry.valoff
+    try checkBuffer(data, last, size)
+    return data
+}
 
-    let ts = typeSize(e.type)
-    if not ts do
+// Read all scalar values (BYTE/SHORT/LONG) of an entry into an array.
+func readValues(base, last: const [*] u8, le: bool, entry: const *Entry)->Array'u32 fail
+{
+    let size = typeSize(entry.type)
+    if not size do
         fail UnsupportedFormatError{"unsupported field type"}
+    let data = try valuesAt(base, last, entry, size)
 
-    let totalBytes      = cast(u64, e.count) * ts
-    var p: const [*] u8 = e.fieldAt
-    if totalBytes > 4
+    var result: #returntype
+    result.reserve(entry.count)
+    for i in entry.count
     {
-        p = base + e.valoff
-        try checkBuffer(p, last, totalBytes)
-    }
-
-    for i in e.count
-    {
-        let q = p + cast(u64, i) * ts
-        switch e.type
+        let value = data + cast(u64, i) * size
+        switch entry.type
         {
-        case TYPE_BYTE:  result.add(cast(u32, q[0]))
-        case TYPE_SHORT: result.add(rd16(q, le))
-        case TYPE_LONG:  result.add(rd32(q, le))
+        case TYPE_BYTE:  result.add(value[0])
+        case TYPE_SHORT: result.add(rd16(value, le))
+        case TYPE_LONG:  result.add(rd32(value, le))
         }
     }
 
@@ -138,13 +141,24 @@ func readValues(base, last: const [*] u8, le: bool, e: *Entry)->Array'u32 fail
 
 func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValue: u32)->u32 fail
 {
-    let e = ifd.find(tag)
-    if not e do
+    let found = ifd.find(tag)
+    if not found do
         return defValue
-    let values = try readValues(base, last, le, cast(*Entry, (e)))
-    if not values.count do
+    let entry = cast(const *Entry, found)
+    let size  = typeSize(entry.type)
+    if not size do
+        fail UnsupportedFormatError{"unsupported field type"}
+    if not entry.count do
         return defValue
-    return values[0]
+
+    // A count greater than one still requires the complete field to be present.
+    let data = try valuesAt(base, last, entry, size)
+    switch entry.type
+    {
+    case TYPE_BYTE:  return data[0]
+    case TYPE_SHORT: return rd16(data, le)
+    default:         return rd32(data, le)
+    }
 }
 
 // Decodes literal and repeated PackBits packets. For bottom-up output, packets
@@ -413,6 +427,7 @@ impl Decoder
         var ifd: Ifd
         let numEntries = rd16(base + ifdOffset, le)
         try checkBuffer(base + ifdOffset, last, 2'u64 + cast(u64, numEntries) * 12)
+        ifd.entries.reserve(numEntries)
         for i in numEntries
         {
             let ep = base + ifdOffset + 2 + cast(u64, i) * 12
@@ -441,8 +456,7 @@ impl Decoder
             let entry = cast(*Entry, orientationEntry)
             if entry.type != TYPE_SHORT or entry.count != 1 do
                 fail InvalidFormatError{"TIFF orientation entry is invalid"}
-            let values = try readValues(base, last, le, entry)
-            orientation = values[0]
+            orientation = rd16(entry.fieldAt, le)
             if orientation < 1 or orientation > 8 do
                 fail InvalidFormatError{"TIFF orientation value is out of range"}
         }
@@ -516,8 +530,7 @@ impl Decoder
                 let entry = cast(*Entry, (extraSamples))
                 if entry.type != TYPE_SHORT or entry.count != 1 do
                     fail InvalidFormatError{"TIFF extra samples entry is invalid"}
-                let association = try readValues(base, last, le, entry)
-                switch association[0]
+                switch rd16(entry.fieldAt, le)
                 {
                 case 1:  alphaMode = .Premultiplied
                 case 2:  break
@@ -638,22 +651,44 @@ impl IImageSetDecoder for Decoder
         .directories.clear()
         var probeOptions = options
         probeOptions.decodePixels = false
-        discard try .decodePage(buffer, probeOptions)
+        var probe  = try .decodePage(buffer, probeOptions)
         let le     = buffer[0] == 0x49
         var offset = rd32(buffer.buffer + 4, le)
-        var result: #returntype
+        var result:        #returntype
+        var visited:       HashSet'u32
+        var largestOffset: u32
         while offset
         {
             try options.checkFrameCount(.directories.count + 1)
-            for prior in .directories where prior == offset do
-                fail InvalidFormatError{"TIFF directory chain contains a cycle"}
+            if visited.count or offset <= largestOffset
+            {
+                // Increasing offsets are unique. Index the prior offsets only when
+                // the directory chain visits a lower address for the first time.
+                if not visited.count
+                {
+                    visited.reserve(.directories.count + 1)
+                    for prior in .directories do
+                        discard visited.add(prior)
+                }
+
+                let count = visited.count
+                discard visited.add(offset)
+                if visited.count == count do
+                    fail InvalidFormatError{"TIFF directory chain contains a cycle"}
+            }
+            else
+            {
+                largestOffset = offset
+            }
+
             if cast(u64, offset) + 2 > buffer.count do
                 fail InvalidFormatError{"TIFF directory offset is outside the input"}
             let count = rd16(buffer.buffer + offset, le)
             let next  = cast(u64, offset) + 2 + cast(u64, count) * 12
             if next + 4 > buffer.count do
                 fail InvalidFormatError{"TIFF directory chain is truncated"}
-            let probe = try .decodePage(buffer, probeOptions, offset)
+            if .directories.count do
+                probe = try .decodePage(buffer, probeOptions, offset)
             result.frames.add({kind: ImageFrameKind.Page, width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
             .directories.add(offset)
             offset = rd32(buffer.buffer + next, le)

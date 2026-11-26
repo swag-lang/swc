@@ -473,6 +473,20 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
         Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == checksums[rank])
     }
+
+    // Sync slots name I-pictures for thumbnails, even when those display ranks are B-pictures.
+    Swag.require(checksums[28] != checksums[30] and checksums[58] != checksums[59])
+    for preview in [&linear, &random]
+    {
+        for moment, index in [0.04'f64, 1.21]
+        {
+            let key  = expect preview.decodeKeyPicture(moment)
+            let rank = index ? 59 : 30
+            Swag.require(Hash.Crc32.compute(key.pixels.toSlice()) == checksums[rank])
+            expect preview.decodeFrameInto(&image, rank - 1)
+            Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == checksums[rank - 1])
+        }
+    }
 }
 
 // Xvid writes empty AVI slots after the first anchor and packs later B-pictures with a P-picture.

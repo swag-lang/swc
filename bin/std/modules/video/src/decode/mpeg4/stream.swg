@@ -301,6 +301,22 @@ impl Mpeg4Stream
         }
     }
 
+    // Reads only the independent picture named by a container sync slot.
+    mtd decodeSyncPicture(source: *ByteSource, rank: u64, target: *Image)->bool fail
+    {
+        .started = false
+        .queued  = 0
+        .decoder.reset()
+        try readStoredFrame(source, .frames[.sampleIndex(rank)], .prefix.toSlice(), &.payload)
+        .decoder.beginSample()
+        if not (try .decoder.nextPicture(.payload.toSlice())) do
+            return false
+
+        .decoder.reference().writePlanar(&.queue[0].planes)
+        .queue[0].planes.view().convertToRgb(target)
+        return true
+    }
+
     // Decodes the picture of the current rank and converts it to packed colour.
     mtd decodeNext(source: *ByteSource, target: *Image) fail
     {

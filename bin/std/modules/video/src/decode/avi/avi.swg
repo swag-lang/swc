@@ -516,6 +516,16 @@ impl IDecoder for Decoder
     }
 }
 
+impl ISyncPictureDecoder for Decoder
+{
+    mtd impl decodeSyncPicture(source: *ByteSource, rank: u64, target: *Image)->bool fail
+    {
+        if not .isCoded do
+            return false
+        return try .pictures.decodeSyncPicture(source, rank, target)
+    }
+}
+
 impl IPlanarDecoder for Decoder
 {
     mtd impl hasPlanarFrames()->bool => .isCoded

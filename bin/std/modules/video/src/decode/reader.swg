@@ -131,6 +131,13 @@ interface IKeyPictureDecoder
     mtd seekKeyPicture(source: *ByteSource, seconds: f64)->bool fail
 }
 
+// Internal capability for a container whose sync index is in decoding order.
+internal interface ISyncPictureDecoder
+{
+    // Decodes the indexed sync sample without presenting the pictures reordered around it.
+    mtd decodeSyncPicture(source: *ByteSource, rank: u64, target: *Image)->bool fail
+}
+
 // Optional decoder capability exposing exact presentation timestamps.
 interface ITimedDecoder
 {
@@ -489,8 +496,14 @@ impl Reader
         if count do
             index = Math.min(index, count - 1)
         let sync = .syncFrameAt(index)
-        if sync >= index and (not count or sync < count) do
+        if sync >= index and (not count or sync < count)
+        {
+            let indexed = Swag.makeInterface((.decoder).buffer, unwrap .decoderType, ISyncPictureDecoder)
+            if indexed and (try indexed.decodeSyncPicture(&.source, sync, &result)) do
+                return result
             index = sync
+        }
+
         try .decodeFrameInto(&result, index)
         return result
     }

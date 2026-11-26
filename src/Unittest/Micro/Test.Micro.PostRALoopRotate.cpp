@@ -1325,6 +1325,57 @@ SWC_TEST_BEGIN(PostRALoopRotate_OpposingPrefixPreservesSwapsAndTail)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRALoopRotate_DeadInductionBecomesCountdown)
+{
+    constexpr MicroReg index = MicroReg::intReg(9);
+    constexpr MicroReg bound = MicroReg::intReg(8);
+    constexpr MicroReg base = MicroReg::intReg(10);
+    constexpr MicroReg value = MicroReg::intReg(11);
+    enum class Observed
+    {
+        Neither,
+        BoundAfterLoop,
+        IndexInBody,
+        FlagsAfterLoop,
+    };
+
+    X64Encoder encoder(ctx);
+    for (const auto observed : {Observed::Neither, Observed::BoundAfterLoop, Observed::IndexInBody, Observed::FlagsAfterLoop})
+    {
+        MicroBuilder builder(ctx);
+        const auto   header = builder.createLabel();
+        const auto   done   = builder.createLabel();
+        builder.emitClearReg(index, MicroOpBits::B64);
+        builder.emitCmpRegImm(bound, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, done);
+        builder.placeLabel(header);
+        builder.emitLoadMemReg(base, 0, observed == Observed::IndexInBody ? index : value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        const auto step = builder.instructions().lastInstructionRef();
+        builder.emitCmpRegReg(index, bound, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, header);
+        const auto branch = builder.instructions().lastInstructionRef();
+        builder.placeLabel(done);
+        if (observed == Observed::BoundAfterLoop)
+            builder.emitLoadMemReg(base, 0, bound, MicroOpBits::B64);
+        if (observed == Observed::FlagsAfterLoop)
+            builder.emitSetCondReg(value, MicroCond::Below);
+        builder.emitRet();
+
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+        const bool  optimized = observed == Observed::Neither;
+        const auto* stepOps   = builder.instructions().ptr(step)->ops(builder.operands());
+        const auto* branchOps = builder.instructions().ptr(branch)->ops(builder.operands());
+        if (stepOps[0].reg != (optimized ? bound : index) ||
+            stepOps[2].microOp != (optimized ? MicroOp::Subtract : MicroOp::Add) ||
+            branchOps[0].cpuCond != (optimized ? MicroCond::NotEqual : MicroCond::Below) ||
+            Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != (optimized ? 0 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

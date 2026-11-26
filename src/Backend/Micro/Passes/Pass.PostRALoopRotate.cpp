@@ -965,6 +965,116 @@ namespace
         return false;
     }
 
+    // A counter that is used only by its latch can count the remaining trips
+    // in the register already holding the bound. The entry guard still rejects
+    // zero (or nonpositive signed bounds). The body and its memory order stay
+    // intact, and only the decrement supplies the back edge's flags.
+    bool countDownUnusedIndices(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        auto&                               storage      = *context.instructions;
+        auto&                               operands     = *context.operands;
+        const auto                          stackPointer = CallConv::get(context.callConvKind).stackPointer;
+        MicroPassHelpers::MicroPhysLiveness liveness;
+
+        struct Rewrite
+        {
+            uint32_t clear;
+            uint32_t step;
+            MicroReg remaining;
+        };
+        SmallVector<Rewrite> rewrites;
+        const auto           opcode = [&](uint32_t at) {
+            return storage.ptr(order[at])->op;
+        };
+        const auto ops = [&](uint32_t at) {
+            return storage.ptr(order[at])->ops(operands);
+        };
+        for (uint32_t edge = 6; edge + 1 < order.size(); ++edge)
+        {
+            if (opcode(edge) != MicroInstrOpcode::JumpCond || opcode(edge - 1) != MicroInstrOpcode::CmpRegReg ||
+                opcode(edge - 2) != MicroInstrOpcode::OpBinaryRegImm)
+                continue;
+            const auto* branch      = ops(edge);
+            const auto* compare     = ops(edge - 1);
+            const auto* increment   = ops(edge - 2);
+            const bool  signedCount = branch[0].cpuCond == MicroCond::Less;
+            if (!signedCount && branch[0].cpuCond != MicroCond::Below)
+                continue;
+            const auto index = compare[0].reg;
+            const auto bound = compare[1].reg;
+            const auto bits  = compare[2].opBits;
+            if (!index.isInt() || !bound.isInt() || index == bound || index == stackPointer || bound == stackPointer ||
+                (bits != MicroOpBits::B32 && bits != MicroOpBits::B64) ||
+                increment[0].reg != index || increment[1].opBits != bits || increment[2].microOp != MicroOp::Add ||
+                increment[3].hasWideImmediateValue() || increment[3].valueU64 != 1)
+                continue;
+
+            const auto& cfg = context.builder->controlFlowGraph();
+            if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness() || cfg.instructionCount() != order.size())
+                return false;
+            const uint32_t     header     = cfg.indexOfLabel(static_cast<uint32_t>(branch[2].valueU64));
+            constexpr uint32_t K_MAX_BODY = 32;
+            if (header < 3 || header >= edge - 2 || edge - 2 - header > K_MAX_BODY ||
+                std::ranges::contains(cfg.addressTakenLabelIndices(), header) ||
+                opcode(header - 3) != MicroInstrOpcode::ClearReg || opcode(header - 2) != MicroInstrOpcode::CmpRegImm ||
+                opcode(header - 1) != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* clear          = ops(header - 3);
+            const auto* test           = ops(header - 2);
+            const auto* guard          = ops(header - 1);
+            const bool  emptyCondition = signedCount ? guard[0].cpuCond == MicroCond::LessOrEqual : guard[0].cpuCond == MicroCond::BelowOrEqual || guard[0].cpuCond == MicroCond::Equal;
+            if (clear[0].reg != index || clear[1].opBits != bits || test[0].reg != bound || test[1].opBits != bits ||
+                test[2].hasWideImmediateValue() || test[2].valueU64 != 0 || !emptyCondition)
+                continue;
+            const uint32_t empty   = cfg.indexOfLabel(static_cast<uint32_t>(guard[2].valueU64));
+            const auto&    entries = cfg.predecessors(header);
+            if (empty <= edge || empty >= order.size() || entries.size() != 2 ||
+                !std::ranges::contains(entries, header - 1) || !std::ranges::contains(entries, edge))
+                continue;
+
+            bool usesCount = false;
+            for (uint32_t at = header + 1; at < edge - 2 && !usesCount; ++at)
+            {
+                const auto& body  = *storage.ptr(order[at]);
+                const auto  flags = MicroInstr::info(body.op).flags;
+                if (body.op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                    flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
+                {
+                    usesCount = true;
+                    break;
+                }
+                const auto useDef = body.collectUseDef(operands, context.encoder);
+                usesCount         = microRegSpanContains(useDef.uses.span(), index) || microRegSpanContains(useDef.defs.span(), index) ||
+                            microRegSpanContains(useDef.uses.span(), bound) || microRegSpanContains(useDef.defs.span(), bound);
+            }
+            if (usesCount || !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(cfg, storage, operands, edge))
+                continue;
+            if (!liveness.valid)
+                MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
+            const auto liveAt = [&](uint32_t at, MicroReg reg) {
+                const auto& inst = *storage.ptr(order[at]);
+                return liveness.isLiveOut(at, reg) || MicroPassHelpers::regTouch(inst, operands, reg, context.encoder).use;
+            };
+            if (liveAt(edge + 1, index) || liveAt(edge + 1, bound) || liveAt(empty, index))
+                continue;
+            rewrites.push_back({header - 3, edge - 2, bound});
+        }
+
+        for (const Rewrite& rewrite : rewrites)
+        {
+            ops(rewrite.step)[0].reg         = rewrite.remaining;
+            ops(rewrite.step)[2].microOp     = MicroOp::Subtract;
+            ops(rewrite.step + 2)[0].cpuCond = MicroCond::NotEqual;
+            storage.erase(order[rewrite.clear]);
+            storage.erase(order[rewrite.step + 1]);
+        }
+        if (rewrites.empty())
+            return false;
+        context.builder->invalidateControlFlowGraph();
+        context.passChanged = true;
+        return true;
+    }
+
     struct Rotation
     {
         // Ordinals into the listing: [testBegin, testEnd) is the test run,
@@ -1449,6 +1559,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     if (placeMismatchStepBeforeHeader(context, order))
         return Result::Continue;
     if (rotateLatchConnectors(context, order))
+        return Result::Continue;
+    if (countDownUnusedIndices(context, order))
         return Result::Continue;
 
     // Every rotation needs an incoming jump to its header.

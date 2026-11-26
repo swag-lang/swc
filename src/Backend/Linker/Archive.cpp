@@ -8,6 +8,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    const char* archiveNameEnd(const char* cursor, const char* end)
+    {
+        constexpr uint64_t lowBits  = 0x0101010101010101ull;
+        constexpr uint64_t highBits = 0x8080808080808080ull;
+        while (static_cast<size_t>(end - cursor) >= sizeof(uint64_t))
+        {
+            uint64_t word;
+            std::memcpy(&word, cursor, sizeof(word));
+            // Check every byte for zero, then find the first match in file order.
+            if ((word - lowBits) & ~word & highBits)
+                break;
+            cursor += sizeof(word);
+        }
+        while (cursor != end && *cursor)
+            ++cursor;
+        return cursor != end ? cursor : nullptr;
+    }
+
     constexpr std::string_view ARCHIVE_MAGIC      = "!<arch>\n";
     constexpr size_t           MEMBER_HEADER_SIZE = 60;
 
@@ -142,21 +160,18 @@ bool Archive::decode(Diagnostic& outDiag)
             return false;
         }
 
-        const auto* nameStart = reinterpret_cast<const char*>(bytes_.data() + nameCursor);
-        size_t      nameLen   = 0;
-        while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
-            ++nameLen;
-
-        if (nameLen == memberEnd - nameCursor)
+        const auto* nameStart  = reinterpret_cast<const char*>(bytes_.data() + nameCursor);
+        const auto* terminator = archiveNameEnd(nameStart, nameStart + (memberEnd - nameCursor));
+        if (!terminator)
         {
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_names);
             return false;
         }
 
         const uint32_t         memberOffset = bytes_.readBe32(offsetsAt + static_cast<size_t>(i) * 4);
-        const std::string_view name{nameStart, nameLen};
+        const std::string_view name{nameStart, terminator};
         symbolToMember_.try_emplace(name, Math::hash(name), memberOffset);
-        nameCursor += nameLen + 1;
+        nameCursor += name.size() + 1;
     }
 
     return true;

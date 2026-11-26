@@ -146,9 +146,11 @@ private struct Chunk
 private struct FrameEntry
 {
     offset: u64      // Offset of the payload in the stream, in bytes.
-    size:   u64      // Payload size; zero when a coded slot repeats or the file begins with no picture.
+    size:   u32      // RIFF chunk length; zero when a coded slot repeats or starts with no picture.
     isSync: bool     // Whether the frame starts a decode that depends on nothing before it.
 }
+
+#assert(#sizeof(FrameEntry) == 16)
 
 // One on-disk record of the idx1 table. RIFF only aligns chunks to two bytes.
 #[Swag.Pack(1)]
@@ -494,22 +496,23 @@ impl IDecoder for Decoder
 
         .nextIndex = NoFrameIndex
         let entry = .frames[current]
-        if not entry.size do
+        let size  = cast(u64, entry.size)
+        if not size do
             fail InvalidFormatError{"AVI stream starts with a frame that carries no picture"}
-        if entry.offset > source.size() or entry.size > source.size() - entry.offset do
+        if entry.offset > source.size() or size > source.size() - entry.offset do
             fail InvalidFormatError{"AVI frame payload is truncated"}
 
         try source.seek(entry.offset)
         if .isJpeg
         {
-            if .payload.count != entry.size do
-                .payload.resize(entry.size)
+            if .payload.count != size do
+                .payload.resize(size)
             try source.readExact(.payload.toSlice())
             try .decodeJpegFrame(target)
         }
         else
         {
-            try .decodeBitmapFrame(source, entry, target)
+            try .decodeBitmapFrame(source, size, target)
         }
 
         .nextIndex = current + 1
@@ -761,7 +764,7 @@ private impl Decoder
     {
         if size or .isCoded or .frames.isEmpty()
         {
-            .frames.add(FrameEntry{offset, size, isSync})
+            .frames.add(FrameEntry{offset, cast(u32, size), isSync})
             return
         }
 
@@ -984,7 +987,7 @@ private impl Decoder
             let entry = .frames[index]
             samples.add(SampleEntry{
                 offset: entry.offset,
-                size: entry.size,
+                size: cast(u64, entry.size),
                 presentationTime: cast(s64, index),
                 isSync: entry.isSync and entry.size != 0,
                 repeatPrevious: entry.size == 0})
@@ -993,20 +996,21 @@ private impl Decoder
         // The setup headers of such a file live at the front of its first frame, never in the
         // container, so that is where the layer is read from.
         let first = .frames[0]
-        if first.size > source.size() or first.offset > source.size() - first.size do
+        let size  = cast(u64, first.size)
+        if size > source.size() or first.offset > source.size() - size do
             fail InvalidFormatError{"AVI frame payload is truncated"}
         try source.seek(first.offset)
-        let available = try source.peek(Math.min(first.size, FourCcSize))
-        let head      = available[until Math.min(available.count, first.size)]
+        let available = try source.peek(Math.min(size, FourCcSize))
+        let head      = available[until Math.min(available.count, size)]
         var setup     = Video.inlineSetupHeaders(head)
 
         // The usual layer header and first VOP marker both fit in the existing window.
         // When user data stretches beyond it, read the complete sample to find the boundary.
         var full: Array'u8
-        if setup.count == head.count and head.count < first.size
+        if setup.count == head.count and head.count < size
         {
-            full.grow(first.size)
-            full.count = first.size
+            full.grow(size)
+            full.count = size
             try source.readExact(full.toSlice())
             setup = Video.inlineSetupHeaders(full.toSlice())
         }
@@ -1035,11 +1039,11 @@ private impl Decoder
     }
 
     // Decodes one uncompressed frame, whose rows are bitmap rows.
-    mtd decodeBitmapFrame(source: *ByteSource, entry: FrameEntry, target: *Image) fail
+    mtd decodeBitmapFrame(source: *ByteSource, payloadSize: u64, target: *Image) fail
     {
         let height = cast(u64, .info.height)
         let size   = .rowBytes * height
-        if size > entry.size do
+        if size > payloadSize do
             fail InvalidFormatError{"AVI frame payload is smaller than the picture it declares"}
 
         .prepareTarget(target)
@@ -1047,7 +1051,7 @@ private impl Decoder
         {
             // Memory-backed bitmap rows can be converted directly from the borrowed payload.
             .copyRows((try source.peek(size)).buffer, target, 0, height)
-            try source.skip(entry.size)
+            try source.skip(payloadSize)
             return
         }
 
@@ -1068,7 +1072,7 @@ private impl Decoder
             readRows += count
         }
 
-        try source.skip(entry.size - size)
+        try source.skip(payloadSize - size)
     }
 
     mtd const copyRows(pixels: const [*] u8, target: *Image, firstRow, count: u64)

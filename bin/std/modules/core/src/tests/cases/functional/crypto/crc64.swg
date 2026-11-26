@@ -167,7 +167,16 @@ func fillCrc64Pattern(buffer: [..] u8)
     }
 
     #assert(Hash.Crc64.compute(message, .IsoXz) == #run crc64Reference(message, .IsoXz))
+    #assert(Hash.Crc64.compute(message, .Ecma182) == #run crc64Reference(message, .Ecma182))
 
     for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279, 4095, 4096, 4097, 4351, 4352] do
         assertCrc64(message[1 until 1 + size])
+}
+
+#test
+{
+    var data: [8450] u8
+    fillCrc64Pattern(data)
+    for size in [2047, 2048, 2049, 2095, 2175, 2303, 2304, 8192, 8447] do
+        assertCrc64Kind(data[1 until 1 + size], .Ecma182)
 }

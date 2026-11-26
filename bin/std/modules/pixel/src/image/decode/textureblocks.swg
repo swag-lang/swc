@@ -63,16 +63,20 @@ func colorPalette(result: *[4] u32, source: const [*] u8, forceFourColors: bool)
     result[][1] = b
     if forceFourColors or endpointA > endpointB
     {
-        let red0   = a & 255
-        let green0 = (a >> 8) & 255
-        let blue0  = (a >> 16) & 255
-        let red1   = b & 255
-        let green1 = (b >> 8) & 255
-        let blue1  = (b >> 16) & 255
-        result[][2] = 0xFF000000 | ((red0 * 2 + red1) / 3) |
-                      (((green0 * 2 + green1) / 3) << 8) | (((blue0 * 2 + blue1) / 3) << 16)
-        result[][3] = 0xFF000000 | ((red0 + red1 * 2) / 3) |
-                      (((green0 + green1 * 2) / 3) << 8) | (((blue0 + blue1 * 2) / 3) << 16)
+        let first  = Simd.splat(a)
+        let second = Simd.splat(b)
+        let zero   = Simd.splat(0'u8)
+        let ab     = cast #bit(Simd.U8x16, Simd.interleaveLow(first, second))
+        let ba     = cast #bit(Simd.U8x16, Simd.interleaveLow(second, first))
+        let words  = cast #bit(Simd.U16x8, Simd.interleaveLow(ab, zero))
+        let other  = cast #bit(Simd.U16x8, Simd.interleaveLow(ba, zero))
+        let sums   = words + words + other
+
+        // The high product divides both RGB sums by three exactly through 765.
+        let values       = cast #bit(Simd.S16x8, Simd.mulHigh(sums, Simd.splat(21846'u16)))
+        let interpolated = cast #bit(Simd.U32x4, Simd.packUnsigned(values, values))
+        result[][2] = interpolated[0]
+        result[][3] = interpolated[1]
     }
     else
     {

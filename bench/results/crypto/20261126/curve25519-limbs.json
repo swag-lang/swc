@@ -1,0 +1,987 @@
+{
+  "utc": "2026-11-26T11:49:57.647714+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 3,
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "5b1a5b28eb02cadf78fd23bd651bd7a3ffa5543de84715d39d7551773d44413b",
+  "swag_builds": {
+    "Swag-base": "0dc826f9bca29eb7694c8c7b7b28fcf81d318f2d36765ac75846f32c0168fa6b",
+    "Fixed-chain": "a61fa99f04141b439ff50b8c82a2fb9b08a2e5146283713051d42c8a686ddfe0",
+    "Five-limb": "83c570fee94e212a8a107f10db9f47086f8c4906c54fc7f48f68d4a21c531973"
+  },
+  "rounds": 11,
+  "target_ms": 40,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 1,
+      "input_sha256": "03d087637711d48ddc2dbf9c9800f72623194c75d40b1e11426b713d880bbdb0",
+      "output_sha256": "43b511ac7ebd46353bb084fddac03baa465e531353030a34c8bf3dabd71c3c2c",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1123,
+          "wall": [
+            0.040108351,
+            0.040070323,
+            0.040369204,
+            0.040451849,
+            0.040570628,
+            0.041192195,
+            0.040404898,
+            0.043448508,
+            0.040229774,
+            0.040105035,
+            0.040407973
+          ],
+          "cpu": [
+            0.040073918,
+            0.040038006,
+            0.040335179,
+            0.040422007,
+            0.040541393,
+            0.041164195,
+            0.040386055,
+            0.040379195,
+            0.040139336,
+            0.040075572,
+            0.040377018
+          ]
+        },
+        "Swag-base": {
+          "iterations": 29,
+          "wall": [
+            0.040805091,
+            0.041066646,
+            0.039843151,
+            0.040643588,
+            0.04111625,
+            0.042611555,
+            0.040328132,
+            0.040019125,
+            0.040648135,
+            0.039979926,
+            0.040655425
+          ],
+          "cpu": [
+            0.040773402,
+            0.041045456,
+            0.03981214,
+            0.040619752,
+            0.041082932,
+            0.042592051,
+            0.040292403,
+            0.039985299,
+            0.040627374,
+            0.03995934,
+            0.040628565
+          ]
+        },
+        "Fixed-chain": {
+          "iterations": 32,
+          "wall": [
+            0.039683159,
+            0.040525589,
+            0.03963704,
+            0.03974287,
+            0.039997493,
+            0.042033014,
+            0.039605362,
+            0.039719784,
+            0.039758243,
+            0.039639303,
+            0.039801027
+          ],
+          "cpu": [
+            0.03961656,
+            0.040500153,
+            0.039587828,
+            0.039719553,
+            0.039982493,
+            0.042003844,
+            0.039578993,
+            0.039692373,
+            0.039701544,
+            0.039619652,
+            0.039773119
+          ]
+        },
+        "Five-limb": {
+          "iterations": 133,
+          "wall": [
+            0.038840168,
+            0.039101372,
+            0.039618942,
+            0.038938326,
+            0.038913008,
+            0.039039869,
+            0.039268734,
+            0.039016403,
+            0.038988491,
+            0.042033073,
+            0.03925315
+          ],
+          "cpu": [
+            0.038809185,
+            0.039081521,
+            0.039518342,
+            0.038916907,
+            0.038887654,
+            0.039028052,
+            0.039252527,
+            0.038986,
+            0.038967572,
+            0.04199436,
+            0.039234559
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "Fixed-chain",
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb"
+        ],
+        [
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb"
+        ],
+        [
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb"
+        ],
+        [
+          "OpenSSL",
+          "Five-limb",
+          "Swag-base",
+          "Fixed-chain"
+        ],
+        [
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "Five-limb",
+          "Fixed-chain",
+          "Swag-base",
+          "OpenSSL"
+        ],
+        [
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb"
+        ],
+        [
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain"
+        ],
+        [
+          "Fixed-chain",
+          "Swag-base",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base"
+        ],
+        [
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base"
+        ]
+      ]
+    },
+    {
+      "algorithm": "x25519-shared",
+      "bytes": 32,
+      "offset": 1,
+      "input_sha256": "03d087637711d48ddc2dbf9c9800f72623194c75d40b1e11426b713d880bbdb0",
+      "output_sha256": "f480849a99ab19b62dfea6a2600719a9aac4795066e8b51d61b8aa96e50b2ff4",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 535,
+          "wall": [
+            0.037106864,
+            0.040481253,
+            0.038919127,
+            0.036921544,
+            0.036915985,
+            0.040947166,
+            0.037292984,
+            0.037359605,
+            0.037163709,
+            0.037147825,
+            0.036970708
+          ],
+          "cpu": [
+            0.037067483,
+            0.040112106,
+            0.038853625,
+            0.036890298,
+            0.036883929,
+            0.04091831,
+            0.03726784,
+            0.037336151,
+            0.037073571,
+            0.037065277,
+            0.036943687
+          ]
+        },
+        "Swag-base": {
+          "iterations": 26,
+          "wall": [
+            0.036061738,
+            0.035873283,
+            0.035865522,
+            0.036417384,
+            0.035620472,
+            0.036001987,
+            0.03594383,
+            0.035822507,
+            0.036472177,
+            0.036382852,
+            0.036368881
+          ],
+          "cpu": [
+            0.036031691,
+            0.035683542,
+            0.035843479,
+            0.036396103,
+            0.035589179,
+            0.035981496,
+            0.035912421,
+            0.035791519,
+            0.036438135,
+            0.036355122,
+            0.036335452
+          ]
+        },
+        "Fixed-chain": {
+          "iterations": 29,
+          "wall": [
+            0.036115448,
+            0.036091712,
+            0.036066654,
+            0.035943158,
+            0.035957981,
+            0.035872412,
+            0.035920094,
+            0.03611652,
+            0.035934104,
+            0.035921386,
+            0.035860915
+          ],
+          "cpu": [
+            0.036090498,
+            0.036073991,
+            0.03604533,
+            0.035918943,
+            0.035937619,
+            0.035841016,
+            0.035888606,
+            0.036038288,
+            0.035912182,
+            0.035903018,
+            0.035828666
+          ]
+        },
+        "Five-limb": {
+          "iterations": 133,
+          "wall": [
+            0.039121612,
+            0.039042303,
+            0.038964475,
+            0.039687937,
+            0.039130787,
+            0.038940469,
+            0.039109735,
+            0.039280883,
+            0.039038727,
+            0.03904746,
+            0.038841349
+          ],
+          "cpu": [
+            0.039097826,
+            0.039024917,
+            0.038940249,
+            0.039588484,
+            0.039095632,
+            0.038908633,
+            0.039081361,
+            0.039211705,
+            0.039017026,
+            0.038991637,
+            0.038819351
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain"
+        ],
+        [
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL"
+        ],
+        [
+          "Swag-base",
+          "Fixed-chain",
+          "Five-limb",
+          "OpenSSL"
+        ],
+        [
+          "Five-limb",
+          "Fixed-chain",
+          "Swag-base",
+          "OpenSSL"
+        ],
+        [
+          "Fixed-chain",
+          "OpenSSL",
+          "Five-limb",
+          "Swag-base"
+        ],
+        [
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "Five-limb",
+          "Fixed-chain",
+          "Swag-base"
+        ],
+        [
+          "Fixed-chain",
+          "Swag-base",
+          "Five-limb",
+          "OpenSSL"
+        ],
+        [
+          "Five-limb",
+          "OpenSSL",
+          "Fixed-chain",
+          "Swag-base"
+        ],
+        [
+          "Five-limb",
+          "OpenSSL",
+          "Fixed-chain",
+          "Swag-base"
+        ],
+        [
+          "OpenSSL",
+          "Five-limb",
+          "Fixed-chain",
+          "Swag-base"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-public",
+      "bytes": 32,
+      "offset": 1,
+      "input_sha256": "03d087637711d48ddc2dbf9c9800f72623194c75d40b1e11426b713d880bbdb0",
+      "output_sha256": "213c892204e4ad509e1df3033cbae0294d2ad61878ecd59ab46bd7c6657ad00f",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1073,
+          "wall": [
+            0.041909316,
+            0.039407774,
+            0.03969,
+            0.040795056,
+            0.039213111,
+            0.039153059,
+            0.039962851,
+            0.039885354,
+            0.039163325,
+            0.039221253,
+            0.039166931
+          ],
+          "cpu": [
+            0.04187511,
+            0.039379765,
+            0.039656578,
+            0.040688713,
+            0.039190425,
+            0.039119489,
+            0.039921932,
+            0.039845729,
+            0.039127641,
+            0.039189362,
+            0.039147299
+          ]
+        },
+        "Swag-base": {
+          "iterations": 16,
+          "wall": [
+            0.043262527,
+            0.041164023,
+            0.0410696,
+            0.041261139,
+            0.040674735,
+            0.040942168,
+            0.040634003,
+            0.040794505,
+            0.041300698,
+            0.040604578,
+            0.040668515
+          ],
+          "cpu": [
+            0.04315638,
+            0.041113396,
+            0.041046107,
+            0.041226607,
+            0.040646373,
+            0.040908533,
+            0.040603569,
+            0.040773272,
+            0.04127619,
+            0.040549809,
+            0.040637429
+          ]
+        },
+        "Fixed-chain": {
+          "iterations": 17,
+          "wall": [
+            0.039423969,
+            0.03964396,
+            0.0444776,
+            0.040367822,
+            0.039569217,
+            0.048107315,
+            0.039768097,
+            0.039539412,
+            0.039569408,
+            0.039602077,
+            0.040632761
+          ],
+          "cpu": [
+            0.039405924,
+            0.039613924,
+            0.044432969,
+            0.040307978,
+            0.039536207,
+            0.048082245,
+            0.039734827,
+            0.039507706,
+            0.03954299,
+            0.039495607,
+            0.040604467
+          ]
+        },
+        "Five-limb": {
+          "iterations": 73,
+          "wall": [
+            0.039778273,
+            0.040995258,
+            0.039330026,
+            0.039536458,
+            0.040528935,
+            0.040558709,
+            0.039584781,
+            0.039602457,
+            0.040275102,
+            0.039078637,
+            0.039536138
+          ],
+          "cpu": [
+            0.039754683,
+            0.040964374,
+            0.039297574,
+            0.039508968,
+            0.040506722,
+            0.040525864,
+            0.039561315,
+            0.039574066,
+            0.040244953,
+            0.039057644,
+            0.039492584
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "Swag-base",
+          "Fixed-chain",
+          "Five-limb"
+        ],
+        [
+          "Five-limb",
+          "Fixed-chain",
+          "OpenSSL",
+          "Swag-base"
+        ],
+        [
+          "Five-limb",
+          "Fixed-chain",
+          "OpenSSL",
+          "Swag-base"
+        ],
+        [
+          "Swag-base",
+          "Fixed-chain",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain"
+        ],
+        [
+          "Five-limb",
+          "Swag-base",
+          "Fixed-chain",
+          "OpenSSL"
+        ],
+        [
+          "Fixed-chain",
+          "OpenSSL",
+          "Five-limb",
+          "Swag-base"
+        ],
+        [
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL"
+        ],
+        [
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain"
+        ],
+        [
+          "Swag-base",
+          "Fixed-chain",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "OpenSSL",
+          "Fixed-chain",
+          "Swag-base",
+          "Five-limb"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "dc403df4b2f4045dd2d332537bc8d3d5fba5690e416ca713ceda2b7958f01284",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 541,
+          "wall": [
+            0.040109262,
+            0.045807857,
+            0.039713586,
+            0.04014727,
+            0.040332458,
+            0.039671903,
+            0.04336354,
+            0.039963092,
+            0.04028766,
+            0.040190805,
+            0.0401479
+          ],
+          "cpu": [
+            0.040070998,
+            0.04572286,
+            0.039684419,
+            0.04010316,
+            0.040293204,
+            0.039650366,
+            0.043319834,
+            0.039925899,
+            0.040244303,
+            0.040154902,
+            0.040106287
+          ]
+        },
+        "Swag-base": {
+          "iterations": 8,
+          "wall": [
+            0.041169882,
+            0.041013796,
+            0.040929058,
+            0.041941936,
+            0.04142752,
+            0.042447358,
+            0.041172866,
+            0.042411884,
+            0.041536714,
+            0.041070451,
+            0.04161296
+          ],
+          "cpu": [
+            0.041100068,
+            0.040998197,
+            0.040899529,
+            0.041907479,
+            0.041400584,
+            0.04241833,
+            0.041150493,
+            0.042381715,
+            0.041487596,
+            0.041036863,
+            0.041574837
+          ]
+        },
+        "Fixed-chain": {
+          "iterations": 8,
+          "wall": [
+            0.037679968,
+            0.039301404,
+            0.041362822,
+            0.039194462,
+            0.037821642,
+            0.037985339,
+            0.037633979,
+            0.037857356,
+            0.037601811,
+            0.037823795,
+            0.037672687
+          ],
+          "cpu": [
+            0.037655097,
+            0.039280066,
+            0.041337201,
+            0.039168972,
+            0.037794594,
+            0.037951597,
+            0.037610491,
+            0.037833403,
+            0.037564102,
+            0.037791071,
+            0.03764929
+          ]
+        },
+        "Five-limb": {
+          "iterations": 35,
+          "wall": [
+            0.039337347,
+            0.039685072,
+            0.039454525,
+            0.040011504,
+            0.039523629,
+            0.039848058,
+            0.039732954,
+            0.039241413,
+            0.039448315,
+            0.039188954,
+            0.039732294
+          ],
+          "cpu": [
+            0.039286375,
+            0.039663578,
+            0.039429698,
+            0.039907211,
+            0.039499974,
+            0.039822495,
+            0.039651581,
+            0.039150123,
+            0.039350964,
+            0.03916204,
+            0.039709325
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "Five-limb",
+          "OpenSSL",
+          "Fixed-chain",
+          "Swag-base"
+        ],
+        [
+          "Fixed-chain",
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb"
+        ],
+        [
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain"
+        ],
+        [
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL"
+        ],
+        [
+          "Five-limb",
+          "OpenSSL",
+          "Swag-base",
+          "Fixed-chain"
+        ],
+        [
+          "Swag-base",
+          "Fixed-chain",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "Five-limb",
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain"
+        ],
+        [
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "Fixed-chain",
+          "Swag-base",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "OpenSSL",
+          "Fixed-chain",
+          "Swag-base",
+          "Five-limb"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 4096,
+      "offset": 1,
+      "input_sha256": "a54c44ad185f85ecee304d43ea3b8d30fb5a31820bd675f5a166c4334f9be6f7",
+      "output_sha256": "38b864b4b74c2fe85f4f17748e844df2df3f5f51c2642acdadd13e1ad7c2a40d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 482,
+          "wall": [
+            0.040132848,
+            0.060328326,
+            0.064573307,
+            0.042882635,
+            0.040256634,
+            0.041965631,
+            0.042348369,
+            0.043442063,
+            0.042114169,
+            0.042123033,
+            0.040577292
+          ],
+          "cpu": [
+            0.040103834,
+            0.060234554,
+            0.061608508,
+            0.042641434,
+            0.040221809,
+            0.041920428,
+            0.042311801,
+            0.043409888,
+            0.042070582,
+            0.042022592,
+            0.040550559
+          ]
+        },
+        "Swag-base": {
+          "iterations": 8,
+          "wall": [
+            0.041525758,
+            0.042197311,
+            0.041143462,
+            0.041506549,
+            0.041206046,
+            0.042936325,
+            0.04388749,
+            0.042341381,
+            0.04305009,
+            0.044527288,
+            0.043557666
+          ],
+          "cpu": [
+            0.041487292,
+            0.042174396,
+            0.041096043,
+            0.041483349,
+            0.041167997,
+            0.042891755,
+            0.043851095,
+            0.04231655,
+            0.043021937,
+            0.044488124,
+            0.043553171
+          ]
+        },
+        "Fixed-chain": {
+          "iterations": 8,
+          "wall": [
+            0.038003255,
+            0.039171167,
+            0.037795902,
+            0.037907582,
+            0.039688807,
+            0.038651573,
+            0.04024713,
+            0.039739067,
+            0.038342311,
+            0.038771478,
+            0.039468869
+          ],
+          "cpu": [
+            0.037966652,
+            0.039137486,
+            0.037761456,
+            0.037889999,
+            0.039660776,
+            0.038618021,
+            0.040202913,
+            0.039713733,
+            0.03831552,
+            0.038735696,
+            0.039445465
+          ]
+        },
+        "Five-limb": {
+          "iterations": 35,
+          "wall": [
+            0.040621054,
+            0.05283897,
+            0.043071239,
+            0.040402304,
+            0.042003969,
+            0.041565198,
+            0.041922426,
+            0.041939486,
+            0.041257958,
+            0.04271829,
+            0.040803733
+          ],
+          "cpu": [
+            0.040591419,
+            0.052794936,
+            0.042974218,
+            0.040366216,
+            0.041959426,
+            0.041540574,
+            0.041888361,
+            0.041892518,
+            0.041232135,
+            0.042688852,
+            0.04077139
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "Swag-base",
+          "Fixed-chain",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "Fixed-chain",
+          "Swag-base",
+          "OpenSSL",
+          "Five-limb"
+        ],
+        [
+          "Fixed-chain",
+          "Swag-base",
+          "Five-limb",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "Swag-base",
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb"
+        ],
+        [
+          "OpenSSL",
+          "Five-limb",
+          "Swag-base",
+          "Fixed-chain"
+        ],
+        [
+          "Fixed-chain",
+          "Swag-base",
+          "Five-limb",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "Swag-base",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "Swag-base",
+          "OpenSSL",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "Swag-base",
+          "OpenSSL",
+          "Five-limb",
+          "Fixed-chain"
+        ],
+        [
+          "OpenSSL",
+          "Fixed-chain",
+          "Five-limb",
+          "Swag-base"
+        ]
+      ]
+    }
+  ]
+}

@@ -9,7 +9,7 @@
 using Swag
 
 // Returns the full 128-bit product of `x` and `y`, split into its high and low 64-bit halves.
-#[Swag.Safety(.Overflow, false)]
+#[Swag.Safety(.Overflow, false), Swag.Inline]
 func mulU64(x, y: u64)->{ hi: u64, lo: u64 }
 {
     const Low32Mask = (1'u64 << 32) - 1

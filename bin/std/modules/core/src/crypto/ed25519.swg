@@ -20,7 +20,7 @@ private struct Ed25519Point
     t: X25519Field
 }
 
-private func ed25519FieldConstant(limbs: [16] u64)->X25519Field
+private func ed25519FieldConstant(limbs: [5] u64)->X25519Field
 {
     var result: #returntype
     result.limbs = limbs
@@ -29,14 +29,14 @@ private func ed25519FieldConstant(limbs: [16] u64)->X25519Field
 
 private func ed25519D()->X25519Field
 {
-    return ed25519FieldConstant([0x78A3, 0x1359, 0x4DCA, 0x75EB, 0xD8AB, 0x4141, 0x0A4D, 0x0070,
-                                 0xE898, 0x7779, 0x4079, 0x8CC7, 0xFE73, 0x2B6F, 0x6CEE, 0x5203])
+    return ed25519FieldConstant([0x3_4DCA_1359_78A3, 0x1_A828_3B15_6EBD, 0x5_E7A2_6001_C029,
+                                 0x7_39C6_63A0_3CBB, 0x5_2036_CEE2_B6FF])
 }
 
 private func ed25519SqrtMinusOne()->X25519Field
 {
-    return ed25519FieldConstant([0xA0B0, 0x4A0E, 0x1B27, 0xC4EE, 0xE478, 0xAD2F, 0x1806, 0x2F43,
-                                 0xD7A7, 0x3DFB, 0x0099, 0x2B4D, 0xDF0B, 0x4FC1, 0x2480, 0x2B83])
+    return ed25519FieldConstant([0x6_1B27_4A0E_A0B0, 0x0_D5A5_FC8F_189D, 0x7_EF5E_9CBD_0C60,
+                                 0x7_8595_A680_4C9E, 0x2_B832_4804_FC1D])
 }
 
 private func ed25519Identity()->Ed25519Point
@@ -100,7 +100,7 @@ private func ed25519Select(left, right: Ed25519Point, chooseRight: u64)->Ed25519
 {
     let mask = 0'u64 - chooseRight
     var result: #returntype
-    for index in 16
+    for index in result.x.limbs.count
     {
         result.x.limbs[index] = (left.x.limbs[index] & ~mask) | (right.x.limbs[index] & mask)
         result.y.limbs[index] = (left.y.limbs[index] & ~mask) | (right.y.limbs[index] & mask)
@@ -130,10 +130,10 @@ private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->
 private func ed25519BasePoint()->Ed25519Point
 {
     var result: #returntype
-    result.x = ed25519FieldConstant([0xD51A, 0x8F25, 0x2D60, 0xC956, 0xA7B2, 0x9525, 0xC760, 0x692C,
-                                     0xDC5C, 0xFDD6, 0xE231, 0xC0A4, 0x53FE, 0xCD6E, 0x36D3, 0x2169])
-    result.y = ed25519FieldConstant([0x6658, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666,
-                                     0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666, 0x6666])
+    result.x = ed25519FieldConstant([0x6_2D60_8F25_D51A, 0x4_12A4_B4F6_592A, 0x7_5B71_71A4_B31D,
+                                     0x1_FF60_5271_18FE, 0x2_1693_6D3C_D6E5])
+    result.y = ed25519FieldConstant([0x6_6666_6666_6658, 0x4_CCCC_CCCC_CCCC, 0x1_9999_9999_9999,
+                                     0x3_3333_3333_3333, 0x6_6666_6666_6666])
     result.z.limbs[0] = 1
     result.t = x25519Multiply(result.x, result.y)
     return result

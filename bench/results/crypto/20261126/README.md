@@ -67,3 +67,4 @@ optimizations moved each result.
 - [AES-NI dispatch for AES and GCM](aesni.md)
 - [CPU-gated carry-less CRC folding](crc64-fold.md)
 - [Argon2id packed BlaMka permutation](argon2-packed.md)
+- [Five-limb Curve25519 field arithmetic](curve25519-limbs.md)

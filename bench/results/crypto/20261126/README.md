@@ -117,3 +117,4 @@ optimizations moved each result.
 - [AES software substitution with cached field logarithms](aes-software-logs.md)
 - [HMAC-SHA3 pad reuse](hmac-sha3-pads.md)
 - [BLAKE3 scaling against official C with oneTBB](blake3-tbb-scaling.md)
+- [SHA-3 bulk kernel alternatives](sha3-bulk-experiments.md)

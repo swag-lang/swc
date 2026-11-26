@@ -59,9 +59,15 @@ def prepare(args, entries):
     for entry in entries:
         if "source" in entry:
             source = args.corpus / entry["source"]
+            destination = args.corpus / entry["file"]
             with TTFont(source, recalcTimestamp=False) as font:
-                font.flavor = "woff"
-                font.save(args.corpus / entry["file"])
+                if destination.suffix == ".cff":
+                    destination.write_bytes(font.getTableData("CFF "))
+                else:
+                    font.flavor = "woff"
+                    font.save(destination)
+            if "sha256" in entry:
+                check_digest(destination, entry)
 
 
 def measure_swag(executable, path, face, character, size, count, from_memory, workers, warmups, prestart):

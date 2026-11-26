@@ -1261,3 +1261,32 @@ first face, and reads the advance and name from the surviving face.
 | `NimbusMonoPS-Regular.t1` | U+0069 | 1641.66 | 98.80 |
 | `P052-Roman.t1` | U+0067 | 1717.55 | 95.16 |
 | `P052-Roman.t1` | U+0045 | 1734.97 | 101.73 |
+
+## Shared advances and Unicode maps for bare PostScript programs
+
+A retained source builds charstring advances and its synthetic Unicode
+map once for bare CFF and Type 1. The cached tables follow the source
+allocator and stay alive as long as either face retains them.
+
+Three CFF programs extracted from pinned public OTFs add six cases.
+The corpus now has 91 cases on 68 files with the original attachments.
+The comparison with `8fcc21a3bb` uses eleven interleaved batches of 251
+reopens on one CPU. Retained openings take 1.1–1.4 µs across all
+twelve cases. Each result keeps its glyph index, advance, bitmap
+dimensions and CRC-64. The pathname runs include 31 opens per batch.
+[Raw timings and pathname controls](font-decode-linux-program-tables.json)
+
+| Fixture | Character | Open before (µs) | After |
+| --- | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 75.60 | 1.13 |
+| `NimbusSans-Regular.t1` | U+0067 | 73.56 | 1.42 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 73.71 | 1.31 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 76.40 | 1.29 |
+| `P052-Roman.t1` | U+0067 | 81.03 | 1.22 |
+| `P052-Roman.t1` | U+0045 | 74.95 | 1.07 |
+| `NimbusSans-Regular.cff` | U+0041 | 238.81 | 1.19 |
+| `NimbusSans-Regular.cff` | U+0067 | 244.10 | 1.20 |
+| `NimbusMonoPS-Regular.cff` | U+0057 | 287.59 | 1.35 |
+| `NimbusMonoPS-Regular.cff` | U+0069 | 285.56 | 1.20 |
+| `SourceSans3-Regular.cff` | U+0043 | 894.74 | 1.28 |
+| `SourceSans3-Regular.cff` | U+0045 | 798.63 | 1.15 |

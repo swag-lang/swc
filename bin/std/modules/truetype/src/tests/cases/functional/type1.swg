@@ -171,6 +171,7 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     let backing = cast(const *FaceImpl, cast(const *void, first))
     let sibling = cast(const *FaceImpl, cast(const *void, second))
     Swag.require(backing.sharedType1 != null and backing.sharedType1 == sibling.sharedType1)
+    Swag.require(backing.sharedProgramTables != null and backing.sharedProgramTables == sibling.sharedProgramTables)
     source = {}
     first.destroy()
     Swag.require(second.glyphIndex('A') == 1 and second.glyphName(1) == "A")

@@ -782,5 +782,50 @@
         "profile": "WOFF1 variable TrueType CJK at the default instance"
       }
     ]
+  },
+  {
+    "file": "NimbusSans-Regular.cff",
+    "source": "NimbusSans-Regular.otf",
+    "sha256": "3455435f3448f5fb4055687c466d7921363eb77b41582cb55c2f262ef5d1bc97",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Bare name-keyed CFF"
+      },
+      {
+        "character": 103,
+        "profile": "Bare name-keyed CFF"
+      }
+    ]
+  },
+  {
+    "file": "NimbusMonoPS-Regular.cff",
+    "source": "NimbusMonoPS-Regular.otf",
+    "sha256": "a288135cbd2b19d32b33ff870183388b41f9fcd23932b94de64ef314a692f7af",
+    "cases": [
+      {
+        "character": 87,
+        "profile": "Bare name-keyed CFF"
+      },
+      {
+        "character": 105,
+        "profile": "Bare name-keyed CFF"
+      }
+    ]
+  },
+  {
+    "file": "SourceSans3-Regular.cff",
+    "source": "SourceSans3-Regular.otf",
+    "sha256": "7ddec9f13bf43818ea226e5d933d81b895220160c795938d934705179d0a94bb",
+    "cases": [
+      {
+        "character": 67,
+        "profile": "Bare name-keyed CFF"
+      },
+      {
+        "character": 69,
+        "profile": "Bare name-keyed CFF"
+      }
+    ]
   }
 ]

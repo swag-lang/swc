@@ -155,6 +155,12 @@ impl GlyphNames
     }
 }
 
+struct ProgramTables
+{
+    advances: Array'u16
+    cmap:     HashTable'(u32, u32)
+}
+
 // Internal backing store for a public Face. The public Face is the first field so
 // that a *Face can be reinterpreted as a *FaceImpl and vice versa.
 struct FaceImpl
@@ -166,7 +172,6 @@ struct FaceImpl
     fontData:               Array'u8
     fontSource:             FontSource
     tables:                 Array'TableRecord
-    charstringAdvances:     Array'u16
     verticalGlyphMetrics:   Array'GlyphVerticalMetrics
     verticalMetrics:        const [..] GlyphVerticalMetrics?
     glyphLocations:         const [..] u8?
@@ -198,8 +203,9 @@ struct FaceImpl
     // Unicode map built from the font's own encoding, for a program that ships no `cmap`.
     // A bare CFF or Type 1 file is addressed by name or by code, and this is what still
     // lets it answer a character lookup.
-    syntheticCMap: HashTable'(u32, u32)
-    hasCMap:       bool
+    programTables:       ProgramTables
+    sharedProgramTables: const *ProgramTables?
+    hasCMap:             bool
 
     outlinePoints:     Array'Vector
     outlineTags:       Array'u8
@@ -232,7 +238,6 @@ impl FaceImpl
         // These buffers belong to the face, so release capacity instead of only
         // clearing elements; the reusable glyph workspace dies with the face too.
         .tables.free()
-        .charstringAdvances.free()
         .verticalGlyphMetrics.free()
         .outlinePoints.free()
         .outlineTags.free()
@@ -244,7 +249,8 @@ impl FaceImpl
         .gposPairLookups.free()
         Swag.drop(&.postNames)
         Swag.init(&.postNames, 1)
-        .syntheticCMap.free()
+        .programTables.advances.free()
+        .programTables.cmap.free()
 
         // A custom drop owns nested cleanup, so release each string and parser
         // table explicitly and reset its fields afterwards.
@@ -293,12 +299,15 @@ impl FaceImpl
     #[Swag.Inline]
     mtd const postGlyphNames()->const *GlyphNames => .sharedPostNames orelse &.postNames
 
+    #[Swag.Inline]
+    mtd const charstringTables()->const *ProgramTables => .sharedProgramTables orelse &.programTables
+
     // The validated hmtx table stores the first advances explicitly. All short metrics reuse
     // the last long advance. Bare PostScript faces supply their own charstring advances.
     mtd const glyphAdvance(glyphIndex: u32)->u16
     {
         if not .numLongMetrics do
-            return .charstringAdvances[glyphIndex]
+            return .charstringTables().advances[glyphIndex]
 
         let index = Math.min(glyphIndex, cast(u32, .numLongMetrics - 1))
         let entry = .horizontalMetrics.buffer + cast(u64, index) * 4

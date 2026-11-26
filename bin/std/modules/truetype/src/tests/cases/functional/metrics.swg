@@ -40,7 +40,7 @@ using Swag, Core
     cffFace.outlineSource   = .Cff
     cffFace.cff.block       = CffIndexBytes
     cffFace.cff.charStrings = expect readCffIndex(CffIndexBytes, 0)
-    expect buildCharstringMetrics(&cffFace)
+    expect buildCharstringMetrics(&cffFace, &cffFace.programTables.advances)
     Swag.require(expect cffFace.face.getAdvanceWidth(0) == 50)
     Swag.require(expect cffFace.face.getAdvanceWidth(1) == 0)
 
@@ -62,7 +62,7 @@ using Swag, Core
     type1Zero.add(14'u8)      // endchar
     type1Face.type1.charstrings.add(type1Zero)
 
-    expect buildCharstringMetrics(&type1Face)
+    expect buildCharstringMetrics(&type1Face, &type1Face.programTables.advances)
     Swag.require(expect type1Face.face.getAdvanceWidth(0) == 50)
     Swag.require(expect type1Face.face.getAdvanceWidth(1) == 0)
 }

@@ -6,8 +6,8 @@ using Swag, Core
 {
     var faceData: FaceImpl
     faceData.face.setGlyphCount(9)
-    faceData.syntheticCMap.add('A'u32, 8)
-    faceData.syntheticCMap.add('B'u32, 9)
+    faceData.programTables.cmap.add('A'u32, 8)
+    faceData.programTables.cmap.add('B'u32, 9)
 
     Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 8)
     Swag.require(expect lookupGlyphIndex(&faceData, 'B'u32) == 0)

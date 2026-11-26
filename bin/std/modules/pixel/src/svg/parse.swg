@@ -6,6 +6,7 @@ using Core, Core.Math
 private const RasterSampleTileSide = 1024's32
 private const PaintBlockSize       = 64'u64
 private const PaintBinCount        = 128'u64
+private const PaintGridColumns     = 16'u64
 
 // Controls resources that SVG parsing may resolve outside the document text.
 //
@@ -4413,7 +4414,7 @@ impl Drawing
         }
     }
 
-    // Bucket items by their centre along the wider axis when authored runs do not cull well.
+    // Bucket widely dispersed items by centre, using both axes for near-square drawings.
     private mtd measurePaintBins()
     {
         if .items.count < PaintBlockSize * 64 do
@@ -4438,21 +4439,46 @@ impl Drawing
         let origin = cast(f64, useY ? minimum.y : minimum.x)
         let extent = useY ? height : width
         let span   = useY ? spanY : spanX
-        if extent <= 0 or span < extent * cast(f64, .paintBlocks.count) * 0.25 do
+        let spread = cast(f64, .paintBlocks.count) * 0.25
+        if extent <= 0 or span < extent * spread do
             return
+
+        // Near-square drawings spread through their authored runs on both axes.
+        let useGrid = width > 0 and
+                      height > 0 and
+                      width <= height * 4 and
+                      height <= width * 4 and
+                      spanX >= width * spread and
+                      spanY >= height * spread
+        const GridRows = PaintBinCount / PaintGridColumns
+        let densityX = useGrid ? cast(f64, PaintGridColumns) / width : 0.0
+        let densityY = useGrid ? cast(f64, GridRows) / height : 0.0
 
         .paintBins.resize(PaintBinCount)
         let density  = cast(f64, PaintBinCount) / extent
         var occupied = 0
         for &item, index in .items
         {
-            let first  = Vector2{item.bounds.x, item.bounds.y}
-            let last   = Vector2{item.bounds.right(), item.bounds.bottom()}
-            let centre = useY ? (cast(f64, first.y) + last.y) * 0.5 : (cast(f64, first.x) + last.x) * 0.5
-            let bucket = cast(u64, Math.clamp((centre - origin) * density, 0.0'f64, cast(f64, PaintBinCount - 1)))
-            let bin    = &.paintBins[bucket]
-            let lower  = Vector2.min(first, last)
-            let upper  = Vector2.max(first, last)
+            let first = Vector2{item.bounds.x, item.bounds.y}
+            let last  = Vector2{item.bounds.right(), item.bounds.bottom()}
+            var bucket: u64
+            if useGrid
+            {
+                let centreX = (cast(f64, first.x) + last.x) * 0.5
+                let centreY = (cast(f64, first.y) + last.y) * 0.5
+                let column  = cast(u64, Math.clamp((centreX - minimum.x) * densityX, 0.0'f64, cast(f64, PaintGridColumns - 1)))
+                let row     = cast(u64, Math.clamp((centreY - minimum.y) * densityY, 0.0'f64, cast(f64, GridRows - 1)))
+                bucket = row * PaintGridColumns + column
+            }
+            else
+            {
+                let centre = useY ? (cast(f64, first.y) + last.y) * 0.5 : (cast(f64, first.x) + last.x) * 0.5
+                bucket = cast(u64, Math.clamp((centre - origin) * density, 0.0'f64, cast(f64, PaintBinCount - 1)))
+            }
+
+            let bin   = &.paintBins[bucket]
+            let lower = Vector2.min(first, last)
+            let upper = Vector2.max(first, last)
             if bin.indices.isEmpty()
             {
                 bin.bounds = PaintBlock{minimum: lower, maximum: upper, bounded: true}

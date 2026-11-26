@@ -764,3 +764,46 @@ generated 5.1 outputs differ by at most one PCM16 unit from R19.
 
 Native Release passes 321 audio tests. Release-safe passes
 17 focused Dolby tests.
+
+## Twenty-first optimization pass
+
+This follow-up compares the changed codecs with commit `39f20ce765` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round21.json)
+
+| Format | R20 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R20 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MP3 | 8.69 | 8.38 | 7.80 | 9.27 | 9.23 | 8.36 |
+| Ogg Vorbis | 6.73 | 6.82 | 7.21 | 7.10 | 7.16 | 7.72 |
+| Opus | 21.47 | 21.19 | 20.70 | 20.64 | 19.88 | 20.03 |
+
+| Format | R20 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| MP3 | 5.36 | 5.07 | 7.87 |
+| Ogg Vorbis | 6.82 | 7.03 | 7.54 |
+| Opus | 21.28 | 19.72 | 19.60 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R20 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R20 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `mp3-48k-stereo.mp3` | 10.49 | 10.26 | 9.15 | 7.14 | 6.03 | 9.55 |
+| `opus-20ms-48k-stereo.opus` | 29.09 | 28.55 | 29.67 | 29.21 | 28.66 | 28.87 |
+| `opus-5ms-48k-stereo.opus` | 28.53 | 27.99 | 32.08 | 29.14 | 28.67 | 33.02 |
+| `opus-voip-48k-mono.opus` | 15.68 | 15.65 | 13.44 | 16.23 | 16.29 | 13.98 |
+| `vorbis-32k-mono.ogg` | 3.44 | 3.53 | 5.00 | 3.60 | 3.73 | 5.07 |
+| `vorbis-48k-5.1.ogg` | 29.40 | 28.03 | 27.32 | 29.83 | 28.38 | 27.12 |
+| `vorbis-48k-stereo.ogg` | 9.23 | 9.12 | 10.10 | 8.93 | 9.21 | 10.15 |
+
+MP3 clears the spectral workspace with a bulk memory operation. Opus
+refills raw bits in groups and normalizes packed integer PVQ pulses.
+Vorbis decodes five-value type-2 residue vectors directly into five
+planar outputs. All selected outputs are byte-identical to R20.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 321 audio tests. Release-safe passes
+48 focused MP3, Opus and Vorbis tests.

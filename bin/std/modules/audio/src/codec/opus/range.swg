@@ -247,12 +247,28 @@ internal impl RangeDecoder
         var availableBits = .endBits
         if availableBits < cast(s32, bits)
         {
-            while true
+            if .storage - .endOffset >= 4 and availableBits <= cast(s32, (WindowBits - SymBits))
             {
-                window        |= .readByteFromEnd() << cast(u32, availableBits)
-                availableBits += cast(s32, SymBits)
-                if availableBits > cast(s32, (WindowBits - SymBits)) do
-                    break
+                // The window consumes the last byte first. Reverse one load and
+                // retain only the whole bytes that fit beside the pending bits.
+                let pending = cast(u32, availableBits)
+                let bytes   = (WindowBits - pending) / SymBits
+                let unused  = WindowBits - bytes * SymBits
+                let tail    = (unwrap .data) + .storage - .endOffset
+                let reverse = Swag.byteSwap(cast(const [*] u32, tail - 4)[0])
+                window        |= ((reverse << unused) >> unused) << pending
+                .endOffset    += bytes
+                availableBits += cast(s32, bytes * SymBits)
+            }
+            else
+            {
+                while true
+                {
+                    window        |= .readByteFromEnd() << cast(u32, availableBits)
+                    availableBits += cast(s32, SymBits)
+                    if availableBits > cast(s32, (WindowBits - SymBits)) do
+                        break
+                }
             }
         }
 

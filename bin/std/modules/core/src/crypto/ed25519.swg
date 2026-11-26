@@ -29,6 +29,14 @@ private struct Ed25519Affine
     yMinusX, yPlusX, twiceDT: X25519Field
 }
 
+private const Ed25519AffineWordCount = #sizeof(Ed25519Affine) / #sizeof(u64)
+
+// All eight candidates for a limb in one contiguous row.
+private struct Ed25519AffineTable
+{
+    words: [Ed25519AffineWordCount][8] u64
+}
+
 private struct Ed25519Cached
 {
     affine: Ed25519Affine
@@ -220,7 +228,7 @@ private func ed25519BasePoint()->Ed25519Point
 // Row i stores the first eight multiples of 256^i times the base point.
 private const Ed25519GeneratorRadix16 = #run ed25519BuildGeneratorRadix16()
 
-private func ed25519BuildGeneratorRadix16()->[256] Ed25519Affine
+private func ed25519BuildGeneratorRadix16()->[32] Ed25519AffineTable
 {
     var points: [256] Ed25519Point
     var base = ed25519BasePoint()
@@ -254,30 +262,37 @@ private func ed25519BuildGeneratorRadix16()->[256] Ed25519Affine
         inverse = x25519Multiply(inverse, points[index].z)
         let x = x25519Multiply(points[index].x, inverseZ)
         let y = x25519Multiply(points[index].y, inverseZ)
-        result[index] = {yMinusX: x25519Subtract(y, x), yPlusX: x25519Add(y, x),
-                         twiceDT: x25519Multiply(twiceD, x25519Multiply(x, y))}
+        let point = Ed25519Affine{yMinusX: x25519Subtract(y, x), yPlusX: x25519Add(y, x),
+                                 twiceDT: x25519Multiply(twiceD, x25519Multiply(x, y))}
+        let words = cast(const [*] u64, &point)
+        for limb in Ed25519AffineWordCount do
+            result[index / 8].words[limb][index & 7] = words[limb]
     }
 
     return result
 }
 
-private func ed25519SelectAffine(multiples: const [..] Ed25519Affine, digit: s8)->Ed25519Affine
+private func ed25519SelectAffine(table: const [..] [8] u64, digit: s8)->Ed25519Affine
 {
     let sign = digit >> 7
     let magnitude = cast(u8, ((digit ^ sign) - sign))
+    let desired = Math.Simd.splat(cast(u64, magnitude))
+    let first  = desired == cast(Math.Simd.U64x2, [1'u64, 2])
+    let second = desired == cast(Math.Simd.U64x2, [3'u64, 4])
+    let third  = desired == cast(Math.Simd.U64x2, [5'u64, 6])
+    let fourth = desired == cast(Math.Simd.U64x2, [7'u64, 8])
+
     var result: #returntype
-    result.yMinusX.limbs[0] = cast(u64, magnitude == 0)
-    result.yPlusX.limbs[0] = result.yMinusX.limbs[0]
-    for entry, index in multiples
+    let words = cast([*] u64, &result)
+    for index in Ed25519AffineWordCount
     {
-        let mask = 0'u64 - cast(u64, index + 1 == magnitude)
-        for limb in result.yMinusX.limbs.count
-        {
-            result.yMinusX.limbs[limb] |= entry.yMinusX.limbs[limb] & mask
-            result.yPlusX.limbs[limb]  |= entry.yPlusX.limbs[limb] & mask
-            result.twiceDT.limbs[limb] |= entry.twiceDT.limbs[limb] & mask
-        }
+        let pairs = cast(const [*] Math.Simd.U64x2, table[index].buffer)
+        words[index] = Math.Simd.sum((pairs[0] & first) | (pairs[1] & second) |
+                                     (pairs[2] & third) | (pairs[3] & fourth))
     }
+    let identity = cast(u64, magnitude == 0)
+    result.yMinusX.limbs[0] |= identity
+    result.yPlusX.limbs[0] |= identity
 
     // Negating an Edwards point swaps Y-X and Y+X, and negates 2dXY.
     let negativeMask = 0'u64 - cast(u64, sign != 0)
@@ -323,8 +338,8 @@ private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
     {
         for row in 32
         {
-            let table = Ed25519GeneratorRadix16[row * 8 until row * 8 + 8]
-            selected = ed25519SelectAffine(table, digits[row * 2 + 1 - pass])
+            const tables: const [..] Ed25519AffineTable = Ed25519GeneratorRadix16
+            selected = ed25519SelectAffine(tables[row].words, digits[row * 2 + 1 - pass])
             result = ed25519AddAffine(result, selected)
         }
         if pass == 0 do

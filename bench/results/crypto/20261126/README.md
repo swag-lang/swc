@@ -135,3 +135,4 @@ optimizations moved each result.
 - [KMAC bytepad and empty-customization initialization](kmac-bytepad.md)
 - [Scrypt Salsa input XOR fusion](scrypt-salsa-fusion.md)
 - [Poly1305 four-block folding](poly1305-four-blocks.md)
+- [Packed Curve25519 generator table selection](ed25519-vector-selection.md)

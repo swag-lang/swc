@@ -217,9 +217,12 @@ ships; history lives in Git, not here.
 - Evidence: [parallel medium gradient ranges](../bench/workloads/svgraster/resvg-comparison.md#parallelizing-medium-gradient-ranges)
   reduce the same fixture from 112 to 77 ms at four workers. The bitmap
   and public controls retain their CRC-64s.
-- Next: reduce the remaining stroke and clip costs and test the largest source
-  at its full resolution.
-  Rerun the original Windows comparison at one worker and at the runtime default.
+- Evidence: [matched CPU budgets](../bench/workloads/svgraster/resvg-comparison.md#matched-cpu-budgets-on-the-complete-originals)
+  put all four Scope bitmaps ahead of resvg at one, two, and four logical CPUs.
+  The largest full-size raster is slower at one CPU and faster at two and four.
+- Next: reduce the remaining gradient, stroke, clip, and single-CPU full-size
+  raster costs. Rerun the original Windows comparison at one worker and at
+  the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

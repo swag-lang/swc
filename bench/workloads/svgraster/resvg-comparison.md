@@ -1050,3 +1050,54 @@ parse-plus-raster times in milliseconds.
 The generated, public, and original controls retain their Swag CRC-64s.
 The exact compositing regression compares runs of 128 and 384 fills with
 the same commands submitted individually.
+
+## Matched CPU budgets on the complete originals
+
+The Release runs include the short stroke ranges from `57fd6853ff`. The host
+was Linux x86-64 on an AMD EPYC 9V45 with a four-CPU quota. Each Swag
+worker count and resvg 0.50.0 used the same logical CPU affinity. resvg
+renders an individual SVG on one thread. Values below are median
+parse-plus-raster milliseconds in Swag / resvg order. Reading the SVG,
+saving the raster, and display are outside the timed phases.
+
+The four attached SVGs match their pinned SHA-256 digests. The bitmap
+series has nine repetitions per affinity. Each generated or full-size
+case has seven repetitions. Scope's bitmap limit renders the largest
+original at 2048 × 1365. The full-size series returns all 5184 × 3456
+pixels.
+
+### Bitmap output with the Scope size limit
+
+| Original input | One CPU | Two CPUs | Four CPUs |
+| --- | ---: | ---: | ---: |
+| `sample_640×426` | 3.95 / 5.30 | 3.94 / 5.50 | 3.73 / 6.53 |
+| `sample_1280×853` | 16.76 / 19.10 | 14.98 / 19.99 | 11.68 / 19.45 |
+| `sample_1920×1280` | 39.35 / 44.23 | 32.97 / 44.62 | 24.90 / 46.45 |
+| `sample_5184×3456` | 209.28 / 243.25 | 147.25 / 244.59 | 120.76 / 248.87 |
+
+### Bitmap output at the largest original size
+
+| Original input | One CPU | Two CPUs | Four CPUs |
+| --- | ---: | ---: | ---: |
+| `sample_5184×3456` | 383.45 / 347.29 | 261.14 / 390.05 | 183.43 / 343.52 |
+
+### Generated controls
+
+| Fixture | One CPU | Two CPUs | Four CPUs |
+| --- | ---: | ---: | ---: |
+| `large` | 233.18 / 268.37 | 192.79 / 276.69 | 124.92 / 275.62 |
+| `strokes` | 58.70 / 15.29 | 57.81 / 15.48 | 35.81 / 15.33 |
+| `hairline-strokes` | 18.19 / 6.10 | 15.57 / 6.32 | 11.97 / 6.87 |
+| `wide-strokes` | 24.35 / 13.30 | 19.60 / 13.47 | 14.86 / 13.03 |
+| `dense-colored` | 40.89 / 48.78 | 32.49 / 48.12 | 23.74 / 49.32 |
+| `tall-bands` | 91.89 / 43.29 | 64.94 / 42.64 | 38.78 / 43.89 |
+| `folded-bands` | 138.78 / 173.87 | 74.92 / 176.17 | 51.08 / 168.71 |
+| `mask-band` | 7.42 / 5.84 | 7.57 / 5.60 | 7.28 / 5.72 |
+| `mask-column` | 11.38 / 9.99 | 11.63 / 8.99 | 10.46 / 9.06 |
+| `mask-compact` | 2.24 / 1.11 | 2.17 / 0.98 | 2.38 / 0.94 |
+| `gradient-fills` | 115.65 / 29.47 | 84.17 / 28.88 | 75.95 / 29.07 |
+
+The largest original's 320 × 213 thumbnail uses two samples per axis.
+Its Swag medians are 152.70, 121.38, and 106.74 ms with one, two, and
+four workers. The generated corpus has 18 fixtures and the pinned
+public corpus has 13.

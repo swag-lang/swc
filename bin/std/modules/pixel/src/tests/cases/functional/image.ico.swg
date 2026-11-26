@@ -302,6 +302,29 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     }
 }
 
+// Partial palettes reject invalid indices in the SIMD block and in its scalar tail.
+#test
+{
+    const Width = 13
+    for bitCount in [4'u16, 8]
+    {
+        let rowBytes = ((Width * bitCount + 31) / 32) * 4
+        for badPixel in [7, 12]
+        {
+            var body: [24] u8
+            body[0] = 11
+            body[1] = 22
+            body[2] = 33
+            let bit = badPixel * bitCount
+            body[4 + bit / 8] = cast(u8, (1 << (8 - bitCount - (bit & 7))))
+            let file = buildIco(Width, 1, bitCount, 1, body[until 4 + rowBytes + 4])
+            var outcome: Swag.Error
+            discard catch decodeIco(nnBytes(file.toSlice())) as outcome
+            Swag.require(outcome.value() is Errors.InvalidFormatError)
+        }
+    }
+}
+
 // Decode a 2x2 8-bit indexed icon through its palette.
 #test
 {

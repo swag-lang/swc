@@ -629,12 +629,18 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
         }
         elif format == 1 or format == 2
         {
-            let leftSize = format == 1 ? 1'u64 : 2'u64
-            var gid      = 1'u32
+            let rangeSize = format == 1 ? 3'u64 : 4'u64
+            let source    = font.block
+            var gid       = 1'u32
             while gid < glyphCount
             {
-                let first = cast(u32, try readU16(font.block, pos))
-                let left  = format == 1 ? cast(u32, try readU8(font.block, pos + 2)) : cast(u32, try readU16(font.block, pos + 2))
+                // The format byte and each preceding range were already checked.
+                if rangeSize > source.count - pos do
+                    try fault(0x03)
+
+                let range = source.buffer + pos
+                let first = cast(u32, Math.make16(range[0], range[1]))
+                let left  = format == 1 ? cast(u32, range[2]) : cast(u32, Math.make16(range[2], range[3]))
                 let count = left + 1
                 if count > glyphCount - gid do
                     try fault(0x08)
@@ -646,7 +652,7 @@ private func readCffCharset(font: *CffFont, offset: u64) fail
                     return
                 }
 
-                pos += 2 + leftSize
+                pos += rangeSize
                 for offsetInRange in count do
                     sids[gid + offsetInRange] = first + cast(u32, offsetInRange)
                 gid += count

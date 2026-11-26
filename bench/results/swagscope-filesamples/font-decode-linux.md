@@ -1023,3 +1023,28 @@ indices, advances, dimensions and bitmap checksums match across builds.
 | `NotoSerifKR-Regular.otf` | U+570B | 2.977 | 1.425 | 0.587 | 1.662 | 0.509 |
 | `NotoSerifSC-Regular.otf` | U+4E2D | 3.377 | 2.009 | 0.551 | 1.919 | 0.773 |
 | `NotoSerifSC-Regular.otf` | U+6587 | 3.266 | 1.971 | 0.566 | 2.278 | 0.745 |
+
+## Packed CFF charset ranges
+
+Formats 1 and 2 check each whole record once and read its already
+bounded bytes directly. The glyph-count check and the identity
+shortcut still apply. Functional tests cover truncated records in
+both formats.
+
+The four regional subset fixtures compare with `74eda41449` in
+11 interleaved batches on one CPU. Fresh-source opening takes 58–72%
+less time. Pathname opening improves by 24–46%. Noto Sans JP takes
+575–590 µs from a pathname, compared with 469–487 µs in FreeType
+2.14.3. All eight glyph fingerprints match across the Swag builds.
+[Raw timings](font-decode-linux-cff-charset-ranges.json)
+
+| Fixture | Character | Open before (µs) | After | FreeType | Fresh source before (µs) | After |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `NotoSansJP-Regular.otf` | U+3042 | 1070.4 | 575.0 | 486.5 | 658.0 | 187.6 |
+| `NotoSansJP-Regular.otf` | U+65E5 | 1079.2 | 589.9 | 468.7 | 653.7 | 180.3 |
+| `NotoSansHK-Regular.otf` | U+9AA8 | 1386.5 | 786.2 | 507.7 | 725.0 | 214.4 |
+| `NotoSansHK-Regular.otf` | U+9F8D | 1261.6 | 800.2 | 540.0 | 754.6 | 210.1 |
+| `NotoSerifKR-Regular.otf` | U+D55C | 1231.1 | 880.3 | 634.8 | 502.0 | 192.5 |
+| `NotoSerifKR-Regular.otf` | U+570B | 1221.8 | 928.3 | 612.4 | 489.8 | 205.9 |
+| `NotoSerifSC-Regular.otf` | U+4E2D | 1993.7 | 1355.2 | 552.0 | 848.0 | 277.7 |
+| `NotoSerifSC-Regular.otf` | U+6587 | 1857.7 | 1345.7 | 556.9 | 851.4 | 262.2 |

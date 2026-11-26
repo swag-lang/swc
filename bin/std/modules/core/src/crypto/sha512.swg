@@ -168,7 +168,13 @@ impl Sha512Core
 
     mtd finalize()->[8] u64
     {
-        var result: #returntype
+        .finalizeBlocks()
+        return .state
+    }
+
+    #[Swag.Inline]
+    mtd finalizeBlocks()
+    {
         let oldLow = .bitLengthLow
         .bitLengthLow += .dataLength * 8
         if .bitLengthLow < oldLow do
@@ -191,8 +197,22 @@ impl Sha512Core
         lengthWords[1] = Math.nativeToBigEndian(finalLow)
         .transformBlocks(.data)
         .dataLength = 0
-        result      = .state
-        return result
+    }
+
+    // The keyed prefix occupies one block and the outer input is one digest.
+    mtd(DigestWords: u64) finishHmacOuter(digest: const [*] u64)->const [*] u64
+    {
+        const DigestSize   = DigestWords * #sizeof(u64)
+        const LengthOffset = 112
+        const BitLength    = (Sha512BlockSize + DigestSize) * 8
+        Crypto.writeSha512HmacDigest'DigestWords(digest, .data.buffer)
+        .data[DigestSize] = 0x80
+        Swag.memset(.data.buffer + DigestSize + 1, 0, LengthOffset - DigestSize - 1)
+        let lengthWords = cast([*] u64, .data.buffer + LengthOffset)
+        lengthWords[0] = 0
+        lengthWords[1] = Math.nativeToBigEndian(BitLength)
+        .transformBlocks(.data)
+        return .state.buffer
     }
 
     private mtd transformBlocks(buf: const [*] u8, blockCount = 1'u64)
@@ -277,6 +297,16 @@ public struct Sha512
 impl Sha512
 {
     #[Swag.Inline]
+    mtd finishHmacInner()->const [*] u64
+    {
+        .core.finalizeBlocks()
+        return .core.state.buffer
+    }
+
+    #[Swag.Inline]
+    mtd finishHmacOuter(digest: const [*] u64)->const [*] u64 => .core.finishHmacOuter'8(digest)
+
+    #[Swag.Inline]
     mtd const hmacPrefixState()->const *[8] u64 => &.core.state
 
     #[Swag.Inline]
@@ -333,6 +363,16 @@ public struct Sha384
 
 impl Sha384
 {
+    #[Swag.Inline]
+    mtd finishHmacInner()->const [*] u64
+    {
+        .core.finalizeBlocks()
+        return .core.state.buffer
+    }
+
+    #[Swag.Inline]
+    mtd finishHmacOuter(digest: const [*] u64)->const [*] u64 => .core.finishHmacOuter'6(digest)
+
     #[Swag.Inline]
     mtd const hmacPrefixState()->const *[8] u64 => &.core.state
 }

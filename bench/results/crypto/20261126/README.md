@@ -216,3 +216,4 @@ optimizations moved each result.
 - [Interleaved ChaCha20-Poly1305 short seals](chacha20-poly1305-short-pair.md)
 - [Parallel Adler-32 on large buffers](adler32-worker-tiles.md)
 - [Parallel CRC-32 on large buffers](crc32-workers.md)
+- [Direct HMAC-SHA-384 and SHA-512 outer blocks](hmac-sha384-sha512-outer.md)

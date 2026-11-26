@@ -42,7 +42,7 @@ using Swag
     Swag.require(finalizeBeforeReset.raised and finalizeBeforeReset.message() == "HMAC-SHA-256 needs an initialized sequence")
 }
 
-func(Hmac) verifyNarrowHmacLifecycle()
+func(Hmac) verifySha2HmacLifecycle()
 {
     var longKey: [131] u8
     Memory.set(longKey.buffer, 0xAA'u8, longKey.count)
@@ -74,6 +74,8 @@ func(Hmac) verifyNarrowHmacLifecycle()
 
 #test
 {
-    verifyNarrowHmacLifecycle'Crypto.HmacSha224()
-    verifyNarrowHmacLifecycle'Crypto.HmacSha256()
+    verifySha2HmacLifecycle'Crypto.HmacSha224()
+    verifySha2HmacLifecycle'Crypto.HmacSha256()
+    verifySha2HmacLifecycle'Crypto.HmacSha384()
+    verifySha2HmacLifecycle'Crypto.HmacSha512()
 }

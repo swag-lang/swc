@@ -160,3 +160,4 @@ optimizations moved each result.
 - [BLAKE3 worker cutoff for small one-shot inputs](blake3-oneshot-cutoff.md)
 - [Unified P-256 point addition in fixed windows](p256-unified-windows.md)
 - [Direct scrypt BlockMix output](scrypt-direct-blockmix.md)
+- [Packed P-256 field selection](p256-vector-select.md)

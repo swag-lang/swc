@@ -244,10 +244,16 @@ private func p256FieldEqual(left, right: P256Field)->bool
 
 private func p256FieldSelect(left, right: P256Field, selectRight: bool)->P256Field
 {
-    let mask = 0'u64 - cast(u64, selectRight)
+    let mask = Math.Simd.splat(0'u64 - cast(u64, selectRight))
     var result: #returntype
-    for index in 4 do
-        result.limbs[index] = (right.limbs[index] & mask) | (left.limbs[index] & ~mask)
+    for pair in 2
+    {
+        let index = pair * 2
+        let first = Math.Simd.load(left.limbs.buffer + index)
+        let second = Math.Simd.load(right.limbs.buffer + index)
+        Math.Simd.store(result.limbs.buffer + index, first ^ ((first ^ second) & mask))
+    }
+
     return result
 }
 

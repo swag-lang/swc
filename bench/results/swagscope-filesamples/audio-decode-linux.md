@@ -943,3 +943,44 @@ bit for bit.
 
 Native Release passes 323 audio tests. Release-safe passes
 43 focused FLAC and Opus tests.
+
+## Twenty-fifth optimization pass
+
+This follow-up compares the changed codecs with commit `e0052e7dce` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round25.json)
+
+| Format | R24 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R24 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| FLAC | 9.20 | 9.15 | 11.33 | 8.92 | 8.73 | 11.10 |
+| Ogg FLAC | 8.39 | 8.58 | 10.92 | 8.23 | 8.46 | 11.05 |
+
+| Format | R24 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| FLAC | 6.47 | 6.36 | 7.19 |
+| Ogg FLAC | 6.21 | 6.09 | 7.88 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R24 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R24 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `flac-44k-stereo-16.flac` | 5.80 | 5.83 | 10.99 | 3.54 | 3.50 | 7.71 |
+| `flac-48k-5.1-16.flac` | 18.46 | 18.64 | 35.10 | 10.31 | 10.30 | 20.80 |
+| `flac-96k-stereo-24.flac` | 16.38 | 16.56 | 25.92 | 9.72 | 10.49 | 17.35 |
+| `flac-verbatim-48k-stereo-16.flac` | 7.32 | 1.64 | 5.70 | 5.71 | 1.89 | 7.33 |
+| `flac-verbatim-48k-stereo-24.flac` | 9.06 | 2.02 | 7.12 | 6.78 | 2.27 | 9.03 |
+| `flac-verbatim-48k-stereo-32.flac` | 12.23 | 3.57 | 9.21 | 7.68 | 3.30 | 10.76 |
+| `ogg-flac-48k-mono-16.oga` | 3.46 | 3.47 | 6.84 | 2.31 | 2.41 | 6.34 |
+
+FLAC decodes consecutive verbatim signed samples from a bounded bit
+window. Three deterministic, stereo 48 kHz verbatim fixtures exercise
+16-, 24- and 32-bit samples. The 22 previous fixture hashes are unchanged.
+The new PCM16 outputs are byte-identical to native FFmpeg and R24.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output. All files match the preceding build
+bit for bit.
+
+Native Release passes 324 audio tests. Release-safe passes
+33 focused FLAC tests.

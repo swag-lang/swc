@@ -6,9 +6,10 @@ reference uses libavformat, libavcodec and libswresample. Both paths allocate th
 inside the timed region and write timing logs and optional PCM outside it.
 
 Generate the fixtures with FFmpeg, including its LAME, Opus and Vorbis encoders. The
-22 cases cover mono, stereo and 5.1, sample rates from 8 to 96 kHz, 16- and 24-bit FLAC,
+25 cases cover mono, stereo and 5.1, sample rates from 8 to 96 kHz, 16- to 32-bit FLAC,
 E-AC-3, DTS, Ogg FLAC, short CELT frames and voice-mode Opus. The inputs are 12 seconds
-of synthesized PCM with varying frequency, transients and energy across channels.
+of synthesized PCM with varying frequency, transients and energy across channels. Three
+stereo FLAC fixtures use 12.288 seconds of deterministic verbatim samples.
 `manifest.json` records the encoder options, FFmpeg version, file sizes and SHA-256 hashes.
 
 ```sh

@@ -1130,3 +1130,62 @@ tests and 32 native Release compression tests. Later scoped native checks
 passed on GIF, JPEG, BMP, WebP, EXR, TGA and PSD, including 51 JPEG Video
 consumer tests. The cloud instance restarted after these runs. This table
 preserves the recorded medians from completed runs.
+
+## Expanded raster decode corpus
+
+These measurements use the recovered Linux environment and the native Release compiler
+at `39f20ce765`. Each row records its own rotating or paired comparison on warmed inputs.
+Times are thread CPU medians in milliseconds, except for the four-worker EXR row, which
+reports elapsed time. The reference uses the indicated codec and materializes its pixels.
+
+| Fixture | Swag before (ms) | Swag after (ms) | Reference (ms) |
+| --- | ---: | ---: | ---: |
+| FileSamples opaque VP8, 4275 × 2451, repeat | 142.043 | 131.535 | libwebp 1.5.0, 100.776 |
+| VP8L photo, 4275 × 2451, re-encoded corpus | 321.830 | 238.029 | libwebp 1.5.0, 162.297 |
+| VP8L two-color palette | 12.306 | 3.730 | libwebp 1.5.0, 3.032 |
+| Progressive JPEG photo, 1281 × 734, 4:4:4 | 19.606 | 15.314 | libjpeg-turbo 2.1.5, 16.879 |
+| Progressive JPEG photo, 4275 × 2451, 4:4:4 | 214.935 | 200.824 | libjpeg-turbo 2.1.5, 194.515 |
+| Repeated RGB8 PNG rows with Paeth | 2.262 | 0.978 | libpng 1.6.48, 10.082 |
+| Repeated Adam7 PNG rows with Paeth | 2.920 | 1.815 | libpng 1.6.48, 13.344 |
+| Fixed-Huffman zlib stream, 540 kB output | 0.071 | 0.066 | zlib, 0.588 |
+| Mixed HALF/FLOAT EXR with one HALF color plane, stored scanlines | 0.551 | 0.456 | OpenEXR 3.5.5 C++, 2.100 |
+| RGBA HALF EXR with repeated ZIP blocks, four workers | 7.534 | 0.742 | OpenEXR 3.5.5 C++, 11.816 |
+| RLE8 BMP with one pixel per packet | 3.567 | 0.884 | |
+| FileSamples BMP, separate reference series | | 0.104 | GdkPixbuf 2.42.12, 0.722 |
+| Palette TIFF with LZW horizontal prediction | 8.171 | 2.535 | LibTIFF 4.7.0, 8.139 |
+| Big-endian palette TIFF, uncompressed | 2.955 | 1.086 | LibTIFF 4.7.0, 2.679 |
+| ICO, 4-bit masked DIB, separate exact-reference series | 0.549 | 0.072 | Pillow 0.522, GdkPixbuf 0.569, ImageMagick 1.741 |
+| ICO, embedded 256 × 256 RGBA PNG, geometry preflight | 1.264 | 1.126 | |
+| ICO, 8-bit DIB with a short palette | 0.145 | 0.062 | |
+| PSD, RGBA16 layer with ZIP prediction | 87.534 | 73.767 | ImageMagick 7.1.1-43, 105.303 |
+| PSD, RGBA8 layer with ZIP prediction | 53.385 | 40.759 | ImageMagick 7.1.1-43, 128.034 |
+| TGA, one pixel per RLE packet | 59.931 | 17.018 | Pillow 12.3.0, 19.188 |
+| QOI, RGBA noise, 1601 × 1067 | 10.867 | 6.244 | QOI reference C, 18.681 |
+| QOI, RGB photograph, 640 × 426 | 3.975 | 3.392 | QOI reference C, 3.339 |
+
+The original opaque WebP kept its Swag checksum. The VP8L corpus covered 21 WebP
+fixtures, including 15 lossless inputs compared byte for byte with libwebp. The
+opaque VP8 coefficient change reduced the paired FileSamples time by 5.1% in
+19 repeat rotations. The lossless photo series used newly encoded inputs.
+
+The JPEG patch passed 53 Pixel and 51 Video native tests. The large progressive
+photo is still behind libjpeg-turbo on this input. Swag gained 19.8% in paired
+samples on the smaller progressive photo. The noisy progressive 4:4:4 control
+was 1.8% slower in the same series.
+
+The PNG comparison covered 11 inputs with exact libpng pixels, including grain,
+palette and interlaced controls. The 64-pair repeat gave +0.25% on the grain
+Paeth control and +0.07% on the FileSamples PNG. The change passed 65 native
+PNG and ImageReader tests. Fixed Deflate lookup tables passed 33 native tests
+and retained exact output across the measured zlib streams.
+
+ICO indexing reduced opening 4,096 DIB entries from 12.741 to 0.416 ms. The
+refinements covered 68 scenarios over 35 ICO and CUR files with unchanged pixels,
+and passed 41 focused native tests. TIFF palettes passed 56 native tests and
+kept exact pixels on the LibTIFF comparison. BMP kept its checksums on 44
+varied files and 120 generated legal RLE streams. The 45 focused BMP tests passed.
+
+Both PSD layers matched ImageMagick at the stored sample precision. QOI matched
+the reference C decoder byte for byte on all 12 images, spanning small and odd
+sizes, photos, noise, gradients, palettes, alpha and long repeated spans. TGA
+kept the Swag checksums on six fixtures and passed 50 focused native tests.

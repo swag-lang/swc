@@ -41,30 +41,47 @@ private func(Decrypt: bool) aesKeyWrapRoundsHardware(aes: *Aes, a: *[AesKeyWrapI
     let blockCount = data.count / 8
     let saved = cast(*u64, a)
     var chain = saved[]
-    var step  = Decrypt ? blockCount * 6 : 1'u64
+    var packed, counter: U64x2
+    packed[0] = chain
+    var step = Decrypt ? blockCount * 6 : 1'u64
     for 6
     {
         for block in blockCount
         {
             let index = Decrypt ? blockCount - 1 - block : block
-            let counter = Swag.byteSwap(step)
-            var input: U64x2
-            input[0] = Decrypt ? chain ^ counter : chain
-            input[1] = words[index]
-            let encoded = cast #bit (U8x16, input)
-            var result: U64x2
-            #static if Decrypt do
-                result = cast #bit (U64x2, aes[].decryptBlockHardware'true(encoded))
-            else do
-                result = cast #bit (U64x2, aes[].encryptBlockHardware(encoded))
-            chain = Decrypt ? result[0] : result[0] ^ counter
-            words[index] = result[1]
+            let mask  = Swag.byteSwap(step)
+            #static if Decrypt
+            {
+                counter[0] = mask
+                packed[1]  = words[index]
+                let block = cast #bit (U8x16, packed ^ counter)
+                packed = cast #bit (U64x2, aes[].decryptBlockHardware'true(block))
+                words[index] = packed[1]
+            }
+            else
+            {
+                var input: U64x2
+                input[0] = chain
+                input[1] = words[index]
+                let block  = cast #bit (U8x16, input)
+                let result = cast #bit (U64x2, aes[].encryptBlockHardware(block))
+                chain = result[0] ^ mask
+                words[index] = result[1]
+            }
             step = Decrypt ? step - 1 : step + 1
         }
     }
 
-    saved[] = chain
-    Crypto.secureClear(Swag.makeSlice(&chain, 1))
+    #static if Decrypt
+    {
+        saved[] = packed[0]
+        Crypto.secureClear(Swag.makeSlice(&packed, 1))
+    }
+    else
+    {
+        saved[] = chain
+        Crypto.secureClear(Swag.makeSlice(&chain, 1))
+    }
 }
 
 private func aesKeyWrapWrapCore(aes: *Aes, initialA: [AesKeyWrapIntegritySize] u8, input: const [..] u8, output: [..] u8) fail

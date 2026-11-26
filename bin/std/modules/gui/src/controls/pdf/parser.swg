@@ -1382,43 +1382,8 @@ impl PdfParser
             fail InvalidFormatError{"PDF PNG predictor rows are truncated"}
         var result: #returntype
         result.resize(data.count / encodedRow * rowBytes)
-        for row in data.count / encodedRow
-        {
-            let source = row * encodedRow
-            let target = row * rowBytes
-            let filter = data[source]
-            if filter > 4 do
-                fail InvalidFormatError{"PDF PNG predictor has an invalid filter"}
-            for x in rowBytes
-            {
-                let raw  = data[source + 1 + x]
-                let left = x >= bytesPerPixel ? result[target + x - bytesPerPixel] : 0'u8
-                let up   = row ? result[target - rowBytes + x] : 0'u8
-                let ul   = row and x >= bytesPerPixel ? result[target - rowBytes + x - bytesPerPixel] : 0'u8
-                switch filter
-                {
-                case 0:
-                    result[target + x] = raw
-
-                case 1:
-                    result[target + x] = cast #bit (u8, (raw + #wrap left))
-
-                case 2:
-                    result[target + x] = cast #bit (u8, (raw + #wrap up))
-
-                case 3:
-                    result[target + x] = cast #bit (u8, (raw + #wrap cast(u8, ((cast(u32, left) + up) / 2))))
-
-                case 4:
-                    let p       = cast(s32, left) + cast(s32, up) - cast(s32, ul)
-                    let pa      = Math.abs(p - cast(s32, left))
-                    let pb      = Math.abs(p - cast(s32, up))
-                    let pc      = Math.abs(p - cast(s32, ul))
-                    let predict = pa <= pb and pa <= pc ? left : (pb <= pc ? up : ul)
-                    result[target + x] = cast #bit (u8, (raw + #wrap predict))
-                }
-            }
-        }
+        if not Pixel.Png.restorePredictorRows(data, result.toSlice(), rowBytes, bytesPerPixel) do
+            fail InvalidFormatError{"PDF PNG predictor has an invalid filter"}
 
         return result
     }

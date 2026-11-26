@@ -404,3 +404,29 @@ Times are milliseconds.
 All 43 supported cases kept the same Swag bitmap CRC-32. The
 targeted image test exercises a four-pixel block and its tail,
 mirrored axes, and a rotated image sampling beyond the mask edges.
+
+
+## Shared PNG predictor kernels
+
+Flate image streams with PNG predictors use the same row restoration
+as PNG files. The shared kernels copy zero residuals and use SIMD for
+the filters they can reconstruct in parallel. The PDF.js fixture
+contains 1,940 RGB rows and uses each PNG filter equally often.
+
+Nine interleaved Release runs at each size on one AMD EPYC 7763 logical
+CPU compare the change with Swag `52207f6934` and PDFium 159.0.8149.0.
+Both Swag builds use the same compiler and Core at `60a2e9e772`.
+Times are milliseconds.
+[Phase timings and corpus checksums](pdf-raster-linux-png-predictors.json)
+
+| PDF | Long side | Swag before | Swag after | PDFium | Load before | Load after | PDFium load |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.pdf` | 1200 | 34.60 | 35.14 | 26.13 | 13.53 | 13.44 | 2.35 |
+| `perf_images_flate_predictor.pdf` | 1200 | 107.20 | 70.71 | 48.41 | 68.20 | 36.76 | 0.31 |
+| `perf_images_16bit.pdf` | 1200 | 50.58 | 49.66 | 17.13 | 17.25 | 17.59 | 0.22 |
+| `sample1.pdf` | 2400 | 79.12 | 76.36 | 38.48 | 13.95 | 15.65 | 2.36 |
+| `perf_images_flate_predictor.pdf` | 2400 | 198.15 | 168.05 | 42.77 | 65.80 | 36.77 | 0.34 |
+| `perf_images_16bit.pdf` | 2400 | 78.87 | 79.18 | 29.07 | 17.65 | 17.89 | 0.26 |
+
+The 43 supported cases retain the same Swag raster checksums. The
+PDF and PNG suites pass 131 and 52 tests respectively.

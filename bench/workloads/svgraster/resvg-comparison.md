@@ -626,3 +626,30 @@ against resvg decreased from 0.2661 to 0.2646. The image-under-clip
 fixture kept the same pixels. A focused test gives equivalent
 sixteen-bit and eight-bit images the same translucent placement and
 checks their complete output.
+
+## Sharing supersampled color coverage
+
+CPU SVG rasterization can draw both color mattes in one pass at up to
+eight samples per axis, then resolve each matte with the existing box
+filter. Alpha restoration writes only the active target. Coverage for
+fills and strokes still reaches both mattes. The tests compare the
+paired results against separate draws at one, two, four and eight
+samples per axis.
+
+Nine interleaved Release runs at 1280 × 853 and two samples per axis
+measured the following parse-plus-raster times in milliseconds. Both
+builds used the Scope options and kept the same CRC-64s.
+
+| Fixture | Before, 1 worker | After | Before, 4 workers | After |
+| --- | ---: | ---: | ---: | ---: |
+| Small drawing | 11.32 | 12.67 | 9.08 | 8.15 |
+| Curve fills | 68.87 | 72.11 | 63.41 | 61.74 |
+| One-pixel strokes | 397.31 | 263.11 | 396.00 | 231.07 |
+| Clip masks | 124.18 | 81.74 | 124.14 | 78.66 |
+| 0.5 px strokes | 104.01 | 69.00 | 104.60 | 61.78 |
+| 4 px strokes | 149.95 | 99.55 | 131.20 | 82.71 |
+
+The thirteen public fixtures also kept their CRC-64s at four samples
+per axis. After the embedded-image sampling change, the 16-bit PNG case
+kept its CRC and went from 1041 to 686 ms at four workers on the same
+four-sample setting.

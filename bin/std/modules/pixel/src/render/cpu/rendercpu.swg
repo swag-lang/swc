@@ -2163,9 +2163,10 @@ private impl RenderCpu
                                 Math.Simd.store(pixel, blendAlphaBgra8x4(fill, Math.Simd.load(pixel), alpha))
                             else do
                                 Math.Simd.store(pixel, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(pixel)))
-                            if let matte = whiteMatte
+                            // Alpha restoration and copy operations affect only the current target.
+                            if fastAlpha and whiteMatte
                             {
-                                let target = matte + rowOffset + cast(u64, x) * 4
+                                let target = whiteMatte + rowOffset + cast(u64, x) * 4
                                 Math.Simd.store(target, blendAlphaBgra8x4(fill, Math.Simd.load(target), alpha))
                             }
 
@@ -3365,7 +3366,13 @@ private impl RenderCpu
         for i in 6 where vertices[i].pos != corners[i] or vertices[i].color != Argb.White do
             return false
 
-        func resolveRows(source, target: *Image, factor, firstRow, endRow: s32)
+        resolveTexture(source, target, factor)
+        return true
+    }
+
+    func resolveTexture(source: const *Image, target: *Image, factor: s32)
+    {
+        func resolveRows(source: const *Image, target: *Image, factor, firstRow, endRow: s32)
         {
             var previousTop, previousBottom: u64
             var previousColor: u32
@@ -3433,14 +3440,12 @@ private impl RenderCpu
         else
         {
             let bandCount = (target.height - 1) / CpuBandRows + 1
-            parallel for |source = unwrap source, target = unwrap target, factor| index in cast(u64, bandCount)
+            parallel for |source, target, factor| index in cast(u64, bandCount)
             {
                 let firstRow = cast(s32, index) * CpuBandRows
                 resolveRows(source, target, factor, firstRow, Math.min(firstRow + CpuBandRows, target.height))
             }
         }
-
-        return true
     }
 
     // A solid, device-aligned rectangle shades one color across its full span. Avoid
@@ -4688,6 +4693,14 @@ impl RenderCpu
     {
         let texture = .findTexture(rt.colorBuffer.handle)
         return texture ? &texture.image : null
+    }
+
+    // Resolves the whole CPU matte with the same sample order as the painter resolve.
+    internal mtd resolveSvgTarget(source, target: const *RenderTarget, factor: s32)
+    {
+        let sourceTexture = unwrap .findTexture(source.colorBuffer.handle)
+        let targetTexture = unwrap .findTexture(target.colorBuffer.handle)
+        resolveTexture(&sourceTexture.image, &targetTexture.image, factor)
     }
 
     // Reads a rectangle of an off-screen target into a new image.

@@ -48,6 +48,7 @@ struct Palette
 // Decodes mapped, grayscale, and true-color TGA images with optional RLE.
 internal struct Decoder {}
 
+#[Swag.Inline]
 func checkBuffer(ptr, last: const [*] u8, size: u64) fail
 {
     if ptr + size > last do

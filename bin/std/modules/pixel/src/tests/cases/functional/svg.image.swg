@@ -118,7 +118,7 @@ using Swag, Core
     const Samples = [20'u8, 60, 100, 16, 225, 35, 64, 200,
                      120, 10, 240, 127, 1, 128, 254, 230]
 
-    func rasterize(source: const *Image)->Image
+    func rasterize(source: const *Image, samples = 1'u8, paired = true)->Image
     {
         let bytes   = expect source.encodeToBytes("embedded.png")
         let svg     = Format.toString("""\
@@ -127,7 +127,14 @@ using Swag, Core
                 <image width='132' height='96' preserveAspectRatio='none' href='data:image/png;base64,%'/>\
             </svg>""", Base64.encode(bytes.toSlice()))
         let drawing = expect Svg.Drawing.parse(svg.toString(), {preferScanFills: true})
-        return drawing.rasterize(Width, Height, 1)
+        if samples == 1 do
+            return drawing.rasterize(Width, Height, 1)
+
+        var cpu:      RenderCpu
+        let renderer: IRenderer = &cpu
+        renderer.init()
+        defer renderer.end()
+        return drawing.rasterizeWithSampleTileSide(renderer, Width, Height, samples, 48, paired ? &cpu : null)
     }
 
     let source8  = Image.create(2, 2, .RGBA8, Samples)
@@ -141,4 +148,13 @@ using Swag, Core
     Swag.require(eight.isValid() and deep.isValid())
     Swag.require(deep.pixelColor(100, 25).a < 255)
     Swag.require(Memory.compare(eight.pixels.storage(), deep.pixels.storage(), deep.byteCount) == 0)
+
+    for samples in [2'u8, 4]
+    {
+        let shared   = rasterize(&source16, samples)
+        let separate = rasterize(&source16, samples, paired: false)
+        Swag.require(shared.isValid() and separate.isValid())
+        Swag.require(shared.pixelColor(100, 25).a < 255)
+        Swag.require(Memory.compare(shared.pixels.storage(), separate.pixels.storage(), separate.byteCount) == 0)
+    }
 }

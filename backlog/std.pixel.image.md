@@ -178,6 +178,8 @@ ships; history lives in Git, not here.
   brings a public embedded 16-bit PNG from 619 to 24 ms at 1200 px.
   resvg takes 70 ms. The maximum premultiplied RGBA difference is two levels
   and the existing color-and-clip case keeps its CRC-64.
+- Evidence: [shared supersampled mattes](../bench/workloads/svgraster/resvg-comparison.md#sharing-supersampled-color-coverage)
+  reduce duplicate raster work in the colored stroke and clip fixtures at two samples per axis.
 - Next: measure parallel band processing, contour lookup, and crossing resolution
   on dense colored paths. Rerun the original Windows comparison at one worker
   and at the runtime default.

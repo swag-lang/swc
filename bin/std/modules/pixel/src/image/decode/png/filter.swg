@@ -370,6 +370,81 @@ func(PIXEL_BYTES: u64) scatterAdam7Row(source: const [*] u8, target: [*] u8, wid
     }
 }
 
+// Restores packed scanlines whose leading byte selects the PNG row predictor.
+//
+// The caller provides disjoint input and output slices. The input contains one
+// filter byte and `rowBytes` bytes per row. `pixelBytes` is the byte distance to
+// the left sample, one for packed samples below eight bits. Returns false when
+// the dimensions, slice lengths, or a filter byte are invalid. Rows preceding an
+// invalid filter may already have been restored.
+public func restorePredictorRows(input: const [..] u8, output: [..] u8, rowBytes, pixelBytes: u64)->bool
+{
+    if not rowBytes or rowBytes > Swag.S64.Max or not pixelBytes or pixelBytes > rowBytes do
+        return false
+    let encodedRow = rowBytes + 1
+    let count = input.count / encodedRow
+    if input.count % encodedRow or output.count != count * rowBytes do
+        return false
+    if not count do
+        return true
+    return defilterRowsInto(count, input.buffer, output.buffer, rowBytes, cast(s64, rowBytes), pixelBytes)
+}
+
+private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, rowBytes: u64, rowStep: s64, filterOffset: u64)->bool
+{
+    var src  = input
+    var dest = output
+
+    // The first row's filters see all-zero bytes above it.
+    var zeroRow: Array'u8
+    zeroRow.resize(rowBytes)
+    var up = zeroRow.storage()
+
+    let pairPaeth    = rowBytes >= 16 and (filterOffset == 3 or filterOffset == 4)
+    var row          = 0'u64
+    while row < height
+    {
+        let filter = src[0]
+        src += 1
+
+        // With zero residuals, the first pixel equals Up, and each
+        // following pixel has Left equal to UpLeft, so Paeth selects Up.
+        let copyPaeth = filter == 4 and isZeroScanline(src, rowBytes)
+        if filter == 4 and not copyPaeth and pairPaeth and row + 1 < height and src[rowBytes] == 4
+        {
+            let next = dest + rowStep
+            defilterPaethPair(src, src + rowBytes + 1, up, dest, next, rowBytes, filterOffset)
+            src  += 2 * rowBytes + 1
+            up   = next
+            dest = next + rowStep
+            row  += 2
+            continue
+        }
+
+        switch filter
+        {
+        case 0:  Memory.copy(dest, src, rowBytes)
+        case 1:  PackedPixel.restoreHorizontalDeltas(src, dest, rowBytes, filterOffset)
+        case 2:  defilterUpRow(src, up, dest, rowBytes)
+        case 3:  defilterAverageRow(src, up, dest, rowBytes, filterOffset)
+        case 4:
+            if copyPaeth do
+                Memory.copy(dest, up, rowBytes)
+            else do
+                defilterPaethRow(src, up, dest, rowBytes, filterOffset)
+        default: return false
+        }
+
+        src  += rowBytes
+        up   = dest
+        dest += rowStep
+        row  += 1
+    }
+
+    return true
+}
+
+
 impl Decoder
 {
     mtd expand8(width, height: u32, output: [*] u8, rowStep: s64)
@@ -426,59 +501,9 @@ impl Decoder
 
     mtd defilterRows(height: u32, input, output: [*] u8, rowBytes: u64, rowStep: s64)->bool
     {
-        var src  = input
-        var dest = output
-
-        // The first row's filters see all-zero bytes above it.
-        var zeroRow: Array'u8
-        zeroRow.resize(rowBytes)
-        var up = zeroRow.storage()
-
-        // PNG filtering references the previous byte of the same pixel. Packed samples
-        // (bit depths below 8) have an effective byte offset of 1, even in a short Adam7 pass.
-        let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64, .inChannels) * (.header.bitDepth / 8)
-        let pairPaeth    = rowBytes >= 16 and (filterOffset == 3 or filterOffset == 4)
-        var row          = 0'u32
-        while row < height
-        {
-            let filter = src[0]
-            src += 1
-
-            // With zero residuals, the first pixel equals Up, and each
-            // following pixel has Left equal to UpLeft, so Paeth selects Up.
-            let copyPaeth = filter == 4 and isZeroScanline(src, rowBytes)
-            if filter == 4 and not copyPaeth and pairPaeth and row + 1 < height and src[rowBytes] == 4
-            {
-                let next = dest + rowStep
-                defilterPaethPair(src, src + rowBytes + 1, up, dest, next, rowBytes, filterOffset)
-                src  += 2 * rowBytes + 1
-                up   = next
-                dest = next + rowStep
-                row  += 2
-                continue
-            }
-
-            switch filter
-            {
-            case 0:  Memory.copy(dest, src, rowBytes)
-            case 1:  PackedPixel.restoreHorizontalDeltas(src, dest, rowBytes, filterOffset)
-            case 2:  defilterUpRow(src, up, dest, rowBytes)
-            case 3:  defilterAverageRow(src, up, dest, rowBytes, filterOffset)
-            case 4:
-                if copyPaeth do
-                    Memory.copy(dest, up, rowBytes)
-                else do
-                    defilterPaethRow(src, up, dest, rowBytes, filterOffset)
-            default: return false
-            }
-
-            src  += rowBytes
-            up   = dest
-            dest += rowStep
-            row  += 1
-        }
-
-        return true
+        // Packed samples still reference the previous byte of the row.
+        let pixelBytes = .header.bitDepth < 8 ? 1'u64 : cast(u64, .inChannels) * (.header.bitDepth / 8)
+        return defilterRowsInto(height, input, output, rowBytes, rowStep, pixelBytes)
     }
 
     mtd defilter(width, height: u32, input, firstRow: [*] u8, rowStep: s64)->bool

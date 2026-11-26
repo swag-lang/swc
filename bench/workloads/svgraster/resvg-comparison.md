@@ -720,3 +720,27 @@ Timings on that fallback varied across worker counts. The original bitmaps
 and thumbnails, generated controls and thirteen public fixtures retain their
 CRC-64s. The scan-band regression compares a clipped compound path containing
 short contours and one contour spanning all bands with the individual fills.
+
+## SIMD matte readback
+
+The matte reader recovers four output pixels at a time from the black
+and white targets. Opaque and clear groups skip the division. For
+partially covered pixels, the exact integer numerator fits the float
+mantissa, and truncation retains the scalar unpremultiplication. The
+monochrome path restores four alpha bytes from one matte.
+
+Seven interleaved Release runs on one AMD EPYC 7763 logical CPU use
+`f9f4c471d5` as the baseline. Times include parsing and rasterization.
+[Timings and raster comparisons](matte-resolve-linux.json)
+
+| SVG | Swag before, ms | Swag after, ms | resvg 0.50.0, ms |
+| --- | ---: | ---: | ---: |
+| `curves.svg` | 19.97 | 16.05 | 18.31 |
+| `strokes.svg` | 117.37 | 101.15 | 27.49 |
+| `large.svg` | 435.17 | 444.73 | 624.33 |
+| `resvg-subpixel-rect.svg` | 18.22 | 11.49 | 11.32 |
+| `resvg-transformed-rect.svg` | 13.09 | 9.96 | 9.31 |
+| `resvg-embedded-rgb16.svg` | 23.11 | 15.76 | 70.74 |
+
+All 11 generated and 13 public cases retain their Swag CRC-64 and
+premultiplied pixels. The native Pixel suite passes 953 tests.

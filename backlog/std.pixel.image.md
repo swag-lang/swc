@@ -388,6 +388,10 @@ ships; history lives in Git, not here.
   · [Expanded WebP corpus](../bench/results/swagscope-filesamples/README.md#webp-packed-deblocking-and-alpha-decoding)
 - Next: profile vertical deblocking and coefficient parsing against libwebp. Profile the
   VP8L noisy RGBA fixture and rerun the original Windows comparison.
+- Evidence: [SIMD matte readback](../bench/workloads/svgraster/resvg-comparison.md#simd-matte-readback)
+  brings the public SVG with an embedded 16-bit PNG from 23 to 16 ms,
+  and leaves all 24 SVG rasters identical. Dense stroke coverage still dominates
+  the generated stroke page.
 - Done when: remaining hot stages have measured decisions and lossy and lossless output is
   preserved at the tested predictor, filter, and image boundaries.
 - Related: std.core.043, compiler.codegen.022.

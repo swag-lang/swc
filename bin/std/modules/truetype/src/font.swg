@@ -178,14 +178,15 @@ struct FaceImpl
     bitmapPixels:      Array'u8
     colorBitmapPixels: Array'u8
 
-    // Horizontal kerning pairs from the legacy 'kern' table (format 0).
-    // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.
+    // A single ordered legacy kerning subtable can stay packed. Unordered or merged
+    // pairs use the hash table with `(leftGlyph << 16) | rightGlyph` as the key.
+    kernData:  const [..] u8?
     kernPairs: HashTable'(u32, s16)
 
     // Pair-adjustment subtables the GPOS 'kern' feature reaches, as offsets into
     // 'gposTable'. Class-based subtables describe a glyph-pair matrix far too large
     // to expand, so kerning is resolved per query rather than precomputed. These
-    // answer before 'kernPairs', which covers the pairs they leave at zero.
+    // answer before the legacy kerning pairs, which cover the pairs they leave at zero.
     gposTable:         const [..] u8?
     gposPairSubtables: Array'u32
     gposPairLookups:   Array'GposPairLookup

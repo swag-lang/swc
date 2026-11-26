@@ -1,0 +1,453 @@
+[
+  {
+    "file": "Amiri-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/amiri/Amiri-Regular.ttf",
+    "sha256": "ab391c4147d054c48976e98322ad0eefe1427aa0e0502a12a4c75d80a70cfcd7",
+    "cases": [
+      {
+        "character": 1593,
+        "profile": "Arabic static"
+      }
+    ]
+  },
+  {
+    "file": "AtkinsonHyperlegibleNext.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/atkinsonhyperlegiblenext/AtkinsonHyperlegibleNext%5Bwght%5D.ttf",
+    "sha256": "5a455d1cfa099b601ab70751bb9673e8fe1854dc4500c80e1a220d0d75e31745",
+    "cases": [
+      {
+        "character": 81,
+        "profile": "Latin variable"
+      }
+    ]
+  },
+  {
+    "file": "DejaVuSans.ttf",
+    "url": "https://raw.githubusercontent.com/matplotlib/matplotlib/1392cbe3c79cdb93f9282747841d648770f60249/lib/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf",
+    "sha256": "3fdf69cabf06049ea70a00b5919340e2ce1e6d02b0cc3c4b44fb6801bd1e0d22",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Legacy kern"
+      }
+    ]
+  },
+  {
+    "file": "DejaVuSerif.ttf",
+    "url": "https://raw.githubusercontent.com/matplotlib/matplotlib/1392cbe3c79cdb93f9282747841d648770f60249/lib/matplotlib/mpl-data/fonts/ttf/DejaVuSerif.ttf",
+    "sha256": "107244956e9962b9e96faccdc551825e0ae0898ae13737133e1b921a2fd35ffa",
+    "cases": [
+      {
+        "character": 103,
+        "profile": "Legacy kern"
+      }
+    ]
+  },
+  {
+    "file": "Inter-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/inter/Inter%5Bopsz%2Cwght%5D.ttf",
+    "sha256": "29160a80ff49ddcab2c97711247e08b1fab27a484a329ce8b813d820dc559031",
+    "cases": [
+      {
+        "character": 87,
+        "profile": "Latin variable"
+      }
+    ]
+  },
+  {
+    "file": "Lato-Public.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/lato/Lato-Regular.ttf",
+    "sha256": "d636e4683231f931eda222d588e944d082bfd3bdba02f928bee461c0f185b251",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Latin static"
+      }
+    ]
+  },
+  {
+    "file": "NimbusMonoPS-Regular.otf",
+    "url": "https://raw.githubusercontent.com/ArtifexSoftware/urw-base35-fonts/3c0ba3b5687632dfc66526544a4e811fe0ec0cd9/fonts/NimbusMonoPS-Regular.otf",
+    "sha256": "4f225ca8e13acb16f733ce741693105e527d5f7a5443901b9ecc190fca4e149b",
+    "cases": [
+      {
+        "character": 87,
+        "profile": "Monospace CFF"
+      }
+    ]
+  },
+  {
+    "file": "NimbusSans-Regular.otf",
+    "url": "https://raw.githubusercontent.com/ArtifexSoftware/urw-base35-fonts/3c0ba3b5687632dfc66526544a4e811fe0ec0cd9/fonts/NimbusSans-Regular.otf",
+    "sha256": "7c25be4d78155523080ab85b10277150657ff7dabbcad7037bdd536c9b6d0d08",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Latin CFF"
+      }
+    ]
+  },
+  {
+    "file": "NotoEmoji.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notoemoji/NotoEmoji%5Bwght%5D.ttf",
+    "sha256": "de6c18832938afc99caf132b39d6a30a19bac7f2e812e28db2535b4608d27551",
+    "cases": [
+      {
+        "character": 128578,
+        "profile": "Supplementary-plane emoji"
+      }
+    ]
+  },
+  {
+    "file": "NotoSans-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-fonts/v20201206-phase3/hinted/ttf/NotoSans/NotoSans-Regular.ttf",
+    "sha256": "dac8e68fe43fca59d522fa5f763322cfb4a919c28957656c58e7836d915307d0",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Latin static"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansArabic.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "63111b5b2e074dd48cc67692e0a2726d86ee94c1c37fe8598257b7b4e87e869e",
+    "cases": [
+      {
+        "character": 1593,
+        "profile": "Arabic variable"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansArmenian.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosansarmenian/NotoSansArmenian%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "0870908d8318435a5daf1cd280ae15063f990cd9ad60f3e94c734ce9e1ffef71",
+    "cases": [
+      {
+        "character": 1329,
+        "profile": "Armenian variable"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansCJK-Regular.ttc",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/Sans/OTC/NotoSansCJK-Regular.ttc",
+    "sha256": "b76b0433203017ca80401b2ee0dd69350349871c4b19d504c34dbdd80541690a",
+    "cases": [
+      {
+        "character": 26085,
+        "profile": "CJK collection, first face"
+      },
+      {
+        "face": 1,
+        "character": 54620,
+        "profile": "CJK collection, Korean"
+      },
+      {
+        "face": 2,
+        "character": 20013,
+        "profile": "CJK collection, Simplified Chinese"
+      },
+      {
+        "face": 7,
+        "character": 65313,
+        "profile": "CJK collection, fullwidth monospace"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansCJKjp-Regular.otf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/523d033d6cb47f4a80c58a35753646f5c3608a78/Sans/OTF/Japanese/NotoSansCJKjp-Regular.otf",
+    "sha256": "68a3fc98800b2a27b371f2fb79991daf3633bd89309d4ffaa6946fd587f375b5",
+    "cases": [
+      {
+        "character": 26085,
+        "profile": "Japanese CID CFF"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansDevanagari.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "14ec4af41f27482216d1c2229f417ff9b1425e1babb014e57d1d40d03229853e",
+    "cases": [
+      {
+        "character": 2325,
+        "profile": "Devanagari variable"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansEthiopic.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosansethiopic/NotoSansEthiopic%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "0dbccc00b22d180ebd6a4bd8a733918a29e709fa6798023adc3e6cd40da65077",
+    "cases": [
+      {
+        "character": 4608,
+        "profile": "Ethiopic variable"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansHebrew.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosanshebrew/NotoSansHebrew%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "7ef36a2c3593758cdb622e1bdef4f84523e92fbc3ccc667438dd80ff54c2de88",
+    "cases": [
+      {
+        "character": 1488,
+        "profile": "Hebrew variable"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansMath.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosansmath/NotoSansMath-Regular.ttf",
+    "sha256": "3f495fe933c06786e4d5f6d86b8ee70b6753a68ee3b9d87528726de0f6e2c47d",
+    "cases": [
+      {
+        "character": 8747,
+        "profile": "Math symbols"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansSymbols2.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosanssymbols2/NotoSansSymbols2-Regular.ttf",
+    "sha256": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21",
+    "cases": [
+      {
+        "character": 9734,
+        "profile": "Symbols"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifCJKjp-Regular.otf",
+    "url": "https://raw.githubusercontent.com/notofonts/noto-cjk/9b0f1436e455d902de067a2501422e5dc71ad16b/Serif/OTF/Japanese/NotoSerifCJKjp-Regular.otf",
+    "sha256": "d9854c7a8ef170b5a7932558856fd64eb8de0b007cd823fed6f9f514ad2803d3",
+    "cases": [
+      {
+        "character": 26412,
+        "profile": "Japanese serif CID CFF"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifThai.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notoserifthai/NotoSerifThai%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "34a7ad11647c845303aabdde639059806c56b84719e5d2ceb28eb038711bdf53",
+    "cases": [
+      {
+        "character": 3585,
+        "profile": "Thai variable"
+      }
+    ]
+  },
+  {
+    "file": "NotoSerifTibetan.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notoseriftibetan/NotoSerifTibetan%5Bwght%5D.ttf",
+    "sha256": "060ec022b04c306de3f58d051fb0e1cf81a5b610c5910fbfc43bba154c057cda",
+    "cases": [
+      {
+        "character": 3904,
+        "profile": "Tibetan variable"
+      }
+    ]
+  },
+  {
+    "file": "OpenSans-Public.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/opensans/OpenSans%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "36643644f318a812aab2d2ed3bb98f8cf0872527f835fe9398d95fe6b9adb878",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Latin variable"
+      }
+    ]
+  },
+  {
+    "file": "Roboto-Variable.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/roboto/Roboto%5Bwdth%2Cwght%5D.ttf",
+    "sha256": "d7598e12c5dbef095ff8272cfc55da0250bd07fbdecbac8a530b9b277872a134",
+    "cases": [
+      {
+        "character": 103,
+        "profile": "Latin variable"
+      }
+    ]
+  },
+  {
+    "file": "SourceSans3-Regular.otf",
+    "url": "https://raw.githubusercontent.com/adobe-fonts/source-sans/87b37a2daaed80fcb8e8ccb0085c4d72ddade12e/OTF/SourceSans3-Regular.otf",
+    "sha256": "08df266400933d3178d081a45f94a08814c3e55b4b7dd2e0ff69cb1329f13ab6",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Latin CFF"
+      }
+    ]
+  },
+  {
+    "file": "SourceSerif4-Regular.otf",
+    "url": "https://raw.githubusercontent.com/adobe-fonts/source-serif/80d3f8894c09c937bebfa9011247d2e1c79fd6f4/OTF/SourceSerif4-Regular.otf",
+    "sha256": "edf160d0d584deee8a3bb2c3371b2a7624ca63580fbe02c57c1f4c91e84d8787",
+    "cases": [
+      {
+        "character": 103,
+        "profile": "Latin CFF"
+      }
+    ]
+  },
+  {
+    "file": "DejaVuSans.woff",
+    "source": "DejaVuSans.ttf",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "WOFF1"
+      }
+    ]
+  },
+  {
+    "file": "fontawesome-webfont.otf",
+    "sha256": "3e4de759b8d9d9b8cf77c569ce643bed4afc1b5e0cb0f46548d04a30e3e4a697",
+    "cases": [
+      {
+        "character": 61440,
+        "profile": "Supplied OTF"
+      }
+    ]
+  },
+  {
+    "file": "fontawesome-webfont.ttf",
+    "sha256": "47ec988776344d2fc006a26bd5455976154b55f5e23f4e2c941a6473dff387b0",
+    "cases": [
+      {
+        "character": 61440,
+        "profile": "Supplied TTF"
+      }
+    ]
+  },
+  {
+    "file": "Inter-Variable.woff",
+    "source": "Inter-Variable.ttf",
+    "cases": [
+      {
+        "character": 87,
+        "profile": "WOFF1"
+      }
+    ]
+  },
+  {
+    "file": "Lato-Regular.otf",
+    "sha256": "0c67f741032f4a8134739da029f09849ae012aefe5f7748aed2ba4a39d591701",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Supplied OTF"
+      }
+    ]
+  },
+  {
+    "file": "Lato-Regular.ttf",
+    "sha256": "df2b989a95bcba598069e96fbc43d591b299029fc322ef5baf53d75bc1098daa",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Supplied TTF"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansShavian-Regular.otf",
+    "sha256": "d7e64396d35a2feb1c8d1bf43a2621abb2f2fc970f9322c4660c289148b01ed2",
+    "cases": [
+      {
+        "character": 66640,
+        "profile": "Supplied OTF"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansShavian-Regular.ttf",
+    "sha256": "5987e849c9ee50e79022b23c1f0000b64b11aebeea2a9ca1f97cbe6da561e530",
+    "cases": [
+      {
+        "character": 66640,
+        "profile": "Supplied TTF"
+      }
+    ]
+  },
+  {
+    "file": "OpenSans-Regular.otf",
+    "sha256": "c2547914f5d467ab5e90e40872ac4c0657d8c942c6ba165fcf9a4466ae3556cd",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Supplied OTF"
+      }
+    ]
+  },
+  {
+    "file": "OpenSans-Regular.ttf",
+    "sha256": "1f9d93c3d72caba9122fe384cdc35b98bdc6bdc4d5ce98fa564d4d0f9782dde2",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Supplied TTF"
+      }
+    ]
+  },
+  {
+    "file": "slick.otf",
+    "sha256": "05482a7bf48db40380393ff4bb43768826f59493aaf363712fa825d07a704ef2",
+    "cases": [
+      {
+        "character": 97,
+        "profile": "Supplied OTF"
+      }
+    ]
+  },
+  {
+    "file": "slick.ttf",
+    "sha256": "7b1350bd671cb2899c418edc16595c371c1204df9bf001680b998537be3e438a",
+    "cases": [
+      {
+        "character": 97,
+        "profile": "Supplied TTF"
+      }
+    ]
+  },
+  {
+    "file": "SourceCodePro-Regular.otf",
+    "sha256": "3cb21c2cdb7053bc49ec355f8589d1ac47245f3383b3867c8f139e65e2699ea9",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Supplied OTF"
+      }
+    ]
+  },
+  {
+    "file": "SourceCodePro-Regular.ttf",
+    "sha256": "d90bb5b7493209a6119b2aed38f7e24eccc83acb081eaa261030160e74e0c9df",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "Supplied TTF"
+      }
+    ]
+  },
+  {
+    "file": "SourceSans3-Regular.woff",
+    "source": "SourceSans3-Regular.otf",
+    "cases": [
+      {
+        "character": 65,
+        "profile": "WOFF1"
+      }
+    ]
+  }
+]

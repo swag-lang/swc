@@ -12,7 +12,7 @@ func writePairPosition(table: *Array'u8, offset: u64, xAdvance: s16)
     writeBigU16(table, offset + 10, 12)
     writeBigU16(table, offset + 12, 1)     // One pair value.
     writeBigU16(table, offset + 14, 2)     // Second glyph.
-    writeBigU16(table, offset + 16, cast(u16, xAdvance))
+    writeBigU16(table, offset + 16, cast #bit(u16, xAdvance))
     writeBigU16(table, offset + 18, 1)     // Coverage format 1.
     writeBigU16(table, offset + 20, 1)
     writeBigU16(table, offset + 22, 1)     // First glyph.
@@ -170,7 +170,7 @@ func makeGposKernFixture()->Array'u8
     faceData.fontData.add(bytes.toSlice())
     faceData.tables.add({tag: TAG_KERN, offset: 0, length: cast(u32, bytes.count)})
     expect parseKern(&faceData)
-    Swag.require(faceData.kernPairs.isEmpty())
+    Swag.require(not faceData.face.hasKerning())
 }
 
 #test
@@ -265,7 +265,6 @@ func makeGposKernFixture()->Array'u8
     let faceData = getFaceData(face)
 
     Swag.require(not faceData.gposPairSubtables.isEmpty())
-    Swag.require(not faceData.kernPairs.isEmpty())
 
     // A comma tucked under a 'P' is one of 191 ASCII pairs the legacy table states
     // outright and the pair-adjustment lookups leave at zero.
@@ -273,7 +272,7 @@ func makeGposKernFixture()->Array'u8
     let glyphComma = face.glyphIndex(',')
     let fromGpos   = lookupGposKerning(faceData, cast(u16, glyphP), cast(u16, glyphComma))
     Swag.require(fromGpos == 0)
-    let legacyUnits = faceData.kernPairs.tryFind((glyphP << 16) | glyphComma)?.value orelse 0
+    let legacyUnits = lookupLegacyKerning(faceData, (glyphP << 16) | glyphComma)
     let designUnits = face.getKerningDesignUnits(glyphP, glyphComma)
     Swag.require(legacyUnits < 0 and designUnits == legacyUnits)
 
@@ -304,4 +303,23 @@ func makeGposKernFixture()->Array'u8
     let beyondU16 = face.getKerning(0x1_0024, face.glyphIndex('V'))
     Swag.require(beyondU16.x == 0)
     Swag.require(face.getKerningDesignUnits(0x1_0024, face.glyphIndex('V')) == 0)
+}
+
+// Disordered or repeated legacy pairs retain the last nonzero adjustment.
+#test
+{
+    const Bytes: [36] u8 = [
+        0, 0, 0, 1,
+        0, 0, 0, 32, 0, 1,
+        0, 3, 0, 0, 0, 0, 0, 0,
+        0, 1, 0, 2, 0, 8,
+        0, 1, 0, 1, 0, 4,
+        0, 1, 0, 2, 0xFF, 0xFE]
+    var faceData: FaceImpl
+    faceData.fontData.add(Bytes)
+    faceData.tables.add({tag: TAG_KERN, offset: 0, length: Bytes.count})
+    expect parseKern(&faceData)
+    Swag.require(faceData.face.hasKerning())
+    Swag.require(lookupLegacyKerning(&faceData, 0x0001_0001) == 4)
+    Swag.require(lookupLegacyKerning(&faceData, 0x0001_0002) == -2)
 }

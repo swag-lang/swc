@@ -413,3 +413,18 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
         Swag.require(decoded.isEmpty())
     }
 }
+
+// A newly appended stream cannot reference bytes from an earlier output prefix.
+#test
+{
+    const MatchWithoutHistory: [3] u8 = [0x03, 0x02, 0x00]
+    const Prefix: [4] u8 = [1, 2, 3, 4]
+    var output: Array'u8
+    output.add(Prefix)
+
+    var decoder: Compress.Inflate
+    var outcome: Swag.Error
+    catch decoder.decompress(&output, MatchWithoutHistory) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+    Swag.require(Slice.equals(output.toSlice(), Prefix))
+}

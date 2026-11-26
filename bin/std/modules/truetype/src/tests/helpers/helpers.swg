@@ -212,7 +212,7 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array'u8 fail
 }
 
 // Wraps an sfnt font in WOFF1, compressing tables where zlib saves space.
-func buildWoffFont(sfnt: const [..] u8)->Array'u8 fail
+func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array'u8 fail
 {
     let numTables = try readU16(sfnt, 4)
     var result: Array'u8
@@ -223,8 +223,9 @@ func buildWoffFont(sfnt: const [..] u8)->Array'u8 fail
     writeBigU32(&result, 16, cast(u32, sfnt.count))
 
     var zlib: Compress.ZLib
-    for index in numTables
+    for position in numTables
     {
+        let index         = reverseBlocks ? numTables - 1 - position : position
         let sfntRecord    = 12'u64 + cast(u64, index) * 16
         let tag           = try readU32(sfnt, sfntRecord)
         let checksum      = try readU32(sfnt, sfntRecord + 4)

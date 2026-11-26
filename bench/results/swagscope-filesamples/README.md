@@ -264,6 +264,13 @@ copy path takes 2.21 ms for this 16.5 MB font.
 Rendering 4,001 times with the same face and size already set, the median per-glyph time
 ranged from 4.2% faster to 2.5% slower than the published build across the 17 fixtures.
 
+#### Expanded reproducible font corpus
+
+The Linux follow-up covers 44 scenarios across 41 files. It adds multiple CJK collection faces,
+variable TrueType, legacy kerning, new scripts, and three WOFF1 files rejected by the published
+loader. The updated decoder leads Pillow in 36 scenarios, and all eight remaining cases have
+lower medians than published Swag. [Expanded font results](font-decode-linux.md)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

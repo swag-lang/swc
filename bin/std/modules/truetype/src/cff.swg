@@ -267,6 +267,26 @@ func subrBias(count: u32)->s32
     return 32768
 }
 
+// Select the offset width once so the validator can walk entries at a fixed stride.
+private func(width: u8) validateCffOffsets(offsets: const [*] u8, count: u32)->u32 fail
+{
+    if readCffOffset(offsets, width) != 1 do
+        try fault(0x08)
+
+    var previous = 1'u32
+    var entry    = offsets + width
+    for count
+    {
+        let offset = readCffOffset(entry, width)
+        if offset < previous do
+            try fault(0x08)
+        previous = offset
+        entry    += width
+    }
+
+    return previous
+}
+
 func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
     var result: #returntype
@@ -286,21 +306,16 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
     let table     = offset + 3
     let offsets   = try getSlice(block, table, (cast(u64, count) + 1) * offSize)
     let dataStart = table + offsets.count
-    if readCffOffset(offsets.buffer, offSize) != 1 do
-        try fault(0x08)
-
-    var previousOffset = 1'u32
-    var entry = offsets.buffer + offSize
-    for count
+    var lastOffset: u32
+    switch offSize
     {
-        let value = readCffOffset(entry, offSize)
-        if value < previousOffset do
-            try fault(0x08)
-        previousOffset = value
-        entry += offSize
+    case 1:  lastOffset = try validateCffOffsets'1(offsets.buffer, count)
+    case 2:  lastOffset = try validateCffOffsets'2(offsets.buffer, count)
+    case 3:  lastOffset = try validateCffOffsets'3(offsets.buffer, count)
+    default: lastOffset = try validateCffOffsets'4(offsets.buffer, count)
     }
 
-    let dataLength = cast(u64, previousOffset) - 1
+    let dataLength = cast(u64, lastOffset) - 1
     if dataLength > block.count - dataStart or dataStart + dataLength > Swag.U32.Max do
         try fault(0x08)
 

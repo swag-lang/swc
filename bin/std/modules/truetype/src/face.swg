@@ -477,7 +477,9 @@ public impl Face
     mtd const hasKerning()->bool
     {
         let faceData = cast(const *FaceImpl, cast(const *void, me))
-        return not faceData.gposPairSubtables.isEmpty() or not faceData.kernPairs.isEmpty()
+        return not faceData.gposPairSubtables.isEmpty() or
+               faceData.kernData != null or
+               not faceData.kernPairs.isEmpty()
     }
 
     // Returns a glyph's vertical advance and top side bearing in font design units.
@@ -779,7 +781,7 @@ func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: 
     }
 
     if not units do
-        units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
+        units = lookupLegacyKerning(faceData, (leftGlyph << 16) | rightGlyph)
 
     return units
 }

@@ -74,15 +74,23 @@ func parsePostGlyphNames(faceData: *FaceImpl, postTable: const [..] u8, format: 
         if customCount
         {
             customNames.reserve(customCount)
+            let names  = unwrap customNames.buffer
             var offset = customOffset
-            for customCount
+            for index in customCount
             {
-                let length = try readU8(postTable, offset)
+                if offset >= postTable.count do
+                    try fault(0x03)
+                let length = postTable.buffer[offset]
                 offset += 1
-                let rawName = try getSlice(postTable, offset, length)
-                offset += length
-                customNames.add(cast(string?, rawName) orelse "")
+                if length > postTable.count - offset do
+                    try fault(0x03)
+
+                let rawName = Swag.makeSlice(postTable.buffer + offset, length)
+                names[index] = cast(string?, rawName) orelse ""
+                offset       += length
             }
+
+            customNames.count = customCount
         }
 
         let names = faceData.postNames.entries.emplaceAddress(glyphCount)

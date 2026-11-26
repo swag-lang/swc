@@ -497,9 +497,28 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     if vmtx.count < requiredBytes do
         try fault(0x98)
 
-    let metrics = faceData.verticalGlyphMetrics.emplaceAddress(glyphCount)
-    var entry   = vmtx.buffer
-    for index in longMetricCount
+    let metrics     = faceData.verticalGlyphMetrics.emplaceAddress(glyphCount)
+    var entry       = vmtx.buffer
+    var firstScalar = 0'u32
+
+    // Each long record consists of two contiguous 16-bit values. Convert four records
+    // at once when their native layout matches the packed table apart from byte order.
+    #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1'u16) != 1
+    {
+        const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+        let blocks      = longMetricCount / 4
+        var destination = cast([*] u8, metrics)
+        for blocks
+        {
+            Math.Simd.store(destination, Math.Simd.permute(Math.Simd.load(entry), SwapWords))
+            destination += 16
+            entry       += 16
+        }
+
+        firstScalar = blocks * 4
+    }
+
+    for index in firstScalar until longMetricCount
     {
         let advance = Math.make16(entry[0], entry[1])
         let bearing = cast #bit(s16, Math.make16(entry[2], entry[3]))
@@ -523,28 +542,81 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     if faceData.indexToLocFormat != 0 and faceData.indexToLocFormat != 1 do
         try fault(0x08)
 
-    let loca = try getTableSlice(faceData, TAG_LOCA, 0x90)
-    let glyf = try getTableSlice(faceData, TAG_GLYF, 0x8E)
-    faceData.glyphLocations.resize(faceData.face.glyphCount + 1)
+    let loca          = try getTableSlice(faceData, TAG_LOCA, 0x90)
+    let glyf          = try getTableSlice(faceData, TAG_GLYF, 0x8E)
+    let locationCount = faceData.face.glyphCount + 1
+    let longFormat    = faceData.indexToLocFormat == 1
+    let entrySize     = longFormat ? 4'u64 : 2'u64
+    try assertRange(loca, 0, cast(u64, locationCount) * entrySize)
 
-    if faceData.indexToLocFormat == 0
+    faceData.glyphLocations.reserve(locationCount)
+    let locations = unwrap faceData.glyphLocations.buffer
+    var entry     = loca.buffer
+    var previous  = 0'u32
+    for index in locationCount
     {
-        for index in faceData.glyphLocations.count do
-            faceData.glyphLocations[index] = cast(u32, (try readU16(loca, cast(u64, index) * 2))) * 2
-    }
-    else
-    {
-        for index in faceData.glyphLocations.count do
-            faceData.glyphLocations[index] = try readU32(loca, cast(u64, index) * 4)
-    }
-
-    var previous = 0'u32
-    for offset in faceData.glyphLocations
-    {
+        let offset = longFormat ? Math.make32(entry[0], entry[1], entry[2], entry[3]) : cast(u32, Math.make16(entry[0], entry[1])) * 2
         if offset < previous or cast(u64, offset) > glyf.count do
             try fault(0x08)
-        previous = offset
+        locations[index] = offset
+        previous         = offset
+        entry            += entrySize
     }
+
+    faceData.glyphLocations.count = locationCount
+}
+
+private func keepOrderedKernPairs(faceData: *FaceImpl, pairs: const [..] u8)->bool
+{
+    var previous = -1's64
+    var values   = 0'u16
+    var pair     = pairs.buffer
+    for pairs.count / 6
+    {
+        let key = cast(s64, Math.make32(pair[0], pair[1], pair[2], pair[3]))
+        if key <= previous do
+            return false
+        previous = key
+        values   |= Math.make16(pair[4], pair[5])
+        pair     += 6
+    }
+
+    if values do
+        faceData.kernData = pairs
+    return true
+}
+
+private func addKernPairs(faceData: *FaceImpl, pairs: const [..] u8)
+{
+    let count = pairs.count / 6
+    faceData.kernPairs.reserve((faceData.kernPairs.count + count) * 2)
+    var pair = pairs.buffer
+    for count
+    {
+        let value = cast #bit(s16, Math.make16(pair[4], pair[5]))
+        if value
+        {
+            let key = Math.make32(pair[0], pair[1], pair[2], pair[3])
+            faceData.kernPairs.add(key, value)
+        }
+
+        pair += 6
+    }
+}
+
+private func storeKernPairs(faceData: *FaceImpl, pairs: const [..] u8)
+{
+    if not faceData.kernData and faceData.kernPairs.isEmpty() and keepOrderedKernPairs(faceData, pairs) do
+        return
+
+    // Preserve the last nonzero value when several records state the same pair.
+    if let previous = faceData.kernData
+    {
+        addKernPairs(faceData, previous)
+        faceData.kernData = null
+    }
+
+    addKernPairs(faceData, pairs)
 }
 
 // Parse the legacy 'kern' table, keeping horizontal format-0 subtables only.
@@ -586,23 +658,12 @@ func parseKern(faceData: *FaceImpl) fail
                 continue
             }
 
-            let subtableEnd = offset + length
-            let nPairs      = try readU16(table, offset + 6)
-            var pairOff     = offset + 14     // after nPairs/searchRange/entrySelector/rangeShift
-            for nPairs
+            let declaredCount = try readU16(table, offset + 6)
+            let pairCount     = Math.min(declaredCount, (length - 14) / 6)
+            if pairCount
             {
-                if pairOff + 6 > subtableEnd do
-                    break
-                let left  = try readU16(table, pairOff + 0)
-                let right = try readU16(table, pairOff + 2)
-                let value = try readS16(table, pairOff + 4)
-                if value != 0
-                {
-                    let key = (cast(u32, left) << 16) | cast(u32, right)
-                    faceData.kernPairs.add(key, value)
-                }
-
-                pairOff += 6
+                let pairs = try getSlice(table, offset + 14, cast(u64, pairCount) * 6)
+                storeKernPairs(faceData, pairs)
             }
         }
 
@@ -610,6 +671,31 @@ func parseKern(faceData: *FaceImpl) fail
             break
         offset += length
     }
+}
+
+func lookupLegacyKerning(faceData: const *FaceImpl, key: u32)->s16
+{
+    if let pairs = faceData.kernData
+    {
+        var first = 0'u64
+        var end   = pairs.count / 6
+        while first < end
+        {
+            let middle = first + (end - first) / 2
+            let pair   = pairs.buffer + middle * 6
+            let value  = Math.make32(pair[0], pair[1], pair[2], pair[3])
+            if key == value do
+                return cast #bit(s16, Math.make16(pair[4], pair[5]))
+            if key < value do
+                end = middle
+            else do
+                first = middle + 1
+        }
+
+        return 0
+    }
+
+    return faceData.kernPairs.getOrDefault(key, 0)
 }
 
 func initFaceRecords(faceData: *FaceImpl)

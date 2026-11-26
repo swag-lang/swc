@@ -57,6 +57,26 @@ impl ZLib
     // for a preset dictionary, a window larger than 32 KiB, or output beyond the limit.
     mtd decompress(buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max)->Array'u8 fail
     {
+        var result: #returntype
+        try .decompress(&result, buffer, hintSize, maxOutputSize)
+        return result
+    }
+
+    // Appends the decompressed zlib stream in `buffer` to `result`.
+    //
+    // `buffer` must come from separate storage. `hintSize` and `maxOutputSize` count only
+    // appended bytes. On failure, `result` retains its original bytes and count. The call
+    // can reallocate the destination, invalidating borrowed views even on failure.
+    mtd decompress(result: *Array'u8, buffer: const [..] u8, hintSize: u64 = 0, maxOutputSize: u64 = Swag.U64.Max) fail
+    {
+        if buffer.count and
+           result.buffer and
+           buffer.buffer >= result.buffer and
+           buffer.buffer < result.buffer + result.capacity do
+            fail BadParameterError{}
+
+        let start = result.count
+        defer #fail result.resize(start)
         var bs = ByteStream.openRead(buffer)
         if bs.length() < 6 do
             fail InvalidFormatError{"invalid format"}
@@ -80,12 +100,11 @@ impl ZLib
         if fdict do
             fail UnsupportedFormatError{"unsupported dictionary"}
 
-        var result: #returntype
-        if hintSize > maxOutputSize do
+        if hintSize > maxOutputSize or hintSize > Swag.U64.Max - start do
             fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
         if hintSize do
-            result.grow(hintSize)
-        try .decoder.decompress(&result, bs.remainingBytes(), winSize, maxOutputSize)
+            result.grow(start + hintSize)
+        try .decoder.decompress(result, bs.remainingBytes(), winSize, maxOutputSize)
 
         // The Adler-32 trailer follows the Deflate data at the next byte boundary.
         .decoder.stream.discardToNextByte()
@@ -101,7 +120,5 @@ impl ZLib
         .decoder.stream.read32Be(cast([*] u8, &adler32))
         if adler32 != .decoder.adler.value() do
             fail InvalidFormatError{"invalid checksum"}
-
-        return result
     }
 }

@@ -228,12 +228,13 @@ impl Inflate
         let fastLimit = srcN >= 8 ? srcN - 7 : 0
 
         // Use absolute bounds so a literal needs one comparison for capacity and output budget.
-        let windowSize = cast(u64, .windowSize)
-        let outputEnd  = .outputStart + Math.min(.outputLimit, Swag.U64.Max - .outputStart)
-        var count      = dest.count
-        var buf        = dest.buffer
-        var cap        = dest.capacity
-        var literalEnd = Math.min(cap, outputEnd)
+        let windowSize  = cast(u64, .windowSize)
+        let outputStart = .outputStart
+        let outputEnd   = outputStart + Math.min(.outputLimit, Swag.U64.Max - outputStart)
+        var count       = dest.count
+        var buf         = dest.buffer
+        var cap         = dest.capacity
+        var literalEnd  = Math.min(cap, outputEnd)
 
         // The refill below assumes at most 63 buffered bits: with 64 its byte advance
         // would underflow. Hand the top byte back to the source to get there.
@@ -425,7 +426,7 @@ impl Inflate
 
             if distance > windowSize do
                 fail InvalidFormatError{"bad distance"}
-            if count < distance do
+            if count - outputStart < distance do
                 fail InvalidFormatError{"bad distance"}
             if not length do
                 continue

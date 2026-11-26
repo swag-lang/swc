@@ -20,12 +20,6 @@ struct WoffTableRecord
     checksum:   u32
 }
 
-struct WoffTable
-{
-    record: WoffTableRecord
-    data:   Array'u8
-}
-
 // WOFF blocks are four-byte aligned with at most three zero padding bytes.
 func checkWoffPadding(block: const [..] u8, start, end: u64) fail
 {
@@ -108,8 +102,9 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
     }
 
     result.tables.resize(result.header.numTables)
+    var physicalOrder: Array'u64
+    physicalOrder.reserve(result.header.numTables)
     var previousTag      = 0'u32
-    var previousDataEnd  = directoryEnd
     var expectedSfntSize = 12'u64 + cast(u64, result.header.numTables) * 16
     for index in result.header.numTables
     {
@@ -123,20 +118,30 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
 
         if (index and record.tag <= previousTag) or
            record.compLength > record.origLength or
-           record.offset < previousDataEnd or
+           record.offset < directoryEnd or
            (record.offset & 3) != 0 do
             try fault(0x08)
 
         try assertRange(block, record.offset, record.compLength)
-        try checkWoffPadding(block, previousDataEnd, record.offset)
+        physicalOrder.add((cast(u64, record.offset) << 32) | record.compLength)
         previousTag          = record.tag
-        previousDataEnd      = cast(u64, record.offset) + record.compLength
         expectedSfntSize     += (cast(u64, record.origLength) + 3) & ~3'u64
         result.tables[index] = record
     }
 
     if expectedSfntSize != result.header.totalSfntSize do
         try fault(0x08)
+
+    // Check padding and overlap in file order. At a shared offset, visit empty blocks first.
+    physicalOrder.sort()
+    var previousDataEnd = directoryEnd
+    for entry in physicalOrder
+    {
+        let offset = entry >> 32
+        let length = entry & Swag.U32.Max
+        try checkWoffPadding(block, previousDataEnd, offset)
+        previousDataEnd = offset + length
+    }
 
     let metadataEnd = cast(u64, metadataOffset) + metadataLength
     let privateEnd  = cast(u64, privateOffset) + privateLength
@@ -183,30 +188,9 @@ func inflateWoff(block: const [..] u8)->Array'u8 fail
     let directory = try readWoffDirectory(block)
     let header    = directory.header
 
-    var tables: Array'WoffTable
-    tables.resize(header.numTables)
-    for record, index in directory.tables
-    {
-        tables[index].record = record
-        let compressed = try getSlice(block, record.offset, record.compLength)
-        if record.compLength == record.origLength
-        {
-            tables[index].data.add(compressed)
-        }
-        else
-        {
-            var zlib: Compress.ZLib
-            tables[index].data = try zlib.decompress(compressed,
-                                                     hintSize: record.origLength,
-                                                     maxOutputSize: record.origLength)
-        }
-
-        if tables[index].data.count != record.origLength do
-            try fault(0x08)
-    }
-
     var result: #returntype
-    result.resize(header.totalSfntSize)
+    result.reserve(header.totalSfntSize)
+    result.resize(12'u64 + cast(u64, header.numTables) * 16)
     writeWoffU32(&result, 0, header.flavor)
     writeWoffU16(&result, 4, header.numTables)
 
@@ -223,22 +207,25 @@ func inflateWoff(block: const [..] u8)->Array'u8 fail
     writeWoffU16(&result, 8, entrySelector)
     writeWoffU16(&result, 10, cast(u16, cast(u32, header.numTables) * 16 - searchRange))
 
-    var tableOffset = 12'u64 + cast(u64, header.numTables) * 16
-    for table, index in tables
+    var zlib: Compress.ZLib
+    for record, index in directory.tables
     {
+        let tableOffset     = result.count
         let directoryOffset = 12'u64 + cast(u64, index) * 16
-        writeWoffU32(&result, directoryOffset, table.record.tag)
-        writeWoffU32(&result, directoryOffset + 4, table.record.checksum)
+        writeWoffU32(&result, directoryOffset, record.tag)
+        writeWoffU32(&result, directoryOffset + 4, record.checksum)
         writeWoffU32(&result, directoryOffset + 8, cast(u32, tableOffset))
-        writeWoffU32(&result, directoryOffset + 12, table.record.origLength)
+        writeWoffU32(&result, directoryOffset + 12, record.origLength)
 
-        if table.data.count
-        {
-            let destination = result.storage() + tableOffset
-            Memory.copy(cast(*void, destination), cast(const *void, unwrap table.data.buffer), table.data.count)
-        }
+        let bytes = try getSlice(block, record.offset, record.compLength)
+        if record.compLength == record.origLength do
+            result.add(bytes)
+        else do
+            try zlib.decompress(&result, bytes, maxOutputSize: record.origLength)
+        if result.count - tableOffset != record.origLength do
+            try fault(0x08)
 
-        tableOffset += (table.record.origLength + 3) & ~3'u64
+        result.resize((result.count + 3) & ~3'u64)
     }
 
     return result

@@ -140,3 +140,30 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
     catch checkFaceLoad(bytes.toSlice()) as outcome
     Swag.require(outcome.value() != null)
 }
+
+// A full group of long records, a scalar tail, and a short record retain their signed bearings.
+#test
+{
+    const ExtraMetrics: [14] u8 = [
+        0x03, 0x20, 0xFF, 0x9C,
+        0x02, 0xBC, 0x00, 0x21,
+        0x02, 0x58, 0xFF, 0x38,
+        0xFF, 0xE9]
+    var faceData: FaceImpl
+    faceData.face.setGlyphCount(6)
+    faceData.fontData.add(VerticalHeaderFixture)
+    writeTestU16(&faceData.fontData, 34, 5)
+    faceData.fontData.add(VerticalLongMetricsFixture)
+    faceData.fontData.add(ExtraMetrics)
+    faceData.tables.add({tag: TAG_VHEA, offset: 0, length: VerticalHeaderFixture.count})
+    faceData.tables.add({tag: TAG_VMTX, offset: VerticalHeaderFixture.count, length: VerticalLongMetricsFixture.count + ExtraMetrics.count})
+    expect buildVerticalGlyphMetrics(&faceData)
+
+    const Advances: [6] u16 = [1000, 900, 800, 700, 600, 600]
+    const Bearings: [6] s16 = [100, 200, -100, 33, -200, -23]
+    for index in Advances.count
+    {
+        let metrics = unwrap (expect faceData.face.getVerticalMetrics(cast(u32, index)))
+        Swag.require(metrics.advanceHeight == Advances[index] and metrics.topSideBearing == Bearings[index])
+    }
+}

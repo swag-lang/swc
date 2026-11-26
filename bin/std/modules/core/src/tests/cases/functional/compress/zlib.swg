@@ -200,3 +200,28 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     Swag.require(largerDecoded.count == larger.count)
     Swag.require(Slice.equals(largerDecoded.toSlice(), larger))
 }
+
+// Failed appends preserve the output prefix even when validation reaches the checksum.
+#test
+{
+    const Prefix = "prefix"
+    const First  = "first first first"
+    const Second = "second second second"
+    var zlib: Compress.ZLib
+    let first  = expect zlib.compress(First)
+    var second = expect zlib.compress(Second)
+
+    var output: Array'u8
+    output.add(cast(const [..] u8, Prefix))
+    expect zlib.decompress(&output, first.toSlice(), maxOutputSize: First.count)
+    Swag.require(Slice.equals(output.toSlice(), cast(const [..] u8, "prefixfirst first first")))
+    expect zlib.decompress(&output, second.toSlice(), maxOutputSize: Second.count)
+    let expected = cast(const [..] u8, "prefixfirst first firstsecond second second")
+    Swag.require(Slice.equals(output.toSlice(), expected))
+
+    second[second.count - 1] ^= 1
+    var outcome: Swag.Error
+    catch zlib.decompress(&output, second.toSlice()) as outcome
+    Swag.require(outcome.value() is Errors.InvalidFormatError)
+    Swag.require(Slice.equals(output.toSlice(), expected))
+}

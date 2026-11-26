@@ -549,6 +549,45 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.require(rendered.isValid())
 }
 
+// A JPEG and its soft mask retain their color channels and row order when composed.
+#test
+{
+    const Width  = 7
+    const Height = 2
+    var pixels: [Width * Height * 3] u8
+    var mask:   [Width * Height] u8
+    for index in mask.count
+    {
+        pixels[index * 3]     = index < Width ? 200 : 20
+        pixels[index * 3 + 1] = 40
+        pixels[index * 3 + 2] = index < Width ? 10 : 180
+        mask[index]           = cast(u8, index * 17)
+    }
+
+    let source  = Image.create(Width, Height, .RGB8, pixels)
+    let encoded = expect source.encode("photo.jpg")
+    let bytes   = encoded.toArray()
+    let jpeg    = expect Image.decode("photo.jpg", bytes.toSlice())
+
+    var extra: Array'u8
+    addStreamObject(&extra, 5, "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /SMask 6 0 R", bytes.toSlice())
+    addStreamObject(&extra, 6, "/Type /XObject /Subtype /Image /Width 7 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 8", mask)
+    let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
+    let pdf      = singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice())
+    let document = expect Document.decode(pdf.toSlice())
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    Swag.require(image.pixelFormat == .RGBA8 and image.width == Width and image.height == Height)
+    for y in Height
+    {
+        for x in Width
+        {
+            let color = jpeg.pixelColor(x, y)
+            let alpha = mask[y * Width + x]
+            Swag.require(image.pixelColor(x, y) == Color.fromArgb(alpha, color.r, color.g, color.b))
+        }
+    }
+}
+
 // An unsupported codec is reported instead of producing a wrong picture.
 #test
 {

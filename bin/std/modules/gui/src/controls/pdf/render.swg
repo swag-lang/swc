@@ -670,7 +670,14 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     renderer.begin(context)
     renderer.init()
-    var target = renderer.createRenderTarget(width, height)
+
+    // Opaque pages can use the CPU surface already allocated by begin. A separate target is
+    // needed only to replay the coverage of a transparent page into its alpha channel.
+    let paintAlpha = options.background.a != 255
+    var target: RenderTarget
+    if paintAlpha do
+        target = renderer.createRenderTarget(width, height)
+
     var textures: Array'Texture
     textures.reserve(page.items.count)
     for item in page.items
@@ -720,10 +727,8 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     painter.setContentScale(options.scale)
     painter.begin()
 
-    // A resolved alpha channel costs a second rasterization of the whole page in the
-    // renderer's scalar path, and an opaque ground then overwrites every byte it produced.
-    // Ask for it only when the caller wants the page's own coverage back.
-    painter.bindRenderTarget(&target, options.background.a != 255)
+    if paintAlpha do
+        painter.bindRenderTarget(&target, true)
     painter.setColorMaskFull()
     painter.clear(options.background)
     painter.setColorMaskColor()
@@ -740,7 +745,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     // Antialiased drawing resolves its coverage through the target alpha channel and therefore
     // replaces the alpha written by the initial clear. Restore an opaque page ground after the
     // content, just as ImageCanvas does, while preserving coverage for transparent renders.
-    if options.background.a == 255
+    if not paintAlpha
     {
         painter.setBlendingMode(.Copy)
         painter.setColorMaskAlpha()
@@ -749,15 +754,17 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
         painter.setBlendingMode(.Alpha)
     }
 
-    painter.unbindRenderTarget()
+    if paintAlpha do
+        painter.unbindRenderTarget()
     painter.end()
 
     renderer.begin(context)
     expect painter.render()
-    var result: #returntype = renderer.readRenderTarget(&target, 0, 0, width, height)
+    var result: #returntype = paintAlpha ? renderer.readRenderTarget(&target, 0, 0, width, height) : cpu.surfaceImage()
     for &texture in textures do
         renderer.removeTexture(texture)
-    renderer.deleteRenderTarget(&target)
+    if paintAlpha do
+        renderer.deleteRenderTarget(&target)
     renderer.end()
     return result
 }

@@ -381,7 +381,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     assertPixel(image, 6, 6, Color.fromArgb(255'u8, 0'u8, 255'u8, 0'u8))
 }
 
-// Linear BGRA sampling quantizes each interpolation and clamps to the edge texels.
+// Linear sampling quantizes each interpolation and clamps to the edge texels in each packed color format.
 #test
 {
     const pixels: [16] u8 = [
@@ -389,26 +389,31 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         161, 78, 199, 27, 23, 244, 12, 239]
     let source = Image.create(2, 2, .BGRA8, pixels)
 
-    var renderer: RenderCpu
-    renderer.begin(5, 5)
-    let render: IRenderer = &renderer
-    var texture = render.addImage(source)
-    defer render.removeTexture(&texture)
-    defer render.end()
+    const formats = [PixelFormat.BGRA8, PixelFormat.RGBA8, PixelFormat.BGR8, PixelFormat.RGB8]
+    for format in formats
+    {
+        var renderer: RenderCpu
+        renderer.begin(5, 5)
+        let render: IRenderer = &renderer
+        var texture = render.addImage(source.convertedTo(format))
+        defer render.removeTexture(&texture)
+        defer render.end()
 
-    var painter: Painter
-    painter.begin()
-    painter.setColorMaskFull()
-    painter.setBlendingMode(.Copy)
-    painter.setInterpolationMode(.Linear)
-    painter.drawTexture({0, 0, 5, 5}, {0, 0, 2, 2}, texture)
-    painter.end()
-    expect render.draw(&painter)
+        var painter: Painter
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.setBlendingMode(.Copy)
+        painter.setInterpolationMode(.Linear)
+        painter.drawTexture({0, 0, 5, 5}, {0, 0, 2, 2}, texture)
+        painter.end()
+        expect render.draw(&painter)
 
-    let image = renderer.surfaceImage()
-    assertPixel(image, 0, 0, Color{a: 27, r: 199, g: 78, b: 161})
-    assertPixel(image, 2, 2, Color{a: 136, r: 96, g: 107, b: 128})
-    assertPixel(image, 4, 4, Color{a: 181, r: 121, g: 106, b: 84})
+        let image    = renderer.surfaceImage()
+        let hasAlpha = format.hasAlpha()
+        assertPixel(image, 0, 0, Color{a: hasAlpha ? 27 : 255, r: 199, g: 78, b: 161})
+        assertPixel(image, 2, 2, Color{a: hasAlpha ? 136 : 255, r: 96, g: 107, b: 128})
+        assertPixel(image, 4, 4, Color{a: hasAlpha ? 181 : 255, r: 121, g: 106, b: 84})
+    }
 }
 
 // A one-to-one BGRA sub-rectangle copy preserves every source byte and its destination offset.

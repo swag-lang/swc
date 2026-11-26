@@ -186,6 +186,7 @@ private
     // Filled on first use with the exact expression the per-pixel path evaluated, so a lookup
     // returns bit-identical factors. The mutex protects concurrent renderer initialization.
     var g_FontGammaLut:      [256] f32
+    var g_FontGammaOpaque:   [256] u8
     var g_FontGammaLutReady: bool
     var g_FontGammaLutMutex: Swag.Mutex
 }
@@ -197,8 +198,13 @@ private func ensureFontGammaLut()
 
     if g_FontGammaLutReady do
         return
-    for i in 256 do
-        g_FontGammaLut[i] = Math.pow(cast(f32, i) / 255.0, FontGamma)
+    for i in 256
+    {
+        let gamma = Math.pow(cast(f32, i) / 255.0, FontGamma)
+        g_FontGammaLut[i]    = gamma
+        g_FontGammaOpaque[i] = cast(u8, Math.clamp(Math.round(255.0 * gamma), 0.0, 255.0))
+    }
+
     g_FontGammaLutReady = true
 }
 
@@ -231,6 +237,8 @@ private struct RasterBatch
     paintPlanar: *CpuPlanarTexture?     // Source planes for video textures.
     atlas:       const *GlyphAtlas?     // Glyph atlas of the bound font, resolved once.
     subRect:     SubRectSampler
+    atlasMaxX:   s32
+    atlasMaxY:   s32
 
     blurTaps:        const [*] BlurTap?     // Texture blur taps owned by the active draw call.
     blurTapCount:    u64
@@ -252,10 +260,10 @@ private struct BlurTap
     weight: f32
 }
 
-private struct FontLinearSample
+private struct FontLinearAxis
 {
-    x0, y0, x1, y1: s32
-    tx, ty:         f32
+    first, second: s32
+    fraction:      f32
 }
 
 // A position in a glyph atlas, kept as a whole texel and an offset from it in texels.
@@ -287,6 +295,9 @@ private struct FontFrame
     edge2:        Vector2     // Third vertex minus the first, in texels.
     dx:           Vector2     // Texel step of one target pixel to the right.
     dy:           Vector2     // Texel step of one target pixel down.
+
+    tapOffset:   Vector2
+    screenRange: f32
 }
 
 private impl FontFrame
@@ -306,7 +317,19 @@ private impl FontFrame
         return result
     }
 
+    // The texel steps are constant over the entire triangle.
+    mtd prepareMsdf()
+    {
+        let fwX     = Math.abs(.dx.x) + Math.abs(.dy.x)
+        let fwY     = Math.abs(.dx.y) + Math.abs(.dy.y)
+        let screenX = fwX > 0.000001 ? MsdfRange / fwX : 0.0
+        let screenY = fwY > 0.000001 ? MsdfRange / fwY : 0.0
+        .screenRange = Math.max(0.5 * (screenX + screenY), 1.0)
+        .tapOffset   = {fwX * 0.25, fwY * 0.25}
+    }
+
     // Returns the atlas position of the fragment with barycentric weights `w1` and `w2`.
+    #[Swag.Inline]
     mtd const at(w1, w2: f32)->AtlasPoint => {.baseX, .baseY, .origin + .edge1 * w1 + .edge2 * w2}
 }
 
@@ -630,17 +653,60 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func sampleBgra8Bilinear(image: *Image, x0, x1, y0, y1: s32, wx, wy: u32)->Color
+    func(const Format: PixelFormat) loadColor8(row: const [*] u8, x: s32)->u32
+    {
+        #static if Format == .BGRA8 do
+            return loadBgra8(row, x)
+
+        // Three-byte pixels cannot be read with a four-byte load at the end of a row.
+        const Bytes = Format == .RGBA8 ? 4 : 3
+        let texel = row + cast(u64, x) * Bytes
+        #static if Format == .BGR8 do
+            return Color.fromArgb(255'u8, texel[2], texel[1], texel[0]).argb
+        elif Format == .RGB8 do
+            return Color.fromArgb(255'u8, texel[0], texel[1], texel[2]).argb
+        else do
+            return Color.fromArgb(texel[3], texel[0], texel[1], texel[2]).argb
+    }
+
+    #[Swag.Inline]
+    func(const Format: PixelFormat) sampleColor8Bilinear(image: *Image, x0, x1, y0, y1: s32, wx, wy: u32)->Color
     {
         let pixels = image.pixels.storage()
         let stride = cast(u64, image.rowStride)
         let top    = pixels + cast(u64, (image.height - y0 - 1)) * stride
-        let c0     = lerpBgra8(loadBgra8(top, x0), loadBgra8(top, x1), wx)
+        let c0     = lerpBgra8(loadColor8'Format(top, x0), loadColor8'Format(top, x1), wx)
         if wy == 0 or y0 == y1 do
             return Color.fromArgb(c0)
         let bottom = pixels + cast(u64, (image.height - y1 - 1)) * stride
-        let c1     = lerpBgra8(loadBgra8(bottom, x0), loadBgra8(bottom, x1), wx)
+        let c1     = lerpBgra8(loadColor8'Format(bottom, x0), loadColor8'Format(bottom, x1), wx)
         return Color.fromArgb(lerpBgra8(c0, c1, wy))
+    }
+
+    // The caller has clamped the coordinates. Straight 8-bit colors use the same two
+    // quantized lerps as the generic path without format dispatch at each texel.
+    #[Swag.Inline]
+    func bilinearTexels(image: *Image, x0, x1, y0, y1: s32, tx, ty: f32)->Color
+    {
+        let wx = bilinearWeight(tx)
+        let wy = bilinearWeight(ty)
+        if image.alphaMode == .Straight
+        {
+            switch image.pixelFormat
+            {
+            case .BGRA8: return sampleColor8Bilinear'(.BGRA8)(image, x0, x1, y0, y1, wx, wy)
+            case .RGBA8: return sampleColor8Bilinear'(.RGBA8)(image, x0, x1, y0, y1, wx, wy)
+            case .BGR8:  return sampleColor8Bilinear'(.BGR8)(image, x0, x1, y0, y1, wx, wy)
+            case .RGB8:  return sampleColor8Bilinear'(.RGB8)(image, x0, x1, y0, y1, wx, wy)
+            default:     break
+            }
+        }
+
+        let c00 = readPixel(image, x0, y0)
+        let c10 = readPixel(image, x1, y0)
+        let c01 = readPixel(image, x0, y1)
+        let c11 = readPixel(image, x1, y1)
+        return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
     func modFloor(value, divisor: s32)->s32
@@ -1056,14 +1122,7 @@ private impl RenderCpu
         let x1    = coord(baseX + 1, image.width, repeat)
         let y0    = coord(baseY, image.height, repeat)
         let y1    = coord(baseY + 1, image.height, repeat)
-        if image.pixelFormat == .BGRA8 do
-            return sampleBgra8Bilinear(image, x0, x1, y0, y1, bilinearWeight(tx), bilinearWeight(ty))
-
-        let c00 = readPixel(image, x0, y0)
-        let c10 = readPixel(image, x1, y0)
-        let c01 = readPixel(image, x0, y1)
-        let c11 = readPixel(image, x1, y1)
-        return bilinearColor(c00, c10, c01, c11, tx, ty)
+        return bilinearTexels(image, x0, x1, y0, y1, tx, ty)
     }
 
     // Returns the texel a nearest sampler picks for `coordinate`, in texels.
@@ -1200,22 +1259,13 @@ private impl RenderCpu
             fy = Math.saturate((fy - 0.5) / sampler.sharpWidth.y + 0.5)
         }
 
-        if image.pixelFormat == .BGRA8
-        {
-            return sampleBgra8Bilinear(image,
-                                       Math.clamp(x0, 0, image.width - 1),
-                                       Math.clamp(x1, 0, image.width - 1),
-                                       Math.clamp(y0, 0, image.height - 1),
-                                       Math.clamp(y1, 0, image.height - 1),
-                                       bilinearWeight(fx),
-                                       bilinearWeight(fy))
-        }
-
-        let c00 = readPixel(image, x0, y0)
-        let c10 = readPixel(image, x1, y0)
-        let c01 = readPixel(image, x0, y1)
-        let c11 = readPixel(image, x1, y1)
-        return bilinearColor(c00, c10, c01, c11, fx, fy)
+        return bilinearTexels(image,
+                              Math.clamp(x0, 0, image.width - 1),
+                              Math.clamp(x1, 0, image.width - 1),
+                              Math.clamp(y0, 0, image.height - 1),
+                              Math.clamp(y1, 0, image.height - 1),
+                              fx,
+                              fy)
     }
 
     // Inline the sampler and byte reads into the convolution: a captured callback here
@@ -1650,97 +1700,86 @@ private impl RenderCpu
         return Math.saturate((sd - edge) * screenPxRange / aa + 0.5)
     }
 
-    // Evaluates the four quarter-pixel MSDF taps from their shared texel neighborhood. At normal
-    // text scales the four bilinear footprints cover at most nine texels instead of fetching
-    // sixteen; unusual minification falls back to the independent sampler without changing it.
+    #[Swag.Inline]
+    func fontLinearAxis(base, size: s32, offset: f32)->FontLinearAxis
+    {
+        let position = offset - 0.5
+        let floor    = Math.floor(position)
+        let first    = base + cast(s32, floor)
+        return {Math.clamp(first, 0, size - 1), Math.clamp(first + 1, 0, size - 1), position - floor}
+    }
+
+    #[Swag.Inline]
+    func msdfTexel(row: const [*] u8, x: s32)->Math.Simd.F32x4
+    {
+        let pixel = row + cast(u64, x) * 4
+        return cast(Math.Simd.F32x4, [cast(f32, pixel[0]), cast(f32, pixel[1]), cast(f32, pixel[2]), cast(f32, pixel[3])]) / 255.0
+    }
+
+    #[Swag.Inline]
+    func lerpMsdf(first, second: Math.Simd.F32x4, fraction: f32)->Math.Simd.F32x4
+    {
+        return Math.mulAdd(Math.Simd.splat(fraction), second - first, first)
+    }
+
+    // Both taps on this row interpolate the same texel when their footprints meet.
+    #[Swag.Inline]
+    func msdfRow(atlas: const *GlyphAtlas, y: s32, left, right: FontLinearAxis)->{left, right: Math.Simd.F32x4}
+    {
+        let row   = atlas.data.storage() + (atlas.height - 1 - cast(u64, y)) * atlas.width
+        let first = msdfTexel(row, left.first)
+        let next  = left.first == left.second ? first : msdfTexel(row, left.second)
+        let other = right.first == left.second ? next : msdfTexel(row, right.first)
+        let last  = right.first == right.second ? other : msdfTexel(row, right.second)
+        return {lerpMsdf(first, next, left.fraction), lerpMsdf(other, last, right.fraction)}
+    }
+
+    #[Swag.Inline]
+    func msdfTap(top, bottom: Math.Simd.F32x4, fraction, screenPxRange: f32)->f32
+    {
+        let value = lerpMsdf(top, bottom, fraction)
+        let sd    = median(value[0], value[1], value[2])
+        return Math.saturate((sd - 0.5) * screenPxRange + 0.5)
+    }
+
+    // The four quarter-pixel taps form a rectangle. Resolve each axis once and reuse
+    // horizontally interpolated rows when the two vertical footprints overlap.
     func msdfCoverage4(atlas: const *GlyphAtlas, pos: AtlasPoint, offset: Vector2, screenPxRange: f32)->f32
     {
-        let points: [4] AtlasPoint = [pos.moved({-offset.x, -offset.y}),
-                                      pos.moved({offset.x, -offset.y}),
-                                      pos.moved({-offset.x, offset.y}),
-                                      pos.moved({offset.x, offset.y})]
         if atlas.bytesPerPixel != 4
         {
-            var fallback = 0'f32
-            for point in points do
-                fallback += msdfCoverage(atlas, point, screenPxRange, 0.5, 1.0)
-            return fallback
+            var fallback = msdfCoverage(atlas, pos.moved({-offset.x, -offset.y}), screenPxRange, 0.5, 1.0)
+            fallback += msdfCoverage(atlas, pos.moved({offset.x, -offset.y}), screenPxRange, 0.5, 1.0)
+            fallback += msdfCoverage(atlas, pos.moved({-offset.x, offset.y}), screenPxRange, 0.5, 1.0)
+            return fallback + msdfCoverage(atlas, pos.moved(offset), screenPxRange, 0.5, 1.0)
         }
 
-        let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
+        let width  = cast(s32, (atlas.width / 4))
         let height = cast(s32, atlas.height)
-        var samples: [4] FontLinearSample
-        var minX   = Swag.S32.Max
-        var minY   = Swag.S32.Max
-        var maxX   = Swag.S32.Min
-        var maxY   = Swag.S32.Min
+        let left   = fontLinearAxis(pos.baseX, width, pos.offset.x - offset.x)
+        let right  = fontLinearAxis(pos.baseX, width, pos.offset.x + offset.x)
+        let top    = fontLinearAxis(pos.baseY, height, pos.offset.y - offset.y)
+        let bottom = fontLinearAxis(pos.baseY, height, pos.offset.y + offset.y)
 
-        // A tap past the page only reads the edge texel, so clamping it there changes no value
-        // and keeps the shared neighborhood below ordered and at most three texels wide.
-        for point, index in points
-        {
-            let px     = point.offset.x - 0.5
-            let py     = point.offset.y - 0.5
-            let sample = &samples[index]
-            sample.x0 = Math.clamp(point.baseX + cast(s32, Math.floor(px)), -1, width - 1)
-            sample.y0 = Math.clamp(point.baseY + cast(s32, Math.floor(py)), -1, height - 1)
-            sample.x1 = Math.min(sample.x0 + 1, width - 1)
-            sample.y1 = Math.min(sample.y0 + 1, height - 1)
-            sample.tx = px - Math.floor(px)
-            sample.ty = py - Math.floor(py)
-            minX      = Math.min(minX, sample.x0)
-            minY      = Math.min(minY, sample.y0)
-            maxX      = Math.max(maxX, sample.x1)
-            maxY      = Math.max(maxY, sample.y1)
-        }
+        let first = msdfRow(atlas, top.first, left, right)
+        let next  = top.first == top.second ? first : msdfRow(atlas, top.second, left, right)
+        let other = bottom.first == top.second ? next : msdfRow(atlas, bottom.first, left, right)
+        let last  = bottom.first == bottom.second ? other : msdfRow(atlas, bottom.second, left, right)
 
-        let cacheWidth  = maxX - minX + 1
-        let cacheHeight = maxY - minY + 1
-        if cacheWidth > 3 or cacheHeight > 3
-        {
-            var fallback = 0'f32
-            for point in points do
-                fallback += msdfCoverage(atlas, point, screenPxRange, 0.5, 1.0)
-            return fallback
-        }
-
-        var cache: [9] Vector4
-        for y in cacheHeight
-        {
-            for x in cacheWidth do
-                cache[cast(u64, (y * cacheWidth + x))] = readFontAtlas(atlas, minX + x, minY + y)
-        }
-
-        var result = 0'f32
-        for sample in samples
-        {
-            let row0  = (sample.y0 - minY) * cacheWidth
-            let row1  = (sample.y1 - minY) * cacheWidth
-            let f00   = cache[cast(u64, (row0 + sample.x0 - minX))]
-            let f10   = cache[cast(u64, (row0 + sample.x1 - minX))]
-            let f01   = cache[cast(u64, (row1 + sample.x0 - minX))]
-            let f11   = cache[cast(u64, (row1 + sample.x1 - minX))]
-            let value = lerpFontSample(lerpFontSample(f00, f10, sample.tx), lerpFontSample(f01, f11, sample.tx), sample.ty)
-            let sd    = median(value.x, value.y, value.z)
-            result += Math.saturate((sd - 0.5) * screenPxRange + 0.5)
-        }
-
+        var result = msdfTap(first.left, next.left, top.fraction, screenPxRange)
+        result += msdfTap(first.right, next.right, top.fraction, screenPxRange)
+        result += msdfTap(other.left, last.left, bottom.fraction, screenPxRange)
+        result += msdfTap(other.right, last.right, bottom.fraction, screenPxRange)
         return result
     }
 
-    // `texDx` and `texDy` are the texel steps of one target pixel to the right and down.
-    mtd shadeMsdf(faceColor: Color, pos: AtlasPoint, texDx, texDy: Vector2, safeAtlas: const *GlyphAtlas)->Color
+    mtd shadeMsdf(faceColor: Color, pos: AtlasPoint, frame: const *FontFrame, safeAtlas: const *GlyphAtlas)->Color
     {
-        let fwX           = Math.abs(texDx.x) + Math.abs(texDy.x)
-        let fwY           = Math.abs(texDx.y) + Math.abs(texDy.y)
-        let screenX       = fwX > 0.000001 ? MsdfRange / fwX : 0.0
-        let screenY       = fwY > 0.000001 ? MsdfRange / fwY : 0.0
-        let screenPxRange = Math.max(0.5 * (screenX + screenY), 1.0)
-
+        let screenPxRange = frame.screenRange
         if .fontEffect.enabled < 0.5
         {
-            let off   = Vector2{fwX * 0.25, fwY * 0.25}
-            let alpha = Math.pow(msdfCoverage4(safeAtlas, pos, off, screenPxRange) * 0.25, FontGamma)
+            let coverage = msdfCoverage4(safeAtlas, pos, frame.tapOffset, screenPxRange) * 0.25
+            let alpha    = coverage == 0 or coverage == 1 ? coverage : Math.pow(coverage, FontGamma)
             return faceColor.withAlphaF32(cast(f32, faceColor.a) / 255.0 * alpha)
         }
 
@@ -1762,8 +1801,8 @@ private impl RenderCpu
         var faceB = face.z
         if p.bevel > 0
         {
-            let gradX     = sampleFontAtlas(safeAtlas, pos.moved(texDx)).w - sdTrue
-            let gradY     = sampleFontAtlas(safeAtlas, pos.moved(texDy)).w - sdTrue
+            let gradX     = sampleFontAtlas(safeAtlas, pos.moved(frame.dx)).w - sdTrue
+            let gradY     = sampleFontAtlas(safeAtlas, pos.moved(frame.dy)).w - sdTrue
             let magnitude = Math.sqrt(gradX * gradX + gradY * gradY)
             let reference = 1.0 / screenPxRange
             let strength  = smoothStep(0.0, 0.6 * reference, magnitude)
@@ -1818,9 +1857,15 @@ private impl RenderCpu
     // Shades one fragment like the general path did, with the paint, the atlas, and the font
     // gamma resolved per batch. Every arithmetic step keeps the general path's exact expression,
     // so the shaded color is bit-identical.
-    mtd shadeBatch(batch: *RasterBatch, paintPos: Vector2, fontPos: AtlasPoint, fontDx, fontDy: Vector2, vertexColor: Color, coverage: f32)->Color
+    mtd shadeBatch(batch: *RasterBatch, paintPos: Vector2, fontPos: AtlasPoint, fontFrame: const *FontFrame, vertexColor: Color, coverage: f32)->Color
     {
-        var result = batch.solidPaint ? vertexColor : Color.multiply(vertexColor, .samplePaintBatch(batch, paintPos))
+        var result = vertexColor
+        if not batch.solidPaint
+        {
+            let paintColor = .samplePaintBatch(batch, paintPos)
+            result = vertexColor.argb == Color.fromArgb(Argb.White).argb ? paintColor : Color.multiply(vertexColor, paintColor)
+        }
+
         if .program == CpuProgram_Font
         {
             // With no atlas bound the font program covers the whole primitive, the way a white
@@ -1831,20 +1876,19 @@ private impl RenderCpu
 
             // Nearest atlas fetch, inlined: the sample value only feeds the gamma power, so the
             // lookup table replaces the per-pixel pow with the factor it would have computed.
-            let width  = cast(s32, (atlas.width / atlas.bytesPerPixel))
-            let height = cast(s32, atlas.height)
-            let x      = Math.clamp(fontPos.baseX + cast(s32, Math.floor(fontPos.offset.x)), 0, width - 1)
-            let y      = Math.clamp(fontPos.baseY + cast(s32, Math.floor(fontPos.offset.y)), 0, height - 1)
-            let row    = cast(s32, atlas.height) - y - 1
-            let value  = atlas.data.storage()[cast(u64, row) * atlas.width + cast(u64, x) * atlas.bytesPerPixel]
-            result.a = cast(u8, Math.clamp(Math.round(cast(f32, result.a) * g_FontGammaLut[value]), 0.0, 255.0))
+            let x     = Math.clamp(fontPos.baseX + cast(s32, Math.floor(fontPos.offset.x)), 0, batch.atlasMaxX)
+            let y     = Math.clamp(fontPos.baseY + cast(s32, Math.floor(fontPos.offset.y)), 0, batch.atlasMaxY)
+            let row   = batch.atlasMaxY - y
+            let value = atlas.data.storage()[cast(u64, row) * atlas.width + cast(u64, x) * atlas.bytesPerPixel]
+            result.a = result.a == 255 ? g_FontGammaOpaque[value] :
+                       cast(u8, Math.clamp(Math.round(cast(f32, result.a) * g_FontGammaLut[value]), 0.0, 255.0))
         }
         elif .program == CpuProgram_Msdf
         {
             let atlas = batch.atlas
             if not atlas do
                 return result
-            result = .shadeMsdf(result, fontPos, fontDx, fontDy, atlas)
+            result = .shadeMsdf(result, fontPos, fontFrame, atlas)
         }
         elif .program == CpuProgram_Default
         {
@@ -1914,7 +1958,9 @@ private impl RenderCpu
         // Font fragments are located in texels from the first vertex, never in normalized atlas
         // coordinates, so a glyph shades alike wherever earlier text placed it; see AtlasPoint.
         let needFontPos = (.program == CpuProgram_Font or .program == CpuProgram_Msdf) and batch.atlas != null
-        let fontFrame   = needFontPos ? FontFrame.from(unwrap batch.atlas, v0.uv, v1.uv, v2.uv, p0, p1, p2, invArea) : {}
+        var fontFrame   = needFontPos ? FontFrame.from(unwrap batch.atlas, v0.uv, v1.uv, v2.uv, p0, p1, p2, invArea) : {}
+        if needFontPos and .program == CpuProgram_Msdf do
+            fontFrame.prepareMsdf()
 
         let c0 = Color.fromArgb(v0.color)
         let c1 = Color.fromArgb(v1.color)
@@ -2294,7 +2340,7 @@ private impl RenderCpu
                                                                          (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                                          (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
-                var src = .shadeBatch(batch, paintPos, fontPos, fontFrame.dx, fontFrame.dy, vertexColor, cov)
+                var src = .shadeBatch(batch, paintPos, fontPos, &fontFrame, vertexColor, cov)
 
                 // Writing the region: the fragment's coverage — its antialiased edge, the alpha of
                 // its texture, the transparency of its colour — joins the mask and shades nothing.
@@ -2561,8 +2607,12 @@ private impl RenderCpu
         }
 
         batch.atlas = .fontAtlas()
-        if .program == CpuProgram_Font do
+        if .program == CpuProgram_Font and batch.atlas
+        {
+            batch.atlasMaxX = cast(s32, batch.atlas.width / batch.atlas.bytesPerPixel) - 1
+            batch.atlasMaxY = cast(s32, batch.atlas.height) - 1
             ensureFontGammaLut()
+        }
     }
 
     // Copies or blends a rectangle with one source texel per destination pixel.
@@ -2835,13 +2885,117 @@ private impl RenderCpu
         return true
     }
 
+    // A solid, device-aligned rectangle shades one color across its full span. Avoid
+    // testing both triangles against their shared diagonal before writing that span.
+    mtd tryDrawSolidRect(batch: *RasterBatch, bounds: PixelBounds)->bool
+    {
+        if batch.count != 6 or
+           not batch.solidPaint or
+           (.program != CpuProgram_Default and .program != CpuProgram_Simple) or
+           .stencilOn or
+           .stencilWrite or
+           .overlapMode or
+           .alphaResolve or
+           .whiteMatte != null do
+            return false
+        if batch.image!.pixelFormat != .BGRA8 do
+            return false
+
+        let transform = &batch.transform
+        if transform.m12 or transform.m21 or transform.m11 <= 0 or transform.m22 <= 0 do
+            return false
+
+        let vertices = batch.painter!.vertexBuffer.storage() + batch.start
+        let color    = Color.fromArgb(vertices[0].color)
+        if .blendingMode != .Copy and
+           (.blendingMode != .Alpha or color.a != 255 or .colorMask.a) do
+            return false
+
+        for vertex in Swag.makeSlice(vertices, 6) where vertex.color != color.argb or vertex.cov != 1 do
+            return false
+
+        let first = vertices[0].pos
+        let last  = vertices[2].pos
+        if vertices[1].pos != Vector2{last.x, first.y} or
+           vertices[3].pos != first or
+           vertices[4].pos != last or
+           vertices[5].pos != Vector2{first.x, last.y} do
+            return false
+
+        // A near-integral edge stays on the same side of every pixel center.
+        func aligned(value: f32, rounded: f32)->bool => Math.abs(rounded) <= 16384 and Math.abs(value - rounded) <= 0.001
+
+        let topLeft     = transform.transformPoint(first)
+        let bottomRight = transform.transformPoint(last)
+        let left        = Math.round(topLeft.x)
+        let top         = Math.round(topLeft.y)
+        let right       = Math.round(bottomRight.x)
+        let bottom      = Math.round(bottomRight.y)
+        if left >= right or
+           top >= bottom or
+           not aligned(topLeft.x, left) or
+           not aligned(topLeft.y, top) or
+           not aligned(bottomRight.x, right) or
+           not aligned(bottomRight.y, bottom) do
+            return false
+
+        let minX = Math.max(cast(s32, left), batch.clipMinX)
+        let minY = Math.max(cast(s32, top), batch.clipMinY, bounds.minY)
+        let maxX = Math.min(cast(s32, right), batch.clipMaxX + 1)
+        let maxY = Math.min(cast(s32, bottom), batch.clipMaxY + 1, bounds.maxY + 1)
+        if minX >= maxX or minY >= maxY do
+            return true
+
+        let blue  = .colorMask.b ? 255'u8 : 0'u8
+        let green = .colorMask.g ? 255'u8 : 0'u8
+        let red   = .colorMask.r ? 255'u8 : 0'u8
+        let alpha = .colorMask.a ? 255'u8 : 0'u8
+        let mask  = cast(Math.Simd.U8x16, [blue, green, red, alpha, blue, green, red, alpha,
+                                           blue, green, red, alpha, blue, green, red, alpha])
+        let fill = cast(Math.Simd.U8x16, [color.b, color.g, color.r, color.a, color.b, color.g, color.r, color.a,
+                                          color.b, color.g, color.r, color.a, color.b, color.g, color.r, color.a])
+        let width = maxX - minX
+        for y in minY until maxY
+        {
+            var pixel = batch.pixels + cast(u64, batch.height - y - 1) * cast(u64, batch.rowStride) + cast(u64, minX) * 4
+            for width / 4
+            {
+                Math.Simd.store(pixel, Math.Simd.select(mask, fill, Math.Simd.load(pixel)))
+                pixel += 16
+            }
+
+            for width % 4
+            {
+                if blue do
+                    pixel[0] = color.b
+                if green do
+                    pixel[1] = color.g
+                if red do
+                    pixel[2] = color.r
+                if alpha do
+                    pixel[3] = color.a
+                pixel += 4
+            }
+        }
+
+        return true
+    }
+
     mtd drawTriangles(painter: *Painter, start, count: u32)
     {
         let image = .currentImage()
         if not image or count < 3 do
             return
 
-        let bounds = .triangleRangeBounds(image, painter, start, count)
+        // A direct serial draw clips each triangle anyway. A range-wide walk is only needed
+        // for scissored ranges, parallel bands, or passes that act on the range as a whole.
+        let needsRange = .scissorOn or
+                         .stencilWrite or
+                         .overlapMode or
+                         .program == CpuProgram_Backdrop or
+                         Swag.workerCount() > 1
+        let bounds = needsRange ? .triangleRangeBounds(image, painter, start, count) :
+                     PixelBounds{minX: 0, minY: 0, maxX: image.width - 1, maxY: image.height - 1}
         if bounds.isEmpty() do
             return
 
@@ -2864,7 +3018,9 @@ private impl RenderCpu
 
         var batch: RasterBatch
         .setupBatch(&batch, image, painter, start, count)
-        if .tryDrawTextureRect(&batch) or .tryResolveTextureRect(&batch) do
+        if .tryDrawSolidRect(&batch, bounds) or
+           .tryDrawTextureRect(&batch) or
+           .tryResolveTextureRect(&batch) do
             return
 
         // Both the Gaussian weights and the normalized tap offsets are constant over the draw.

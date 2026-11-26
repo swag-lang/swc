@@ -41,7 +41,8 @@ private const GrayExpand1 = cast(Math.Simd.U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8,
 private const GrayExpand2 = cast(Math.Simd.U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
 private const CmykGather  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 private const CmykSpreadK = cast(Math.Simd.U8x16, [3'u8, 3, 3, 7, 7, 7, 11, 11, 11, 15, 15, 15, 0x80, 0x80, 0x80, 0x80])
-private const RgbaColors  = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+private const RgbToRgba   = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0x80, 3, 4, 5, 0x80, 6, 7, 8, 0x80, 9, 10, 11, 0x80])
+private const BgrToRgba   = cast(Math.Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
 private const RgbaAlpha   = cast(Math.Simd.U8x16, [0x80'u8, 0x80, 0x80, 0, 0x80, 0x80, 0x80, 1, 0x80, 0x80, 0x80, 2, 0x80, 0x80, 0x80, 3])
 private const MaskBits    = cast(Math.Simd.U8x16, [128'u8, 64, 32, 16, 8, 4, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0])
 
@@ -198,8 +199,9 @@ private func colorKey8(destination: [*] u8, source: const [*] u8, count: u64, lo
     }
 }
 
-private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, count: u64)
+private func(const SwapRedBlue: bool) composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, count: u64)
 {
+    const Channels = SwapRedBlue ? BgrToRgba : RgbToRgba
     var dst  = destination
     var rgb  = colors
     var mask = alpha
@@ -208,7 +210,7 @@ private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, coun
     // A sixteen-byte RGB load needs at least six pixels remaining in this row.
     while left >= 6
     {
-        let packedRgb  = Math.Simd.shuffle(Math.Simd.load(rgb), RgbaColors)
+        let packedRgb  = Math.Simd.shuffle(Math.Simd.load(rgb), Channels)
         let packedMask = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, mask)[0]))
         Math.Simd.store(dst, packedRgb | Math.Simd.shuffle(packedMask, RgbaAlpha))
         rgb  += 12
@@ -219,9 +221,9 @@ private func composeRgba8(destination: [*] u8, colors, alpha: const [*] u8, coun
 
     while left
     {
-        dst[0] = rgb[0]
+        dst[0] = rgb[SwapRedBlue ? 2 : 0]
         dst[1] = rgb[1]
-        dst[2] = rgb[2]
+        dst[2] = rgb[SwapRedBlue ? 0 : 2]
         dst[3] = mask[0]
         rgb    += 3
         mask   += 1
@@ -762,14 +764,15 @@ private func readMaskPlane(parser: *PdfParser, nodeId, _: u32, stencil: bool)->S
         let decoded = #move try Image.decode(".jpg", raw.toSlice())
         result.width  = decoded.width
         result.height = decoded.height
-        result.alpha.resize(cast(u64, decoded.width) * cast(u64, decoded.height))
-        for y in cast(u64, decoded.height)
+        let width  = cast(u64, decoded.width)
+        let height = cast(u64, decoded.height)
+        result.alpha.resize(width * height)
+        for y in height
         {
-            for x in cast(u64, decoded.width)
-            {
-                let source = ((cast(u64, decoded.height) - y - 1) * cast(u64, decoded.width) + x) * decoded.bytesPerPixel
-                result.alpha[y * cast(u64, decoded.width) + x] = decoded.pixels[source]
-            }
+            let source = decoded.pixels.storage() + (height - y - 1) * cast(u64, decoded.rowStride)
+            let target = result.alpha.storage() + y * width
+            for x in width do
+                target[x] = source[x * decoded.bytesPerPixel]
         }
 
         return result
@@ -912,7 +915,7 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
             let out      = pixels + (height - y - 1) * cast(u64, result.rowStride)
             let colors   = source + y * width * 3
             let coverage = alpha + y * width
-            composeRgba8(out, colors, coverage, width)
+            composeRgba8'(false)(out, colors, coverage, width)
         }
 
         return #move result
@@ -933,6 +936,23 @@ private func planeToImage(plane: const *SamplePlane, fill: const *Color?)->Image
             component += 3
             coverage  += 1
         }
+    }
+
+    return #move result
+}
+
+// Composes a JPEG and its same-size mask directly into bottom-up RGBA pixels.
+private func(const SwapRedBlue: bool) maskedJpegImage(decoded: const *Image, mask: const *SamplePlane)->Image
+{
+    var result = #move Image.create(decoded.width, decoded.height, .RGBA8)
+    let width  = cast(u64, decoded.width)
+    let height = cast(u64, decoded.height)
+    for row in height
+    {
+        let colors   = decoded.pixels.storage() + row * cast(u64, decoded.rowStride)
+        let coverage = mask.alpha.storage() + (height - row - 1) * width
+        let target   = result.pixels.storage() + row * cast(u64, result.rowStride)
+        composeRgba8'SwapRedBlue(target, colors, coverage, width)
     }
 
     return #move result
@@ -982,7 +1002,7 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     }
 
     let codec = #move parser.imageCodec(nodeId)
-    var plane: SamplePlane
+    var plane, mask: SamplePlane
     if not codec.isEmpty()
     {
         if codec != "DCTDecode" and codec != "DCT" do
@@ -1001,6 +1021,16 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
                 result = #move decoded
             else do
                 result = decoded.convertedTo(.RGB8)
+            cacheDecodedImage(parser, cacheKey, &result)
+            return #move result
+        }
+
+        mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
+        let sameSizeMask = mask.width == decoded.width and mask.height == decoded.height and mask.alpha.count
+        if sameSizeMask and (decoded.pixelFormat == .BGR8 or decoded.pixelFormat == .RGB8)
+        {
+            // JPEG pixels already have the destination row order.
+            var result = decoded.pixelFormat == .BGR8 ? maskedJpegImage'(true)(&decoded, &mask) : maskedJpegImage'(false)(&decoded, &mask)
             cacheDecodedImage(parser, cacheKey, &result)
             return #move result
         }
@@ -1029,58 +1059,56 @@ internal func decodeImage(parser: *PdfParser, nodeId, resourcesId: u32, fillColo
     else
     {
         plane = #move try readSamplePlane(parser, nodeId, resourcesId)
+        if maskId != InvalidNode do
+            mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
     }
 
-    if maskId != InvalidNode
+    if mask.alpha.count
     {
-        var mask = #move try readMaskPlane(parser, maskId, resourcesId, stencil)
-        if mask.alpha.count
+        let width  = cast(u64, plane.width)
+        let height = cast(u64, plane.height)
+        if mask.width == plane.width and mask.height == plane.height
         {
-            let width  = cast(u64, plane.width)
-            let height = cast(u64, plane.height)
-            if mask.width == plane.width and mask.height == plane.height
-            {
-                plane.alpha = #move mask.alpha
-            }
-            else
-            {
-                plane.alpha.resize(width * height)
-                let sourceWidth  = cast(u64, mask.width)
-                let sourceHeight = cast(u64, mask.height)
-                let sourceStep   = sourceWidth / width
-                let sourceRest   = sourceWidth % width
-                let rowStep      = sourceHeight / height
-                let rowRest      = sourceHeight % height
-                var sourceY      = 0'u64
-                var rowRemainder = 0'u64
+            plane.alpha = #move mask.alpha
+        }
+        else
+        {
+            plane.alpha.resize(width * height)
+            let sourceWidth  = cast(u64, mask.width)
+            let sourceHeight = cast(u64, mask.height)
+            let sourceStep   = sourceWidth / width
+            let sourceRest   = sourceWidth % width
+            let rowStep      = sourceHeight / height
+            let rowRest      = sourceHeight % height
+            var sourceY      = 0'u64
+            var rowRemainder = 0'u64
 
-                // Each index and remainder is the quotient and remainder of the destination
-                // coordinate scaled by the corresponding source and destination dimensions.
-                for y in height
+            // Each index and remainder is the quotient and remainder of the destination
+            // coordinate scaled by the corresponding source and destination dimensions.
+            for y in height
+            {
+                let source      = mask.alpha.storage() + sourceY * sourceWidth
+                let destination = plane.alpha.storage() + y * width
+                var sourceX     = 0'u64
+                var remainder   = 0'u64
+                for x in width
                 {
-                    let source      = mask.alpha.storage() + sourceY * sourceWidth
-                    let destination = plane.alpha.storage() + y * width
-                    var sourceX     = 0'u64
-                    var remainder   = 0'u64
-                    for x in width
+                    destination[x] = source[sourceX]
+                    sourceX        += sourceStep
+                    remainder      += sourceRest
+                    if remainder >= width
                     {
-                        destination[x] = source[sourceX]
-                        sourceX        += sourceStep
-                        remainder      += sourceRest
-                        if remainder >= width
-                        {
-                            remainder -= width
-                            sourceX   += 1
-                        }
+                        remainder -= width
+                        sourceX   += 1
                     }
+                }
 
-                    sourceY      += rowStep
-                    rowRemainder += rowRest
-                    if rowRemainder >= height
-                    {
-                        rowRemainder -= height
-                        sourceY      += 1
-                    }
+                sourceY      += rowStep
+                rowRemainder += rowRest
+                if rowRemainder >= height
+                {
+                    rowRemainder -= height
+                    sourceY      += 1
                 }
             }
         }

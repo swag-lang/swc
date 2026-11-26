@@ -470,11 +470,22 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 ### std.gui.pdf.045 — First-page rendering trails PDFium on FileSamples
 
-- Evidence: opening each PDF, loading page 1 and rendering its long side to 1200 px took 19.8–83.8 ms
-  in Release; PDFium took 9.0–27.8 ms on the same three fixtures (2.19–3.59×). The timings and
-  binding overhead are recorded in the [comparison report](../bench/results/swagscope-filesamples/README.md).
-- Next: profile file parsing, page preparation, image/font decoding and raster stages separately on
-  all three PDFs, then compare the dominant work against PDFium without the Python image-copy cost.
+- Evidence: the [comparison report](../bench/results/swagscope-filesamples/README.md) records the
+  original Windows timings. A Linux x86-64 Release comparison used the same fixtures and measured
+  opening, loading page 1 and rendering the long side to 1200 px. With one Swag worker and 15
+  interleaved measurements after warm-up, the median totals in milliseconds were:
+
+  | Fixture | Swag at `335b91f31e` | Swag | PDFium 159.0.8149.0 |
+  | --- | ---: | ---: | ---: |
+  | `sample1.pdf` | 99.42 | 86.81 | 26.85 |
+  | `sample2.pdf` | 30.01 | 26.47 | 4.88 |
+  | `sample3.pdf` | 65.04 | 63.31 | 11.36 |
+
+  The Swag builds produced matching raster CRC-64 values. PDFium rendered to BGRA through its raw
+  bitmap API without a PIL conversion. Swag's CPU raster stage still accounts for 22.89–67.46 ms
+  per file. Loading the first page of the JPEG-heavy `sample1.pdf` also accounts for 17.82 ms.
+- Next: profile the remaining CPU cost in vector command recording and rasterization, bitmap
+  glyphs, and scaled image draws. Compare equivalent BGRA output through the same PDFium API.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

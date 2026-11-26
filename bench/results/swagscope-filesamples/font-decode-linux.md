@@ -779,3 +779,34 @@ case. FreeType 2.14.3 opens the same face from a retained memory buffer.
 
 Pathname controls for these CFF faces vary between 5% faster and 7% slower.
 That path performs its own file read and expands the metrics per call.
+
+## Expanded Chinese, Japanese and Korean fixtures
+
+The corpus has 71 cases across 58 files, including the 12 supplied
+fonts. Six pinned Google Fonts add Hong Kong Chinese, Korean and
+Japanese variable TrueType faces and two Traditional Chinese static
+faces. Cases cover kana, Hangul, Han characters and an Extension B
+code point. All new cases select a nonzero glyph.
+
+With one worker and one CPU, Swag opens and renders faster than Pillow
+12.3.0 with FreeType 2.14.3 in 60 of 71 cases. All 12 new cases and all
+seven WOFF1 cases are ahead. The 11 slower cases use large Noto Sans
+or Serif CJK CFF outlines. The workload uses 20 px, five warmups, and
+nine interleaved batches of 31 opens or seven for files at least 10 MB.
+Swag output fingerprints match the previous build across the corpus.
+[Raw timings and all fixtures](font-decode-linux-71-cases.json)
+
+| New fixture | Character | Swag open and render (µs) | Pillow (µs) |
+| --- | ---: | ---: | ---: |
+| `NotoSansKR-Variable.ttf` | U+AC01 | 686.0 | 3086.0 |
+| `NotoSansKR-Variable.ttf` | U+97D3 | 780.5 | 3150.0 |
+| `NotoSansHK-Variable.ttf` | U+20021 | 894.9 | 3028.9 |
+| `NotoSansHK-Variable.ttf` | U+9AA8 | 843.9 | 2675.7 |
+| `NotoSerifJP-Variable.ttf` | U+3042 | 941.6 | 3160.8 |
+| `NotoSerifJP-Variable.ttf` | U+9AD8 | 938.0 | 3144.8 |
+| `NotoSerifKR-Variable.ttf` | U+D55C | 1722.1 | 3239.2 |
+| `NotoSerifKR-Variable.ttf` | U+91D1 | 1716.5 | 2701.2 |
+| `LXGWWenKaiTC-Regular.ttf` | U+570B | 1590.8 | 2683.6 |
+| `LXGWWenKaiTC-Regular.ttf` | U+9F8D | 1642.1 | 3619.6 |
+| `Iansui-Regular.ttf` | U+81FA | 1239.7 | 2852.6 |
+| `Iansui-Regular.ttf` | U+9F9C | 1168.4 | 3185.3 |

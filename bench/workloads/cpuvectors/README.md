@@ -60,3 +60,17 @@ with AGG at 26.09 ms in that series. Compared with AGG, the aggregate
 ink difference drops from 0.080% to 0.008%. The multi-contour stroke
 path still uses sampled intersections and renders the same ink.
 [Raw timings and coverage](linux-edge-area.json)
+
+## Integrated November benchmark
+
+Thirteen interleaved runs use one logical AMD EPYC 7763 CPU and the
+same pinned AGG build. Swag uses simple contour area integration and
+the compound scanline route also used by PDF. Times include recording
+and drawing. The aggregate ink differs from AGG by 0.008% for fills
+and 0.29% for strokes.
+[Timings and coverage](linux-nov26.json)
+
+| Workload | Swag triangles, ms | Swag scanlines, ms | AGG, ms |
+| --- | ---: | ---: | ---: |
+| Fills | 62.53 | 17.31 | 12.06 |
+| Strokes | | 36.65 | 18.55 |

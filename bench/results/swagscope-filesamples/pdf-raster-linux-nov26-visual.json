@@ -1,0 +1,922 @@
+[
+  {
+    "file": "sample1.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 8.63514,
+    "swag_mean_ink": 27.77639,
+    "pdfium_mean_ink": 26.69294
+  },
+  {
+    "file": "sample2.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      848,
+      1200
+    ],
+    "pdfium_dimensions": [
+      848,
+      1200
+    ],
+    "mean_rgb_error": 2.75011,
+    "swag_mean_ink": 10.66642,
+    "pdfium_mean_ink": 12.16089
+  },
+  {
+    "file": "sample3.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 2.64092,
+    "swag_mean_ink": 13.6221,
+    "pdfium_mean_ink": 14.97598
+  },
+  {
+    "file": "pdfbox-tiger.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      848,
+      1200
+    ],
+    "pdfium_dimensions": [
+      848,
+      1200
+    ],
+    "mean_rgb_error": 2.24268,
+    "swag_mean_ink": 40.813,
+    "pdfium_mean_ink": 42.52797
+  },
+  {
+    "file": "pdfbox-jpeg.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 2.47848,
+    "swag_mean_ink": 31.82784,
+    "pdfium_mean_ink": 31.99872
+  },
+  {
+    "file": "pdfbox-ligatures.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 0.69607,
+    "swag_mean_ink": 2.86932,
+    "pdfium_mean_ink": 3.29363
+  },
+  {
+    "file": "pdfbox-rotation.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 0.3941,
+    "swag_mean_ink": 0.37076,
+    "pdfium_mean_ink": 0.38066
+  },
+  {
+    "file": "pdfbox-scan.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 0.10309,
+    "swag_mean_ink": 20.33971,
+    "pdfium_mean_ink": 20.35459
+  },
+  {
+    "file": "tracemonkey.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 5.06683,
+    "swag_mean_ink": 14.17176,
+    "pdfium_mean_ink": 15.60378
+  },
+  {
+    "file": "tracemonkey.pdf",
+    "page": 6,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 6.50978,
+    "swag_mean_ink": 16.5826,
+    "pdfium_mean_ink": 16.75573
+  },
+  {
+    "file": "tracemonkey.pdf",
+    "page": 9,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 7.25252,
+    "swag_mean_ink": 19.13868,
+    "pdfium_mean_ink": 21.16215
+  },
+  {
+    "file": "perf_paths_operators.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 6.67674,
+    "swag_mean_ink": 84.04865,
+    "pdfium_mean_ink": 84.35931
+  },
+  {
+    "file": "perf_paths_polygons.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 3.5054,
+    "swag_mean_ink": 120.1048,
+    "pdfium_mean_ink": 120.196
+  },
+  {
+    "file": "perf_paths_curves.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 15.46287,
+    "swag_mean_ink": 121.81327,
+    "pdfium_mean_ink": 122.1369
+  },
+  {
+    "file": "perf_paths_map.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 7.13551,
+    "swag_mean_ink": 113.22145,
+    "pdfium_mean_ink": 113.65356
+  },
+  {
+    "file": "perf_paths_hairlines.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 22.35426,
+    "swag_mean_ink": 86.59966,
+    "pdfium_mean_ink": 86.628
+  },
+  {
+    "file": "perf_paths_clips.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 3.06726,
+    "swag_mean_ink": 57.7504,
+    "pdfium_mean_ink": 58.698
+  },
+  {
+    "file": "perf_text_cmap_mixed.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 34.32305,
+    "swag_mean_ink": 0.0,
+    "pdfium_mean_ink": 34.32305
+  },
+  {
+    "file": "perf_text_transformed.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 21.60732,
+    "swag_mean_ink": 71.30663,
+    "pdfium_mean_ink": 70.85846
+  },
+  {
+    "file": "perf_text_type3_vector.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 30.6335,
+    "swag_mean_ink": 24.96543,
+    "pdfium_mean_ink": 16.57412
+  },
+  {
+    "file": "perf_images_jpeg_large.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 2.40042,
+    "swag_mean_ink": 120.76332,
+    "pdfium_mean_ink": 120.96985
+  },
+  {
+    "file": "perf_images_jpeg_thumbnails.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 3.68065,
+    "swag_mean_ink": 101.50607,
+    "pdfium_mean_ink": 102.74339
+  },
+  {
+    "file": "perf_images_repeated.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 9.50185,
+    "swag_mean_ink": 41.54185,
+    "pdfium_mean_ink": 45.18103
+  },
+  {
+    "file": "perf_images_scan_gray.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 8.05561,
+    "swag_mean_ink": 63.84548,
+    "pdfium_mean_ink": 63.97627
+  },
+  {
+    "file": "perf_images_scan_bilevel.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 8.25761,
+    "swag_mean_ink": 62.91387,
+    "pdfium_mean_ink": 63.01489
+  },
+  {
+    "file": "perf_images_flate_predictor.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 0.31217,
+    "swag_mean_ink": 116.90415,
+    "pdfium_mean_ink": 117.05746
+  },
+  {
+    "file": "perf_images_smask.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 2.64548,
+    "swag_mean_ink": 82.94839,
+    "pdfium_mean_ink": 84.91317
+  },
+  {
+    "file": "perf_structure_forms.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 17.72287,
+    "swag_mean_ink": 114.36247,
+    "pdfium_mean_ink": 129.24786
+  },
+  {
+    "file": "perf_transparency_blend_modes.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 2.51703,
+    "swag_mean_ink": 124.8808,
+    "pdfium_mean_ink": 124.88611
+  },
+  {
+    "file": "perf_transparency_soft_masks.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 22.10659,
+    "swag_mean_ink": 5.6641,
+    "pdfium_mean_ink": 27.26477
+  },
+  {
+    "file": "perf_patterns_tiling_images.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 89.10579,
+    "swag_mean_ink": 0.0,
+    "pdfium_mean_ink": 89.10579
+  },
+  {
+    "file": "large_jpeg_downscale.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      1200,
+      300
+    ],
+    "pdfium_dimensions": [
+      1200,
+      300
+    ],
+    "mean_rgb_error": 0.14892,
+    "swag_mean_ink": 141.51042,
+    "pdfium_mean_ink": 141.54991
+  },
+  {
+    "file": "cmykjpeg.pdf",
+    "page": 1,
+    "swag_error": "load JPEG four-component sampling of 2x2 is not supported"
+  },
+  {
+    "file": "images_1bit_grayscale.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 5.45183,
+    "swag_mean_ink": 12.89922,
+    "pdfium_mean_ink": 13.29382
+  },
+  {
+    "file": "perf_images_inline_raw.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 10.48501,
+    "swag_mean_ink": 49.68627,
+    "pdfium_mean_ink": 52.44163
+  },
+  {
+    "file": "perf_images_indexed.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 15.19955,
+    "swag_mean_ink": 127.55081,
+    "pdfium_mean_ink": 127.72473
+  },
+  {
+    "file": "perf_images_16bit.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 0.25738,
+    "swag_mean_ink": 117.51641,
+    "pdfium_mean_ink": 117.60746
+  },
+  {
+    "file": "perf_images_stencil_masks.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 4.11937,
+    "swag_mean_ink": 64.42769,
+    "pdfium_mean_ink": 66.54023
+  },
+  {
+    "file": "perf_codecs_jpeg_gray_progressive.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 2.20642,
+    "swag_mean_ink": 118.97139,
+    "pdfium_mean_ink": 119.15416
+  },
+  {
+    "file": "perf_codecs_jpeg_cmyk.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 20.39935,
+    "swag_mean_ink": 117.04294,
+    "pdfium_mean_ink": 98.42693
+  },
+  {
+    "file": "perf_structure_colorspace_images.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 17.49483,
+    "swag_mean_ink": 132.26199,
+    "pdfium_mean_ink": 116.74302
+  },
+  {
+    "file": "pdfbox-source.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      848,
+      1200
+    ],
+    "pdfium_dimensions": [
+      848,
+      1200
+    ],
+    "mean_rgb_error": 13.91911,
+    "swag_mean_ink": 20.36141,
+    "pdfium_mean_ink": 10.30829
+  },
+  {
+    "file": "pdfbox-survey.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 2.63423,
+    "swag_mean_ink": 14.64177,
+    "pdfium_mean_ink": 15.4202
+  },
+  {
+    "file": "pdfbox-survey.pdf",
+    "page": 5,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 1.61921,
+    "swag_mean_ink": 3.79614,
+    "pdfium_mean_ink": 4.29291
+  },
+  {
+    "file": "perf_images_cmyk.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 18.8431,
+    "swag_mean_ink": 112.09931,
+    "pdfium_mean_ink": 94.81862
+  },
+  {
+    "file": "perf_images_masks.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 8.63764,
+    "swag_mean_ink": 139.10481,
+    "pdfium_mean_ink": 143.383
+  },
+  {
+    "file": "perf_structure_graphics_states.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 13.77271,
+    "swag_mean_ink": 104.79303,
+    "pdfium_mean_ink": 99.37407
+  },
+  {
+    "file": "perf_structure_shared_resources.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 6.33348,
+    "swag_mean_ink": 133.5528,
+    "pdfium_mean_ink": 135.51624
+  },
+  {
+    "file": "perf_structure_shared_resources.pdf",
+    "page": 2,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 6.4293,
+    "swag_mean_ink": 133.65662,
+    "pdfium_mean_ink": 135.63686
+  },
+  {
+    "file": "perf_structure_shared_resources.pdf",
+    "page": 3,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 6.38692,
+    "swag_mean_ink": 133.54697,
+    "pdfium_mean_ink": 135.50017
+  },
+  {
+    "file": "perf_structure_shared_resources.pdf",
+    "page": 4,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 6.3714,
+    "swag_mean_ink": 133.59114,
+    "pdfium_mean_ink": 135.56852
+  },
+  {
+    "file": "perf_text_cff_embedded_variants.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 15.3504,
+    "swag_mean_ink": 31.71052,
+    "pdfium_mean_ink": 40.59778
+  },
+  {
+    "file": "perf_transparency_groups.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 0.88503,
+    "swag_mean_ink": 50.36354,
+    "pdfium_mean_ink": 49.69985
+  },
+  {
+    "file": "perf_codecs_ccitt.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 8.37333,
+    "swag_mean_ink": 64.39952,
+    "pdfium_mean_ink": 64.47308
+  },
+  {
+    "file": "ccitt_EndOfBlock_false.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 6.58397,
+    "swag_mean_ink": 74.64514,
+    "pdfium_mean_ink": 75.23009
+  },
+  {
+    "file": "scan-bad.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 0.01816,
+    "swag_mean_ink": 0.10501,
+    "pdfium_mean_ink": 0.10983
+  },
+  {
+    "file": "bug1065245.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      849,
+      1200
+    ],
+    "pdfium_dimensions": [
+      849,
+      1200
+    ],
+    "mean_rgb_error": 0.17266,
+    "swag_mean_ink": 1.49707,
+    "pdfium_mean_ink": 1.62381
+  },
+  {
+    "file": "issue3584.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      1200,
+      300
+    ],
+    "pdfium_dimensions": [
+      1200,
+      300
+    ],
+    "mean_rgb_error": 166.79488,
+    "swag_mean_ink": 170.0,
+    "pdfium_mean_ink": 3.20512
+  },
+  {
+    "file": "bigboundingbox.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      928,
+      1200
+    ],
+    "pdfium_dimensions": [
+      928,
+      1200
+    ],
+    "mean_rgb_error": 1.32729,
+    "swag_mean_ink": 5.51039,
+    "pdfium_mean_ink": 5.77604
+  },
+  {
+    "file": "type3_d0_alpha.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      1200,
+      1200
+    ],
+    "pdfium_dimensions": [
+      1200,
+      1200
+    ],
+    "mean_rgb_error": 6.58906,
+    "swag_mean_ink": 19.90472,
+    "pdfium_mean_ink": 25.42678
+  },
+  {
+    "file": "tiling_pattern_cell_state.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      1200,
+      1200
+    ],
+    "pdfium_dimensions": [
+      1200,
+      1200
+    ],
+    "mean_rgb_error": 1.195,
+    "swag_mean_ink": 0.0,
+    "pdfium_mean_ink": 1.195
+  },
+  {
+    "file": "pattern_text_rotated_fallback_glyphs.pdf",
+    "page": 1,
+    "swag_dimensions": [
+      1200,
+      1140
+    ],
+    "pdfium_dimensions": [
+      1200,
+      1140
+    ],
+    "mean_rgb_error": 43.35432,
+    "swag_mean_ink": 0.30317,
+    "pdfium_mean_ink": 43.57394
+  }
+]

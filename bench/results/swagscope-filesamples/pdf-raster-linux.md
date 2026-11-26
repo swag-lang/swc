@@ -1,5 +1,60 @@
 # CPU PDF raster comparison on Linux
 
+## Expanded CPU benchmark on 26 November
+
+The corpus contains 56 PDFs and 62 selected pages. Swag renders 61
+pages at the same dimensions as PDFium. `cmykjpeg.pdf` requires 2 × 2
+subsampling for a four-component JPEG, which Swag currently rejects.
+The CPU-only Release builds run with one logical AMD EPYC 7763 CPU.
+Both reopen the file, load the page and render a white BGRA bitmap.
+Timings use the median of 14 samples across seven interleaved batches.
+PDFium 159.0.8149.0 uses AGG. The two Swag builds share compiler and Core
+revision `747be17d13`. The candidate includes compact grayscale JPEGs
+and SIMD packed RGB/BGR sampling with cached horizontal rows from
+`2db6d4c32f` and `c24152219a`.
+[1200 px results](pdf-raster-linux-nov26-1200.json)
+[2400 px results](pdf-raster-linux-nov26-2400.json)
+[1200 px image comparisons](pdf-raster-linux-nov26-visual.json)
+
+| PDF | 1200 px Swag / PDFium, ms | 2400 px Swag / PDFium, ms |
+| --- | ---: | ---: |
+| `sample1.pdf` | 28.21 / 25.35 | 50.76 / 37.82 |
+| `sample2.pdf` | 9.56 / 4.54 | 26.81 / 9.41 |
+| `sample3.pdf` | 21.72 / 11.00 | 41.91 / 16.32 |
+| `perf_codecs_ccitt.pdf` | 14.51 / 27.62 | 41.56 / 44.05 |
+| `perf_images_scan_bilevel.pdf` | 11.87 / 25.00 | 40.64 / 41.01 |
+| `perf_images_scan_gray.pdf` | 29.32 / 34.50 | 50.67 / 52.38 |
+| `perf_codecs_jpeg_gray_progressive.pdf` | 54.28 / 70.25 | 77.80 / 91.41 |
+| `perf_images_jpeg_large.pdf` | 67.18 / 111.14 |  |
+| `perf_images_16bit.pdf` | 25.99 / 16.43 | 48.29 / 27.71 |
+| `pdfbox-scan.pdf` | 4.16 / 1.59 | 19.87 / 5.78 |
+| `perf_paths_clips.pdf` | 39.78 / 40.01 | 101.75 / 99.85 |
+| `perf_paths_polygons.pdf` | 79.83 / 113.86 | 195.09 / 236.88 |
+| `perf_paths_hairlines.pdf` | 103.67 / 124.26 | 202.84 / 227.69 |
+| `perf_paths_curves.pdf` | 943.81 / 286.87 | 1669.88 / 563.54 |
+| `perf_text_transformed.pdf` | 333.57 / 158.16 | 1417.85 / 287.32 |
+
+Swag has the lower 1200 px median on 21 of the 61 pages it
+renders. The median of the per-page timing ratios is 1.39×.
+These figures include pages with visibly different output. Full-image
+mean absolute RGB error and mean ink show large differences on the
+clipped CFF glyph, the rotated fallback pattern glyphs, the tiling
+patterns and several other fixtures. Use the raw images' metrics when
+interpreting their timings. The two Swag builds have identical raster
+CRCs on all 61 supported pages at 1200 px and all 15 at 2400 px.
+
+The dense curve fixture spends most of its time in stroke replay. AGG
+builds joined outlines and accumulates edge area into cells before
+emitting spans. Swag integrates simple contour area directly and still
+collects winding crossings at four vertical positions per pixel for
+compound and dashed strokes. Transformed embedded glyphs also take
+that outline path. On light pages such as `sample2.pdf`, the cost of
+processing many small text items and image spans is large relative to
+overall painting time.
+[Native Swag and AGG vector benchmark](../../workloads/cpuvectors/README.md#integrated-november-benchmark)
+
+## Earlier 31-page benchmark
+
 The corpus adds 26 public PDFs from Mozilla PDF.js and Apache PDFBox to the three original
 FileSamples documents. It covers 31 pages across 29 files, with selected later pages from a
 research paper. The public fixtures can be fetched by upstream revision and checked by SHA-256.

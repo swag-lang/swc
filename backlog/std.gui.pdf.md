@@ -600,8 +600,13 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   cuts 2400 px render time on the transformed mask fixture from 233 to
   111 ms and brings the total from 274 to 161 ms against PDFium's 233 ms.
   All 43 supported cases retain their bitmap checksums.
-- Profile the remaining stroke coverage and image span composition. Retaining encoded images for
-  later zoom levels would let decoding use the requested image size.
+- The [62-page comparison](../bench/results/swagscope-filesamples/pdf-raster-linux.md#expanded-cpu-benchmark-on-26-november)
+  now measures FileSamples at 28.21, 9.56 and 21.72 ms at 1200 px. In the same
+  series PDFium takes 25.35, 4.54 and 11.00 ms. Swag is ahead on the large CCITT,
+  bilevel and gray scans at both tested sizes. The two new image paths preserve
+  every supported Swag raster checksum. The remaining curve and transformed-text
+  gaps call for reducing compound stroke and glyph scan conversion work. Keeping
+  encoded images available could let bitmap rendering decode at the requested size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

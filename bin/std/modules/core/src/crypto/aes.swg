@@ -130,6 +130,15 @@ public impl Aes
         let keyWords    = key.count / 4
         let rounds      = cast(u32, keyWords + 6)
         let useHardware = Swag.hasCpuFeature(.Aes)
+        if useHardware and keyWords != 6
+        {
+            .expandHardwareKey(key)
+            .rounds      = rounds
+            .ready       = true
+            .useHardware = true
+            return
+        }
+
         var expanded: [60] u32
         Swag.memcpy(&expanded[0], key.buffer, key.count)
         #static if BIG_ENDIAN
@@ -241,6 +250,56 @@ public impl Aes
             fail Errors.BadParameterError{"AES needs an initialized key"}
         if source.count != AesBlockSize or destination.count != AesBlockSize do
             fail Errors.BadParameterError{"AES block operations need exactly 16 input and output bytes"}
+    }
+
+    private mtd expandHardwareKey(key: const [..] u8)
+    {
+        const RoundConstants: [10] u32 = [1, 2, 4, 8, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36]
+        const Zero        = Swag.vecSplat(0'u8)
+        const RotatedWord = cast(U8x16, [13'u8, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12])
+        const LastWord    = cast(U8x16, [12'u8, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15])
+
+        #[Swag.Inline]
+        func nextKey(current, substituted: U8x16)->U8x16
+        {
+            let pairs = current ^ align(Zero, current, 12)
+            return pairs ^ align(Zero, pairs, 8) ^ substituted
+        }
+
+        var left = load(key.buffer)
+        let output = cast([*] u8, &.roundKeys[0])
+        if key.count == 16
+        {
+            .clear()
+            store(output, left)
+            for round in 1 until 11
+            {
+                let roundConstant = cast #bit (U8x16, splat(RoundConstants[round - 1]))
+                let substituted = Swag.vecAesEncryptLastRound(shuffle(left, RotatedWord), roundConstant)
+                left = nextKey(left, substituted)
+                store(output + round * AesBlockSize, left)
+            }
+
+            return
+        }
+
+        var right = load(key.buffer + AesBlockSize)
+        .clear()
+        store(output, left)
+        store(output + AesBlockSize, right)
+        for pair in 1 until 8
+        {
+            let round = pair * 2
+            let roundConstant = cast #bit (U8x16, splat(RoundConstants[pair - 1]))
+            let substituted = Swag.vecAesEncryptLastRound(shuffle(right, RotatedWord), roundConstant)
+            left = nextKey(left, substituted)
+            store(output + round * AesBlockSize, left)
+            if pair == 7 do
+                break
+
+            right = nextKey(right, Swag.vecAesEncryptLastRound(shuffle(left, LastWord), Zero))
+            store(output + (round + 1) * AesBlockSize, right)
+        }
     }
 
     #[Swag.Inline]

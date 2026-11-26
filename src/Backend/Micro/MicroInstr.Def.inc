@@ -76,6 +76,12 @@ SWC_MICRO_INSTR_DEF(
         .memBaseOperandIndex   = 0,
         .memOffsetOperandIndex = 0,
     })
+// Reads EAX/ECX and writes EAX/EBX/ECX/EDX. The encoder reports these fixed registers.
+SWC_MICRO_INSTR_DEF(
+    CpuId,
+    MicroInstrDef{
+        .flags = MicroInstrFlagsE::EncoderRegUseDef,
+    })
 // Cache hint for the line holding [op0.reg]. It never faults and has no observable effect, so it
 // carries no memory flag: passes neither order it against stores nor read it as a load, and it
 // survives dead-code elimination only because it defines nothing.

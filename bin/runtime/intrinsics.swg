@@ -423,6 +423,31 @@ func atomicStore(addr: *u64, value: u64)
     // CRC folding is made of.
     func vecCarrylessMul(value1, value2: #simd [2] u64, selector: u8)->#simd [2] u64
 
+    // Applies SubBytes, ShiftRows, MixColumns and AddRoundKey to an AES state.
+    //
+    // Bytes follow AES column order. Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesEncryptRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies SubBytes, ShiftRows and AddRoundKey to the final AES encryption round.
+    //
+    // Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesEncryptLastRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies the equivalent inverse cipher round to an AES state.
+    //
+    // Pass the round key after [[Swag.vecAesInverseMixColumns]]. Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesDecryptRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies InvShiftRows, InvSubBytes and AddRoundKey to the final AES decryption round.
+    //
+    // Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesDecryptLastRound(state, roundKey: #simd [16] u8)->#simd [16] u8
+
+    // Applies InvMixColumns to an AES round key for [[Swag.vecAesDecryptRound]].
+    //
+    // Call only when [[Swag.hasCpuFeature]] reports `.Aes`.
+    func vecAesInverseMixColumns(roundKey: #simd [16] u8)->#simd [16] u8
+
     // The high half of each lane product, using the lane type's signedness.
     //
     // The half of a lane product that '*' drops: lane 'i' answers the bits above the lane width of the full

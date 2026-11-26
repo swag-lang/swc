@@ -427,6 +427,11 @@ void MicroBuilder::emitBreakpoint()
     addInstruction(MicroInstrOpcode::Breakpoint, 0);
 }
 
+void MicroBuilder::emitCpuId()
+{
+    addInstruction(MicroInstrOpcode::CpuId, 0);
+}
+
 void MicroBuilder::emitPrefetch(MicroReg addrReg)
 {
     const auto& inst           = addInstruction(MicroInstrOpcode::Prefetch, 1);

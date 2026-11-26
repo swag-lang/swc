@@ -245,6 +245,12 @@ enum class MicroOp : uint8_t
     VecMaxF32,
     VecMaxF64,
 
+    // The AES rounds read one state and one round key (OpBinaryRegRegReg).
+    VecAesEncryptRound,
+    VecAesEncryptLastRound,
+    VecAesDecryptRound,
+    VecAesDecryptLastRound,
+
     // Packed unary forms, non-destructive (VecUnaryRegReg). The widen forms
     // extend the low eight/four/two lanes to double width; the movemask forms
     // write the lane sign bits into an integer register.
@@ -263,6 +269,7 @@ enum class MicroOp : uint8_t
     VecMoveMaskB,
     VecMoveMaskF32,
     VecMoveMaskF64,
+    VecAesInverseMixColumns,
 
     // Packed shifts by immediate (OpBinaryRegRegImm). The byte shifts move
     // whole bytes across the register (pslldq/psrldq); the A forms are

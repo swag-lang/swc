@@ -364,6 +364,29 @@ counts go through a nibble table, and the byte reversal is one dynamic permute.
 }
 
 /**
+# AES Rounds
+
+The AES intrinsics operate on sixteen bytes in AES column order. Check
+'Swag.hasCpuFeature(.Aes)' before executing them. 'Swag.vecAesEncryptRound' and
+'Swag.vecAesDecryptRound' take a state and a round key. Decryption uses
+'Swag.vecAesInverseMixColumns' to transform the intermediate round keys.
+'Swag.vecAesEncryptLastRound' and 'Swag.vecAesDecryptLastRound' omit MixColumns
+and take the corresponding untransformed round key.
+*/
+#test
+{
+    if not Swag.hasCpuFeature(.Aes) do
+        return
+
+    let state    = cast(#simd [16] u8, [0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0])
+    let roundKey = cast(#simd [16] u8, [0xD6, 0xAA, 0x74, 0xFD, 0xD2, 0xAF, 0x72, 0xFA, 0xDA, 0xA6, 0x78, 0xF1, 0xD6, 0xAB, 0x76, 0xFE])
+    let expected: [16] u8 = [0x89, 0xD8, 0x10, 0xE8, 0x85, 0x5A, 0xCE, 0x68, 0x2D, 0x18, 0x43, 0xD8, 0xCB, 0x12, 0x8F, 0xE4]
+    let round    = cast([16] u8, Swag.vecAesEncryptRound(state, roundKey))
+    for index in expected.count do
+        Swag.require(round[index] == expected[index])
+}
+
+/**
 # Boundaries
 
 A vector crosses module boundaries in the Swag calling convention only: a

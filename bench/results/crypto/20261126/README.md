@@ -63,3 +63,4 @@ optimizations moved each result.
 - [SHA-512 round-state rotation](sha512-rounds.md)
 - [Curve25519 field inversion and squaring](curve25519-inverse.md)
 - [P-256 four-bit scalar multiplication](p256-window.md)
+- [CPU feature discovery and AES instructions](hardware-instructions.md)

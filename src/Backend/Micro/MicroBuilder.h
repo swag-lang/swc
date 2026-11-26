@@ -140,6 +140,7 @@ public:
     void emitPop(MicroReg reg);
     void emitNop();
     void emitBreakpoint();
+    void emitCpuId();
     void emitTrap();
     void emitPrefetch(MicroReg addrReg);
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);

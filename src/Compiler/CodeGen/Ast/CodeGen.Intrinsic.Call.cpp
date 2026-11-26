@@ -743,6 +743,31 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenX64CpuId(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 3);
+
+        const MicroReg output = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg leaf = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B32);
+        const MicroReg subleaf = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B32);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, output, 4 * sizeof(uint32_t)));
+
+        constexpr MicroReg eax = MicroReg::intReg(0);
+        constexpr MicroReg ebx = MicroReg::intReg(1);
+        constexpr MicroReg ecx = MicroReg::intReg(2);
+        constexpr MicroReg edx = MicroReg::intReg(3);
+        MicroBuilder& builder = codeGen.builder();
+        builder.emitLoadRegReg(eax, leaf, MicroOpBits::B32);
+        builder.emitLoadRegReg(ecx, subleaf, MicroOpBits::B32);
+        builder.emitCpuId();
+        builder.emitLoadMemReg(output, 0, eax, MicroOpBits::B32);
+        builder.emitLoadMemReg(output, 4, ebx, MicroOpBits::B32);
+        builder.emitLoadMemReg(output, 8, ecx, MicroOpBits::B32);
+        builder.emitLoadMemReg(output, 12, edx, MicroOpBits::B32);
+        return Result::Continue;
+    }
+
     Result codeGenPrefetch(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const AstNodeRef argumentRef = codeGen.ast().oneNode(node.spanChildrenRef);
@@ -2504,6 +2529,23 @@ namespace
                 op = MicroOp::VecMaddUBS16;
                 break;
 
+            case TokenId::IntrinsicVecAesEncryptRound:
+                op = MicroOp::VecAesEncryptRound;
+                break;
+            case TokenId::IntrinsicVecAesEncryptLastRound:
+                op = MicroOp::VecAesEncryptLastRound;
+                break;
+            case TokenId::IntrinsicVecAesDecryptRound:
+                op = MicroOp::VecAesDecryptRound;
+                break;
+            case TokenId::IntrinsicVecAesDecryptLastRound:
+                op = MicroOp::VecAesDecryptLastRound;
+                break;
+            case TokenId::IntrinsicVecAesInverseMixColumns:
+                op      = MicroOp::VecAesInverseMixColumns;
+                isUnary = true;
+                break;
+
             case TokenId::IntrinsicVecPerm:
                 op = MicroOp::VecPermB;
                 break;
@@ -2724,6 +2766,8 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMemCmpIntrinsic(codeGen, *this);
         case TokenId::IntrinsicPrefetch:
             return codeGenPrefetch(codeGen, *this);
+        case TokenId::IntrinsicX64CpuId:
+            return codeGenX64CpuId(codeGen, *this);
 
         case TokenId::IntrinsicAtomicAdd:
             return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Add);

@@ -206,6 +206,7 @@ namespace
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Trap:
             case MicroInstrOpcode::Breakpoint:
+            case MicroInstrOpcode::CpuId:
             case MicroInstrOpcode::Ret:
                 return 0;
 

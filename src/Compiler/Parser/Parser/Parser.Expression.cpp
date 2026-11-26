@@ -950,6 +950,7 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecReduceOr:
         case TokenId::IntrinsicVecReduceXor:
         case TokenId::IntrinsicVecTruncS32:
+        case TokenId::IntrinsicVecAesInverseMixColumns:
         case TokenId::IntrinsicAtomicGet:
             return parseIntrinsicCallExpr(1);
 
@@ -979,10 +980,15 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecGather:
         case TokenId::IntrinsicVecPerm:
         case TokenId::IntrinsicVecShuffle:
+        case TokenId::IntrinsicVecAesEncryptRound:
+        case TokenId::IntrinsicVecAesEncryptLastRound:
+        case TokenId::IntrinsicVecAesDecryptRound:
+        case TokenId::IntrinsicVecAesDecryptLastRound:
             return parseIntrinsicCallExpr(2);
 
         case TokenId::IntrinsicMemCmp:
         case TokenId::IntrinsicTypeCmp:
+        case TokenId::IntrinsicX64CpuId:
         case TokenId::IntrinsicAtomicCmpXchg:
         case TokenId::IntrinsicMulAdd:
         case TokenId::IntrinsicVecShuffle2:

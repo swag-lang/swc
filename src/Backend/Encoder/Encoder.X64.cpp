@@ -773,6 +773,12 @@ namespace
             case MicroOp::VecMaxF32: return {VEX_MAP_0F, 0x00, 0x5F};
             case MicroOp::VecMaxF64: return {VEX_MAP_0F, 0x66, 0x5F};
 
+            case MicroOp::VecAesEncryptRound: return {VEX_MAP_0F38, 0x66, 0xDC};
+            case MicroOp::VecAesEncryptLastRound: return {VEX_MAP_0F38, 0x66, 0xDD};
+            case MicroOp::VecAesDecryptRound: return {VEX_MAP_0F38, 0x66, 0xDE};
+            case MicroOp::VecAesDecryptLastRound: return {VEX_MAP_0F38, 0x66, 0xDF};
+            case MicroOp::VecAesInverseMixColumns: return {VEX_MAP_0F38, 0x66, 0xDB};
+
             case MicroOp::VecAbsS8: return {VEX_MAP_0F38, 0x66, 0x1C};
             case MicroOp::VecAbsS16: return {VEX_MAP_0F38, 0x66, 0x1D};
             case MicroOp::VecAbsS32: return {VEX_MAP_0F38, 0x66, 0x1E};
@@ -1182,6 +1188,15 @@ void X64Encoder::onInstructionEncoded(const MicroInstr& inst, const MicroInstrOp
 
 void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand* ops, MicroInstrUseDef& info) const
 {
+    if (inst.op == MicroInstrOpcode::CpuId)
+    {
+        info.addUseDef(x64RegToMicroReg(X64Reg::Rax));
+        info.addDef(x64RegToMicroReg(X64Reg::Rbx));
+        info.addUseDef(x64RegToMicroReg(X64Reg::Rcx));
+        info.addDef(x64RegToMicroReg(X64Reg::Rdx));
+        return;
+    }
+
     if (!ops)
         return;
 
@@ -4413,6 +4428,12 @@ void X64Encoder::encodeTrap()
 void X64Encoder::encodeBreakpoint()
 {
     emitCpuOp(store_, 0xCC);
+}
+
+void X64Encoder::encodeCpuId()
+{
+    emitCpuOp(store_, 0x0F);
+    emitCpuOp(store_, 0xA2);
 }
 
 // prefetcht0 [memReg]: 0F 18 /1, the hint FFmpeg's prefetch_motion uses.

@@ -349,6 +349,7 @@ SWC_TOKEN_DEF(IntrinsicMemMove, "Swag.memmove", TokenIdKindE::Intrinsic | TokenI
 SWC_TOKEN_DEF(IntrinsicMemSet, "Swag.memset", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicMemCmp, "Swag.memcmp", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicPrefetch, "Swag.prefetch", TokenIdKindE::Intrinsic | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicX64CpuId, "Swag.__x64CpuId", TokenIdKindE::Intrinsic | TokenIdKindE::ArgumentStorageOnly)
 
 // INTRINSICS - ATOMIC
 
@@ -374,6 +375,11 @@ SWC_TOKEN_DEF(IntrinsicVecWidenLo, "Swag.vecWidenLo", TokenIdKindE::Intrinsic | 
 SWC_TOKEN_DEF(IntrinsicVecWidenHi, "Swag.vecWidenHi", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecAvgR, "Swag.vecAvgRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecClmul, "Swag.vecCarrylessMul", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesEncryptRound, "Swag.vecAesEncryptRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesEncryptLastRound, "Swag.vecAesEncryptLastRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesDecryptRound, "Swag.vecAesDecryptRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesDecryptLastRound, "Swag.vecAesDecryptLastRound", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
+SWC_TOKEN_DEF(IntrinsicVecAesInverseMixColumns, "Swag.vecAesInverseMixColumns", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMadd, "Swag.vecMulAddPairs", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecMaddUBS, "Swag.vecMulAddPairsSat", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)
 SWC_TOKEN_DEF(IntrinsicVecSad, "Swag.vecSumAbsDiff", TokenIdKindE::Intrinsic | TokenIdKindE::Return | TokenIdKindE::Portable)

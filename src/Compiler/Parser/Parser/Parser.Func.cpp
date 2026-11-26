@@ -674,6 +674,7 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                 case TokenId::IntrinsicVecReduceOr:
                 case TokenId::IntrinsicVecReduceXor:
                 case TokenId::IntrinsicVecTruncS32:
+                case TokenId::IntrinsicVecAesInverseMixColumns:
                 case TokenId::IntrinsicAtomicGet:
                 case TokenId::IntrinsicPrefetch:
                     numRequiredArgs = 1;
@@ -709,6 +710,10 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                 case TokenId::IntrinsicVecGather:
                 case TokenId::IntrinsicVecPerm:
                 case TokenId::IntrinsicVecShuffle:
+                case TokenId::IntrinsicVecAesEncryptRound:
+                case TokenId::IntrinsicVecAesEncryptLastRound:
+                case TokenId::IntrinsicVecAesDecryptRound:
+                case TokenId::IntrinsicVecAesDecryptLastRound:
                 case TokenId::IntrinsicAtomicSet:
                     numRequiredArgs = 2;
                     break;
@@ -718,6 +723,7 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                 case TokenId::IntrinsicMemSet:
                 case TokenId::IntrinsicMemCmp:
                 case TokenId::IntrinsicTypeCmp:
+                case TokenId::IntrinsicX64CpuId:
                 case TokenId::IntrinsicAtomicCmpXchg:
                 case TokenId::IntrinsicMulAdd:
                 case TokenId::IntrinsicVecShuffle2:

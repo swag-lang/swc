@@ -401,6 +401,16 @@ namespace
                 return "vec.maxf32";
             case MicroOp::VecMaxF64:
                 return "vec.maxf64";
+            case MicroOp::VecAesEncryptRound:
+                return "vec.aesenc";
+            case MicroOp::VecAesEncryptLastRound:
+                return "vec.aesenclast";
+            case MicroOp::VecAesDecryptRound:
+                return "vec.aesdec";
+            case MicroOp::VecAesDecryptLastRound:
+                return "vec.aesdeclast";
+            case MicroOp::VecAesInverseMixColumns:
+                return "vec.aesimc";
             case MicroOp::VecAbsS8:
                 return "vec.abss8";
             case MicroOp::VecAbsS16:
@@ -1094,6 +1104,8 @@ namespace
                 return tagInstructionToken("trap");
             case MicroInstrOpcode::Breakpoint:
                 return tagInstructionToken("breakpoint");
+            case MicroInstrOpcode::CpuId:
+                return tagInstructionToken("cpuid");
             case MicroInstrOpcode::Prefetch:
                 return std::format("{} [{}]", tagInstructionToken("prefetch"), regName(ops[0].reg, regPrintMode, encoder));
             case MicroInstrOpcode::Push:
@@ -1849,6 +1861,7 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
             case MicroInstrOpcode::Nop:
             case MicroInstrOpcode::Ret:
             case MicroInstrOpcode::Trap:
+            case MicroInstrOpcode::CpuId:
             case MicroInstrOpcode::Breakpoint:
                 break;
 

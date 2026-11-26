@@ -687,6 +687,63 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.require(img.pixels.buffer[3] == 99'u8)     // A
 }
 
+// Mixed layouts and odd rows keep their exact DIB bytes in a multi-image icon.
+#test
+{
+    const DirectorySize = 6'u64
+    const EntrySize     = 16'u64
+    const HeaderSize    = 40'u64
+    var images: Array'Image
+    for height in [1, 3]
+    {
+        for width in [1, 5, 6, 7, 8, 9, 31, 33]
+        {
+            for format in [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
+            {
+                var image = Image.create(width, height, format)
+                for i in image.pixels.count do
+                    image.pixels[i] = cast(u8, ((i * 59 + cast(u64, width) * 41) & 255))
+                images.add(#move image)
+            }
+        }
+    }
+
+    var encoded = expect Ico.encodeAll(images.toSlice())
+    let bytes   = encoded.moveToArray()
+    var offset  = DirectorySize + EntrySize * images.count
+    for i in images.count
+    {
+        let image     = &images[i]
+        let count     = cast(u64, image.width) * image.height
+        let xorSize   = count * 4
+        let andSize   = ((cast(u64, image.width) + 31) / 32) * 4 * image.height
+        let entrySize = HeaderSize + xorSize + andSize
+        let entry     = bytes.storage() + DirectorySize + i * EntrySize
+        let directory = cast(const [*] u32, entry + 8)
+        Swag.require(entry[0] == image.width and entry[1] == image.height)
+        Swag.require(directory[0] == entrySize and directory[1] == offset)
+        Swag.require(offset + entrySize <= bytes.count)
+
+        let bgr  = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
+        let red  = bgr ? 2 : 0
+        let blue = 2 - red
+        let xor  = bytes.storage() + offset + HeaderSize
+        for pixel in count
+        {
+            let src = image.pixels.storage() + pixel * image.bytesPerPixel
+            let dst = xor + pixel * 4
+            Swag.require(dst[0] == src[blue] and dst[1] == src[1] and dst[2] == src[red])
+            Swag.require(dst[3] == (image.bytesPerPixel == 4 ? src[3] : 255))
+        }
+
+        for padding in andSize do
+            Swag.require(xor[xorSize + padding] == 0)
+        offset += entrySize
+    }
+
+    Swag.require(offset == bytes.count)
+}
+
 // Error: dimensions above 256 cannot be encoded.
 #test
 {

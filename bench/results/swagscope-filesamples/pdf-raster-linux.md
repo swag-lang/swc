@@ -506,3 +506,32 @@ to 6.92 ms and the transformed soft-mask fixture from 43.66 to 29.56 ms
 in the focused comparison. All 43 supported cases keep their Swag
 checksums against the matched build at `5d769d9d98`. The 138 PDF tests
 include a retained page that outlives its reader and a detached alpha edit.
+
+
+## Public resource and graphics-state fixtures
+
+Six additional Mozilla PDF.js files exercise Flate CMYK images, inline
+masks, graphics state changes, shared resources, embedded CFF variants
+and transparency groups. The manifest now selects 53 page cases from 47
+PDFs, including all four pages of the shared-resource file.
+
+Seven interleaved Release runs at 1200 px use one AMD EPYC 7763 logical
+CPU and PDFium 159.0.8149.0. Swag uses the shared-image and JPEG retention
+changes based on `5d769d9d98`. Each sample opens a fresh reader.
+[Timings and checksums](pdf-raster-linux-expanded-resources.json)
+
+| PDF | Page | Swag, ms | PDFium, ms |
+| --- | ---: | ---: | ---: |
+| `perf_images_cmyk.pdf` | 1 | 56.78 | 67.49 |
+| `perf_images_masks.pdf` | 1 | 98.92 | 84.49 |
+| `perf_structure_graphics_states.pdf` | 1 | 339.18 | 226.03 |
+| `perf_structure_shared_resources.pdf` | 1 | 54.05 | 28.79 |
+| `perf_structure_shared_resources.pdf` | 2 | 55.35 | 26.22 |
+| `perf_structure_shared_resources.pdf` | 3 | 56.96 | 28.95 |
+| `perf_structure_shared_resources.pdf` | 4 | 71.92 | 27.30 |
+| `perf_text_cff_embedded_variants.pdf` | 1 | 14.71 | 9.46 |
+| `perf_transparency_groups.pdf` | 1 | 16.31 | 14.33 |
+
+Both engines render all nine added page cases at the same output
+dimensions. Shared-resource pages remain dominated by their first
+image load when opened separately.

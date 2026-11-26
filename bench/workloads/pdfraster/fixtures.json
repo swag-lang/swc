@@ -408,5 +408,68 @@
       5
     ],
     "sha256": "2e8b87ea72de7dd54176354706a5d7ff9e64a12624e603ffac64aa55743bf581"
+  },
+  {
+    "file": "perf_images_cmyk.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_cmyk.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "Flate-decoded DeviceCMYK image samples",
+    "pages": [
+      1
+    ],
+    "sha256": "d5bb1a090bdc7dc81199f784c0f1cc091053b9811caa1f26b54c2cdb3116f11a"
+  },
+  {
+    "file": "perf_images_masks.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_masks.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "inline image masks and alpha planes",
+    "pages": [
+      1
+    ],
+    "sha256": "de033c2214617cea47e931fa4e6a7eb84e8a4e9ea61c961221df3f2bdcee74ef"
+  },
+  {
+    "file": "perf_structure_graphics_states.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_graphics_states.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "repeated graphics state changes across vector paths",
+    "pages": [
+      1
+    ],
+    "sha256": "b94ec18f309c2f6e6246100f1e384b7027a1606c900560778a2f5bc26a947244"
+  },
+  {
+    "file": "perf_structure_shared_resources.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_shared_resources.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "shared image and font resources across four pages",
+    "pages": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "sha256": "df1222c2d1fc3efe54ce87540a952a27d8e622bc69f3c5a86d5162027735bb63"
+  },
+  {
+    "file": "perf_text_cff_embedded_variants.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_cff_embedded_variants.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "embedded CFF font variants",
+    "pages": [
+      1
+    ],
+    "sha256": "00ae75fae27cb643f70140ed7c8c2a7eb045c6527844f3adb539b07ea8d951f8"
+  },
+  {
+    "file": "perf_transparency_groups.pdf",
+    "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_transparency_groups.pdf",
+    "source": "Mozilla PDF.js",
+    "workload": "transparency groups with overlapping vector marks",
+    "pages": [
+      1
+    ],
+    "sha256": "6c0b6eebbefb4efc687630767221f151048cd36355bd9a4f020f92be25441d37"
   }
 ]

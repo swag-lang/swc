@@ -1,0 +1,1112 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu_affinity": [
+    2
+  ],
+  "side": 1200,
+  "pdfium": "159.0.8149.0@sourcebuild-toolchained",
+  "pypdfium2": "5.15.2",
+  "batches": 7,
+  "samples_per_batch": 1,
+  "cases": [
+    {
+      "file": "perf_images_cmyk.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_cmyk.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "Flate-decoded DeviceCMYK image samples",
+      "sha256": "d5bb1a090bdc7dc81199f784c0f1cc091053b9811caa1f26b54c2cdb3116f11a",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2750457362,
+            "ink_samples": 1024,
+            "objects": {
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              64361,
+              976128,
+              66448567
+            ],
+            [
+              97032,
+              617593,
+              98782780
+            ],
+            [
+              67698,
+              420562,
+              66369972
+            ],
+            [
+              69130,
+              586605,
+              65106162
+            ],
+            [
+              1589794,
+              38333326,
+              134814751
+            ],
+            [
+              65243,
+              437925,
+              63654395
+            ],
+            [
+              66486,
+              443164,
+              77831371
+            ]
+          ],
+          "median_ms": {
+            "open": 0.067698,
+            "load": 0.586605,
+            "render": 66.448567,
+            "total": 67.489056
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 161830929,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 0,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              846744,
+              25155787,
+              30773694
+            ],
+            [
+              891439,
+              23298995,
+              28500981
+            ],
+            [
+              1090423,
+              23516434,
+              31670870
+            ],
+            [
+              824813,
+              25027480,
+              33044186
+            ],
+            [
+              1223283,
+              27386543,
+              40134806
+            ],
+            [
+              1076247,
+              28186397,
+              29848927
+            ],
+            [
+              837597,
+              23120277,
+              31910552
+            ]
+          ],
+          "median_ms": {
+            "open": 0.891439,
+            "load": 25.02748,
+            "render": 31.67087,
+            "total": 56.776225
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_images_masks.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_images_masks.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "inline image masks and alpha planes",
+      "sha256": "de033c2214617cea47e931fa4e6a7eb84e8a4e9ea61c961221df3f2bdcee74ef",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2378213665,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 1,
+              "image": 6
+            }
+          },
+          "samples_ns": [
+            [
+              1180713,
+              66067630,
+              28483992
+            ],
+            [
+              1040650,
+              67237415,
+              30646430
+            ],
+            [
+              1143824,
+              140743145,
+              83539064
+            ],
+            [
+              1084843,
+              65692436,
+              30622095
+            ],
+            [
+              1968848,
+              78223218,
+              59889556
+            ],
+            [
+              1046580,
+              66671527,
+              27221078
+            ],
+            [
+              1318533,
+              77124937,
+              30876362
+            ]
+          ],
+          "median_ms": {
+            "open": 1.143824,
+            "load": 67.237415,
+            "render": 30.64643,
+            "total": 98.924495
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3028457565,
+            "ink_samples": 1024,
+            "objects": {
+              "path": 1,
+              "image": 6
+            }
+          },
+          "samples_ns": [
+            [
+              63008,
+              990175,
+              69051427
+            ],
+            [
+              88396,
+              1276864,
+              85697840
+            ],
+            [
+              90911,
+              1140558,
+              90370678
+            ],
+            [
+              65864,
+              1043986,
+              83383324
+            ],
+            [
+              101480,
+              809215,
+              67497812
+            ],
+            [
+              1419343,
+              11287094,
+              126057614
+            ],
+            [
+              66947,
+              894955,
+              70757240
+            ]
+          ],
+          "median_ms": {
+            "open": 0.088396,
+            "load": 1.043986,
+            "render": 83.383324,
+            "total": 84.493174
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_structure_graphics_states.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_graphics_states.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "repeated graphics state changes across vector paths",
+      "sha256": "b94ec18f309c2f6e6246100f1e384b7027a1606c900560778a2f5bc26a947244",
+      "page": 1,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 685603437,
+            "ink_samples": 947,
+            "objects": {
+              "text": 0,
+              "path": 5000,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              486967,
+              31710137,
+              287302802
+            ],
+            [
+              283493,
+              20890079,
+              277314066
+            ],
+            [
+              303121,
+              36485035,
+              317036774
+            ],
+            [
+              399923,
+              22407496,
+              316376313
+            ],
+            [
+              436261,
+              32987778,
+              307795467
+            ],
+            [
+              296769,
+              20977822,
+              288509117
+            ],
+            [
+              292791,
+              117400071,
+              375492696
+            ]
+          ],
+          "median_ms": {
+            "open": 0.303121,
+            "load": 31.710137,
+            "render": 307.795467,
+            "total": 339.183732
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 571597531,
+            "ink_samples": 936,
+            "objects": {
+              "path": 5000
+            }
+          },
+          "samples_ns": [
+            [
+              109306,
+              36640480,
+              213986786
+            ],
+            [
+              108735,
+              20720629,
+              168525854
+            ],
+            [
+              78959,
+              23766101,
+              209916668
+            ],
+            [
+              138060,
+              26460779,
+              265555615
+            ],
+            [
+              74811,
+              19922446,
+              206034760
+            ],
+            [
+              76994,
+              19474112,
+              183857364
+            ],
+            [
+              74591,
+              19086661,
+              171550620
+            ]
+          ],
+          "median_ms": {
+            "open": 0.078959,
+            "load": 20.720629,
+            "render": 206.03476,
+            "total": 226.032017
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_structure_shared_resources.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_shared_resources.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "shared image and font resources across four pages",
+      "sha256": "df1222c2d1fc3efe54ce87540a952a27d8e622bc69f3c5a86d5162027735bb63",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3833204054,
+            "ink_samples": 1023,
+            "objects": {
+              "image": 1,
+              "form": 1,
+              "text": 60
+            }
+          },
+          "samples_ns": [
+            [
+              73919,
+              1318482,
+              28176444
+            ],
+            [
+              69361,
+              1397632,
+              30364940
+            ],
+            [
+              67768,
+              1703839,
+              26351563
+            ],
+            [
+              58991,
+              1263770,
+              24273951
+            ],
+            [
+              97173,
+              1251707,
+              27440503
+            ],
+            [
+              71164,
+              1326648,
+              29260570
+            ],
+            [
+              70322,
+              1263490,
+              23972982
+            ]
+          ],
+          "median_ms": {
+            "open": 0.070322,
+            "load": 1.318482,
+            "render": 27.440503,
+            "total": 28.789383
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 4254974939,
+            "ink_samples": 1023,
+            "objects": {
+              "text": 61,
+              "path": 1,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              851203,
+              17282411,
+              39692999
+            ],
+            [
+              2221734,
+              19150983,
+              50353360
+            ],
+            [
+              831736,
+              15895072,
+              37323886
+            ],
+            [
+              760452,
+              16232508,
+              36316508
+            ],
+            [
+              741386,
+              16056747,
+              36431784
+            ],
+            [
+              882932,
+              16392237,
+              36761675
+            ],
+            [
+              754161,
+              15754126,
+              38122497
+            ]
+          ],
+          "median_ms": {
+            "open": 0.831736,
+            "load": 16.232508,
+            "render": 37.323886,
+            "total": 54.050694
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_structure_shared_resources.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_shared_resources.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "shared image and font resources across four pages",
+      "sha256": "df1222c2d1fc3efe54ce87540a952a27d8e622bc69f3c5a86d5162027735bb63",
+      "page": 2,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1685746893,
+            "ink_samples": 1023,
+            "objects": {
+              "text": 61,
+              "path": 1,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              889284,
+              17018755,
+              39788829
+            ],
+            [
+              902119,
+              17768054,
+              37358760
+            ],
+            [
+              746065,
+              15778453,
+              38828057
+            ],
+            [
+              743269,
+              15572846,
+              36924773
+            ],
+            [
+              803182,
+              15716596,
+              36400667
+            ],
+            [
+              1004001,
+              16024375,
+              38536486
+            ],
+            [
+              816387,
+              16452631,
+              37269932
+            ]
+          ],
+          "median_ms": {
+            "open": 0.816387,
+            "load": 16.024375,
+            "render": 37.35876,
+            "total": 55.352575
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 378442919,
+            "ink_samples": 1023,
+            "objects": {
+              "image": 1,
+              "form": 1,
+              "text": 60
+            }
+          },
+          "samples_ns": [
+            [
+              101411,
+              1929914,
+              36221982
+            ],
+            [
+              66335,
+              1296020,
+              24858912
+            ],
+            [
+              1601286,
+              17014380,
+              47859685
+            ],
+            [
+              66555,
+              1241609,
+              23870400
+            ],
+            [
+              65574,
+              1379247,
+              24134327
+            ],
+            [
+              137109,
+              1769482,
+              36417055
+            ],
+            [
+              67417,
+              1314756,
+              24821780
+            ]
+          ],
+          "median_ms": {
+            "open": 0.067417,
+            "load": 1.379247,
+            "render": 24.858912,
+            "total": 26.221267
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_structure_shared_resources.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_shared_resources.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "shared image and font resources across four pages",
+      "sha256": "df1222c2d1fc3efe54ce87540a952a27d8e622bc69f3c5a86d5162027735bb63",
+      "page": 3,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2898810576,
+            "ink_samples": 1023,
+            "objects": {
+              "text": 61,
+              "path": 1,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              737519,
+              16899651,
+              64268412
+            ],
+            [
+              1015402,
+              23385828,
+              55895968
+            ],
+            [
+              890727,
+              16117141,
+              37960173
+            ],
+            [
+              745894,
+              16216217,
+              38872331
+            ],
+            [
+              715047,
+              15617229,
+              43175554
+            ],
+            [
+              853116,
+              16952373,
+              39153388
+            ],
+            [
+              858346,
+              15983438,
+              37364950
+            ]
+          ],
+          "median_ms": {
+            "open": 0.853116,
+            "load": 16.216217,
+            "render": 39.153388,
+            "total": 56.958877
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 2869939554,
+            "ink_samples": 1023,
+            "objects": {
+              "image": 1,
+              "form": 1,
+              "text": 60
+            }
+          },
+          "samples_ns": [
+            [
+              66295,
+              1433429,
+              37827626
+            ],
+            [
+              93867,
+              1811782,
+              31798605
+            ],
+            [
+              69771,
+              1283618,
+              25514467
+            ],
+            [
+              69170,
+              1320787,
+              35382048
+            ],
+            [
+              69060,
+              1379488,
+              24180194
+            ],
+            [
+              105128,
+              1292083,
+              27554998
+            ],
+            [
+              67758,
+              1463496,
+              25088002
+            ]
+          ],
+          "median_ms": {
+            "open": 0.06917,
+            "load": 1.379488,
+            "render": 27.554998,
+            "total": 28.952209
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_structure_shared_resources.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_structure_shared_resources.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "shared image and font resources across four pages",
+      "sha256": "df1222c2d1fc3efe54ce87540a952a27d8e622bc69f3c5a86d5162027735bb63",
+      "page": 4,
+      "results": {
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1664203546,
+            "ink_samples": 1023,
+            "objects": {
+              "text": 61,
+              "path": 1,
+              "image": 1
+            }
+          },
+          "samples_ns": [
+            [
+              1046591,
+              16209872,
+              38691433
+            ],
+            [
+              718192,
+              15402435,
+              105179224
+            ],
+            [
+              761474,
+              15678766,
+              35900765
+            ],
+            [
+              1150586,
+              23848640,
+              54062365
+            ],
+            [
+              974926,
+              23359969,
+              47587853
+            ],
+            [
+              774649,
+              23193785,
+              49421464
+            ],
+            [
+              881911,
+              17077377,
+              41395914
+            ]
+          ],
+          "median_ms": {
+            "open": 0.881911,
+            "load": 17.077377,
+            "render": 47.587853,
+            "total": 71.922748
+          }
+        },
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1674228093,
+            "ink_samples": 1023,
+            "objects": {
+              "image": 1,
+              "form": 1,
+              "text": 60
+            }
+          },
+          "samples_ns": [
+            [
+              1859611,
+              20473500,
+              46318885
+            ],
+            [
+              69842,
+              1352126,
+              25276178
+            ],
+            [
+              107563,
+              1698498,
+              44778063
+            ],
+            [
+              102162,
+              1859882,
+              28820157
+            ],
+            [
+              69261,
+              1264090,
+              24056170
+            ],
+            [
+              68469,
+              1304667,
+              24997833
+            ],
+            [
+              81203,
+              1603089,
+              25612700
+            ]
+          ],
+          "median_ms": {
+            "open": 0.081203,
+            "load": 1.603089,
+            "render": 25.6127,
+            "total": 27.296992
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_text_cff_embedded_variants.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_text_cff_embedded_variants.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "embedded CFF font variants",
+      "sha256": "00ae75fae27cb643f70140ed7c8c2a7eb045c6527844f3adb539b07ea8d951f8",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 3092337493,
+            "ink_samples": 360,
+            "objects": {
+              "text": 225
+            }
+          },
+          "samples_ns": [
+            [
+              104005,
+              1904286,
+              8013819
+            ],
+            [
+              131858,
+              3220885,
+              11835898
+            ],
+            [
+              80882,
+              2211114,
+              7201561
+            ],
+            [
+              64441,
+              1904196,
+              7488712
+            ],
+            [
+              83647,
+              1987533,
+              7108276
+            ],
+            [
+              70132,
+              1952927,
+              7194248
+            ],
+            [
+              73258,
+              1972925,
+              7041849
+            ]
+          ],
+          "median_ms": {
+            "open": 0.080882,
+            "load": 1.972925,
+            "render": 7.201561,
+            "total": 9.457349
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1810259005,
+            "ink_samples": 275,
+            "objects": {
+              "text": 1329,
+              "path": 0,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              116519,
+              2299690,
+              12074606
+            ],
+            [
+              218812,
+              3853957,
+              20357856
+            ],
+            [
+              121369,
+              2230410,
+              11946987
+            ],
+            [
+              119966,
+              2351408,
+              12242895
+            ],
+            [
+              119115,
+              2187138,
+              11663544
+            ],
+            [
+              215907,
+              2411912,
+              12309499
+            ],
+            [
+              120077,
+              2628229,
+              13064641
+            ]
+          ],
+          "median_ms": {
+            "open": 0.120077,
+            "load": 2.351408,
+            "render": 12.242895,
+            "total": 14.714269
+          }
+        }
+      },
+      "same_dimensions": true
+    },
+    {
+      "file": "perf_transparency_groups.pdf",
+      "url": "https://raw.githubusercontent.com/mozilla/pdf.js/ac7d3717e478133747f47819816c743b296a2e9c/test/pdfs/perf_transparency_groups.pdf",
+      "source": "Mozilla PDF.js",
+      "workload": "transparency groups with overlapping vector marks",
+      "sha256": "6c0b6eebbefb4efc687630767221f151048cd36355bd9a4f020f92be25441d37",
+      "page": 1,
+      "results": {
+        "pdfium": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 1630659390,
+            "ink_samples": 1024,
+            "objects": {
+              "path": 1,
+              "form": 10
+            }
+          },
+          "samples_ns": [
+            [
+              59262,
+              3248407,
+              11023306
+            ],
+            [
+              244320,
+              5194131,
+              15820919
+            ],
+            [
+              132259,
+              2885393,
+              11861096
+            ],
+            [
+              147277,
+              2744128,
+              10012164
+            ],
+            [
+              94708,
+              5174364,
+              15454673
+            ],
+            [
+              98986,
+              2589767,
+              10940922
+            ],
+            [
+              57298,
+              2788290,
+              11297184
+            ]
+          ],
+          "median_ms": {
+            "open": 0.098986,
+            "load": 2.885393,
+            "render": 11.297184,
+            "total": 14.330975
+          }
+        },
+        "swag": {
+          "image": {
+            "width": 928,
+            "height": 1200,
+            "crc32": 545997318,
+            "ink_samples": 1024,
+            "objects": {
+              "text": 0,
+              "path": 801,
+              "image": 0
+            }
+          },
+          "samples_ns": [
+            [
+              137048,
+              2850377,
+              13170328
+            ],
+            [
+              134734,
+              4665645,
+              17821857
+            ],
+            [
+              220716,
+              2697099,
+              13036689
+            ],
+            [
+              250031,
+              4555328,
+              15113300
+            ],
+            [
+              268836,
+              4758631,
+              18294140
+            ],
+            [
+              141106,
+              2838234,
+              12836081
+            ],
+            [
+              290066,
+              2829648,
+              13192162
+            ]
+          ],
+          "median_ms": {
+            "open": 0.220716,
+            "load": 2.850377,
+            "render": 13.192162,
+            "total": 16.311876
+          }
+        }
+      },
+      "same_dimensions": true
+    }
+  ]
+}

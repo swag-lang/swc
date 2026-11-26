@@ -77,6 +77,7 @@ internal
     const LzDictSize      = 32768
     const LzDictSizeMask  = LzDictSize - 1
     const MinMatchLen     = 3
+    const MinBulkRunBytes = 64
     const MaxMatchLen     = 258
 
     const LzCodeBufSize = 24 * 1024
@@ -1087,7 +1088,96 @@ impl Deflate
         result.count += source.count + blockCount * HeaderBytes
     }
 
-    mtd compress() fail
+    // Sample the input before selecting the loop that detects uniform runs.
+    // Both loops maintain the same history and produce the same stream.
+    func hasRepeatedRuns(source: const [..] u8)->bool
+    {
+        const SampleBytes = 4096
+        if source.count < SampleBytes do
+            return false
+
+        let sample  = source.buffer + (source.count - SampleBytes) / 2
+        var matches = 0
+        for index in SampleBytes / MinBulkRunBytes
+        {
+            let block = sample + index * MinBulkRunBytes
+            if Deflate.allBytesMatch(block, MinBulkRunBytes, block[0])
+            {
+                matches += 1
+                if matches == 4 do
+                    return true
+            }
+        }
+
+        return false
+    }
+
+    #[Swag.NoInline]
+    func allBytesMatch(source: const [*] u8, count: u32, value: u8)->bool
+    {
+        let pattern = Simd.splat(value)
+        var offset  = 0'u32
+        while count - offset >= 16
+        {
+            if Simd.anyTrue(Simd.load(source + offset) != pattern) do
+                return false
+            offset += 16
+        }
+
+        for index in offset until count where source[index] != value do
+            return false
+        return true
+    }
+
+    #[Swag.NoInline]
+    mtd refillRepeatedBytes(dstPos, insPos, count: u32, value: u8)
+    {
+        let d    = unwrap .state
+        let head = Math.min(count, LzDictSize - dstPos)
+        let tail = count - head
+        Memory.set(&d.dict[dstPos], value, head)
+        if dstPos < MaxMatchLen - 1 do
+            Memory.set(&d.dict[LzDictSize + dstPos], value, Math.min(head, MaxMatchLen - 1 - dstPos))
+        if tail
+        {
+            Memory.set(&d.dict[0], value, tail)
+            Memory.set(&d.dict[LzDictSize], value, tail)
+        }
+
+        // Each window contains the same bytes and extends both hash chains.
+        let window = cast(u32, value) * 0x01010101
+        let hash   = (window * LzHashMultiplier) >> LzHashDiscard
+        let hash3  = ((window >> 8) * LzHash3Multiplier) >> LzHashDiscard
+        let first  = insPos & LzDictSizeMask
+        d.next[first]  = d.hash[hash]
+        d.prev3[first] = d.hash3[hash3]
+        const Sequence = cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7])
+        var index = 1'u32
+        while count - index >= 8
+        {
+            let pos = (insPos + index) & LzDictSizeMask
+            if LzDictSize - pos < 8 do
+                break
+            let previous = Simd.splat(cast(u16, (insPos + index - 1))) + Sequence
+            Simd.store(&d.next[pos], previous)
+            Simd.store(&d.prev3[pos], previous)
+            index += 8
+        }
+
+        for offset in index until count
+        {
+            let pos      = (insPos + offset) & LzDictSizeMask
+            let previous = cast(u16, (insPos + offset - 1))
+            d.next[pos]  = previous
+            d.prev3[pos] = previous
+        }
+
+        let last = cast(u16, (insPos + count - 1))
+        d.hash[hash]   = last
+        d.hash3[hash3] = last
+    }
+
+    mtd(DETECT_RUNS: bool) compress() fail
     {
         let d          = unwrap .state
         var pSrc       = d.inSrc
@@ -1111,9 +1201,21 @@ impl Deflate
                 d.lookaheadSize += numBytesToProcess
 
                 Swag.assert(pSrc != null)
+                if DETECT_RUNS and numBytesToProcess >= MinBulkRunBytes
+                {
+                    let repeated = cast(u8, window & 255)
+                    if (window & 0xFFFFFF) == cast(u32, repeated) * 0x010101 and
+                       Deflate.allBytesMatch(pSrc, numBytesToProcess, repeated)
+                    {
+                        .refillRepeatedBytes(dstPos, insPos, numBytesToProcess, repeated)
+                        window = cast(u32, repeated) * 0x01010101
+                        pSrc   = pSrc_end
+                    }
+                }
+
                 while pSrc != pSrc_end
                 {
-                    let c = pSrc[]
+                    let c = pSrc![]
                     pSrc += 1
                     d.dict[dstPos] = c
                     if dstPos < (MaxMatchLen - 1) do
@@ -1350,7 +1452,10 @@ public impl Deflate
             d.srcBufLeft = source.count
             d.outBufOfs  = result.count
 
-            try .compress()
+            if Deflate.hasRepeatedRuns(source) do
+                try .compress'(true)()
+            else do
+                try .compress'(false)()
             .flushBlock(true)
             Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
         }

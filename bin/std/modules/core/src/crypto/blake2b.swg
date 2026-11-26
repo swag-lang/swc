@@ -30,17 +30,26 @@ private const Sigma: [192] u8 = [
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
     14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3]
 
+// Advances two independent G functions together.
 #[Swag.Inline]
-private func mix(state: *[16] u64, a, b, c, d: u64, x, y: u64)
+private func mixPair(state: *[16] u64, a0, b0, c0, d0, a1, b1, c1, d1: u64, x0, y0, x1, y1: u64)
 {
-    state[][a] = (state[][a] + x) + state[][b]
-    state[][d] = Swag.ror(state[][d] ^ state[][a], 32'u8)
-    state[][c] += state[][d]
-    state[][b] = Swag.ror(state[][b] ^ state[][c], 24'u8)
-    state[][a] = (state[][a] + y) + state[][b]
-    state[][d] = Swag.ror(state[][d] ^ state[][a], 16'u8)
-    state[][c] += state[][d]
-    state[][b] = Swag.ror(state[][b] ^ state[][c], 63'u8)
+    state[][a0] = (state[][a0] + x0) + state[][b0]
+    state[][a1] = (state[][a1] + x1) + state[][b1]
+    state[][d0] = Swag.ror(state[][d0] ^ state[][a0], 32'u8)
+    state[][d1] = Swag.ror(state[][d1] ^ state[][a1], 32'u8)
+    state[][c0] += state[][d0]
+    state[][c1] += state[][d1]
+    state[][b0] = Swag.ror(state[][b0] ^ state[][c0], 24'u8)
+    state[][b1] = Swag.ror(state[][b1] ^ state[][c1], 24'u8)
+    state[][a0] = (state[][a0] + y0) + state[][b0]
+    state[][a1] = (state[][a1] + y1) + state[][b1]
+    state[][d0] = Swag.ror(state[][d0] ^ state[][a0], 16'u8)
+    state[][d1] = Swag.ror(state[][d1] ^ state[][a1], 16'u8)
+    state[][c0] += state[][d0]
+    state[][c1] += state[][d1]
+    state[][b0] = Swag.ror(state[][b0] ^ state[][c0], 63'u8)
+    state[][b1] = Swag.ror(state[][b1] ^ state[][c1], 63'u8)
 }
 
 // Computes a BLAKE2b digest incrementally, in unkeyed or keyed mode.
@@ -156,8 +165,13 @@ public impl Blake2b
         // A sequence ending on a block boundary leaves the buffer full: the final compression
         // takes it as it is, and there is no element at `bufferCount` to address.
         Swag.memset(.buffer.buffer + .bufferCount, 0, Blake2bBlockSize - .bufferCount)
-        .compress(&.buffer[0], .bufferCount, true)
+        .compress(.buffer.buffer, .bufferCount, true)
+        .writeDigest(destination)
+    }
 
+    #[Swag.Inline]
+    private mtd writeDigest(destination: [..] u8)
+    {
         #static if BIG_ENDIAN
         {
             var words: [8] u64
@@ -198,6 +212,12 @@ public impl Blake2b
     func compute(data: const [..] u8, destination: [..] u8) fail
     {
         var hash = try Blake2b.create(destination.count)
+        if data.count <= Blake2bBlockSize
+        {
+            hash.computeFinalBlock(data, destination)
+            return
+        }
+
         hash.update(data)
         try hash.finalize(destination)
     }
@@ -208,20 +228,68 @@ public impl Blake2b
     func computeKeyed(key, data: const [..] u8, destination: [..] u8) fail
     {
         var hash = try Blake2b.createKeyed(key, destination.count)
+        if data.count <= Blake2bBlockSize
+        {
+            hash.computeFinalBlock(data, destination)
+            return
+        }
+
         hash.update(data)
         try hash.finalize(destination)
     }
 
+    #[Swag.Inline]
+    private mtd computeFinalBlock(data: const [..] u8, destination: [..] u8)
+    {
+        // A pending key block needs its own compression before a nonempty message.
+        if .bufferCount
+        {
+            if not data.count
+            {
+                .compress(.buffer.buffer, .bufferCount, true)
+                .writeDigest(destination)
+                return
+            }
+
+            .compress(.buffer.buffer, .bufferCount, false)
+        }
+
+        if data.count == Blake2bBlockSize
+        {
+            .compress(data.buffer, data.count, true)
+        }
+        else
+        {
+            if data.count do
+                Swag.memcpy(.buffer.buffer, data.buffer, data.count)
+            Swag.memset(.buffer.buffer + data.count, 0, Blake2bBlockSize - data.count)
+            .compress(.buffer.buffer, data.count, true)
+        }
+
+        .writeDigest(destination)
+    }
+
     private mtd compress(input: const [*] u8, count: u64, last: bool)
+    {
+        let words = cast(const [*] u64, input)
+        #static if BIG_ENDIAN
+        {
+            var converted: [16] u64
+            for index in 16 do
+                converted[index] = Math.littleEndianToNative(words[index])
+            .compressWords(converted.buffer, count, last)
+            Crypto.secureClear(converted)
+        }
+        else do
+            .compressWords(words, count, last)
+    }
+
+    #[Swag.Inline]
+    private mtd compressWords(m: const [*] u64, count: u64, last: bool)
     {
         .counterLow += count
         if .counterLow < count do
             .counterHigh += 1
-
-        let words = cast(const [*] u64, input)
-        var m: [16] u64
-        for index in 16 do
-            m[index] = Math.littleEndianToNative(words[index])
 
         var v: [16] u64
         const WordsPerVector = 2
@@ -240,14 +308,14 @@ public impl Blake2b
         for round in 12
         {
             let s = round * 16
-            mix(&v, 0, 4, 8, 12, m[Sigma[s + 0]], m[Sigma[s + 1]])
-            mix(&v, 1, 5, 9, 13, m[Sigma[s + 2]], m[Sigma[s + 3]])
-            mix(&v, 2, 6, 10, 14, m[Sigma[s + 4]], m[Sigma[s + 5]])
-            mix(&v, 3, 7, 11, 15, m[Sigma[s + 6]], m[Sigma[s + 7]])
-            mix(&v, 0, 5, 10, 15, m[Sigma[s + 8]], m[Sigma[s + 9]])
-            mix(&v, 1, 6, 11, 12, m[Sigma[s + 10]], m[Sigma[s + 11]])
-            mix(&v, 2, 7, 8, 13, m[Sigma[s + 12]], m[Sigma[s + 13]])
-            mix(&v, 3, 4, 9, 14, m[Sigma[s + 14]], m[Sigma[s + 15]])
+            mixPair(&v, 0, 4, 8, 12, 1, 5, 9, 13,
+                    m[Sigma[s + 0]], m[Sigma[s + 1]], m[Sigma[s + 2]], m[Sigma[s + 3]])
+            mixPair(&v, 2, 6, 10, 14, 3, 7, 11, 15,
+                    m[Sigma[s + 4]], m[Sigma[s + 5]], m[Sigma[s + 6]], m[Sigma[s + 7]])
+            mixPair(&v, 0, 5, 10, 15, 1, 6, 11, 12,
+                    m[Sigma[s + 8]], m[Sigma[s + 9]], m[Sigma[s + 10]], m[Sigma[s + 11]])
+            mixPair(&v, 2, 7, 8, 13, 3, 4, 9, 14,
+                    m[Sigma[s + 12]], m[Sigma[s + 13]], m[Sigma[s + 14]], m[Sigma[s + 15]])
         }
 
         for group in 8 / WordsPerVector
@@ -260,7 +328,6 @@ public impl Blake2b
             Math.Simd.store(position, updated)
         }
 
-        Crypto.secureClear(m)
         Crypto.secureClear(v)
     }
 }

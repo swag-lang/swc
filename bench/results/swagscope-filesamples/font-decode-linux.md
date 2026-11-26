@@ -1393,3 +1393,27 @@ literals, fixed point, default widths and arithmetic fallback.
 | `NimbusMonoPS-Regular.cff` | U+0069 | 223.63 | 182.28 | 290.46 |
 | `SourceSans3-Regular.cff` | U+0043 | 723.97 | 594.05 | 618.90 |
 | `SourceSans3-Regular.cff` | U+0045 | 709.19 | 592.83 | 613.85 |
+
+## Additional Japanese and Korean TrueType fixtures
+
+Klee One, Sawarabi Gothic, Shippori Mincho and Gothic A1 add eight
+cases on four pinned public fonts. The corpus now covers 99 cases on
+72 files. The added glyphs include kana, Hangul and ideographs.
+
+The timings are medians of nine interleaved batches of 31 pathname
+opens on one CPU. Both Swag builds report identical glyph indices,
+advances, dimensions and CRC-64. Six cases are ahead of Pillow.
+Gothic A1 takes longer to open, and its 2.3 MB input copy accounts
+for a median 216 µs in the phase probe before table validation.
+[Raw timings and fixture hashes](font-decode-linux-cjk-static-extra.json)
+
+| Fixture | Character | Swag before (µs) | Swag candidate | Pillow |
+| --- | ---: | ---: | ---: | ---: |
+| `KleeOne-Regular.ttf` | U+6C38 | 2085.41 | 1728.55 | 4705.11 |
+| `KleeOne-Regular.ttf` | U+3042 | 2186.15 | 1947.57 | 4422.03 |
+| `SawarabiGothic-Regular.ttf` | U+672C | 321.63 | 311.96 | 1715.63 |
+| `SawarabiGothic-Regular.ttf` | U+9AA8 | 301.78 | 320.55 | 2188.69 |
+| `ShipporiMincho-Regular.ttf` | U+5B57 | 2002.75 | 1461.16 | 3535.57 |
+| `ShipporiMincho-Regular.ttf` | U+6F22 | 2105.92 | 1907.31 | 3998.37 |
+| `GothicA1-Regular.ttf` | U+D55C | 377.89 | 408.10 | 272.04 |
+| `GothicA1-Regular.ttf` | U+AC01 | 413.31 | 430.23 | 218.79 |

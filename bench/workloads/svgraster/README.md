@@ -9,9 +9,11 @@ python3 bench/workloads/svgraster/run.py --swc /path/to/swc --resvg /path/to/res
 ```
 
 The generated corpus covers small drawings, curve fills, translucent strokes, short-lived
-clip masks, one dense compound fill, and a large collection of independent paths. With
-`--filesamples /path/to/filesamples/samples/image/svg`, the runner uses the four original
-files described in [std.pixel.image.057](../../../backlog/std.pixel.image.md#stdpixelimage057--svg-cpu-rasterization-is-far-slower-than-resvg).
+clip masks, one dense compound fill, and a large collection of independent paths. The
+`sparse-curves` fixture distributes curved contours over mostly empty sample rows.
+`thin-edges` concentrates subpixel contours on a few sample rows, with many crossings
+per active row. Pass `--filesamples /path/to/filesamples/samples/image/svg` to use the
+four originals described in [std.pixel.image.057](../../../backlog/std.pixel.image.md#stdpixelimage057--svg-cpu-rasterization-is-far-slower-than-resvg).
 It verifies their SHA-256 digests and caps the largest output at 2048 pixels.
 
 The runner prints separate parse, raster and combined medians from seven repetitions. Each

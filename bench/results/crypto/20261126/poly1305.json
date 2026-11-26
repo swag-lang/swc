@@ -1,0 +1,932 @@
+{
+  "utc": "2026-11-26T11:19:55.031474+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7",
+  "reference_sha256": "a55877509964ba39f8c160d703e2288b1a7eae94294597668c5813eb9ac90bc1",
+  "swag_builds": {
+    "baseline": "fcdcbcb77d12303cb90103518a459308efad01e52c19a7b66d619c56e110ec98",
+    "direct-blocks": "b7c8f573a01b8d6b7e5a34bcc794a64d9db359c23a7d1516c3b26f8c7baa5300"
+  },
+  "rounds": 11,
+  "target_ms": 40,
+  "rows": [
+    {
+      "algorithm": "poly1305",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "427c9e000e987b634633750f30259c614dcb09b94556d52ddb3487c619e0ee8d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 431489,
+          "seconds": [
+            0.034029858,
+            0.034334768,
+            0.033503704,
+            0.033938029,
+            0.033691268,
+            0.049404233,
+            0.033384375,
+            0.037538429,
+            0.034038851,
+            0.035630712,
+            0.035612264
+          ]
+        },
+        "baseline": {
+          "iterations": 75629,
+          "seconds": [
+            0.035478913,
+            0.042133659,
+            0.03472799,
+            0.036065157,
+            0.03505257,
+            0.039354127,
+            0.037022501,
+            0.039361088,
+            0.036117346,
+            0.037378167,
+            0.036528806
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 163215,
+          "seconds": [
+            0.040438613,
+            0.038431085,
+            0.037652231,
+            0.039099913,
+            0.039640789,
+            0.037662236,
+            0.037542675,
+            0.037308993,
+            0.039232042,
+            0.039107585,
+            0.043836196
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "a1f85a3f3d77f401636455070c9983d899010f42bfc5e3879e4ce3704d8a5512",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 81947,
+          "seconds": [
+            0.033604516,
+            0.034777926,
+            0.035362728,
+            0.033134277,
+            0.034270781,
+            0.034808021,
+            0.03454848,
+            0.034848112,
+            0.034849935,
+            0.034349771,
+            0.033553609
+          ]
+        },
+        "baseline": {
+          "iterations": 2089,
+          "seconds": [
+            0.040913248,
+            0.039400187,
+            0.040605153,
+            0.042070453,
+            0.043402822,
+            0.038647321,
+            0.04185609,
+            0.040723401,
+            0.039325914,
+            0.039737054,
+            0.038099956
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 13361,
+          "seconds": [
+            0.039869334,
+            0.040761569,
+            0.038752861,
+            0.03900488,
+            0.0412528,
+            0.040279502,
+            0.040366553,
+            0.041173821,
+            0.041096364,
+            0.042954836,
+            0.039998509
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "a9504e6322dac92b4ddc938d9e35bc9d2f30dd0acfb82ec187c335902a3e418a",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 7680,
+          "seconds": [
+            0.041433523,
+            0.0414848,
+            0.040946147,
+            0.041175814,
+            0.041260982,
+            0.041364949,
+            0.040673947,
+            0.041032889,
+            0.040685545,
+            0.040618373,
+            0.040189577
+          ]
+        },
+        "baseline": {
+          "iterations": 137,
+          "seconds": [
+            0.050392493,
+            0.04114032,
+            0.041010605,
+            0.039722573,
+            0.03949563,
+            0.03945592,
+            0.040563841,
+            0.043011211,
+            0.039093835,
+            0.040168985,
+            0.039874321
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 922,
+          "seconds": [
+            0.041712904,
+            0.041246651,
+            0.0421214,
+            0.042713403,
+            0.040443269,
+            0.040764153,
+            0.04027083,
+            0.04114635,
+            0.040437751,
+            0.040405001,
+            0.041137877
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "29a9d6b85f06cf44c50584f731adbe39906a6668ffdbf11171b16c696f20b5ca",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 484,
+          "seconds": [
+            0.040396189,
+            0.042385323,
+            0.040399664,
+            0.040946638,
+            0.041204407,
+            0.040306793,
+            0.041730981,
+            0.040165951,
+            0.040687839,
+            0.041587374,
+            0.043138724
+          ]
+        },
+        "baseline": {
+          "iterations": 9,
+          "seconds": [
+            0.041876971,
+            0.042958893,
+            0.041919956,
+            0.042833664,
+            0.042811681,
+            0.042793413,
+            0.039921613,
+            0.041067761,
+            0.041281173,
+            0.042398518,
+            0.042775075
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 58,
+          "seconds": [
+            0.040838335,
+            0.05967447,
+            0.039941051,
+            0.040664744,
+            0.041167772,
+            0.040992427,
+            0.040372372,
+            0.041588987,
+            0.041157326,
+            0.041217547,
+            0.042536095
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "02c13ba4860b72e492980585b0be763b8d02176774d63a929e3b865c41cd206d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 67295,
+          "seconds": [
+            0.041938594,
+            0.041719754,
+            0.040703291,
+            0.040569449,
+            0.043817728,
+            0.044279685,
+            0.04072904,
+            0.042484988,
+            0.040453184,
+            0.041288353,
+            0.041086852
+          ]
+        },
+        "baseline": {
+          "iterations": 40865,
+          "seconds": [
+            0.038747822,
+            0.038445687,
+            0.041883932,
+            0.039395649,
+            0.039687951,
+            0.038713491,
+            0.038632799,
+            0.045748119,
+            0.040249497,
+            0.038936717,
+            0.039800797
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 64481,
+          "seconds": [
+            0.04144544,
+            0.040381977,
+            0.04017816,
+            0.040838115,
+            0.041231868,
+            0.039698597,
+            0.040408957,
+            0.040688189,
+            0.045838456,
+            0.040089686,
+            0.039865464
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "bcb28e2faf1a8e8960fc47a0c51d0180169f10a882fdecf0198da0af5d606281",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 24646,
+          "seconds": [
+            0.041359567,
+            0.040514784,
+            0.041337995,
+            0.041556485,
+            0.041804037,
+            0.040650659,
+            0.043026872,
+            0.04073807,
+            0.041337785,
+            0.04286599,
+            0.039552642
+          ]
+        },
+        "baseline": {
+          "iterations": 1556,
+          "seconds": [
+            0.039100781,
+            0.036975466,
+            0.03732355,
+            0.036187728,
+            0.03851645,
+            0.036033395,
+            0.038047832,
+            0.037277952,
+            0.037559506,
+            0.042831748,
+            0.037724495
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 4857,
+          "seconds": [
+            0.039642588,
+            0.042068106,
+            0.039396407,
+            0.040953816,
+            0.040783208,
+            0.040791821,
+            0.039220191,
+            0.041421321,
+            0.040644339,
+            0.110179831,
+            0.039420774
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "5966a7076b3df6f52c68bf6620c478a84b85705f1bf080b9728fd769c5973353",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 2216,
+          "seconds": [
+            0.03988249,
+            0.039784212,
+            0.039799004,
+            0.03997539,
+            0.042034986,
+            0.041128369,
+            0.040343294,
+            0.042201698,
+            0.0406918,
+            0.04038642,
+            0.039954037
+          ]
+        },
+        "baseline": {
+          "iterations": 107,
+          "seconds": [
+            0.046028459,
+            0.038020301,
+            0.038508467,
+            0.039647876,
+            0.044084056,
+            0.03860321,
+            0.041882646,
+            0.038590321,
+            0.041015579,
+            0.038764964,
+            0.03857651
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 332,
+          "seconds": [
+            0.039340572,
+            0.040111986,
+            0.040025826,
+            0.054926409,
+            0.055853627,
+            0.045176855,
+            0.042611125,
+            0.040255602,
+            0.039818694,
+            0.040549456,
+            0.040720033
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "direct-blocks",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "3ef7f44df0297f4e6de14e580be7afad7247e732fd28b5d58548d687fd56d3fa",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 141,
+          "seconds": [
+            0.040017273,
+            0.041272687,
+            0.058046965,
+            0.040509355,
+            0.049425913,
+            0.041291245,
+            0.041198845,
+            0.041650871,
+            0.039971514,
+            0.042206185,
+            0.040238807
+          ]
+        },
+        "baseline": {
+          "iterations": 6,
+          "seconds": [
+            0.058033364,
+            0.035744739,
+            0.034757951,
+            0.036369262,
+            0.038227915,
+            0.035989779,
+            0.036231593,
+            0.034761787,
+            0.034841006,
+            0.037520096,
+            0.039098958
+          ]
+        },
+        "direct-blocks": {
+          "iterations": 21,
+          "seconds": [
+            0.040083052,
+            0.041694583,
+            0.112088699,
+            0.040586172,
+            0.040798681,
+            0.116018686,
+            0.042438685,
+            0.04024702,
+            0.040063052,
+            0.039947208,
+            0.040741095
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "direct-blocks",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "direct-blocks"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "direct-blocks",
+          "OpenSSL",
+          "baseline"
+        ]
+      ]
+    }
+  ]
+}

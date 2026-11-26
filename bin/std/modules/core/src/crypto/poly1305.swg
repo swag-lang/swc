@@ -18,8 +18,7 @@ private const LimbMask = 0x3FF_FFFF'u64
 #[Swag.Inline]
 private func load32Le(data: const [*] u8)->u64
 {
-    return cast(u64, data[0]) | (cast(u64, data[1]) << 8) |
-           (cast(u64, data[2]) << 16) | (cast(u64, data[3]) << 24)
+    return Math.littleEndianToNative(cast(const [*] u32, data)[0])
 }
 
 // Authenticates a message under a one-time key, following RFC 8439.
@@ -82,18 +81,34 @@ public impl Poly1305
     {
         Swag.assert(.initialized, "Poly1305 needs an initialized sequence")
 
+        if not data.count do
+            return
+
         var offset = 0'u64
-        while offset < data.count
+
+        // Finish a block carried by a previous update before reading whole blocks in place.
+        if .bufferCount
         {
-            let count = Math.min(data.count - offset, Poly1305BlockSize - .bufferCount)
-            Swag.memcpy(&.buffer[.bufferCount], data.buffer + offset, count)
-            .bufferCount += count
-            offset       += count
-            if .bufferCount == Poly1305BlockSize
-            {
-                .absorb(.buffer, 1 << 24)
-                .bufferCount = 0
-            }
+            offset = Math.min(data.count, Poly1305BlockSize - .bufferCount)
+            Swag.memcpy(&.buffer[.bufferCount], data.buffer, offset)
+            .bufferCount += offset
+            if .bufferCount < Poly1305BlockSize do
+                return
+            .absorbBlocks(.buffer.buffer, 1, 1 << 24)
+            .bufferCount = 0
+        }
+
+        let blocks = (data.count - offset) / Poly1305BlockSize
+        if blocks
+        {
+            .absorbBlocks(data.buffer + offset, blocks, 1 << 24)
+            offset += blocks * Poly1305BlockSize
+        }
+
+        if offset < data.count
+        {
+            .bufferCount = data.count - offset
+            Swag.memcpy(.buffer.buffer, data.buffer + offset, .bufferCount)
         }
     }
 
@@ -109,8 +124,8 @@ public impl Poly1305
         if .bufferCount
         {
             .buffer[.bufferCount] = 1
-            Swag.memset(&.buffer[.bufferCount + 1], 0, Poly1305BlockSize - .bufferCount - 1)
-            .absorb(.buffer, 0)
+            Swag.memset(.buffer.buffer + .bufferCount + 1, 0, Poly1305BlockSize - .bufferCount - 1)
+            .absorbBlocks(.buffer.buffer, 1, 0)
             .bufferCount = 0
         }
 
@@ -197,48 +212,49 @@ public impl Poly1305
         return mac.finalize()
     }
 
-    // Adds one 16-byte block to the accumulator and multiplies by `r` modulo
-    // 2^130 - 5. `terminator` carries the implicit high bit of a full block.
-    private mtd absorb(block: const [..] u8, terminator: u64)
+    // The implicit high bit belongs to each full block. Finalization supplies a
+    // zero high bit because the padded final block already contains its terminator.
+    private mtd absorbBlocks(blocks: const [*] u8, count, highBit: u64)
     {
-        let t0 = load32Le(block.buffer)
-        let t1 = load32Le(block.buffer + 4)
-        let t2 = load32Le(block.buffer + 8)
-        let t3 = load32Le(block.buffer + 12)
-
-        var h = .accumulator
-        h[0] += t0 & 0x3FF_FFFF
-        h[1] += ((t0 >> 26) | (t1 << 6)) & 0x3FF_FFFF
-        h[2] += ((t1 >> 20) | (t2 << 12)) & 0x3FF_FFFF
-        h[3] += ((t2 >> 14) | (t3 << 18)) & 0x3FF_FFFF
-        h[4] += (t3 >> 8) | terminator
-
-        // Reducing modulo 2^130 - 5 folds the overflow back with a factor of
-        // five, so the wrapped limbs are scaled instead of discarded.
+        // Terms that wrap past 2^130 pick up a factor of five modulo 2^130 - 5.
         var scaled: [5] u64
         for i in 1 to 4 do
             scaled[i] = .r[i] * 5
 
+        var h = .accumulator
         var d: [5] u64
-        d[0] = h[0] * .r[0] + h[1] * scaled[4] + h[2] * scaled[3] + h[3] * scaled[2] + h[4] * scaled[1]
-        d[1] = h[0] * .r[1] + h[1] * .r[0] + h[2] * scaled[4] + h[3] * scaled[3] + h[4] * scaled[2]
-        d[2] = h[0] * .r[2] + h[1] * .r[1] + h[2] * .r[0] + h[3] * scaled[4] + h[4] * scaled[3]
-        d[3] = h[0] * .r[3] + h[1] * .r[2] + h[2] * .r[1] + h[3] * .r[0] + h[4] * scaled[4]
-        d[4] = h[0] * .r[4] + h[1] * .r[3] + h[2] * .r[2] + h[3] * .r[1] + h[4] * .r[0]
-
-        var carry = 0'u64
-        for i in 5
+        for block in count
         {
-            d[i]  += carry
-            carry = d[i] >> 26
-            .accumulator[i] = d[i] & LimbMask
+            let data = cast(const [*] u64, blocks + block * Poly1305BlockSize)
+            let low  = Math.littleEndianToNative(data[0])
+            let high = Math.littleEndianToNative(data[1])
+            h[0] += low & LimbMask
+            h[1] += (low >> 26) & LimbMask
+            h[2] += ((low >> 52) | (high << 12)) & LimbMask
+            h[3] += (high >> 14) & LimbMask
+            h[4] += (high >> 40) | highBit
+
+            d[0] = h[0] * .r[0] + h[1] * scaled[4] + h[2] * scaled[3] + h[3] * scaled[2] + h[4] * scaled[1]
+            d[1] = h[0] * .r[1] + h[1] * .r[0] + h[2] * scaled[4] + h[3] * scaled[3] + h[4] * scaled[2]
+            d[2] = h[0] * .r[2] + h[1] * .r[1] + h[2] * .r[0] + h[3] * scaled[4] + h[4] * scaled[3]
+            d[3] = h[0] * .r[3] + h[1] * .r[2] + h[2] * .r[1] + h[3] * .r[0] + h[4] * scaled[4]
+            d[4] = h[0] * .r[4] + h[1] * .r[3] + h[2] * .r[2] + h[3] * .r[1] + h[4] * .r[0]
+
+            var carry = 0'u64
+            for i in 5
+            {
+                d[i]  += carry
+                carry = d[i] >> 26
+                h[i]  = d[i] & LimbMask
+            }
+
+            h[0]  += carry * 5
+            carry = h[0] >> 26
+            h[0]  &= LimbMask
+            h[1]  += carry
         }
 
-        .accumulator[0] += carry * 5
-        carry = .accumulator[0] >> 26
-        .accumulator[0] &= LimbMask
-        .accumulator[1] += carry
-
+        .accumulator = h
         secureClear(h)
         secureClear(d)
         secureClear(scaled)

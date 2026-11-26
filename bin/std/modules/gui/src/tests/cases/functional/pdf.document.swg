@@ -221,6 +221,47 @@ private func sampleDocument()->Document
     Swag.require(solid.pixelColor(0, 0) == opaque.pixelColor(0, 0))
 }
 
+// Bilevel samples start a new byte on each row. A separate soft mask retains all alpha levels.
+#test
+{
+    const Width  = 9
+    const Height = 3
+    var gray      = Image.create(Width, Height, .Gray8)
+    var grayAlpha = Image.create(Width, Height, .GrayAlpha8)
+    for y in Height
+    {
+        for x in Width
+        {
+            let index = y * Width + x
+            let white = cast(u8, (x + y * 2) % 3 == 0 ? 255 : 0)
+            gray.pixels[index]               = white
+            grayAlpha.pixels[index * 2 + 0]  = white
+            grayAlpha.pixels[index * 2 + 1]  = cast(u8, (index * 17) & 255)
+        }
+    }
+
+    var page = Page.create(80, 60)
+    page.addImage(gray, 4, 4, 20, 10)
+    page.addImage(grayAlpha, 4, 20, 20, 10)
+    var document = Document.create()
+    document.addPage(#move page)
+    let bytes = expect document.encode()
+    let text  = String.from(cast(string, bytes.toSlice()))
+    Swag.require(text.indexOf("/BitsPerComponent 1 /Filter") != Swag.U64.Max)
+
+    let decoded      = expect Document.decode(bytes.toSlice())
+    let image        = unwrap decoded.pages[0].items[0].imageValue()
+    let imageMasked  = unwrap decoded.pages[0].items[1].imageValue()
+    for y in Height
+    {
+        for x in Width
+        {
+            Swag.require(image.pixelColor(x, y) == gray.pixelColor(x, y))
+            Swag.require(imageMasked.pixelColor(x, y) == grayAlpha.pixelColor(x, y))
+        }
+    }
+}
+
 // The streaming reader indexes every page but does not decode a later page's stream until that
 // page is requested.
 #test

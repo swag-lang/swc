@@ -515,7 +515,10 @@ private impl Ac3Codec
 
         if .channels == 2 and not block.blockSwitch[0] and (bsi.nfchans < 2 or not block.blockSwitch[1])
         {
-            .stereoImdct.process(&.imdct, &.coefficients, destination)
+            if bsi.acmod == 2 do
+                .stereoImdct.processFused(&.imdct, &.coefficients, destination)
+            else do
+                .stereoImdct.process(&.imdct, &.coefficients, destination)
             return
         }
 

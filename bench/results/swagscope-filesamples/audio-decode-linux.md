@@ -984,3 +984,43 @@ bit for bit.
 
 Native Release passes 324 audio tests. Release-safe passes
 33 focused FLAC tests.
+
+## Twenty-eighth optimization pass
+
+This pass compares MP3 and Dolby on the same native Release compiler against
+`d7e3bc1803` and native FFmpeg 7.1.5. Each FileSamples median uses 56 samples
+and includes opening and materializing the first ten seconds of PCM16.
+
+[Raw stage times and PCM deltas](audio-decode-linux-round28.json)
+
+| Format | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| AC-3 | 9.64 | 9.04 | 8.74 | 9.34 | 8.89 | 8.20 | 8.98 | 8.34 | 7.88 |
+| MP3 | 8.57 | 7.89 | 7.88 | 8.25 | 7.71 | 7.67 | 5.79 | 5.72 | 8.13 |
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ac3-32k-mono.ac3` | 8.73 | 8.62 | 8.09 | 4.88 | 4.83 | 4.23 |
+| `ac3-44k-stereo.ac3` | 17.74 | 17.13 | 17.18 | 9.95 | 9.88 | 9.25 |
+| `ac3-48k-5.1.ac3` | 23.43 | 22.74 | 24.45 | 25.10 | 23.74 | 24.62 |
+| `eac3-48k-5.1.eac3` | 23.63 | 23.06 | 24.45 | 23.26 | 23.66 | 25.08 |
+| `mp3-24k-mono.mp3` | 2.78 | 2.61 | 2.89 | 2.32 | 1.91 | 3.00 |
+| `mp3-48k-stereo.mp3` | 10.47 | 9.52 | 9.32 | 5.92 | 5.91 | 9.24 |
+| `mp3-8k-mono.mp3` | 1.04 | 1.00 | 1.30 | 0.76 | 0.88 | 1.43 |
+
+MP3 reads guarded bit windows directly, updates only the bit position when it
+consumes a code, and applies a Huffman sample sign with integer XOR. Its PCM is
+byte-identical to the preceding build. AC-3 fuses stereo synthesis and packs
+the resulting PCM in pairs. Dolby reuses the current header-read window.
+
+AC-3 FileSamples changes 29 samples and generated stereo changes 17, with a
+maximum difference of one PCM16 unit. The other generated Dolby files remain
+byte-identical. Both FileSamples outputs stay within one PCM16 unit of the
+original Swag reference. All nine outputs match across worker budgets.
+AC-3 FileSamples still trails native FFmpeg. MP3 approaches parity on one core
+and leads with four cores in this series.
+
+Native Release passes 325 audio tests. Release-safe passes 38 focused MP3 and
+Dolby functional tests.

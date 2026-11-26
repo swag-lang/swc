@@ -1171,3 +1171,139 @@ private func initializeDolbyCore()
         g_ShortSin[index] = -Math.sin(angle)
     }
 }
+
+// Carry two consecutive radix-two stages through each four-way group.
+#[Swag.Inline]
+private func(Half: u64) fftStereoPair(fft: *StereoSpectrum)
+{
+    const Width = 4 * Half
+    for group in 128 / Width
+    {
+        let base = group * Width * 2
+        for row in Half / 2
+        {
+            let offset = row * 4
+            let a      = base + offset
+            let b      = a + 2 * Half
+            let c      = a + 4 * Half
+            let d      = a + 6 * Half
+
+            let firstC    = Simd.load(&g_StereoTwiddleReal[2 * Half + offset])
+            let firstS    = Simd.load(&g_StereoTwiddleImag[2 * Half + offset])
+            let br        = Simd.load(&fft.real[b])
+            let bi        = Simd.load(&fft.imaginary[b])
+            let dr        = Simd.load(&fft.real[d])
+            let di        = Simd.load(&fft.imaginary[d])
+            let brRotated = br * firstC - bi * firstS
+            let biRotated = bi * firstC + br * firstS
+            let drRotated = dr * firstC - di * firstS
+            let diRotated = di * firstC + dr * firstS
+
+            let cr            = Simd.load(&fft.real[c])
+            let ci            = Simd.load(&fft.imaginary[c])
+            let upperEvenReal = cr + drRotated
+            let upperEvenImag = ci + diRotated
+            let upperOddReal  = cr - drRotated
+            let upperOddImag  = ci - diRotated
+            let cEven         = Simd.load(&g_StereoTwiddleReal[4 * Half + offset])
+            let sEven         = Simd.load(&g_StereoTwiddleImag[4 * Half + offset])
+            let evenReal      = upperEvenReal * cEven - upperEvenImag * sEven
+            let evenImag      = upperEvenImag * cEven + upperEvenReal * sEven
+            let ar            = Simd.load(&fft.real[a])
+            let ai            = Simd.load(&fft.imaginary[a])
+            let firstReal     = ar + brRotated
+            let firstImag     = ai + biRotated
+            Simd.store(&fft.real[a], firstReal + evenReal)
+            Simd.store(&fft.imaginary[a], firstImag + evenImag)
+            Simd.store(&fft.real[c], firstReal - evenReal)
+            Simd.store(&fft.imaginary[c], firstImag - evenImag)
+
+            let cOdd       = Simd.load(&g_StereoTwiddleReal[6 * Half + offset])
+            let sOdd       = Simd.load(&g_StereoTwiddleImag[6 * Half + offset])
+            let oddReal    = upperOddReal * cOdd - upperOddImag * sOdd
+            let oddImag    = upperOddImag * cOdd + upperOddReal * sOdd
+            let secondReal = ar - brRotated
+            let secondImag = ai - biRotated
+            Simd.store(&fft.real[b], secondReal + oddReal)
+            Simd.store(&fft.imaginary[b], secondImag + oddImag)
+            Simd.store(&fft.real[d], secondReal - oddReal)
+            Simd.store(&fft.imaginary[d], secondImag - oddImag)
+        }
+    }
+}
+
+private func prepareStereoSpectrumFused(fft: *StereoSpectrum, left, right: const [*] f64)
+{
+    for k in 128
+    {
+        let hi     = 255 - 2 * k
+        let lo     = 2 * k
+        let a      = cast(f32, left[hi])
+        let b      = cast(f32, left[lo])
+        let c      = cast(f32, right[hi])
+        let d      = cast(f32, right[lo])
+        let index  = 2 * cast(u32, g_FftReverse[k])
+        let cosine = g_StereoCos[lo]
+        let sine   = g_StereoSin[lo]
+        fft.real[index]          = a * cosine - b * sine
+        fft.imaginary[index]     = b * cosine + a * sine
+        fft.real[index + 1]      = c * cosine - d * sine
+        fft.imaginary[index + 1] = d * cosine + c * sine
+    }
+
+    // Each vector holds one complex component for two bins in both channels.
+    const DuplicateFirst   = cast(Simd.U32x4, [0'u32, 1, 0, 1])
+    const DuplicateLast    = cast(Simd.U32x4, [2'u32, 3, 2, 3])
+    const SumAndDifference = cast(Simd.F32x4, [1.0'f32, 1, -1, -1])
+    for group in 64
+    {
+        let index = 4 * group
+        let r     = Simd.load(&fft.real[index])
+        let i     = Simd.load(&fft.imaginary[index])
+        let r0    = Simd.permute(r, DuplicateFirst)
+        let i0    = Simd.permute(i, DuplicateFirst)
+        let r1    = Simd.permute(r, DuplicateLast)
+        let i1    = Simd.permute(i, DuplicateLast)
+        Simd.store(&fft.real[index], r0 + r1 * SumAndDifference)
+        Simd.store(&fft.imaginary[index], i0 + i1 * SumAndDifference)
+    }
+
+    fftStereoPair'2(fft)
+    fftStereoPair'8(fft)
+    fftStereoPair'32(fft)
+
+    for group in 64
+    {
+        let index = group * 4
+        let r     = Simd.load(&fft.real[index])
+        let i     = Simd.load(&fft.imaginary[index])
+        let c     = Simd.load(&g_StereoCos[index])
+        let w     = Simd.load(&g_StereoSin[index])
+        Simd.store(&fft.real[index], r * c - i * w)
+        Simd.store(&fft.imaginary[index], i * c + r * w)
+    }
+}
+
+impl StereoImdct
+{
+    mtd processFused(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, output: [*] s16)
+    {
+        let left  = &states[][0]
+        let right = &states[][1]
+        if not .active
+        {
+            for index in SamplesPerBlock
+            {
+                .delay[2 * index]     = cast(f32, left.delay[index])
+                .delay[2 * index + 1] = cast(f32, right.delay[index])
+            }
+
+            .active = true
+        }
+
+        var fft: StereoSpectrum
+        prepareStereoSpectrumFused(&fft, &coefficients[][0, 0], &coefficients[][1, 0])
+        writeStereoHalf'(false, 2)(&fft, &.delay[0], output)
+        writeStereoHalf'(true, 2)(&fft, &.delay[0], output)
+    }
+}

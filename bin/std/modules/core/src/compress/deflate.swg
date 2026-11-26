@@ -862,7 +862,36 @@ impl Deflate
 
     mtd compressLzCodes()->bool
     {
-        let d     = unwrap .state
+        let d           = unwrap .state
+        var output      = unwrap d.outputBufAddr
+        let limit       = unwrap d.outputBufEndAddr
+        var pending     = cast(u64, d.bitBuffer)
+        var pendingBits = d.bitsIn
+
+        #[Swag.Mixin]
+        func drainBytes()
+        {
+            let count = pendingBits >> 3
+            if count and output < limit
+            {
+                // The block buffer has sixteen bytes past this logical limit.
+                cast([*] u64, output)[0] = Math.littleEndianToNative(pending)
+                output += Math.min(cast(u64, limit - output), cast(u64, count))
+            }
+
+            pending     >>= count * 8
+            pendingBits &= 7
+        }
+
+        #[Swag.Mixin]
+        func append(bits: u64, count: u32)
+        {
+            if pendingBits + count >= 64 do
+                drainBytes()
+            pending     |= bits << pendingBits
+            pendingBits += count
+        }
+
         var flags = 1'u32
         for var lzCodes = cast([*] u8, &d.lzCodeBuf[0]); lzCodes < d.lzCodeBufAddr; flags >>= 1
         {
@@ -878,34 +907,44 @@ impl Deflate
                 let matchDist = cast(u32, Math.make16(lzCodes[2], lzCodes[1]))
                 lzCodes += 3
 
-                .putBits(cast(u32, d.huffCodes[0, LenSym[matchLen]]), cast(u32, d.huffCodeSizes[0, LenSym[matchLen]]))
-                .putBits(matchLen & Bitmasks[LenExtra[matchLen]], cast(u32, LenExtra[matchLen]))
+                let lenSymbol = LenSym[matchLen]
+                let lenBits   = cast(u32, d.huffCodeSizes[0, lenSymbol])
+                let lenExtra  = cast(u32, LenExtra[matchLen])
 
-                var sym, numExtraBits: u32
+                var distSymbol, distExtra: u32
                 if matchDist < 512
                 {
-                    sym = SmallDistSym[matchDist]
-                    numExtraBits = SmallDistExtra[matchDist]
+                    distSymbol = SmallDistSym[matchDist]
+                    distExtra  = SmallDistExtra[matchDist]
                 }
                 else
                 {
-                    sym = LargeDistSym[matchDist >> 8]
-                    numExtraBits = LargeDistExtra[matchDist >> 8]
+                    distSymbol = LargeDistSym[matchDist >> 8]
+                    distExtra  = LargeDistExtra[matchDist >> 8]
                 }
 
-                .putBits(cast(u32, d.huffCodes[1, sym]), cast(u32, d.huffCodeSizes[1, sym]))
-                .putBits(matchDist & Bitmasks[numExtraBits], numExtraBits)
+                let distBits  = cast(u32, d.huffCodeSizes[1, distSymbol])
+                let distStart = lenBits + lenExtra
+                let packed    = cast(u64, d.huffCodes[0, lenSymbol]) |
+                                (cast(u64, matchLen & Bitmasks[lenExtra]) << lenBits) |
+                                (cast(u64, d.huffCodes[1, distSymbol]) << distStart) |
+                                (cast(u64, matchDist & Bitmasks[distExtra]) << (distStart + distBits))
+                append(packed, distStart + distBits + distExtra)
             }
             else
             {
-                let lit = lzCodes[]
+                let literal = lzCodes[]
                 lzCodes += 1
-                .putBits(cast(u32, d.huffCodes[0, lit]), cast(u32, d.huffCodeSizes[0, lit]))
+                append(cast(u64, d.huffCodes[0, literal]), cast(u32, d.huffCodeSizes[0, literal]))
             }
         }
 
-        .putBits(cast(u32, d.huffCodes[0, 256]), cast(u32, d.huffCodeSizes[0, 256]))
-        return d.outputBufAddr < d.outputBufEndAddr
+        append(cast(u64, d.huffCodes[0, 256]), cast(u32, d.huffCodeSizes[0, 256]))
+        drainBytes()
+        d.outputBufAddr = output
+        d.bitBuffer     = cast(u32, pending)
+        d.bitsIn        = pendingBits
+        return output < limit
     }
 
     mtd compressBlock(staticBlock: bool)->bool

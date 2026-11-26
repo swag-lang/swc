@@ -28,9 +28,10 @@ private struct PageObjects
 // One image reduced to what the writer stores: gray or RGB samples, plus coverage.
 private struct EncodedImage
 {
-    samples: Array'u8
-    alpha:   Array'u8
-    isGray:  bool
+    samples:          Array'u8
+    alpha:            Array'u8
+    bitsPerComponent: u8 = 8
+    isGray:           bool
 }
 
 private struct Writer
@@ -427,60 +428,86 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
     return result
 }
 
-// Reduces one image to the narrowest representation that keeps every pixel.
-//
-// A picture whose channels are equal everywhere is written as one gray component instead of
-// three, and a picture that is not fully opaque contributes a soft mask.
+// Writes gray or RGB samples in PDF row order and keeps any non-opaque coverage.
 private func encodeImagePixels(image: const *Image)->EncodedImage
 {
     var result: #returntype
     let width       = cast(u64, image.width)
     let height      = cast(u64, image.height)
+    let sourceStep  = cast(u64, image.bytesPerPixel)
+    let source      = image.pixels.storage()
+    let nativeGray  = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8
+    let grayChannel = nativeGray ? 0'u64 : 1'u64
     let swapRedBlue = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
-    let hasAlpha    = image.pixelFormat == .BGRA8 or image.pixelFormat == .RGBA8
+    let hasAlpha    = image.pixelFormat == .BGRA8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .GrayAlpha8
 
     result.isGray = true
+    var bilevel = true
     var transparent = false
-    for y in height
+    var pixel = source
+    for width * height
     {
-        let sourceY = height - y - 1
-        for x in width
-        {
-            let src = (sourceY * width + x) * image.bytesPerPixel
-            let r   = image.pixels[src + (swapRedBlue ? 2 : 0)]
-            let b   = image.pixels[src + (swapRedBlue ? 0 : 2)]
-            if r != image.pixels[src + 1] or r != b do
-                result.isGray = false
-            if hasAlpha and image.pixels[src + 3] != 0xFF do
-                transparent = true
-        }
+        let gray = pixel[grayChannel]
+        if not nativeGray and (pixel[0] != gray or pixel[2] != gray) do
+            result.isGray = false
+        if gray != 0 and gray != 255 do
+            bilevel = false
+        if hasAlpha and pixel[sourceStep - 1] != 255 do
+            transparent = true
+        if not result.isGray and (not hasAlpha or transparent) do
+            break
+        pixel += sourceStep
     }
 
+    let packBits   = result.isGray and bilevel
     let components = result.isGray ? 1'u64 : 3'u64
-    result.samples.resize(width * height * components)
+    let rowBytes   = packBits ? (width + 7) / 8 : width * components
+    result.bitsPerComponent = packBits ? 1 : 8
+    result.samples.resize(rowBytes * height)
     if transparent do
         result.alpha.resize(width * height)
 
     for y in height
     {
-        let sourceY = height - y - 1
-        for x in width
+        let row = source + (height - y - 1) * width * sourceStep
+        let out = result.samples.storage() + y * rowBytes
+        if packBits
         {
-            let src = (sourceY * width + x) * image.bytesPerPixel
-            let dst = (y * width + x) * components
-            if result.isGray
+            for x in width
             {
-                result.samples[dst] = image.pixels[src + 1]
+                let bit = row[x * sourceStep + grayChannel] >> 7
+                out[x >> 3] |= bit << (7 - cast(u8, x & 7))
             }
+        }
+        elif result.isGray
+        {
+            if sourceStep == 1 do
+                Memory.copy(out, row, rowBytes)
             else
             {
-                result.samples[dst + 0] = image.pixels[src + (swapRedBlue ? 2 : 0)]
-                result.samples[dst + 1] = image.pixels[src + 1]
-                result.samples[dst + 2] = image.pixels[src + (swapRedBlue ? 0 : 2)]
+                for x in width do
+                    out[x] = row[x * sourceStep + grayChannel]
             }
+        }
+        elif image.pixelFormat == .RGB8 do
+            Memory.copy(out, row, rowBytes)
+        else
+        {
+            for x in width
+            {
+                let src = row + x * sourceStep
+                let dst = out + x * 3
+                dst[0] = src[swapRedBlue ? 2 : 0]
+                dst[1] = src[1]
+                dst[2] = src[swapRedBlue ? 0 : 2]
+            }
+        }
 
-            if transparent do
-                result.alpha[y * width + x] = image.pixels[src + 3]
+        if transparent
+        {
+            let coverage = result.alpha.storage() + y * width
+            for x in width do
+                coverage[x] = row[x * sourceStep + sourceStep - 1]
         }
     }
 
@@ -620,7 +647,7 @@ private impl Writer
                 nextObject[] += 1
             }
 
-            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB")
+            var dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent % /Filter /FlateDecode", item.image.width, item.image.height, encoded.isGray ? "Gray" : "RGB", encoded.bitsPerComponent)
             if maskObject do
                 dictionary.appendFormat(" /SMask % 0 R", maskObject)
             .streamObject(imageObject.number, samples.toSlice(), dictionary.toString())

@@ -349,8 +349,9 @@ internal impl IImageEncoder for Encoder
 
         // The last byte of the scan is padded with one bits, so a decoder cannot read the marker
         // that follows as entropy-coded data.
-        let padding = 8 - .bitCount
+        let padding = 8 - (.bitCount & 7)
         .writeBits(BitString{cast(u8, padding), cast(u16, ((1'u32 << padding) - 1))})
+        .flushEntropyBytes()
 
         .writeWord(0xFFD9)     // EOI
         .flushStaged()

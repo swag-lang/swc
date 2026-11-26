@@ -574,7 +574,22 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     if vmtx.count < requiredBytes do
         try fault(0x98)
 
-    let metrics     = faceData.verticalGlyphMetrics.emplaceAddress(glyphCount)
+    if let shared = faceData.fontSource.cachedVerticalMetrics(vmtx, glyphCount, longMetricCount)
+    {
+        faceData.verticalMetrics = shared
+    }
+    else
+    {
+        faceData.verticalGlyphMetrics = decodeVerticalMetrics(vmtx, glyphCount, longMetricCount)
+        faceData.verticalMetrics      = faceData.verticalGlyphMetrics.toSlice()
+    }
+}
+
+func decodeVerticalMetrics(vmtx: const [..] u8, glyphCount, longMetricCount: u32, allocator: IAllocator? = null)->Array'GlyphVerticalMetrics
+{
+    var result: #returntype
+    result.allocator = allocator
+    let metrics     = result.emplaceAddress(glyphCount)
     var entry       = vmtx.buffer
     var firstScalar = 0'u32
     const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
@@ -629,7 +644,7 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
         entry += 2
     }
 
-    faceData.hasVerticalMetrics = true
+    return result
 }
 
 func buildGlyphLocations(faceData: *FaceImpl) fail

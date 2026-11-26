@@ -269,18 +269,16 @@ impl Mdct
         let quarter = m / 2
         let re      = .real.storage()
         let im      = .imaginary.storage()
-        for k in m do
-            re[k], im[k] = 0
-        for k in quarter
+
+        // Each complex point receives exactly one sample from two quarters.
+        for point in quarter
         {
-            re[quarter + k]     += input[2 * k]
-            im[quarter - 1 - k] -= input[2 * k + 1]
-            im[k]               += input[m + 2 * k]
-            re[m - 1 - k]       -= input[m + 2 * k + 1]
-            im[quarter + k]     += input[2 * m + 2 * k]
-            re[quarter - 1 - k] -= input[2 * m + 2 * k + 1]
-            re[k]               -= input[3 * m + 2 * k]
-            im[m - 1 - k]       += input[3 * m + 2 * k + 1]
+            let mirror = m - 1 - 2 * point
+            let first  = 2 * point
+            re[point]           = -input[2 * m + mirror] - input[3 * m + first]
+            im[point]           = input[m + first] - input[mirror]
+            re[quarter + point] = input[first] - input[m + mirror]
+            im[quarter + point] = input[2 * m + first] + input[3 * m + mirror]
         }
 
         for k in m
@@ -308,6 +306,42 @@ impl Mdct
         }
 
         .fft(1)
+        let cosine = .twiddleCos.storage()
+        let sine   = .twiddleSin.storage()
+
+        if m >= 8
+        {
+            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+
+            #[Swag.Inline]
+            func expand(output: [*] f32, even, odd: Simd.F32x4)
+            {
+                let first  = cast #bit(Simd.U32x4, even)
+                let second = cast #bit(Simd.U32x4, Simd.permute(odd, Reverse))
+                Simd.store(output, cast #bit(Simd.F32x4, Simd.interleaveLow(first, second)))
+                Simd.store(output + 4, cast #bit(Simd.F32x4, Simd.interleaveHigh(first, second)))
+            }
+
+            var point = 0'u32
+            while point < quarter
+            {
+                let mirror   = m - 4 - point
+                let lowCos   = Simd.load(cosine + point)
+                let lowSin   = Simd.load(sine + point)
+                let highCos  = Simd.load(cosine + mirror)
+                let highSin  = Simd.load(sine + mirror)
+                let lowReal  = Simd.load(re + point)
+                let lowImag  = Simd.load(im + point)
+                let highReal = Simd.load(re + mirror)
+                let highImag = Simd.load(im + mirror)
+                expand(spectrum + 2 * point, lowReal * lowCos - lowImag * lowSin, highImag * highCos + highReal * highSin)
+                expand(spectrum + 2 * mirror, highReal * highCos - highImag * highSin, lowImag * lowCos + lowReal * lowSin)
+                point += 4
+            }
+
+            return
+        }
+
         for k in m
         {
             let c = .twiddleCos[k]

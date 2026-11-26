@@ -180,3 +180,30 @@ func hasNoVerticalMetrics(face: *Face)->bool fail => (try face.getVerticalMetric
         Swag.require(metrics.advanceHeight == 600 and metrics.topSideBearing == bearing)
     }
 }
+
+// Retained faces keep the shared metrics alive after the source handle is dropped.
+#test
+{
+    let bytes = buildVerticalFont()
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocationView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source = FontSource.copy(bytes.toSlice(), allocationView)
+    let first  = expect source.loadFace()
+    let second = expect source.loadFace()
+
+    let metrics = unwrap (expect first.getVerticalMetrics(3))
+    Swag.require(metrics == expect second.getVerticalMetrics(3))
+    source = {}
+    first.destroy()
+
+    Swag.require(metrics.advanceHeight == 900 and metrics.topSideBearing == 400)
+    expect second.setPixelSize(32, 32)
+    expect second.loadGlyph(0)
+    Swag.require(second.glyph.metrics.verticalAdvance == expect scale26_6(1000, 32, second.unitsPerEm))
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
+}

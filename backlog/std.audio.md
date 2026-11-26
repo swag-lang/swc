@@ -141,6 +141,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 - Evidence: `Wav.Writer` and `Flac.Writer` stream resumable PCM16 recordings.
   The FLAC writer preserves encoded bytes with an exact Rice search and buffered bit writes.
   In the ten-second cases it takes 5.82 ms for 48 kHz mono and 32.70 ms for 5.1.
+  Second-order fixed prediction reduces the structured files by a further 8.2–13.5%.
   The native FLAC references still produce smaller files on structured audio.
   [FLAC and WAV encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#flac-encoder)
   `Aac.Encoder`
@@ -148,7 +149,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   profiles; `Aac.StreamEncoder` accepts arbitrary input chunks, reports packet sample times,
   pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.
   The module and FFmpeg decode non-silent AAC inside fragmented MP4. The software encoder uses an
-  FFT-backed MDCT. Native Release encodes ten seconds of 48 kHz stereo PCM16 in about 20 ms on
+  FFT-backed MDCT. Native Release encodes ten seconds of 48 kHz stereo PCM16 in about 14 ms on
   the generated fixture. The output is byte-identical to the previous encoder.
   [Audio encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#aac-lc-encoder)
   Bounded spectral gains per band now retain a 12 kHz component 43.5 dB below a 440 Hz tone

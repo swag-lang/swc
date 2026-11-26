@@ -17,9 +17,6 @@ const LossyQuantFactor: [6, 3] u16 = [
     [8_192, 5_243, 3_355],
     [7_282, 4_559, 2_893]]
 
-// Raster coefficient position to 4x4 zigzag scan position.
-const LossyScanPosition: [16] u8 = [0, 1, 5, 6, 2, 4, 7, 12, 3, 8, 11, 13, 9, 10, 14, 15]
-
 // Column and row of each luma 4x4 block, in the order the syntax codes them.
 const LossyBlockColumn: [16] u8 = [0, 1, 0, 1, 2, 3, 2, 3, 0, 1, 0, 1, 2, 3, 2, 3]
 const LossyBlockRow:    [16] u8 = [0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3]
@@ -387,32 +384,63 @@ func forwardIntraDc4x4(input: const [*] s32, output: [*] s32)
     }
 }
 
-// Quantizes raster `coefficients` from position `first` into zigzag `levels`, and writes what a
-// decoder scales them back to into `scaled`, in the column-major order of the inverse transform.
+// Quantizes raster `coefficients` into zigzag `levels` and writes dequantized coefficients into
+// `scaled` in the inverse transform's column-major order. AC-only blocks leave the DC at zero.
 // `rounding` is the dead zone as a fraction of one step, out of 65536. Returns the level count.
-func lossyQuantize4x4(coefficients: const [*] s32, first: u64, qp: u32, rounding: s64, levels, scaled: [*] s16)->u32
+func lossyQuantize4x4(coefficients: const [*] s32, acOnly: bool, qp: u32, rounding: s64, levels, scaled: [*] s16)->u32
 {
-    let qmod   = cast(u64, qp % 6)
-    let qdiv   = qp / 6
-    let qbits  = 15 + qdiv
-    let offset = (rounding << qbits) >> 16
-    var count  = 0'u32
-    for raster in first until 16
+    let qmod        = cast(u64, qp % 6)
+    let qdiv        = qp / 6
+    let bits        = 15 + qdiv
+    let offset      = cast(s32, (rounding << bits) >> 16)
+    let f0          = cast(s32, LossyQuantFactor[qmod, 0])
+    let f1          = cast(s32, LossyQuantFactor[qmod, 1])
+    let f2          = cast(s32, LossyQuantFactor[qmod, 2])
+    let evenFactors = cast(Simd.S32x4, [f0, f1, f0, f1])
+    let oddFactors  = cast(Simd.S32x4, [f1, f2, f1, f2])
+
+    // The transform's greatest coefficient has a weight sum of 36. At 255 per
+    // sample and a factor of at most 13107, its product and offset fit in 32 bits.
+    #[Swag.Inline]
+    func quantize(values, factors: Simd.S32x4, offset: s32, bits: u32)->Simd.S32x4
     {
-        let row         = raster >> 2
-        let column      = raster & 3
-        let class       = (row & 1) + (column & 1)
-        let coefficient = coefficients[raster]
-        let magnitude   = (cast(s64, Math.abs(coefficient)) * cast(s64, LossyQuantFactor[qmod, class]) + offset) >> qbits
-        let level       = cast(s32, coefficient < 0 ? -magnitude : magnitude)
-        levels[LossyScanPosition[raster]] = cast(s16, level)
-        if level do
-            count += 1
-        let scale = cast(u32, Dequant4Scale[qmod * 3 + class]) * 16 << qdiv
-        scaled[column * 4 + row] = dequantLevel(level, scale, 4)
+        let sign      = values >> 31
+        let magnitude = (Math.abs(values) * factors + offset) >> bits
+        return (magnitude ^ sign) - sign
     }
 
-    return count
+    var firstRow = Simd.load(coefficients)
+    if acOnly do
+        firstRow &= cast(Simd.S32x4, [0's32, -1, -1, -1])
+    let q0 = quantize(firstRow, evenFactors, offset, bits)
+    let q1 = quantize(Simd.load(coefficients + 4), oddFactors, offset, bits)
+    let q2 = quantize(Simd.load(coefficients + 8), evenFactors, offset, bits)
+    let q3 = quantize(Simd.load(coefficients + 12), oddFactors, offset, bits)
+
+    // The first and second halves of Zigzag4.
+    const ScanLow  = cast(Simd.U16x8, [0'u16, 1, 4, 8, 5, 2, 3, 6])
+    const ScanHigh = cast(Simd.U16x8, [9'u16, 12, 13, 10, 7, 11, 14, 15])
+    let low  = Simd.packSigned(q0, q1)
+    let high = Simd.packSigned(q2, q3)
+    Simd.store(levels, Simd.permute2(low, high, ScanLow))
+    Simd.store(levels + 8, Simd.permute2(low, high, ScanHigh))
+
+    // The decoder's 4x4 scale cancels its four-bit normalization. Transpose
+    // the products and saturate to the same signed 16-bit coefficients.
+    let d0        = cast(s32, Dequant4Scale[qmod * 3]) << qdiv
+    let d1        = cast(s32, Dequant4Scale[qmod * 3 + 1]) << qdiv
+    let d2        = cast(s32, Dequant4Scale[qmod * 3 + 2]) << qdiv
+    let evenScale = cast(Simd.S32x4, [d0, d1, d0, d1])
+    let oddScale  = cast(Simd.S32x4, [d1, d2, d1, d2])
+    var rows: [4] Simd.U32x4 = [cast #bit(Simd.U32x4, q0 * evenScale),
+                                cast #bit(Simd.U32x4, q1 * oddScale),
+                                cast #bit(Simd.U32x4, q2 * evenScale),
+                                cast #bit(Simd.U32x4, q3 * oddScale)]
+    Simd.transpose4x4(&rows)
+    Simd.store(scaled, Simd.packSigned(cast #bit(Simd.S32x4, rows[0]), cast #bit(Simd.S32x4, rows[1])))
+    Simd.store(scaled + 8, Simd.packSigned(cast #bit(Simd.S32x4, rows[2]), cast #bit(Simd.S32x4, rows[3])))
+    let zero = Simd.splat(0's16)
+    return Simd.countTrue(low != zero) + Simd.countTrue(high != zero)
 }
 
 // Returns the largest sum of absolute differences of a 4x4 block whose every coefficient is sure
@@ -556,7 +584,7 @@ impl LossyCoder
             var coefficients: [16] s32
             lossyForward4x4(source + by * 4 * .lumaStride() + bx * 4, .lumaStride(), pixels + by * 4 * stride + bx * 4, stride, coefficients.buffer)
             let levels = residual.luma.buffer + block * 16
-            residual.lumaCount[block] = cast(u8, lossyQuantize4x4(coefficients.buffer, 0, .qp, rounding, levels, scaled.buffer + block * 16))
+            residual.lumaCount[block] = cast(u8, lossyQuantize4x4(coefficients.buffer, false, .qp, rounding, levels, scaled.buffer + block * 16))
             if residual.lumaCount[block] do
                 scores[(by >> 1) * 2 + (bx >> 1)] += lossyBlockScore(levels, 0)
         }
@@ -611,8 +639,7 @@ impl LossyCoder
             lossyForward4x4(source + by * 4 * .lumaStride() + bx * 4, .lumaStride(), pixels + by * 4 * stride + bx * 4, stride, coefficients.buffer)
             rawDc[block] = coefficients[0]
             let levels = residual.luma.buffer + block * 16
-            levels[0] = 0
-            residual.lumaCount[block] = cast(u8, lossyQuantize4x4(coefficients.buffer, 1, .qp, LossyIntraRounding, levels, scaled.buffer + block * 16))
+            residual.lumaCount[block] = cast(u8, lossyQuantize4x4(coefficients.buffer, true, .qp, LossyIntraRounding, levels, scaled.buffer + block * 16))
             if residual.lumaCount[block] do
                 residual.cbpLuma = 15
         }
@@ -683,8 +710,7 @@ impl LossyCoder
                 var coefficients: [16] s32
                 lossyForward4x4(source + by * 4 * .chromaStride() + bx * 4, .chromaStride(), pixels + by * 4 * stride + bx * 4, stride, coefficients.buffer)
                 rawDc[block] = coefficients[0]
-                levels[0]    = 0
-                residual.chromaCount[at] = cast(u8, lossyQuantize4x4(coefficients.buffer, 1, qpc, rounding, levels, scaled.buffer + at * 16))
+                residual.chromaCount[at] = cast(u8, lossyQuantize4x4(coefficients.buffer, true, qpc, rounding, levels, scaled.buffer + at * 16))
                 if residual.chromaCount[at] do
                     planeAc = true
             }
@@ -1256,7 +1282,7 @@ impl LossyCoder
             var scaled:       [16] s16
             lossyForward4x4(from, .lumaStride(), pixels, stride, coefficients.buffer)
             let levels = residual.luma.buffer + block * 16
-            residual.lumaCount[block] = cast(u8, lossyQuantize4x4(coefficients.buffer, 0, .qp, LossyIntraRounding, levels, scaled.buffer))
+            residual.lumaCount[block] = cast(u8, lossyQuantize4x4(coefficients.buffer, false, .qp, LossyIntraRounding, levels, scaled.buffer))
             if residual.lumaCount[block]
             {
                 residual.cbpLuma |= 1'u32 << (index >> 2)

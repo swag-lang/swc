@@ -511,10 +511,9 @@ public impl Face
             try fault(0x10)
 
         let faceData = cast(const *FaceImpl, cast(const *void, me))
-        if not faceData.hasVerticalMetrics do
-            return null
-
-        return &faceData.verticalGlyphMetrics[glyphIndex]
+        if let metrics = faceData.verticalMetrics do
+            return &metrics[glyphIndex]
+        return null
     }
 
     // Returns a glyph's horizontal advance in font design units without loading its outline.

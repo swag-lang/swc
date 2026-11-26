@@ -67,3 +67,65 @@ samples under each filesystem. All WAV files decode to the original PCM.
 
 The FFmpeg WAV header adds 34 bytes to each file. The Swag file includes a
 44-byte RIFF header and the original PCM bytes.
+
+## Exact AAC quantization and denser FLAC encoding
+
+Both Swag builds use the same native Release compiler, with `ea5f49e640` as
+the baseline. Primary medians use 12 samples per engine pinned to CPU 3.
+The inputs contain ten seconds of interleaved PCM16.
+
+[Raw stage times, output sizes, and PCM checks](audio-encode-linux-round3.json)
+
+### AAC-LC
+
+| Input | Swag before (ms) | Swag after (ms) | FFmpeg 7.1.5 (ms) | Swag (kb/s) | FFmpeg (kb/s) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 21.28 | 14.95 | 295.63 | 221.53 | 220.49 |
+| Mono 48 kHz | 10.06 | 7.30 | 176.10 | 93.57 | 93.51 |
+| Voice mono 48 kHz | 5.06 | 3.98 | 93.43 | 26.47 | 26.43 |
+| Stereo 44.1 kHz | 19.75 | 13.78 | 441.28 | 182.14 | 183.04 |
+| Stereo 48 kHz | 19.72 | 14.44 | 389.37 | 188.41 | 189.70 |
+
+Quantization compares each coefficient with the exact binary32 magnitude
+thresholds. The encoder folds the MDCT input directly and expands its
+coefficients in vector pairs. All five Swag ADTS outputs are identical to
+the baseline, including the voice profile.
+
+### FLAC PCM16
+
+| Input | Swag before (ms) | Swag after (ms) | FFmpeg 7.1.5 level 0 (ms) | libFLAC 1.5.0 level 0 (ms) | Swag bytes before | Swag bytes after | FFmpeg bytes | libFLAC bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 10.75 | 9.69 | 16.18 | 10.39 | 1,322,646 | 1,214,438 | 1,078,819 | 1,052,820 |
+| Mono 48 kHz | 5.76 | 5.14 | 10.31 | 5.84 | 644,435 | 563,722 | 415,241 | 423,470 |
+| Stereo 44.1 kHz | 10.79 | 10.80 | 15.98 | 10.47 | 1,199,241 | 1,083,638 | 783,950 | 806,276 |
+| Stereo 48 kHz | 13.78 | 10.07 | 17.24 | 11.39 | 1,294,291 | 1,130,810 | 798,554 | 782,810 |
+| 5.1 at 48 kHz | 51.17 | 33.14 | 57.99 | 36.98 | 3,779,482 | 3,267,599 | 2,359,220 | 2,430,017 |
+| Stereo noise 48 kHz | 8.85 | 8.48 | 18.17 | 13.05 | 1,921,810 | 1,921,810 | 1,932,747 | 1,924,547 |
+
+The writer costs first- and second-order fixed subframes, chooses the smaller
+available representation, and reserves the complete Rice output before
+emitting it. Both Swag outputs and both reference outputs decode to the
+original PCM. The five structured inputs are 8.2–13.5% smaller than the
+previous Swag files. The noise output keeps the same size.
+Stereo 44.1 kHz is effectively tied with the previous Swag writer on time.
+
+For level 5, FFmpeg and libFLAC produced 917,696 and 905,396 bytes on FileSamples
+and 2,682,535 and 2,652,952 bytes on 5.1. The same Swag output is faster to
+encode than both level-5 references on these inputs in this series.
+
+### FFmpeg 9.1 reference
+
+These two additional comparisons use the same benchmark with FFmpeg 9.1,
+with native x86 assembly enabled. They use 12 samples per engine on CPU 0.
+
+| Input | Swag before (ms) | Swag after (ms) | FFmpeg 9.1 (ms) | Swag bytes | FFmpeg bytes |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| AAC stereo 48 kHz | 32.82 | 18.69 | 799.66 | 238,799 | 239,905 |
+| FLAC 5.1 at 48 kHz, level 0 reference | 37.26 | 34.19 | 33.33 | 3,267,599 | 2,359,222 |
+
+The AAC reference payload rate is within 1% of Swag. The FLAC outputs decode
+to the same PCM. FFmpeg 9.1 is slightly faster on this 5.1 encoding case and
+its FLAC file is smaller.
+
+Native Release passes 326 audio tests. Release-safe passes 55 focused AAC,
+MDCT and FLAC writer tests.

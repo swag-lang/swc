@@ -7,15 +7,24 @@ private struct CMapCacheEntry
     selection:  CMapSelection
 }
 
+private struct VerticalMetricsCacheEntry
+{
+    late bytes:      const [..] u8
+    glyphCount:      u32
+    longMetricCount: u32
+    metrics:         Array'GlyphVerticalMetrics
+}
+
 private struct FontSourceStorage
 {
-    late allocator: IAllocator
-    references:     s64 = 1
-    bytes:          Array'u8
-    woffSfnt:       Array'u8
-    cffPrograms:    Array'(*CffFont)
-    cmapSelections: Array'CMapCacheEntry
-    parseMutex:     Swag.Mutex
+    late allocator:  IAllocator
+    references:      s64 = 1
+    bytes:           Array'u8
+    woffSfnt:        Array'u8
+    cffPrograms:     Array'(*CffFont)
+    cmapSelections:  Array'CMapCacheEntry
+    verticalMetrics: Array'VerticalMetricsCacheEntry
+    parseMutex:      Swag.Mutex
 }
 
 impl FontSourceStorage
@@ -137,13 +146,36 @@ impl FontSource
         return selection
     }
 
+    mtd const cachedVerticalMetrics(bytes: const [..] u8, glyphCount, longMetricCount: u32)->const [..] GlyphVerticalMetrics?
+    {
+        if not .storage do
+            return null
+
+        let storage = .storage
+        Sync.scopedLock(&storage.parseMutex)
+        for entry in storage.verticalMetrics
+        {
+            if entry.bytes.buffer == bytes.buffer and
+               entry.bytes.count == bytes.count and
+               entry.glyphCount == glyphCount and
+               entry.longMetricCount == longMetricCount do
+                return entry.metrics.toSlice()
+        }
+
+        var entry = VerticalMetricsCacheEntry{bytes: bytes, glyphCount: glyphCount, longMetricCount: longMetricCount}
+        entry.metrics = decodeVerticalMetrics(bytes, glyphCount, longMetricCount, storage.allocator)
+        storage.verticalMetrics.add(#move entry)
+        return storage.verticalMetrics[storage.verticalMetrics.count - 1].metrics.toSlice()
+    }
+
     private func takeBytes(bytes: #move Array'u8, allocator: IAllocator)->FontSource
     {
         let storage = Memory.new'FontSourceStorage(allocator)
-        storage.allocator                = allocator
-        storage.bytes                    = #move bytes
-        storage.cffPrograms.allocator    = allocator
-        storage.cmapSelections.allocator = allocator
+        storage.allocator                 = allocator
+        storage.bytes                     = #move bytes
+        storage.cffPrograms.allocator     = allocator
+        storage.cmapSelections.allocator  = allocator
+        storage.verticalMetrics.allocator = allocator
         return {storage: storage}
     }
 }
@@ -201,7 +233,7 @@ public impl FontSource
     //
     // Formats and index checks follow [[TrueType.Face.loadAt]]. The face allocator covers
     // per-face state. The source allocator covers the shared character maps, CFF programs,
-    // and WOFF1 reconstruction.
+    // vertical metrics, and WOFF1 reconstruction.
     // A default source or invalid input fails.
     // Destroy the face with [[TrueType.Face.destroy]]. It can outlive this source value.
     mtd const loadFace(faceIndex: u32 = 0, allocator: IAllocator? = null)->*Face fail =>

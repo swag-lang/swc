@@ -121,8 +121,8 @@ struct EncodeChannels
 
 struct EncodePalette
 {
-    colors: [16] u32
-    slots:  [32] u8
+    colors: [256] u32
+    slots:  [512] u16
     count:  u32
 }
 
@@ -131,13 +131,13 @@ impl EncodePalette
     #[Swag.Inline]
     mtd indexOf(color: u32)->s32
     {
-        var slot = (color * #wrap 0x9E3779B1'u32) >> 27
+        var slot = (color * #wrap 0x9E3779B1'u32) >> 23
         while .slots[slot]
         {
             let index = .slots[slot] - 1
             if .colors[index] == color do
                 return cast(s32, index)
-            slot = (slot + 1) & 31
+            slot = (slot + 1) & 511
         }
 
         if .count == .colors.count do
@@ -145,7 +145,7 @@ impl EncodePalette
         let index = .count
         .colors[index] = color
         .count         += 1
-        .slots[slot]   = cast(u8, .count)
+        .slots[slot]   = cast(u16, .count)
         return cast(s32, index)
     }
 }
@@ -423,6 +423,36 @@ impl Encoder
             cursor += 4
         }
 
+        let firstRed  = firstColor & 0xFF
+        let secondRed = previous & 0xFF
+        if firstRed != secondRed
+        {
+            // Use the red component until different colors share its value.
+            var byRed: [256] u16
+            byRed[firstRed]  = 1
+            byRed[secondRed] = 2
+            while cursor < pixels.count
+            {
+                let color = pixels[cursor]
+                let red   = color & 0xFF
+                let entry = byRed[red]
+                if entry
+                {
+                    if palette.colors[entry - 1] != color do
+                        break
+                }
+                else
+                {
+                    let entryIndex = palette.indexOf(color)
+                    if entryIndex < 0 do
+                        return false
+                    byRed[red] = cast(u16, (entryIndex + 1))
+                }
+
+                cursor += 1
+            }
+        }
+
         for i in cursor until pixels.count
         {
             let color = pixels[i]
@@ -656,10 +686,9 @@ impl Encoder
         if prefix < 4 or packed.count < prefix + stride do
             return 0
 
-        let first     = packed.buffer
-        let key       = cast(const [*] u32, first)[0]
-        let available = Math.min(maxDistance, packed.count - prefix) / stride
-        let rows      = Math.min(128'u64, available)
+        let first = packed.buffer
+        let key   = cast(const [*] u32, first)[0]
+        let rows  = Math.min(maxDistance, packed.count - prefix) / stride
         for step in 1 until rows + 1
         {
             let offset = step * stride
@@ -741,7 +770,7 @@ impl Encoder
         writeByteTree(writer, constant)
         writeMatchDistanceTree(writer)
 
-        let bits        = palette.count <= 2 ? 3'u32 : (palette.count <= 4 ? 2'u32 : 1'u32)
+        let bits        = palette.count <= 2 ? 3'u32 : (palette.count <= 4 ? 2'u32 : (palette.count <= 16 ? 1'u32 : 0'u32))
         let packedWidth = losslessTileCount(width, bits)
         let packed      = packPalette(palette, pixels.toSlice(), width, height, packedWidth, bits)
         writePackedMatches(writer, packed.toSlice(), packedWidth)

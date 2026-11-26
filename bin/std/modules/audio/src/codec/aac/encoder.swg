@@ -55,6 +55,40 @@ private func buildSpectralPairCodes()->SpectralPairCodes
 // Book 11 puts the sign bits after the Huffman word, in coefficient order.
 private const PackedSpectralPairs = #run buildSpectralPairCodes()
 
+private const QuantizationGains = 256
+private alias MagnitudeThresholds = [QuantizationGains, MaxMagnitude + 1] u32
+
+// Each entry is the first positive binary32 MDCT coefficient that rounds to
+// the requested AAC magnitude. The codec scales the coefficient by two.
+private func buildMagnitudeThresholds()->MagnitudeThresholds
+{
+    func referenceMagnitude(bits: u32, factor: f64)->f64
+    {
+        let value = cast(f64, cast #bit(f32, bits)) * 2.0 / factor
+        return Math.round(Math.pow(value, 0.75))
+    }
+
+    var thresholds: MagnitudeThresholds
+    for magnitude in 1 until MaxMagnitude + 1
+    {
+        let midpoint = Math.pow(cast(f64, magnitude) - 0.5, 4.0 / 3.0)
+        for scale in QuantizationGains
+        {
+            let factor   = Math.pow(2.0, 0.25 * (cast(f64, scale) - 100))
+            var boundary = cast #bit(u32, cast(f32, midpoint * factor * 0.5))
+            while referenceMagnitude(boundary, factor) < magnitude do
+                boundary += 1
+            while referenceMagnitude(boundary - 1, factor) >= magnitude do
+                boundary -= 1
+            thresholds[scale, magnitude] = boundary
+        }
+    }
+
+    return thresholds
+}
+
+private var g_FirstMagnitude: MagnitudeThresholds = #run buildMagnitudeThresholds()
+
 internal struct EncoderSectionCode
 {
     value: u32
@@ -269,19 +303,18 @@ impl Encoder
                                           minimumGain,
                                           gain)
                 bandGain[band] = selected
-                let factor = Math.pow(2.0, 0.25 * cast(f64, selected - 100))
+
+                // Positive IEEE binary32 bit patterns have the same ordering as their values.
+                let thresholds = cast(const [*] u32, &g_FirstMagnitude[selected, 0])
                 for line in offsets[band] until offsets[band + 1]
                 {
-                    let value  = spectrum[line]
-                    let scaled = Math.abs(value) / factor
-
-                    // Near a half-integer, retain the reference rounding decision.
-                    let powered = Math.sqrt(scaled * Math.sqrt(scaled))
-                    var rounded = Math.round(powered)
-                    if powered < MaxMagnitude and Math.abs(powered - rounded) >= 0.5 - 1e-12 do
-                        rounded = Math.round(Math.pow(scaled, 0.75))
-                    let magnitude = Math.min(MaxMagnitude, cast(s32, rounded))
-                    quantized[line] = value < 0 ? -magnitude : magnitude
+                    let bits      = cast #bit(u32, transformed[line])
+                    let absolute  = bits & 0x7FFF_FFFF
+                    var magnitude = 8 * cast(s32, absolute >= thresholds[8])
+                    magnitude       += 4 * cast(s32, absolute >= thresholds[magnitude + 4])
+                    magnitude       += 2 * cast(s32, absolute >= thresholds[magnitude + 2])
+                    magnitude       += cast(s32, absolute >= thresholds[magnitude + 1])
+                    quantized[line] = bits >> 31 != 0 ? -magnitude : magnitude
                     if magnitude do
                         active[band] = true
                 }
@@ -342,6 +375,22 @@ private impl Encoder
         {
             .pendingBits -= 8
             .output.add(cast(u8, (.bitWord >> .pendingBits) & 255))
+        }
+    }
+}
+
+#test
+{
+    for scale in QuantizationGains
+    {
+        let factor = Math.pow(2.0, 0.25 * (cast(f64, scale) - 100.0))
+        for magnitude in 1 until MaxMagnitude + 1
+        {
+            let first    = g_FirstMagnitude[scale, magnitude]
+            let inBand   = cast(f64, cast #bit(f32, first)) * 2.0
+            let previous = cast(f64, cast #bit(f32, first - 1)) * 2.0
+            Swag.require(Math.round(Math.pow(inBand / factor, 0.75)) == magnitude)
+            Swag.require(Math.round(Math.pow(previous / factor, 0.75)) == magnitude - 1)
         }
     }
 }

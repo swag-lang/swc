@@ -294,6 +294,22 @@ impl Encoder
         {
             for var xpos = 0'u16; xpos < .imageX; xpos += 8
             {
+                let stride = cast(u64, .imageX)
+                let source = .bufferRGB.storage() + cast(u64, ypos) * stride + xpos
+                if flatColorBlock(source, stride)
+                {
+                    let red   = cast(s32, source[0].r)
+                    let green = cast(s32, source[0].g)
+                    let blue  = cast(s32, source[0].b)
+                    let y     = componentOf(red, green, blue, CoeffYR, CoeffYG, CoeffYB, 32_768) - 128
+                    let cb    = componentOf(red, green, blue, CoeffCbR, CoeffCbG, CoeffCbB, 32_767)
+                    let cr    = componentOf(red, green, blue, CoeffCrR, CoeffCrG, CoeffCrB, 32_767)
+                    .writeFlatComponent(y, .fdtblY[0], &dcy, .htYDC, .htYAC)
+                    .writeFlatComponent(cb, .fdtblCb[0], &dccb, .htCbDC, .htCbAC)
+                    .writeFlatComponent(cr, .fdtblCb[0], &dccr, .htCbDC, .htCbAC)
+                    continue
+                }
+
                 .loadFromRGB(xpos, ypos)
                 .processDU(.duY, .fdtblY, &dcy, .htYDC, .htYAC)
                 .processDU(.duCb, .fdtblCb, &dccb, .htCbDC, .htCbAC)

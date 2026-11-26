@@ -16,9 +16,9 @@ impl Encoder
     // Rounds the fixed-point dot product to the nearest sample. Chroma ties round down so
     // the top half-step (127.5) fits in the signed range of the centered sample.
     #[Swag.Inline]
-    func componentOf(red, green, blue: Math.Simd.S32x4, coeffRed, coeffGreen, coeffBlue, rounding: s32)->Math.Simd.S32x4
+    func(T) componentOf(red, green, blue: T, coeffRed, coeffGreen, coeffBlue, rounding: s32)->T
     {
-        let total = Math.Simd.splat(coeffRed) * red + Math.Simd.splat(coeffGreen) * green + Math.Simd.splat(coeffBlue) * blue
+        let total = coeffRed * red + coeffGreen * green + coeffBlue * blue
         return (total + rounding) >> 16
     }
 
@@ -193,6 +193,51 @@ impl Encoder
         return cast(u8, (32 - Math.leadingZeros(magnitude)))
     }
 
+    // Check a few distant pixels before setting up the full comparison. Four-byte
+    // reads can cross the final pixel because loadBitmap gives the buffer a readable tail.
+    #[Swag.Inline]
+    func flatColorBlock(source: const [*] ColorRGB, stride: u64)->bool
+    {
+        let first = cast(const [*] u32, source)[0] & 0xFF_FFFF
+        if (cast(const [*] u32, source + 7)[0] & 0xFF_FFFF) != first or
+           (cast(const [*] u32, source + stride * 3 + 4)[0] & 0xFF_FFFF) != first or
+           (cast(const [*] u32, source + stride * 7 + 7)[0] & 0xFF_FFFF) != first do
+            return false
+
+        const Head = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
+        const Tail = cast(Math.Simd.U8x16, [2'u8, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
+        let seed = Math.Simd.load(cast(const [*] u8, source))
+        let head = Math.Simd.shuffle(seed, Head)
+        let tail = Math.Simd.shuffle(seed, Tail)
+        for y in 8'u64
+        {
+            let row = cast(const [*] u8, source + y * stride)
+            if Math.Simd.anyTrue((Math.Simd.load(row) != head) | (Math.Simd.load(row + 8) != tail)) do
+                return false
+        }
+
+        return true
+    }
+
+    #[Swag.Inline]
+    mtd writeDc(dc: s16, prior: *s16, table: [*] BitString)
+    {
+        let difference = dc - prior[]
+        prior[] = dc
+        let category = magnitudeCategory(difference)
+        .writeAmplitude(table[category], difference, category)
+    }
+
+    #[Swag.Inline]
+    mtd writeFlatComponent(sample: s32, scale: f32, prior: *s16, dcTable, acTable: [*] BitString)
+    {
+        // A uniform block has one DC term, scaled by eight in each AAN pass.
+        let scaled = cast(f32, sample * 64) * scale
+        let value  = cast(s16, (cast(s16, (scaled + 16384.5)) - 16384))
+        .writeDc(value, prior, dcTable)
+        .writeBits(acTable[0])
+    }
+
     mtd processDU(componentDU: [*] s16, fdtbl: [*] f32, dC: *s16, hTDC, hTAC: [*] BitString)
     {
         let eob       = hTAC[0x00]
@@ -200,11 +245,7 @@ impl Encoder
 
         quantization(componentDU, fdtbl, .du)
 
-        let diff = .du[0] - dC[]
-        dC[] = .du[0]
-
-        let dcCategory = magnitudeCategory(diff)
-        .writeAmplitude(hTDC[dcCategory], diff, dcCategory)
+        .writeDc(.du[0], dC, hTDC)
 
         var end0pos = 63
         while (end0pos > 0) and (.du[end0pos] == 0) do

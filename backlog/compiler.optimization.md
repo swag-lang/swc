@@ -656,11 +656,11 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 
 ### compiler.optimization.138 — Generalize loop reductions and prove vector memory access
 
-- Evidence: the registered vectorizer is basic-block SLP (`Pass.SlpVectorize`).
-  `Pass.LoopUnroll` recognizes fixed-bound indexed 32-bit XOR and the unsigned
-  32-bit conditional sum into a 64-bit accumulator. The sum supports a runtime bound with
-  four-element groups and a scalar tail. Other reduction forms still need a general analysis
-  and loops that write memory need alias proofs or runtime checks.
+- Evidence: `Pass.SlpVectorize` works within a basic block. `Pass.LoopUnroll` handles
+  fixed-bound 32-bit XOR, unsigned-byte sums, and conditional or unconditional unsigned
+  32-bit sums into a 64-bit accumulator. The sums accept dynamic bounds and retain scalar
+  tails. Other reduction forms need a general analysis. Loops that write memory also need
+  alias proofs or runtime checks.
 - Next: add loop vectorization that recognizes associative reductions, versions
   alias/alignment checks, and generates masked or peeled tails using the explicit SIMD
   operation set.

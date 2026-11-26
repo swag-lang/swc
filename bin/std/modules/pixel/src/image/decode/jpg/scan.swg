@@ -148,9 +148,8 @@ impl Decoder
         count[] -= consumed
         if count[] < 16
         {
-            let chunk = .readBaselineEntropyChunk()
-            bits[]  |= (chunk & ~0xFF'u64) >> cast(u32, count[])
-            count[] += cast(s32, (chunk & 0xFF))
+            bits[]  |= cast(u64, .readBaselineEntropyWord()) << (32 - count[])
+            count[] += 32
         }
     }
 

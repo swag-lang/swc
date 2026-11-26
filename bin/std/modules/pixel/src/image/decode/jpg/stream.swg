@@ -80,31 +80,17 @@ impl Decoder
     #[Swag.NoInline]
     private mtd refillEntropyBits()
     {
-        let chunk = .readEntropyChunk()
-        .entropyBits  |= (chunk & ~0xFF'u64) >> cast(u32, .entropyCount)
-        .entropyCount += cast(s32, (chunk & 0xFF))
+        .entropyBits  |= cast(u64, .readEntropyWord()) << (32 - .entropyCount)
+        .entropyCount += 32
     }
 
     #[Swag.NoInline]
-    mtd readBaselineEntropyChunk()->u64 => .readEntropyChunk()
+    mtd readBaselineEntropyWord()->u32 => .readEntropyWord()
 
-    // Return the data in the high bits and the number of bits in the low byte.
     #[Swag.Inline]
-    private mtd readEntropyChunk()->u64
+    private mtd readEntropyWord()->u32
     {
         let input = unwrap .inBufOfs
-        if .inBufLeft >= 8
-        {
-            let wideWord = cast(const [*] u64, input)[] & 0x0000_FFFF_FFFF_FFFF'u64
-            let lowBits  = wideWord & 0x7F7F_7F7F_7F7F_7F7F'u64
-            if ((lowBits + 0x0101_0101_0101_0101'u64) & wideWord & 0x8080_8080_8080_8080'u64) == 0
-            {
-                .inBufOfs  += 6
-                .inBufLeft -= 6
-                return Math.bigEndianToNative(wideWord) | 48
-            }
-        }
-
         var word: u32
         if .inBufLeft >= 4
         {
@@ -117,14 +103,14 @@ impl Decoder
             {
                 .inBufOfs  += 4
                 .inBufLeft -= 4
-                return (cast(u64, Math.bigEndianToNative(word)) << 32) | 32
+                return Math.bigEndianToNative(word)
             }
         }
 
         word = .getOctet()
         for 3 do
             word = (word << 8) | .getOctet()
-        return (cast(u64, word) << 32) | 32
+        return word
     }
 
     mtd getOctet()->u8

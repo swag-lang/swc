@@ -27,9 +27,9 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 
 ### std.video.042 — Narrow the Motion JPEG decoding gap on textured 4:2:2
 
-- Evidence: [The current RGB comparison](../bench/results/video/20261126-decode-comparison/README.md#motion-jpeg-six-byte-entropy-refill)
-  measures 2.61 ms per textured 720p picture for Swag, 2.95 ms for FFmpeg 9.1 and
-  2.52 ms for libjpeg-turbo 3.2.1. Swag leads both on the 4:2:0 and 4:4:4 AVI fixtures.
+- Evidence: [The current RGB comparison](../bench/results/video/20261126-decode-comparison/README.md#motion-jpeg-six-byte-entropy-refill-trial)
+  measures the retained reader at 2.58 ms per textured 720p picture, against 2.80 ms
+  for FFmpeg 9.1 and 2.60 ms for libjpeg-turbo 3.2.1. Swag leads both on 4:2:0 and 4:4:4.
 - Next: profile the AC coefficient loop and inverse transform on the same 4:2:2
   packets, using the same chroma sampling mode with libjpeg-turbo.
 - Done when: the measured gap shrinks with identical RGB relative to the current Swag decoder
@@ -76,6 +76,8 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   before the CABAC change. The Main and Main10 conformance digests and container reference
   planes remain the correctness boundary.
 - Next: measure significance context selection on motion, all-intra and WPP streams.
+  [Waiting for references on first use](../bench/results/video/20261126-decode-comparison/README.md#hevc-reference-waits-on-first-use)
+  increased paired time by 6.9% at four lanes on the 3840×2076 fixture.
 - Measurement: warm and decode forward without seeking back inside a measured window; prove
   which threads carry decoding; compare small stage changes by alternating implementations in
   one process on the same blocks, not by disabling stages.

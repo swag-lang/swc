@@ -134,7 +134,7 @@ was the independent picture reference. [Timing samples](mjpeg-direct-rgb.json)
 | 4:2:2 texture, 720p | 3.363 | 3.054 | −6.4% | 3.174 | 2.659 |
 | 4:4:4, 720p | 1.818 | 1.704 | −4.6% | 8.233 | 1.865 |
 
-### Motion JPEG six-byte entropy refill
+### Motion JPEG six-byte entropy refill trial
 
 Both the baseline register reader and the progressive reader accept six entropy
 bytes at once when eight bytes are readable and the first six contain no marker
@@ -157,6 +157,14 @@ three passes per Swag AVI observation and eleven per MP4 observation. Textured
 | 4:4:4, 720p AVI | 1.421 | 1.397 | −3.9% | 6.466 | 1.785 |
 | Baseline with restarts, 640×360 MP4 | 0.712 | 0.713 | +0.1% | 1.672 | 0.784 |
 | Progressive with restarts, 640×360 MP4 | 2.070 | 1.945 | −8.3% | 2.296 | 2.219 |
+
+The integration with bulk quantization and Huffman table reads also preserves all
+240 picture hashes and passes the same 98 native Release tests. With both builds
+using bulk table reads, a seven-run series observed −2.1% for 4:4:4 AVI, +2.7% for
+textured 4:2:2, and +4.9% for progressive with restart markers. A further nine-run
+confirmation found −1.7% on 4:2:0 and increases of 0.3–1.2% on the other four
+inputs. The six-byte variant was removed. The bulk table reader and earlier
+Motion JPEG improvements remain in use.
 
 ### Y4M shared chroma correction
 
@@ -338,6 +346,14 @@ inputs contribute 630 pictures and cover AVC Baseline, High, High 4:4:4 and HEVC
 Main10 all-intra and Main10 texture. The targeted native Release selection passed
 111 tests. The first 16-bit look-ahead trial regressed WPP and was dropped.
 [Raw observations, quality hashes and fixture commands](cabac.json).
+
+### HEVC reference waits on first use
+
+The trial deferred reference waits from picture start to the first reference
+access. At four lanes all 312 pictures match FFmpeg 9.1 exactly. Waiting on first
+use takes 32.394 ms per 3840×2076 picture, against 30.328 ms with the existing
+scheduler and 9.433 ms in FFmpeg. The paired increase is 6.9%, and the variant
+was dropped. [Timing and picture hashes](hevc-reference-wait-trial.json)
 
 ## MPEG-4 Part 2 coefficient decoding and reconstruction
 

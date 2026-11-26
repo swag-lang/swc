@@ -855,8 +855,10 @@ impl LinePath
            Math.abs(pos.y - .endPosBuffer.y) < 0.0001 do
             return
 
-        .minBounds = Vector2.min(.minBounds, pos)
-        .maxBounds = Vector2.max(.maxBounds, pos)
+        .minBounds.x = Math.min(.minBounds.x, pos.x)
+        .minBounds.y = Math.min(.minBounds.y, pos.y)
+        .maxBounds.x = Math.max(.maxBounds.x, pos.x)
+        .maxBounds.y = Math.max(.maxBounds.y, pos.y)
         .polygon.add(pos)
         .endPosBuffer = pos
     }

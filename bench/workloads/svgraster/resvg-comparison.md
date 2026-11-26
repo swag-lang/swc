@@ -789,3 +789,23 @@ bitmap and thumbnail and the generated and public controls keep their CRC-64s.
 | One logical CPU | 66.43 | 58.95 | 87.66 |
 | Two logical CPUs | 66.22 | 60.04 | 88.23 |
 | Four logical CPUs | 74.21 | 66.70 | 102.14 |
+
+## Updating bounds as curve samples are emitted
+
+Each flattened point updates the two bounds directly in its emission loop.
+This removes two vector function calls per point and keeps the same coordinate
+comparisons, tessellation and coverage.
+
+The largest original was measured in nine interleaved Release runs with the
+Scope options. The table shows median raster time, excluding parsing.
+
+| Output and CPU budget | Swag before, ms | Swag after, ms |
+| --- | ---: | ---: |
+| Bitmap, one logical CPU | 174.01 | 157.40 |
+| Bitmap, two logical CPUs | 147.48 | 133.57 |
+| Bitmap, four logical CPUs | 124.41 | 116.27 |
+| Thumbnail, one logical CPU | 117.20 | 103.46 |
+| Thumbnail, four logical CPUs | 89.18 | 81.55 |
+
+The largest bitmap and thumbnail and the generated and public controls keep
+their CRC-64s. The existing contour tests check the bounds of flattened paths.

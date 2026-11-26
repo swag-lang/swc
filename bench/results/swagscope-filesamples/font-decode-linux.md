@@ -1313,3 +1313,36 @@ between the Swag builds.
 | `NimbusMonoPS-Regular.cff` | U+0069 | 292.37 | 217.50 | 301.88 |
 | `SourceSans3-Regular.cff` | U+0043 | 812.75 | 708.20 | 616.29 |
 | `SourceSans3-Regular.cff` | U+0045 | 805.35 | 704.66 | 605.52 |
+
+## Signed-distance field geometry shared by a scanline
+
+The row pass prepares each edge's direction, squared length, and
+vertical dot product while collecting winding changes. Every sample
+on the row reuses that geometry, with the same projection and
+distance arithmetic as the previous renderer.
+
+Seven interleaved batches compare with `6b8fa57dc1` on one CPU.
+The seven 64 px cases take 14–20% less time to load and render.
+The two spread-64 controls improve by about 20%. Every outline and
+bitmap fingerprint agrees, including the odd-width tails. The
+native test compares the bitmap with a scalar reference.
+[Raw timings and fingerprints](font-glyph-linux-sdf-geometry.json)
+
+| Fixture | Pixels | Spread | Load and render before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `Lato-Regular.ttf` | 24 | 8 | 126.68 | 119.53 |
+| `Lato-Regular.ttf` | 64 | 8 | 364.70 | 311.81 |
+| `Lato-Regular.ttf` | 24 | 64 | 3707.11 | 2951.22 |
+| `OpenSans-Regular.ttf` | 24 | 8 | 119.72 | 102.27 |
+| `OpenSans-Regular.ttf` | 64 | 8 | 328.63 | 284.08 |
+| `GowunBatang-Regular.ttf` | 24 | 8 | 680.04 | 568.25 |
+| `GowunBatang-Regular.ttf` | 64 | 8 | 2076.16 | 1658.43 |
+| `MaShanZheng-Regular.ttf` | 24 | 8 | 1095.27 | 909.13 |
+| `MaShanZheng-Regular.ttf` | 64 | 8 | 3183.13 | 2596.29 |
+| `NotoSansJP-Variable.ttf` | 24 | 8 | 298.04 | 251.75 |
+| `NotoSansJP-Variable.ttf` | 64 | 8 | 850.09 | 696.10 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 8 | 230.67 | 202.60 |
+| `NotoSansCJKjp-Regular.otf` | 64 | 8 | 651.07 | 552.09 |
+| `NotoSansCJKjp-Regular.otf` | 24 | 64 | 5294.61 | 4211.53 |
+| `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 322.44 | 263.40 |
+| `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 873.40 | 715.67 |

@@ -29,16 +29,23 @@ func closestEdgeDistance(edges: const [..] Edge, x, y: f64)->f64
     return Math.sqrt(distSquared)
 }
 
-func closestEdgeDistances(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->Math.Simd.F64x2
+private struct SdfRowEdge
+{
+    x0:         f64
+    y0:         f64
+    vx:         f64
+    vy:         f64
+    lenSquared: f64
+    dotY:       f64
+}
+
+private func closestRowDistances(edges: const [..] SdfRowEdge, x: Math.Simd.F64x2, y: f64)->Math.Simd.F64x2
 {
     var distSquared = Math.Simd.splat(Swag.F64.Max)
     for edge in edges
     {
-        let vx         = edge.x1 - edge.x0
-        let vy         = edge.y1 - edge.y0
-        let lenSquared = vx * vx + vy * vy
         var distance: Math.Simd.F64x2
-        if lenSquared <= 0.0000001
+        if edge.lenSquared <= 0.0000001
         {
             let dx = x - edge.x0
             let dy = y - edge.y0
@@ -46,9 +53,9 @@ func closestEdgeDistances(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->M
         }
         else
         {
-            let t  = Math.max(Math.Simd.splat(0.0'f64), Math.min(Math.Simd.splat(1.0'f64), ((x - edge.x0) * vx + (y - edge.y0) * vy) / lenSquared))
-            let dx = x - (edge.x0 + vx * t)
-            let dy = y - (edge.y0 + vy * t)
+            let t  = Math.max(Math.Simd.splat(0.0'f64), Math.min(Math.Simd.splat(1.0'f64), ((x - edge.x0) * edge.vx + edge.dotY) / edge.lenSquared))
+            let dx = x - (edge.x0 + edge.vx * t)
+            let dy = y - (edge.y0 + edge.vy * t)
             distance = dx * dx + dy * dy
         }
 
@@ -58,23 +65,29 @@ func closestEdgeDistances(edges: const [..] Edge, x: Math.Simd.F64x2, y: f64)->M
     return Math.sqrt(distSquared)
 }
 
-// Each crossing contributes winding to the sample centers strictly to its left.
-private func sdfWindingChanges(edges: const [..] Edge, changes: [..] s32, left, y: f64)
+// Collects distance geometry and winding crossings for one row. Each crossing
+// contributes winding to the sample centers strictly to its left.
+private func buildSdfRow(edges: const [..] Edge, geometry: *Array'SdfRowEdge, changes: [..] s32, left, y, limit: f64)
 {
     let width = cast(s32, changes.count)
+    let lowY  = y - limit
+    let highY = y + limit
+    geometry.clear()
     Memory.clear(changes.buffer, changes.count * #sizeof(s32))
-    for edge in edges
+    for edge in edges where edge.maxY >= lowY and edge.minY <= highY
     {
+        let vx = edge.x1 - edge.x0
+        let vy = edge.y1 - edge.y0
+        let dy = y - edge.y0
+        geometry.add({edge.x0, edge.y0, vx, vy, vx * vx + vy * vy, dy * vy})
+
         if y < edge.minY or y >= edge.maxY do
             continue
-
-        let dy   = edge.y1 - edge.y0
-        let x    = edge.x0 + (edge.x1 - edge.x0) * (y - edge.y0) / dy
+        let x    = edge.x0 + vx * dy / vy
         let stop = cast(s32, Math.ceil(x - left - 0.5))
         if stop <= 0 do
             continue
-
-        let winding = dy > 0.0 ? 1 : -1
+        let winding = vy > 0.0 ? 1 : -1
         changes[0] += winding
         if stop < width do
             changes[stop] -= winding
@@ -121,8 +134,8 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     // Beyond this vertical distance both signs saturate after conversion
     // to bytes. All edges that cross the row remain available for winding.
     let distanceLimit = cast(f64, safeSpread) + 1.0
-    var nearby: Array'Edge
-    nearby.reserve(edges.count)
+    var geometry: Array'SdfRowEdge
+    geometry.reserve(edges.count)
     var changes: Array's32
     changes.resize(cast(u64, width))
     let windingChanges = changes.toSlice()
@@ -130,13 +143,8 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     for py in rows
     {
         let sampleY = top - (cast(f64, py) + 0.5)
-        let lowY    = sampleY - distanceLimit
-        let highY   = sampleY + distanceLimit
-        nearby.clear()
-        for edge in edges where edge.maxY >= lowY and edge.minY <= highY do
-            nearby.add(edge)
-        let rowEdges = nearby.toSlice()
-        sdfWindingChanges(rowEdges, windingChanges, left, sampleY)
+        buildSdfRow(edges.toSlice(), &geometry, windingChanges, left, sampleY, distanceLimit)
+        let rowEdges = geometry.toSlice()
 
         var winding = 0
         var px      = 0
@@ -144,7 +152,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         {
             let sampleX   = left + cast(f64, px) + 0.5
             let samples   = cast(Math.Simd.F64x2, [sampleX, sampleX + 1.0])
-            let distances = closestEdgeDistances(rowEdges, samples, sampleY)
+            let distances = closestRowDistances(rowEdges, samples, sampleY)
             for lane in 2
             {
                 winding += windingChanges[px + lane]
@@ -160,7 +168,7 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
         while px < width
         {
             let sampleX  = left + cast(f64, px) + 0.5
-            let distance = closestEdgeDistance(rowEdges, sampleX, sampleY)
+            let distance = closestRowDistances(rowEdges, Math.Simd.splat(sampleX), sampleY)[0]
             winding += windingChanges[px]
             let signedDistance = winding ? distance : -distance
             let value = Math.max(0.0, Math.min(255.0, 128.0 + signedDistance * scale))

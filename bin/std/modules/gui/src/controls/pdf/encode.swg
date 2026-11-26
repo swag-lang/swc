@@ -21,8 +21,9 @@ private struct ImageSource
 
 private struct ImageSources
 {
-    byChecksum: HashTable'(u32, ImageSource)
-    byImage:    HashTable'(u64, u32)
+    byChecksum:   HashTable'(u32, ImageSource)
+    byImage:      HashTable'(u64, u32)
+    encodedBytes: u64
 }
 
 private struct PageObjects
@@ -654,6 +655,7 @@ private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *
     }
 
     let result = ImageObject{nextObject[], true}
+    sources.encodedBytes += encoded.bytes.count
     sources.byImage.add(identity, result.number)
     nextObject[] += 1
     return result
@@ -855,6 +857,12 @@ func encodeDocument(document: const *Document)->Array'u8 fail
     }
 
     var writer: Writer
+    // Reserve the preserved streams plus room for their dictionaries and the page tree.
+    if imageSources.encodedBytes >= 65536
+    {
+        let overhead = Math.min(65536'u64, cast(u64, nextObject) * 512)
+        writer.bytes.reserve(imageSources.encodedBytes + overhead)
+    }
     writer.offsets.resize(nextObject)
     writer.writeHeader()
 

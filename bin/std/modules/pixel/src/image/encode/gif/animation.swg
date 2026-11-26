@@ -34,10 +34,11 @@ public struct AnimationWriter
     width:           s32
     height:          s32
     previous:        Image     // Last frame added, compared with the next one.
-    pending:         Image     // Changed area of the last frame, waiting for its duration.
-    pendingX:        s32       // Position of `pending` in the frame, from the top left.
+    pendingX:        s32       // Position of the changed area in `previous`, from the top left.
     pendingY:        s32
-    pendingDuration: u64     // Time `pending` is shown so far, in microseconds.
+    pendingWidth:    s32       // Zero width means there is no pending frame.
+    pendingHeight:   s32
+    pendingDuration: u64      // Time the pending frame is shown so far, in microseconds.
     writtenTime:     u64     // Time covered by the frames written, in microseconds.
     globalTable:     Array'u8
     globalColorMap:  Array'u64
@@ -93,8 +94,8 @@ public impl AnimationWriter
 
         if not .previous.isValid()
         {
-            .previous = image
-            .setPending(image, 0, 0, .width, .height, duration)
+            .rememberFrame(image)
+            .setPending(0, 0, .width, .height, duration)
             return
         }
 
@@ -106,8 +107,8 @@ public impl AnimationWriter
         }
 
         try .flush()
-        .previous = image
-        .setPending(image, area.x, area.y, area.width, area.height, duration)
+        .rememberFrame(image)
+        .setPending(area.x, area.y, area.width, area.height, duration)
     }
 
     // Writes the last frame and the trailer, and closes the file.
@@ -149,63 +150,35 @@ private impl AnimationWriter
         }
     }
 
-    // Keeps the area of `image` at `x, y` waiting for its duration, without its alpha channel.
-    mtd setPending(image: Image, x, y, w, h: s32, duration: u64)
+    // Owns a snapshot even if the caller changes the image before the frame is flushed.
+    mtd rememberFrame(image: Image)
     {
-        let opaque = image.pixelFormat == .BGRA8 ? PixelFormat.BGR8 : image.pixelFormat == .RGBA8 ? PixelFormat.RGB8 : image.pixelFormat
-        .pending = Image.create(w, h, opaque)
+        if not .previous.isValid() or .previous.pixelFormat != image.pixelFormat do
+            .previous = Image.create(image.width, image.height, image.pixelFormat, image.pixels.toSlice(), image.alphaMode)
+        else do
+            Memory.copy(.previous.pixels.storage(), image.pixels.storage(), image.byteCount)
+    }
 
-        let sourcePixel = image.bytesPerPixel
-        let targetBytes = cast(u64, .pending.rowStride)
-        let sourceRow   = image.pixels.storage() + cast(u64, image.height - y - h) * image.rowStride + cast(u64, x) * sourcePixel
-        let targetRow   = .pending.pixels.storage()
-        if sourcePixel == 3 and w == image.width
-        {
-            Memory.copy(targetRow, sourceRow, .pending.byteCount)
-        }
-        else
-        {
-            let groups = cast(u64, w) / 4
-            for row in h
-            {
-                let source = sourceRow + cast(u64, row) * image.rowStride
-                let target = targetRow + cast(u64, row) * targetBytes
-                if sourcePixel == 3
-                {
-                    Memory.copy(target, source, targetBytes)
-                    continue
-                }
-
-                for group in groups
-                {
-                    let bytes  = Math.Simd.load(source + group * 16)
-                    let packed = Math.Simd.shuffle(bytes, PackRGB)
-                    let output = target + group * 12
-                    Math.Simd.storeLow8(output, packed)
-                    cast([*] u32, output + 8)[0] = cast #bit(Math.Simd.U32x4, packed)[2]
-                }
-
-                for column in groups * 4 until cast(u64, w) do
-                    Memory.copy(target + column * 3, source + column * 4, 3)
-            }
-        }
-
+    mtd setPending(x, y, w, h: s32, duration: u64)
+    {
         .pendingX        = x
         .pendingY        = y
+        .pendingWidth    = w
+        .pendingHeight   = h
         .pendingDuration = duration
     }
 
     // Writes the pending area as one frame, its delay rounded so the total duration stays exact.
     mtd flush() fail
     {
-        if not .pending.isValid() do
+        if not .pendingWidth do
             return
 
         let endTime = .writtenTime + .pendingDuration
         let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
         .writtenTime = endTime
 
-        var palette   = Encoder.buildPalette(.pending, .dither)
+        var palette   = Encoder.buildPaletteRegion(.previous, .pendingX, .pendingY, .pendingWidth, .pendingHeight, false, .dither)
         var block: ConcatBuffer
         var useGlobal = true
         if .globalTable.isEmpty()
@@ -224,12 +197,15 @@ private impl AnimationWriter
             useGlobal = Encoder.remapToColorTable(&palette, .globalTable.toSlice(), .globalColorMap.toSlice())
         }
 
+        // Keep the control extension and image payload in the same buffered write.
+        block.addBytes([0x21'u8, 0xF9, 0x04, 0x04, 0, 0, 0, 0])
+
         // Image descriptor, with a local colour table only when the global one lacks a colour.
         block.addNative(0x2C'u8)
         Encoder.writeU16(&block, cast(u16, .pendingX))
         Encoder.writeU16(&block, cast(u16, .pendingY))
-        Encoder.writeU16(&block, cast(u16, .pending.width))
-        Encoder.writeU16(&block, cast(u16, .pending.height))
+        Encoder.writeU16(&block, cast(u16, .pendingWidth))
+        Encoder.writeU16(&block, cast(u16, .pendingHeight))
         block.addNative(useGlobal ? 0'u8 : 0x80'u8 | (palette.tableBits - 1))
         if not useGlobal do
             Encoder.writeColorTable(&block, palette)
@@ -249,14 +225,13 @@ private impl AnimationWriter
                 chunk -= 1
 
             // Disposal mode 1 keeps the picture; another copy carries time beyond 655.35 seconds.
-            try .sink.write([0x21'u8, 0xF9, 0x04, 0x04])
-            try .sink.writeLittleEndian(cast(u16, chunk))
-            try .sink.write([0'u8, 0])
+            picture[4] = cast #wrap(u8, chunk)
+            picture[5] = cast(u8, chunk >> 8)
             try .sink.write(picture)
             remaining -= chunk
         }
 
-        .pending.release()
+        .pendingWidth = 0
     }
 
     #[Inline]

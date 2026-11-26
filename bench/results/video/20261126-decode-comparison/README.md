@@ -293,6 +293,24 @@ to reusable RGB24 buffers. [Fixture commands](raw-avi-fixtures.json) · [Timing 
 | BGRA, 653×371 | 0.190 | 0.364 | 1.91× |
 | RGB555, 960×540 | 0.340 | 1.002 | 2.95× |
 
+### Uncompressed AVI eight-pixel conversion
+
+The RGB555 converter expands eight packed pixels in sixteen-bit lanes and stores
+exactly 24 RGB bytes. BGR24 and BGRA now convert two four-pixel groups per
+iteration. The tail uses the same scalar conversion. An exhaustive check compared
+all 65,536 RGB555 input words against the scalar expansion, including the unused
+high bit. All 96 AVI pictures still match FFmpeg 9.1 byte for byte. The AVI and
+MP4 native Release selection passed 51 tests.
+
+Eleven rotating single-CPU runs use the same fixtures, with a three-picture warm-up.
+[Timing and picture hashes](raw-avi-eight-pixels.json)
+
+| Input | Before, ms/picture | After, ms/picture | Paired time change | FFmpeg 9.1 | FFmpeg / Swag time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| BGR24, 1280×720 | 0.368 | 0.362 | −1.8% | 0.486 | 1.35× |
+| BGRA, 653×371 | 0.160 | 0.145 | −4.8% | 0.302 | 2.08× |
+| RGB555, 960×540 | 0.270 | 0.225 | −14.1% | 0.855 | 3.79× |
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

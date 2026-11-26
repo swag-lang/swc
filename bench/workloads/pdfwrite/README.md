@@ -42,3 +42,11 @@ python3 bench/workloads/pdfwrite/repeated_fixture.py \
 ```
 
 Pass the generated path as `--case` and select `--mode save`.
+
+Use `--distinct 16` to write a 16-page control with a separate retained
+JPEG stream per page. Each stream contains a different JPEG comment.
+
+```sh
+python3 bench/workloads/pdfwrite/repeated_fixture.py \
+  /tmp/pdfraster/perf_images_jpeg_large.pdf /tmp/pdfwrite/many-jpeg-16.pdf --distinct 16
+```

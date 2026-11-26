@@ -6397,12 +6397,12 @@ impl Drawing
         return result
     }
 
-    // The shared coverage path handles solid and gradient geometry in a single target.
+    // Geometry and bitmap images share their coverage when the mattes use one submission.
     private mtd const canShareMatteCoverage()->bool
     {
         if .filters.count or .patterns.count do
             return false
-        for item in .items where item.kind != .Shape do
+        for item in .items where item.kind == .Text do
             return false
         return true
     }

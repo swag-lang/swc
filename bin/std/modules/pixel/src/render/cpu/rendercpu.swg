@@ -696,16 +696,29 @@ private impl RenderCpu
     {
         #static if Format == .BGRA8 do
             return loadBgra8(row, x)
+        elif Format == .RGB16 or Format == .RGBA16
+        {
+            #[Swag.Inline]
+            func normalizedWord(value: u16)->u8 => cast(u8, (cast(u32, value) + 128) / 257)
 
-        // Three-byte pixels cannot be read with a four-byte load at the end of a row.
-        const Bytes = Format == .RGBA8 ? 4 : 3
-        let texel = row + cast(u64, x) * Bytes
-        #static if Format == .BGR8 do
-            return Color.fromArgb(255'u8, texel[2], texel[1], texel[0]).argb
-        elif Format == .RGB8 do
-            return Color.fromArgb(255'u8, texel[0], texel[1], texel[2]).argb
-        else do
-            return Color.fromArgb(texel[3], texel[0], texel[1], texel[2]).argb
+            const Components = Format == .RGBA16 ? 4 : 3
+            let samples = cast(const [*] u16, row) + cast(u64, x) * Components
+            let alpha = Format == .RGBA16 ? normalizedWord(samples[3]) : 255'u8
+            return Color.fromArgb(alpha, normalizedWord(samples[0]), normalizedWord(samples[1]), normalizedWord(samples[2])).argb
+        }
+
+        else
+        {
+            // Three-byte pixels cannot be read with a four-byte load at the end of a row.
+            const Bytes = Format == .RGBA8 ? 4 : 3
+            let texel = row + cast(u64, x) * Bytes
+            #static if Format == .BGR8 do
+                return Color.fromArgb(255'u8, texel[2], texel[1], texel[0]).argb
+            elif Format == .RGB8 do
+                return Color.fromArgb(255'u8, texel[0], texel[1], texel[2]).argb
+            else do
+                return Color.fromArgb(texel[3], texel[0], texel[1], texel[2]).argb
+        }
     }
 
     #[Swag.Inline]
@@ -722,8 +735,8 @@ private impl RenderCpu
         return Color.fromArgb(lerpBgra8(c0, c1, wy))
     }
 
-    // The caller has clamped the coordinates. Straight 8-bit colors use the same two
-    // quantized lerps as the generic path without format dispatch at each texel.
+    // The caller has clamped the coordinates. Straight integer colors use the same
+    // two quantized lerps as the generic sampler after converting texels to bytes.
     #[Swag.Inline]
     func bilinearTexels(image: *Image, x0, x1, y0, y1: s32, tx, ty: f32)->Color
     {
@@ -737,6 +750,8 @@ private impl RenderCpu
             case .RGBA8: return sampleColor8Bilinear'(.RGBA8)(image, x0, x1, y0, y1, wx, wy)
             case .BGR8:  return sampleColor8Bilinear'(.BGR8)(image, x0, x1, y0, y1, wx, wy)
             case .RGB8:  return sampleColor8Bilinear'(.RGB8)(image, x0, x1, y0, y1, wx, wy)
+            case .RGB16: return sampleColor8Bilinear'(.RGB16)(image, x0, x1, y0, y1, wx, wy)
+            case .RGBA16: return sampleColor8Bilinear'(.RGBA16)(image, x0, x1, y0, y1, wx, wy)
             default:     break
             }
         }
@@ -2334,7 +2349,6 @@ private impl RenderCpu
         // compositing. Keep the general fragment path for coverage fringes and other paint.
         if fastAlpha and
            narrowRows and
-           not whiteMatte and
            not stencilTest and
            not .stencilWrite and
            not batch.solidPaint and
@@ -2358,19 +2372,27 @@ private impl RenderCpu
                 switch source.pixelFormat
                 {
                 case .BGRA8:
-                    drawLinearTextureTriangle'(.BGRA8)(batch, source, &triangle, paint.boundRect)
+                    drawLinearTextureTriangle'(.BGRA8)(batch, source, &triangle, paint.boundRect, whiteMatte)
                     return
 
                 case .RGBA8:
-                    drawLinearTextureTriangle'(.RGBA8)(batch, source, &triangle, paint.boundRect)
+                    drawLinearTextureTriangle'(.RGBA8)(batch, source, &triangle, paint.boundRect, whiteMatte)
                     return
 
                 case .BGR8:
-                    drawLinearTextureTriangle'(.BGR8)(batch, source, &triangle, paint.boundRect)
+                    drawLinearTextureTriangle'(.BGR8)(batch, source, &triangle, paint.boundRect, whiteMatte)
                     return
 
                 case .RGB8:
-                    drawLinearTextureTriangle'(.RGB8)(batch, source, &triangle, paint.boundRect)
+                    drawLinearTextureTriangle'(.RGB8)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    return
+
+                case .RGB16:
+                    drawLinearTextureTriangle'(.RGB16)(batch, source, &triangle, paint.boundRect, whiteMatte)
+                    return
+
+                case .RGBA16:
+                    drawLinearTextureTriangle'(.RGBA16)(batch, source, &triangle, paint.boundRect, whiteMatte)
                     return
 
                 default:
@@ -2639,7 +2661,7 @@ private impl RenderCpu
     #[Swag.Inline]
     func(const Format: PixelFormat) writeLinearTexturePixel(pixel: [*] u8, ink: Color)
     {
-        #static if Format == .BGR8 or Format == .RGB8
+        #static if Format == .BGR8 or Format == .RGB8 or Format == .RGB16
         {
             pixel[0] = ink.b
             pixel[1] = ink.g
@@ -2665,7 +2687,7 @@ private impl RenderCpu
             cached.colors[index] = lerpBgra8(loadColor8'Format(pixels, sample.low), loadColor8'Format(pixels, sample.high), sample.weight)
     }
 
-    func(const Format: PixelFormat) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4)
+    func(const Format: PixelFormat) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4, matte: [*] u8?)
     {
         let paintWidth  = Math.max(paintRect.z - paintRect.x, 0.000001)
         let paintHeight = Math.max(paintRect.w - paintRect.y, 0.000001)
@@ -2715,7 +2737,9 @@ private impl RenderCpu
             trimEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x, topLeft[1])
             trimEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x, topLeft[2])
 
-            let row = batch.pixels + cast(u64, batch.height - y - 1) * batch.rowStride
+            let rowOffset = cast(u64, batch.height - y - 1) * batch.rowStride
+            let row = batch.pixels + rowOffset
+            let white = matte ? matte + rowOffset : null
             if columns.count
             {
                 let v       = 1.0 - (sy - paintMin.y) / deviceH
@@ -2746,14 +2770,25 @@ private impl RenderCpu
                         let ink    = twoRows ? lerpBgra8x4(a, Math.Simd.load(savedB + offset), weight, upper) : a
                         let target = row + cast(u64, x) * 4
                         let old    = Math.Simd.load(target)
-                        #static if Format == .BGR8 or Format == .RGB8
+                        #static if Format == .BGR8 or Format == .RGB8 or Format == .RGB16
                         {
                             Math.Simd.store(target, Math.Simd.select(CpuBgraRgbMask, ink, old))
+                            if white
+                            {
+                                let other = white + cast(u64, x) * 4
+                                Math.Simd.store(other, Math.Simd.select(CpuBgraRgbMask, ink, Math.Simd.load(other)))
+                            }
                         }
                         else
                         {
                             let alpha = (cast #bit(Math.Simd.U32x4, ink) >> 24) * 0x0101_0101'u32
-                            Math.Simd.store(target, blendAlphaBgra8x4(ink, old, cast #bit(Math.Simd.U8x16, alpha)))
+                            let weights = cast #bit(Math.Simd.U8x16, alpha)
+                            Math.Simd.store(target, blendAlphaBgra8x4(ink, old, weights))
+                            if white
+                            {
+                                let other = white + cast(u64, x) * 4
+                                Math.Simd.store(other, blendAlphaBgra8x4(ink, Math.Simd.load(other), weights))
+                            }
                         }
 
                         x += 4
@@ -2765,6 +2800,8 @@ private impl RenderCpu
                         let a     = filteredTop.colors[index]
                         let value = twoRows ? lerpBgra8(a, filteredBottom.colors[index], sampleY.weight) : a
                         writeLinearTexturePixel'Format(row + cast(u64, x) * 4, Color.fromArgb(value))
+                        if white do
+                            writeLinearTexturePixel'Format(white + cast(u64, x) * 4, Color.fromArgb(value))
                     }
 
                     continue
@@ -2782,6 +2819,8 @@ private impl RenderCpu
                     }
 
                     writeLinearTexturePixel'Format(row + cast(u64, x) * 4, Color.fromArgb(value))
+                    if white do
+                        writeLinearTexturePixel'Format(white + cast(u64, x) * 4, Color.fromArgb(value))
                 }
 
                 continue
@@ -2811,6 +2850,8 @@ private impl RenderCpu
                 let yHi = Math.clamp(src + 1, 0, source.height - 1)
                 let ink = sampleColor8Bilinear'Format(source, xLo, xHi, yLo, yHi, bilinearWeight(fx - ix), bilinearWeight(fy - iy))
                 writeLinearTexturePixel'Format(row + cast(u64, x) * 4, ink)
+                if white do
+                    writeLinearTexturePixel'Format(white + cast(u64, x) * 4, ink)
             }
         }
     }

@@ -861,3 +861,31 @@ advances, dimensions and bitmap fingerprints in all measured cases.
 | `LXGWWenKaiTC-Regular.ttf` | U+9F8D | 85.41 | 19.44 | 148.02 | 76.68 |
 | `Iansui-Regular.ttf` | U+81FA | 65.87 | 16.27 | 122.61 | 67.88 |
 | `Iansui-Regular.ttf` | U+9F9C | 60.62 | 17.58 | 119.98 | 80.42 |
+
+## Packed outline offset validation
+
+The `loca` and CFF INDEX validators unpack one SIMD block at a time.
+Each comparison brings forward the last offset of the previous block.
+The vector and scalar paths reject descending pairs in the same order,
+including pairs that cross a block boundary.
+
+The kernel comparison with `0cacd90c1f` uses 21 interleaved batches of
+501 validations. Across the three widths, scans of 60,000 pairs take
+11–18% less time. The real-font workload also compares pathnames and
+retained-source loads, and matches Swag glyph fingerprints in every case.
+[Raw kernel and font timings](font-decode-linux-packed-offsets.json)
+
+| Bytes per offset | Offset pairs | Before (µs) | After |
+| ---: | ---: | ---: | ---: |
+| 2 | 255 | 0.085 | 0.075 |
+| 2 | 4096 | 0.854 | 0.626 |
+| 2 | 16384 | 2.992 | 2.413 |
+| 2 | 60000 | 11.253 | 9.172 |
+| 3 | 255 | 0.104 | 0.106 |
+| 3 | 4096 | 1.340 | 1.258 |
+| 3 | 16384 | 5.225 | 4.745 |
+| 3 | 60000 | 20.391 | 17.609 |
+| 4 | 255 | 0.110 | 0.104 |
+| 4 | 4096 | 1.426 | 1.201 |
+| 4 | 16384 | 5.789 | 5.041 |
+| 4 | 60000 | 20.075 | 17.799 |

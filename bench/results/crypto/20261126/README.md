@@ -47,6 +47,8 @@ optimizations moved each result.
 
 [Final integrated compiler, language and Core validation](integrated-validation-final.md).
 
+[Final differential checks at byte boundaries](integrated-final-edges.md).
+
 [Integrated replay and validation at 16:19 CET](integrated-validation-1619.md).
 
 [Asymmetric replay](asymmetric-cumulative.md) · [RSA replay](rsa-cumulative.md).

@@ -1068,6 +1068,45 @@ impl MantissaReader
     }
 }
 
+#[Swag.Inline]
+private func(Guarded: bool, WideDither: bool, Dither: bool) readChannelMantissas(mantissas: *MantissaReader, noise: *DitherGenerator, output: [*] f64, codes: const [*] s32, gains: const [*] f64, end: u64, zero: Simd.S32x4)
+{
+    // Dither assigns every otherwise-zero coefficient in the coded range.
+    let clearFrom = Dither ? end : 0'u64
+    Memory.set(output + clearFrom, 0, (SamplesPerBlock - clearFrom) * #sizeof(f64))
+    var bin = 0'u64
+    while bin < end
+    {
+        let code = codes[bin]
+        if code
+        {
+            output[bin] = mantissas.getPrepared'(Guarded, true)(code, gains[bin])
+        }
+        elif Dither
+        {
+            if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
+            {
+                if WideDither and
+                   bin + 8 <= end and
+                   Simd.allTrue(Simd.load(codes + bin + 4) == zero)
+                {
+                    noise.writeDitherRun'(false, 2)(output + bin, gains + bin, 1.0)
+                    bin += 8
+                    continue
+                }
+
+                noise.writeQuad'false(output + bin, gains + bin, 1.0)
+                bin += 4
+                continue
+            }
+
+            output[bin] = noise.get(gains[bin])
+        }
+
+        bin += 1
+    }
+}
+
 private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: [*] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
 {
     var mantissas    = MantissaReader.create(reader)
@@ -1083,40 +1122,10 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
         let dither = block.dither[channel]
         let zero   = Simd.splat(0's32)
 
-        // Dither assigns every otherwise-zero coefficient in the coded range.
-        let clearFrom = dither ? end : 0'u64
-        Memory.set(output + clearFrom, 0, (SamplesPerBlock - clearFrom) * #sizeof(f64))
-        var bin = 0'u64
-        while bin < end
-        {
-            let code = codes[bin]
-            if code
-            {
-                output[bin] = mantissas.getPrepared'(Guarded, true)(code, gains[bin])
-            }
-            elif dither
-            {
-                if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
-                {
-                    if WideDither and
-                       bin + 8 <= end and
-                       Simd.allTrue(Simd.load(codes + bin + 4) == zero)
-                    {
-                        noise.writeDitherRun'(false, 2)(output + bin, gains + bin, 1.0)
-                        bin += 8
-                        continue
-                    }
-
-                    noise.writeQuad'false(output + bin, gains + bin, 1.0)
-                    bin += 4
-                    continue
-                }
-
-                output[bin] = noise.get(gains[bin])
-            }
-
-            bin += 1
-        }
+        if dither do
+            readChannelMantissas'(Guarded, WideDither, true)(&mantissas, noise, output, codes, gains, end, zero)
+        else do
+            readChannelMantissas'(Guarded, WideDither, false)(&mantissas, noise, output, codes, gains, end, zero)
 
         if block.coupling and block.channelCoupled[channel] and not couplingRead
         {

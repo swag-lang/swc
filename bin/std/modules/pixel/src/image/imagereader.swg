@@ -100,7 +100,7 @@ public struct ImageReader
     decoderAllocator:     IAllocator?
     options:              DecodeOptions
     canvas:               Image
-    previous:             Image
+    previous:             Array'u8
     lastIndex:            s32 = -1
 }
 
@@ -145,6 +145,41 @@ impl ImageReader
             let row = target + cast(u64, y) * stride
             for x in frame.width do
                 writePixelValue(row + cast(u64, x) * .canvas.bytesPerPixel, .canvas.pixelFormat, value)
+        }
+    }
+
+    mtd(SAVE: bool) copyPreviousRectangle(frame: ImageFrameInfo)
+    {
+        let bottom   = .canvas.height - frame.y - frame.height
+        let stride   = cast(u64, .canvas.rowStride)
+        let rowBytes = cast(u64, frame.width) * .canvas.bytesPerPixel
+        let bytes    = rowBytes * frame.height
+        let canvas   = .canvas.pixels.storage() + cast(u64, bottom) * stride + cast(u64, frame.x) * .canvas.bytesPerPixel
+
+        #static if SAVE
+        {
+            .previous.grow(bytes)
+            .previous.count = bytes
+        }
+
+        let previous = .previous.storage()
+        if rowBytes == stride
+        {
+            #static if SAVE do
+                Memory.copy(previous, canvas, bytes)
+            else do
+                Memory.copy(canvas, previous, bytes)
+            return
+        }
+
+        for y in frame.height
+        {
+            let canvasRow   = canvas + y * stride
+            let previousRow = previous + y * rowBytes
+            #static if SAVE do
+                Memory.copy(previousRow, canvasRow, rowBytes)
+            else do
+                Memory.copy(canvasRow, previousRow, rowBytes)
         }
     }
 
@@ -403,14 +438,14 @@ public impl ImageReader
                 {
                 case .Keep:       break
                 case .Background: .clearRectangle(prior[])
-                case .Previous:   .canvas = .previous
+                case .Previous:   .copyPreviousRectangle'(false)(prior[])
                 }
             }
 
             let current    = cast(u32, (.lastIndex + 1))
             let descriptor = &.info.frames[current]
             if descriptor.disposal == .Previous do
-                .previous = .canvas
+                .copyPreviousRectangle'(true)(descriptor[])
             let image = try multiple.readFrame(current, .options)
             try .composite(descriptor[], image)
             .canvas.metadata = image.metadata

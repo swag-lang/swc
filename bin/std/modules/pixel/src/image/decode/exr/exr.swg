@@ -82,6 +82,18 @@ func parseChannels(payload: const [..] u8)->Array'Channel fail
     return result
 }
 
+#[Swag.Inline]
+func zipPrefix16(input: Simd.U8x16)->Simd.U8x16
+{
+    const Zero = Simd.splat(0'u8)
+    var sums   = input
+    sums += Simd.align(Zero, sums, 15)
+    sums += Simd.align(Zero, sums, 14)
+    sums += Simd.align(Zero, sums, 12)
+    sums += Simd.align(Zero, sums, 8)
+    return sums
+}
+
 func restoreZipPlanes(data: [..] u8)
 {
     // The predictor runs across the two byte planes in file order. Removing 128 from
@@ -91,13 +103,20 @@ func restoreZipPlanes(data: [..] u8)
     const Last = Simd.splat(15'u8)
     var carry  = Zero
     var offset = 0'u64
-    while data.count - offset >= 16
+    while data.count - offset >= 32
     {
-        var values = Simd.load(data.buffer + offset)
-        values += Simd.align(Zero, values, 15)
-        values += Simd.align(Zero, values, 14)
-        values += Simd.align(Zero, values, 12)
-        values += Simd.align(Zero, values, 8)
+        let first  = zipPrefix16(Simd.load(data.buffer + offset))
+        let second = zipPrefix16(Simd.load(data.buffer + offset + 16))
+        let middle = carry + Simd.shuffle(first, Last)
+        Simd.store(data.buffer + offset, (first + carry) ^ Bias)
+        Simd.store(data.buffer + offset + 16, (second + middle) ^ Bias)
+        carry  = middle + Simd.shuffle(second, Last)
+        offset += 32
+    }
+
+    if data.count - offset >= 16
+    {
+        let values = zipPrefix16(Simd.load(data.buffer + offset))
         let nextCarry = carry + Simd.shuffle(values, Last)
         Simd.store(data.buffer + offset, (values + carry) ^ Bias)
         carry  = nextCarry

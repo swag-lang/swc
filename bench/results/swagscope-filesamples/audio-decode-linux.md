@@ -384,3 +384,42 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 314 functional and stress tests. Release-safe passes
 18 focused Vorbis, Ogg and MDCT tests.
+
+## Eleventh optimization pass
+
+This follow-up compares the changed codecs with commit `a669e20dcc` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round11.json)
+
+| Format | R10 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R10 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AAC | 7.52 | 7.27 | 6.81 | 7.48 | 7.33 | 6.90 |
+| AC-3 | 10.31 | 9.91 | 8.29 | 10.74 | 10.20 | 8.40 |
+| Opus | 22.17 | 21.92 | 19.13 | 22.51 | 22.59 | 19.67 |
+
+| Format | R10 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| AAC | 5.72 | 5.47 | 6.62 |
+| AC-3 | 10.55 | 10.15 | 8.14 |
+| Opus | 22.91 | 23.55 | 19.40 |
+
+AAC stores spectral coefficients in single precision for the SIMD input rotation
+and reflects the symmetric IMDCT output groups. The overlap head uses separate
+multiplication and addition rounding in both worker modes.
+
+AC-3 stores the mantissa code and scale when bit allocation changes and reuses
+them for subsequent blocks. The tested Dolby output matches the previous pass
+byte for byte.
+
+Opus precomputes the coded CELT split angle, gains and log tangent in a 130 KiB
+table. The tested Opus output matches the previous pass byte for byte.
+
+An 84-sample Opus repeat on CPU 3 measures 23.35 ms for R10, 22.79 ms for this
+build and 20.46 ms for FFmpeg. The 70-sample Opus repeat on CPUs 1–4 measures 23.56 ms for R10, 23.42 ms for
+this build and 20.60 ms for FFmpeg. The four-core Opus change varies by CPU set.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 314 functional and stress tests. Release-safe passes
+66 focused AAC, Dolby and Opus tests.

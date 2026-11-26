@@ -278,7 +278,7 @@ private impl ImdctPlan
         }
     }
 
-    mtd(Quarter: u64) const run(spectrum: const [*] f64, output: [*] f32, window: const *ImdctOverlap? = null)
+    mtd(Quarter: u64) const run(spectrum: const [*] f32, output: [*] f32, window: const *ImdctOverlap? = null)
     {
         const Half = 2 * Quarter
         var real: [Quarter] f32
@@ -287,13 +287,35 @@ private impl ImdctPlan
         let im  = cast([*] f32, &imag[0])
         let cos = cast(const [*] f32, &.fftReal[0])
         let sin = cast(const [*] f32, &.fftImag[0])
-        for k in Quarter
+
+        // A four-bin rotation consumes forward even bins and reverse odd bins.
+        const EvenBins = cast(Simd.U32x4, [0'u32, 2, 4, 6])
+        const OddBins  = cast(Simd.U32x4, [7'u32, 5, 3, 1])
+        let twReal = cast(const [*] f32, &.twReal[0])
+        let twImag = cast(const [*] f32, &.twImag[0])
+        for group in Quarter / 4
         {
-            let a     = cast(f32, spectrum[2 * k]) * 0.5
-            let b     = -cast(f32, spectrum[Half - 1 - 2 * k]) * 0.5
-            let index = .reverse[k]
-            re[index] = a * .twReal[k] + b * .twImag[k]
-            im[index] = -a * .twImag[k] + b * .twReal[k]
+            let k     = 4 * group
+            let lo    = spectrum + 2 * k
+            let hi    = spectrum + Half - 8 - 2 * k
+            let a     = Simd.permute2(Simd.load(lo), Simd.load(lo + 4), EvenBins) * 0.5
+            let b     = Simd.permute2(Simd.load(hi), Simd.load(hi + 4), OddBins) * -0.5
+            let c     = Simd.load(twReal + k)
+            let sin   = Simd.load(twImag + k)
+            let rotRe = a * c + b * sin
+            let rotIm = -a * sin + b * c
+            let i0    = .reverse[k]
+            let i1    = .reverse[k + 1]
+            let i2    = .reverse[k + 2]
+            let i3    = .reverse[k + 3]
+            re[i0] = rotRe[0]
+            im[i0] = rotIm[0]
+            re[i1] = rotRe[1]
+            im[i1] = rotIm[1]
+            re[i2] = rotRe[2]
+            im[i2] = rotIm[2]
+            re[i3] = rotRe[3]
+            im[i3] = rotIm[3]
         }
 
         // The first stages have twiddles of one and i. Keep one group of four
@@ -362,74 +384,66 @@ private impl ImdctPlan
         let rotRe = cast(const [*] f32, &.twReal[0])
         let rotIm = cast(const [*] f32, &.twImag[0])
         let span  = Quarter
-        for group in span / 4
-        {
-            let i       = 4 * group
-            let c       = Simd.load(rotRe + i)
-            let sn      = Simd.load(rotIm + i)
-            let r       = Simd.load(re + i) * inv
-            let imValue = Simd.load(im + i) * inv
-            Simd.store(re + i, r * c + imValue * sn)
-            Simd.store(im + i, imValue * c - r * sn)
-        }
 
-        // Each FFT half supplies four even lanes and four reflected odd lanes.
+        // The first half is antisymmetric and the second half is symmetric.
+        // Expand each eight-sample group once and reflect it into its partner.
         const FirstTwo = cast(Simd.U32x4, [0'u32, 7, 1, 6])
         const LastTwo  = cast(Simd.U32x4, [2'u32, 5, 3, 4])
-
-        // Long-window samples can be windowed as they leave the transform.
+        const Reverse  = cast(Simd.U32x4, [3'u32, 2, 1, 0])
         for group in span / 8
         {
-            let i             = 4 * group
-            let j             = i + span / 2
-            let lowMirror     = span / 2 - 4 - i
-            let highMirror    = span - 4 - i
-            let lowRe         = Simd.load(re + i)
-            let lowIm         = Simd.load(im + i)
-            let highRe        = Simd.load(re + j)
-            let highIm        = Simd.load(im + j)
-            let reverseLowRe  = Simd.load(re + lowMirror)
-            let reverseLowIm  = Simd.load(im + lowMirror)
-            let reverseHighRe = Simd.load(re + highMirror)
-            let reverseHighIm = Simd.load(im + highMirror)
-            let firstLow      = Simd.permute2(highRe, reverseLowIm, FirstTwo)
-            let firstHigh     = Simd.permute2(highRe, reverseLowIm, LastTwo)
-            let secondLow     = -Simd.permute2(lowIm, reverseHighRe, FirstTwo)
-            let secondHigh    = -Simd.permute2(lowIm, reverseHighRe, LastTwo)
-            let thirdLow      = -Simd.permute2(highIm, reverseLowRe, FirstTwo)
-            let thirdHigh     = -Simd.permute2(highIm, reverseLowRe, LastTwo)
-            let fourthLow     = -Simd.permute2(lowRe, reverseHighIm, FirstTwo)
-            let fourthHigh    = -Simd.permute2(lowRe, reverseHighIm, LastTwo)
-            let index         = 2 * i
+            let i              = 4 * group
+            let high           = i + span / 2
+            let lowMirror      = span / 2 - 4 - i
+            let highC          = Simd.load(rotRe + high)
+            let highS          = Simd.load(rotIm + high)
+            let highRawRe      = Simd.load(re + high) * inv
+            let highRawIm      = Simd.load(im + high) * inv
+            let highRe         = highRawRe * highC + highRawIm * highS
+            let highIm         = highRawIm * highC - highRawRe * highS
+            let lowC           = Simd.load(rotRe + lowMirror)
+            let lowS           = Simd.load(rotIm + lowMirror)
+            let lowRawRe       = Simd.load(re + lowMirror) * inv
+            let lowRawIm       = Simd.load(im + lowMirror) * inv
+            let reverseLowRe   = lowRawRe * lowC + lowRawIm * lowS
+            let reverseLowIm   = lowRawIm * lowC - lowRawRe * lowS
+            let headLow        = Simd.permute2(highRe, reverseLowIm, FirstTwo)
+            let headHigh       = Simd.permute2(highRe, reverseLowIm, LastTwo)
+            let tailLow        = -Simd.permute2(highIm, reverseLowRe, FirstTwo)
+            let tailHigh       = -Simd.permute2(highIm, reverseLowRe, LastTwo)
+            let index          = 2 * i
+            let mirror         = 2 * span - 8 - index
+            let mirrorHeadLow  = -Simd.permute(headHigh, Reverse)
+            let mirrorHeadHigh = -Simd.permute(headLow, Reverse)
+            let mirrorTailLow  = Simd.permute(tailHigh, Reverse)
+            let mirrorTailHigh = Simd.permute(tailLow, Reverse)
             #static if Quarter == 512
             {
-                let upper       = index + Quarter
                 let leftWindow  = window!.leftWindow
                 let rightWindow = window!.rightWindow
                 let overlap     = window!.history
-                Simd.store(output + index, firstLow * Simd.load(leftWindow + index) + Simd.load(overlap + index))
-                Simd.store(output + index + 4, firstHigh * Simd.load(leftWindow + index + 4) + Simd.load(overlap + index + 4))
-                Simd.store(output + upper, secondLow * Simd.load(leftWindow + upper) + Simd.load(overlap + upper))
-                Simd.store(output + upper + 4, secondHigh * Simd.load(leftWindow + upper + 4) + Simd.load(overlap + upper + 4))
-                Simd.store(overlap + index, thirdLow * Simd.load(rightWindow + index))
-                Simd.store(overlap + index + 4, thirdHigh * Simd.load(rightWindow + index + 4))
-                Simd.store(overlap + upper, fourthLow * Simd.load(rightWindow + upper))
-                Simd.store(overlap + upper + 4, fourthHigh * Simd.load(rightWindow + upper + 4))
+
+                // Round the window product before adding history, as batch merge does.
+                Simd.store(output + index, Math.mulAdd(headLow, Simd.load(leftWindow + index), Simd.load(overlap + index)))
+                Simd.store(output + index + 4, Math.mulAdd(headHigh, Simd.load(leftWindow + index + 4), Simd.load(overlap + index + 4)))
+                Simd.store(output + mirror, Math.mulAdd(mirrorHeadLow, Simd.load(leftWindow + mirror), Simd.load(overlap + mirror)))
+                Simd.store(output + mirror + 4, Math.mulAdd(mirrorHeadHigh, Simd.load(leftWindow + mirror + 4), Simd.load(overlap + mirror + 4)))
+                Simd.store(overlap + index, tailLow * Simd.load(rightWindow + index))
+                Simd.store(overlap + index + 4, tailHigh * Simd.load(rightWindow + index + 4))
+                Simd.store(overlap + mirror, mirrorTailLow * Simd.load(rightWindow + mirror))
+                Simd.store(overlap + mirror + 4, mirrorTailHigh * Simd.load(rightWindow + mirror + 4))
             }
             else
             {
-                let first  = output + index
-                let second = first + span
-                let third  = second + span
-                let fourth = third + span
-                Simd.store(first, firstLow)
-                Simd.store(first + 4, firstHigh)
-                Simd.store(second, secondLow)
-                Simd.store(second + 4, secondHigh)
-                Simd.store(third, thirdLow)
-                Simd.store(third + 4, thirdHigh)
-                Simd.store(fourth, fourthLow)
-                Simd.store(fourth + 4, fourthHigh)
+                let tail = output + 2 * span
+                Simd.store(output + index, headLow)
+                Simd.store(output + index + 4, headHigh)
+                Simd.store(output + mirror, mirrorHeadLow)
+                Simd.store(output + mirror + 4, mirrorHeadHigh)
+                Simd.store(tail + index, tailLow)
+                Simd.store(tail + index + 4, tailHigh)
+                Simd.store(tail + mirror, mirrorTailLow)
+                Simd.store(tail + mirror + 4, mirrorTailHigh)
             }
         }
     }
@@ -627,7 +641,7 @@ private struct AacCodec
     ics:             [MaxChannels] Ics
     books:           [MaxChannels, MaxBands] s32
     scaleFactors:    [MaxChannels, MaxBands] s32
-    coefficients:    [MaxChannels, FrameSamples] f64
+    coefficients:    [MaxChannels, FrameSamples] f32
     tns:             [MaxChannels, 8, 3] TnsFilter
     tnsFilterCount:  [MaxChannels, 8] s32
     pairStart:       [MaxChannels] bool
@@ -702,7 +716,7 @@ private impl AacCodec
         for index in first until last
         {
             let noise = .randomNoise()
-            .coefficients[channel, index] = noise
+            .coefficients[channel, index] = cast(f32, noise)
             energy += noise * noise
         }
 
@@ -710,7 +724,7 @@ private impl AacCodec
         let target = bandGain(scale - 100)
         let norm   = energy > 0 ? target * Math.sqrt(cast(f64, width) / energy) : 0.0
         for index in first until last do
-            .coefficients[channel, index] *= norm
+            .coefficients[channel, index] = cast(f32, cast(f64, .coefficients[channel, index]) * norm)
     }
 
     mtd synthesizeNoise(channel: s32)
@@ -746,7 +760,7 @@ private impl AacCodec
         let value = &.ics[channel]
         if value.windowSequence != 2 do
             return
-        var natural: [FrameSamples] f64
+        var natural: [FrameSamples] f32
         let offsets    = swbShort(.sampleRateIndex)
         var line       = 0's32
         var windowBase = 0's32
@@ -802,7 +816,7 @@ private impl AacCodec
                 var history: [13] f64
                 for sample in end - start
                 {
-                    var valueAtLine  = .coefficients[channel, base + line]
+                    var valueAtLine  = cast(f64, .coefficients[channel, base + line])
                     let historyCount = Math.min(sample, filter.order)
                     for order in 1 until historyCount + 1 do
                         valueAtLine -= filter.lpc[order] * history[order - 1]
@@ -814,7 +828,7 @@ private impl AacCodec
                     }
 
                     history[0] = valueAtLine
-                    .coefficients[channel, base + line] = valueAtLine
+                    .coefficients[channel, base + line] = cast(f32, valueAtLine)
                     line       += increment
                 }
             }
@@ -985,7 +999,7 @@ private impl AacCodec
         }
     }
 
-    mtd(Dimension: s32, Escape: bool) decodeSpectralBand(reader: *BitReader, book: s32, dest: [*] f64, count: s32, gain: f64) fail
+    mtd(Dimension: s32, Escape: bool) decodeSpectralBand(reader: *BitReader, book: s32, dest: [*] f32, count: s32, gain: f64) fail
     {
         let prefixes = cast(const [*] u32, &g_SpectralPrefixes[book, 0])
         var index    = 0's32
@@ -1011,7 +1025,7 @@ private impl AacCodec
                         }
                     }
 
-                    dest[index + component] = samplePower * gain
+                    dest[index + component] = cast(f32, samplePower * gain)
                 }
             }
             else
@@ -1037,7 +1051,7 @@ private impl AacCodec
                 }
 
                 for component in Dimension do
-                    dest[index + component] = requantize(values[component], gain)
+                    dest[index + component] = cast(f32, requantize(values[component], gain))
             }
 
             index += Dimension
@@ -1074,7 +1088,7 @@ private impl AacCodec
             }
 
             let gain = bandGain(.scaleFactors[channel, band] - 100)
-            let dest = cast([*] f64, &.coefficients[channel, line])
+            let dest = cast([*] f32, &.coefficients[channel, line])
 
             // AAC's band boundaries are multiples of four for both window sizes.
             if book <= 4 do
@@ -1167,11 +1181,11 @@ private impl AacCodec
             if .usesMs[left] and .msUsed[left, band] and not intensity
             {
                 // AAC scalefactor band widths are multiples of four.
-                let middleBand = cast([*] f64, &.coefficients[left, line])
-                let sideBand   = cast([*] f64, &.coefficients[right, line])
-                for pair in cast(u64, width) / 2
+                let middleBand = cast([*] f32, &.coefficients[left, line])
+                let sideBand   = cast([*] f32, &.coefficients[right, line])
+                for group in cast(u64, width) / 4
                 {
-                    let index  = 2 * pair
+                    let index  = 4 * group
                     let middle = Simd.load(middleBand + index)
                     let side   = Simd.load(sideBand + index)
                     Simd.store(middleBand + index, middle + side)
@@ -1184,14 +1198,9 @@ private impl AacCodec
                 var sign = rightBook == 15 ? 1'f64 : -1'f64
                 if .usesMs[left] and .msUsed[left, band] do
                     sign = -sign
-                let scale     = Simd.splat(sign * bandGain(.scaleFactors[right, band]))
-                let leftBand  = cast(const [*] f64, &.coefficients[left, line])
-                let rightBand = cast([*] f64, &.coefficients[right, line])
-                for pair in cast(u64, width) / 2
-                {
-                    let index = 2 * pair
-                    Simd.store(rightBand + index, scale * Simd.load(leftBand + index))
-                }
+                let scale = sign * bandGain(.scaleFactors[right, band])
+                for index in line until line + width do
+                    .coefficients[right, index] = cast(f32, scale * cast(f64, .coefficients[left, index]))
             }
 
             line += width

@@ -312,6 +312,36 @@ private func bitexactLog2Tan(isin, icos: s32)->s32
     return (ls - lc) * (1 << 11) + fracMul16(s, fracMul16(s, -2597) + 7932) - fracMul16(c, fracMul16(c, -2597) + 7932)
 }
 
+private struct CodedTheta
+{
+    angle:  u16
+    middle: u16
+    side:   u16
+    logTan: s16
+}
+
+// For qn = 2 * row, the preceding rows contain row * row - 1 coded angles.
+private const CodedThetas: [129 * 129 - 1] CodedTheta = #run
+{
+    var table: [129 * 129 - 1] CodedTheta
+    for row in 1's32 until 129
+    {
+        let base = row * row - 1
+        let qn   = 2 * row
+        for rank in 1 until qn
+        {
+            let angle  = rank * 16384 / qn
+            let middle = bitexactCos(angle)
+            let side   = bitexactCos(16384 - angle)
+            table[base + rank] = {cast(u16, angle), cast(u16, middle), cast(u16, side), cast(s16, bitexactLog2Tan(side, middle))}
+        }
+
+        table[base + qn].angle = 16384
+    }
+
+    return table
+}
+
 // The f64 square root is precise enough to keep the integer floor for every u32.
 private func isqrt32(value: u32)->u32 => cast(u32, Math.sqrt(cast(f64, value)))
 
@@ -1501,6 +1531,7 @@ internal impl CeltDecoder
         let tell   = cast(s32, dec.tellFrac())
         var itheta = 0's32
         var inv    = false
+        var th: CodedTheta
         if qn != 1
         {
             if stereo and n > 2
@@ -1546,7 +1577,9 @@ internal impl CeltDecoder
                 dec.update(cast(u32, fl), cast(u32, (fl + fs)), ft)
             }
 
-            itheta = itheta * 16384 / qn
+            let row = qn >> 1
+            th     = CodedThetas[row * row - 1 + itheta]
+            itheta = cast(s32, th.angle)
         }
         elif stereo
         {
@@ -1576,9 +1609,9 @@ internal impl CeltDecoder
         }
         else
         {
-            imid  = bitexactCos(itheta)
-            iside = bitexactCos(16384 - itheta)
-            delta = fracMul16((cast(s32, n) - 1) << 7, bitexactLog2Tan(iside, imid))
+            imid  = cast(s32, th.middle)
+            iside = cast(s32, th.side)
+            delta = fracMul16((cast(s32, n) - 1) << 7, cast(s32, th.logTan))
         }
 
         sctx.inv    = inv

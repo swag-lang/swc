@@ -590,7 +590,35 @@ private func lowCompensation(value, first, second, bin: s32)->s32
     return Math.max(0, value - 128)
 }
 
-private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32) fail
+private const PreparedMantissaWidth: [16] u32 = [0, 0, 0, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
+
+// Keep group codes 0 through 5 and encode signed quantizers by width plus one.
+#[Swag.Inline]
+private func preparedMantissaCode(bap: s32)->s32
+    => bap >= 6 ? cast(s32, PreparedMantissaWidth[bap] + 1) : bap
+
+private const PreparedMantissaGain: [16, 32] f64 = #run
+{
+    const Levels: [6] f64 = [1.0, 3.0, 5.0, 7.0, 11.0, 15.0]
+    var result: [16, 32] f64
+    for bap in 16
+    {
+        var gain = 1.4142135623730951 / 16_777_216.0
+        if bap >= 6 do
+            gain = 1.0 / cast(f64, 1'u32 << (PreparedMantissaWidth[bap] - 1))
+        elif bap do
+            gain = 2.0 / Levels[bap]
+        for exponent in 32
+        {
+            result[bap, exponent] = gain
+            gain *= 0.5
+        }
+    }
+
+    return result
+}
+
+private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32, gains: [*] f64? = null) fail
 {
     if start < 0 or end <= start or end > 253 do
         fail InvalidFormatError{"Dolby bit-allocation range is invalid"}
@@ -720,7 +748,18 @@ private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32
         while source < last
         {
             let address = Math.clamp((psd[source] - masked) >> 5, 0, 63)
-            result[source - start] = BAPTAB[address]
+            let bap     = BAPTAB[address]
+            let index   = source - start
+            if Prepared
+            {
+                result[index] = preparedMantissaCode(bap)
+                gains![index] = PreparedMantissaGain[bap, exponents[index]]
+            }
+            else
+            {
+                result[index] = bap
+            }
+
             source += 1
         }
 
@@ -787,48 +826,41 @@ impl MantissaReader
     }
 
     #[Swag.Inline]
-    mtd getScaled(bap, exponent: s32)->f64
+    mtd getPrepared(code: s32, gain: f64)->f64
     {
-        if bap >= 6
-        {
-            const Width: [16] u32 = [0, 0, 0, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
-            let width = Width[bap]
-            let raw   = .reader.readSigned(width)
-            return cast(f64, raw) * mantissaScale(exponent + cast(s32, width) - 1)
-        }
-
-        return .getGrouped(bap) * mantissaScale(exponent)
-    }
-
-    #[Swag.Inline]
-    mtd getGrouped(bap: s32)->f64
-    {
-        switch bap
+        var value: s32
+        switch code
         {
         case 0:
             return 0
 
         case 1:
-            return cast(f64, .readPacked(5, &.bap1, &Bap1Packed[0])) * (2.0 / 3.0)
+            value = .readPacked(5, &.bap1, &Bap1Packed[0])
 
         case 2:
-            return cast(f64, .readPacked(7, &.bap2, &Bap2Packed[0])) * (2.0 / 5.0)
+            value = .readPacked(7, &.bap2, &Bap2Packed[0])
 
         case 3:
-            let code = .reader.read(3)
-            return code < 7 ? (cast(f64, code) - 3.0) * (2.0 / 7.0) : 0
+            let raw = .reader.read(3)
+            value = raw < 7 ? cast(s32, raw) - 3 : 0
 
         case 4:
-            return cast(f64, .readPacked(7, &.bap4, &Bap4Packed[0])) * (2.0 / 11.0)
+            value = .readPacked(7, &.bap4, &Bap4Packed[0])
 
         case 5:
-            let code = .reader.read(4)
-            return code < 15 ? (cast(f64, code) - 7.0) * (2.0 / 15.0) : 0
+            let raw = .reader.read(4)
+            value = raw < 15 ? cast(s32, raw) - 7 : 0
 
         default:
-            return 0
+            value = .reader.readSigned(cast(u32, (code - 1)))
         }
+
+        return cast(f64, value) * gain
     }
+
+    #[Swag.Inline]
+    mtd getScaled(bap, exponent: s32)->f64
+        => .getPrepared(preparedMantissaCode(bap), PreparedMantissaGain[bap, exponent])
 }
 
 private func initializeDolbyCore()

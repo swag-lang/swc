@@ -206,6 +206,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   MP3 and Opus still trail at one core.
   [Full FileSamples comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#full-ninth-pass-comparison)
   · [Vorbis output follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#tenth-optimization-pass)
+  · [AAC, AC-3 and Opus follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#eleventh-optimization-pass)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native

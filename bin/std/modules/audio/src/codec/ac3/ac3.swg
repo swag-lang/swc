@@ -76,17 +76,26 @@ private struct Ac3Block
 // `chbwcod` is defined from 0 through 60; larger six-bit values are reserved.
 private const MaxChannelBandwidthCode = 60'u32
 
+// A block reusing its bit allocation also reuses the matching dequantization gains.
+private struct Ac3MantissaGains
+{
+    channel:  [MaxFullBandwidthChannels, SamplesPerBlock] f64
+    coupling: [SamplesPerBlock] f64
+    lfe:      [7] f64
+}
+
 private struct Ac3Codec
 {
     using base: Codec
 
-    sampleRate:   u32
-    channels:     u32
-    block:        Ac3Block
-    imdct:        [MaxChannels] Imdct
-    stereoImdct:  StereoImdct
-    coefficients: [MaxChannels, SamplesPerBlock] f64
-    ditherState:  u32 = 0x1234ABCD
+    sampleRate:    u32
+    channels:      u32
+    block:         Ac3Block
+    imdct:         [MaxChannels] Imdct
+    stereoImdct:   StereoImdct
+    mantissaGains: Ac3MantissaGains
+    coefficients:  [MaxChannels, SamplesPerBlock] f64
+    ditherState:   u32 = 0x1234ABCD
 }
 
 private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
@@ -221,11 +230,12 @@ private impl Ac3Codec
         .ditherState = 0x1234ABCD
     }
 
-    mtd ditherValue()->f64
+    #[Swag.Inline]
+    mtd ditherWithGain(gain: f64)->f64
     {
         .ditherState *= #wrap 1_664_525
         .ditherState += #wrap 1_013_904_223
-        return (cast(f64, (.ditherState >> 8)) / 16_777_216.0 - 0.5) * 1.4142135623730951
+        return cast(f64, cast(s32, (.ditherState >> 8)) - 8_388_608) * gain
     }
 
     mtd readCoupling(reader: *BitReader, bsi: const *Ac3Bsi) fail
@@ -436,13 +446,13 @@ private impl Ac3Codec
         for channel in bsi.nfchans where refreshAll or block.channelExpStrategy[channel]
         {
             let delta = &block.channelDelta[channel]
-            try bitAllocation(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0])
+            try bitAllocation'true(bsi.fscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, delta, &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
         }
 
         if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy) do
-            try bitAllocation(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
+            try bitAllocation'true(bsi.fscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
         if bsi.lfeon and (refreshAll or block.lfeExpStrategy) do
-            try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
+            try bitAllocation'true(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
     }
 
     mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi)
@@ -456,18 +466,18 @@ private impl Ac3Codec
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in cast(u64, block.channelEnd[channel])
             {
-                let bap      = block.channelBap[channel, bin]
-                let exponent = block.channelExponents[channel, bin]
-                if bap do
-                    .coefficients[channel, bin] = mantissas.getScaled(bap, exponent)
+                let code = block.channelBap[channel, bin]
+                let gain = .mantissaGains.channel[channel, bin]
+                if code do
+                    .coefficients[channel, bin] = mantissas.getPrepared(code, gain)
                 elif block.dither[channel] do
-                    .coefficients[channel, bin] = .ditherValue() * mantissaScale(exponent)
+                    .coefficients[channel, bin] = .ditherWithGain(gain)
             }
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
             {
                 for bin in block.couplingSubbands * 12 where block.couplingBap[bin] do
-                    couplingMantissas[bin] = mantissas.getScaled(block.couplingBap[bin], block.couplingExponents[bin])
+                    couplingMantissas[bin] = mantissas.getPrepared(block.couplingBap[bin], .mantissaGains.coupling[bin])
                 couplingRead = true
             }
         }
@@ -477,7 +487,7 @@ private impl Ac3Codec
             let channel = bsi.nfchans
             Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
             for bin in 7 do
-                .coefficients[channel, bin] = mantissas.getScaled(block.lfeBap[bin], block.lfeExponents[bin])
+                .coefficients[channel, bin] = mantissas.getPrepared(block.lfeBap[bin], .mantissaGains.lfe[bin])
         }
 
         if block.coupling
@@ -491,7 +501,7 @@ private impl Ac3Codec
                         let source = subband * 12 + bin
                         var value  = couplingMantissas[source]
                         if not value and block.dither[channel] do
-                            value = .ditherValue() * mantissaScale(block.couplingExponents[source])
+                            value = .ditherWithGain(PreparedMantissaGain[0, block.couplingExponents[source]])
                         let destination = (subband + block.couplingBegin) * 12 + bin + 37
                         .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
                     }

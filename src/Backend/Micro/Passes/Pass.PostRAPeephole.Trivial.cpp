@@ -749,16 +749,42 @@ namespace PostRaPeephole
         return true;
     }
 
-    // `mov eax, eax` clears the upper half of rax, so a dword self-copy is
-    // kept as a rule. Where that half is already clear on every path - after
-    // any 32-bit write - it changes nothing.
-    bool tryEraseZeroExtendedSelfCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
+    // A foreign System V call reads only the low dword of a narrow integer
+    // argument and then clobbers the whole register.
+    static bool narrowForeignCallClobbersRegister(const Context& ctx, MicroInstrRef ref, MicroReg reg)
+    {
+        const MicroInstr* call = ctx.instruction(ref);
+        if (!call || call->op != MicroInstrOpcode::CallExtern || call->numOperands != 4)
+            return false;
+        const auto*    ops    = call->ops(*ctx.operands);
+        const uint32_t narrow = ops[2].valueU32 >> MicroInstr::K_CALL_SYSTEM_V_NARROW_INT_ARG_SHIFT;
+        if (!narrow || ops[3].valueU64 != MicroInstr::K_CALL_CLOBBERS_ALL)
+            return false;
+        const auto args = CallConv::get(ops[0].callConv).intArgRegs;
+        for (uint32_t lane = 0; lane < args.size(); ++lane)
+            if ((narrow & (1u << lane)) && args[lane] == reg)
+                return true;
+        return false;
+    }
+
+    // A dword self-copy and a dword-to-qword sign extension change only
+    // the upper half when their input already occupies the destination.
+    bool tryEraseRedundantIntegerSelfCopy(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const MicroInstrOperand* ops = inst.ops(*ctx.operands);
-        if (!ops || ops[0].reg != ops[1].reg || !ops[0].reg.isInt() ||
-            ops[2].opBits != MicroOpBits::B32)
+        if (!ops || ops[0].reg != ops[1].reg || !ops[0].reg.isInt())
             return false;
-        if (!ctx.isUpperHalfZeroBefore(ref, ops[0].reg) || !ctx.claimAll({ref}))
+        const bool signExtend = inst.op == MicroInstrOpcode::LoadSignedExtRegReg;
+        if (signExtend ? ops[2].opBits != MicroOpBits::B64 || ops[3].opBits != MicroOpBits::B32 : ops[2].opBits != MicroOpBits::B32)
+            return false;
+        const MicroReg      reg  = ops[0].reg;
+        const MicroInstrRef next = ctx.nextRef(ref);
+        if (narrowForeignCallClobbersRegister(ctx, next, reg))
+        {
+            if (!ctx.claimAll({ref, next}))
+                return false;
+        }
+        else if (signExtend || !ctx.isUpperHalfZeroBefore(ref, reg) || !ctx.claimAll({ref}))
             return false;
         ctx.emitErase(ref);
         return true;

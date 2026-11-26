@@ -228,6 +228,8 @@ struct MicroInstr
     // The low 16 bits of the call operand describe vector argument widths.
     // A proved fixed System V prototype does not consume a vector count in AL.
     static constexpr uint32_t K_CALL_FIXED_SYSTEM_V_PROTOTYPE = 1u << 16;
+    // The following bits identify foreign integer argument lanes that read only their low dword.
+    static constexpr uint32_t K_CALL_SYSTEM_V_NARROW_INT_ARG_SHIFT = 17;
 
     DebugSourceInfo  debugSourceInfo;
     MicroOperandRef  opsRef      = MicroOperandRef::invalid();

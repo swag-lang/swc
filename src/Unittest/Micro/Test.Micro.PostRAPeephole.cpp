@@ -6027,6 +6027,60 @@ SWC_TEST_BEGIN(PostRAPeephole_SelfCopyAfterQwordWrite_Kept)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_SelfCopyBeforeNarrowForeignCall_Erased)
+{
+    const CallConv& conv = CallConv::get(CallConvKind::SystemVAMD64);
+    SymbolFunction  callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::SemaCompleted);
+    AttributeList   attributes;
+    attributes.hasForeign = true;
+    callee.setAttributes(ctx, attributes);
+    callee.setReturnTypeRef(ctx.typeMgr().typeVoid());
+    SymbolVariable first(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable floating(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable last(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    first.setTypeRef(ctx.typeMgr().typeU64());
+    floating.setTypeRef(ctx.typeMgr().typeF64());
+    last.setTypeRef(ctx.typeMgr().typeU32());
+    callee.addParameter(&first);
+    callee.addParameter(&floating);
+    callee.addParameter(&last);
+
+    struct Case
+    {
+        uint32_t lane;
+        bool     fixedPrototype;
+        bool     interveningRead;
+        bool     erased;
+    };
+    constexpr Case cases[] = {{1, true, false, true}, {0, true, false, false}, {1, false, false, false}, {1, true, true, false}};
+    for (const Case& test : cases)
+    {
+        for (const bool signExtend : {false, true})
+        {
+            MicroBuilder   builder(ctx);
+            const MicroReg reg = conv.intArgRegs[test.lane];
+            if (signExtend)
+                builder.emitLoadSignedExtendRegReg(reg, reg, MicroOpBits::B64, MicroOpBits::B32);
+            else
+                builder.emitLoadRegReg(reg, reg, MicroOpBits::B32);
+            const auto extension = builder.instructions().lastInstructionRef();
+            if (test.interveningRead)
+                builder.emitLoadMemReg(MicroReg::intReg(8), 0, reg, MicroOpBits::B64);
+            CallFloatArgs floats;
+            floats.setWidth(0, 64);
+            builder.emitCallExtern(&callee, CallConvKind::SystemVAMD64, 3, floats, test.fixedPrototype);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+            if ((builder.instructions().ptr(extension) == nullptr) != test.erased)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 namespace
 {
     // xorps xmm1, xmm1 ; [movss xmm1, [r8] | cvtsi2ss xmm1, eax] ; movss [r8 + 8], xmm1

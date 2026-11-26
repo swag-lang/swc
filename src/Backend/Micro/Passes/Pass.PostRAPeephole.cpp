@@ -1421,7 +1421,8 @@ namespace
         r.add(MicroInstrOpcode::Nop, tryEraseTrivial);
         r.add(MicroInstrOpcode::ClearReg, tryEraseScalarReturnConversionClear);
         r.add(MicroInstrOpcode::LoadRegReg, tryEraseTrivial);
-        r.add(MicroInstrOpcode::LoadRegReg, tryEraseZeroExtendedSelfCopy);
+        r.add(MicroInstrOpcode::LoadRegReg, tryEraseRedundantIntegerSelfCopy);
+        r.add(MicroInstrOpcode::LoadSignedExtRegReg, tryEraseRedundantIntegerSelfCopy);
         r.add(MicroInstrOpcode::LoadZeroExtRegMem, tryEraseByteZeroExtendAfterSubtract);
         r.add(MicroInstrOpcode::LoadZeroExtAmcRegMem, tryEraseByteZeroExtendAfterSubtract);
         r.add(MicroInstrOpcode::LoadAmcRegMem, tryFoldByteLoadSubtractExtend);

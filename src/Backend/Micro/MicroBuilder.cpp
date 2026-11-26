@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroOptimizerStats.h"
 #include "Backend/Micro/MicroPassContext.h"
@@ -10,6 +11,7 @@
 #include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -20,6 +22,33 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint8_t narrowSystemVIntegerArguments(TaskContext& ctx, const CallConv& conv, const SymbolFunction& function)
+    {
+        if (!function.returnTypeRef().isValid() || function.isClosure() || function.isFallible())
+            return 0;
+        if (ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(function.returnTypeRef()), ABITypeNormalize::Usage::Return).isIndirect)
+            return 0;
+
+        uint8_t  mask = 0;
+        uint32_t lane = 0;
+        for (const SymbolVariable* parameter : function.parameters())
+        {
+            if (lane == conv.intArgRegs.size())
+                break;
+            const auto type = ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(parameter->typeRef()), ABITypeNormalize::Usage::Argument);
+            // A classified aggregate can claim multiple argument lanes. The
+            // scalar prefix still has the known register assignments.
+            if (type.isSystemVStorage() || type.isVoid)
+                break;
+            if (type.isFloat)
+                continue;
+            if (!type.isIndirect && type.numBits <= 32)
+                mask |= static_cast<uint8_t>(1u << lane);
+            ++lane;
+        }
+        return mask;
+    }
+
     MicroRelocation::Kind dataSegmentRelocationKind(const DataSegmentKind kind)
     {
         switch (kind)
@@ -515,11 +544,19 @@ void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
     SWC_ASSERT(targetFunction.isForeign());
 
+    const CallConv& conv              = CallConv::get(callConv);
+    const uint32_t  narrowIntegerArgs = fixedSystemVPrototype && intArgMask && intArgMask != K_CALL_ARG_MASK_ALL && conv.isSystemVAMD64
+                                            ? narrowSystemVIntegerArguments(ctx(), conv, targetFunction) & intArgMask
+                                            : 0;
+
+    const uint32_t argumentFlags = (fixedSystemVPrototype ? MicroInstr::K_CALL_FIXED_SYSTEM_V_PROTOTYPE : 0) |
+                                   (narrowIntegerArgs << MicroInstr::K_CALL_SYSTEM_V_NARROW_INT_ARG_SHIFT);
+
     auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallExtern, 4);
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
-    ops[2].valueU32        = floatArgMask.widths | (fixedSystemVPrototype ? MicroInstr::K_CALL_FIXED_SYSTEM_V_PROTOTYPE : 0);
+    ops[2].valueU32        = floatArgMask.widths | argumentFlags;
     ops[3].valueU64        = MicroInstr::K_CALL_CLOBBERS_ALL;
 
     addRelocation({

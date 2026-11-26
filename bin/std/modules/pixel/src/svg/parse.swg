@@ -876,6 +876,23 @@ private func readNumber(s: string, pos: *u64)->f32
     if negative or s[i] == '+' do
         i += 1
 
+    // Common path coordinates fit in two digits. The following byte must rule out
+    // a longer integer, decimal, or exponent before taking the short path.
+    if len - i >= 3 and Latin1.isDigit(s[i])
+    {
+        let second         = s[i + 1]
+        let hasSecondDigit = Latin1.isDigit(second)
+        let end            = i + (hasSecondDigit ? 2'u64 : 1'u64)
+        let suffix         = s[end]
+        if not Latin1.isDigit(suffix) and suffix != '.' and (suffix | ' ') != 'e'
+        {
+            pos[] = end
+            let first = cast(s32, s[i] - '0')
+            let value = cast(f32, hasSecondDigit ? first * 10 + cast(s32, second - '0') : first)
+            return negative ? -value : value
+        }
+    }
+
     let digits   = i
     let exactEnd = i + Math.min(15'u64, len - i)
     var integral = 0'u64

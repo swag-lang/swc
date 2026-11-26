@@ -202,6 +202,9 @@ ships; history lives in Git, not here.
 - Evidence: [parallel batches of color fills](../bench/workloads/svgraster/resvg-comparison.md#processing-consecutive-color-fills-by-row-range)
   reduce the 16,000-shape fixture from 233 to 120 ms and the stroke fixture from
   64 to 44 ms at four workers with unchanged pixels.
+- Evidence: [short stroke runs](../bench/workloads/svgraster/resvg-comparison.md#dividing-shorter-stroke-runs-by-row-range)
+  reduce the 0.5 px case from 15.69 to 11.84 ms and the 4 px case from
+  19.36 to 15.16 ms at four workers with unchanged pixels.
 - Evidence: [parallel single-ink bitmap rendering](../bench/workloads/svgraster/resvg-comparison.md#parallelizing-the-single-ink-bitmap-path)
   reduces the largest original from 203 to 152 ms at four workers with the same
   pixels. Its four-worker thumbnail drops from 148 to 126 ms.

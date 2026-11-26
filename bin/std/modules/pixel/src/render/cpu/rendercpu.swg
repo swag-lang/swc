@@ -4419,21 +4419,24 @@ private impl RenderCpu
         top, bottom: s32
     }
 
-    mtd tryDrawScanGroup(painter: *Painter, commands: const [..] Command)->bool
+    mtd tryDrawScanGroup(painter: *Painter, commands: const [..] Command, available: u64)->bool
     {
         let image = .currentImage()
         if not image do
             return true
         let transform = .deviceTransform()
         const MaxBands = 8
-        let workers = Math.min(cast(u64, Swag.workerCount()), commands.count / 128, cast(u64, MaxBands))
-        if workers < 2 do
+        let regularWorkers = Math.min(available, commands.count / 128, cast(u64, MaxBands))
+        let shortWorkers = available >= 4 ? Math.min(commands.count / 32, 4'u64) : 0'u64
+        let measureArea = shortWorkers > regularWorkers
+        if regularWorkers < 2 and not measureArea do
             return false
 
         var work: Array'ScanFillWork
         work.reserve(commands.count)
         var top = image.height
         var bottom: s32
+        var pixels: f64
         for &cmd in commands
         {
             if not (cmd.op is .DrawScanFill) do
@@ -4447,11 +4450,14 @@ private impl RenderCpu
             work.add({fill, area, first, last})
             top    = Math.min(top, first)
             bottom = Math.max(bottom, last)
+            if measureArea do
+                pixels += cast(f64, area.width) * area.height
         }
 
         if not work.count do
             return true
-        if bottom - top < 32 do
+        let workers = measureArea and pixels >= 64 * 1024 ? shortWorkers : regularWorkers
+        if bottom - top < 32 or workers < 2 do
             return false
 
         let bandHeight = (bottom - top - 1) / cast(s32, workers) + 1
@@ -5365,6 +5371,8 @@ impl RenderCpu
         .resetDrawState()
         .contentScale = painter.contentScale()
         let commands = painter.commandBuffer.toSlice()
+        let available = cast(u64, Swag.workerCount())
+        let minScanGroup = available >= 4 ? 64'u64 : 256'u64
         while nextCommand < commands.count
         {
             let cmd = &commands[nextCommand]
@@ -5374,7 +5382,8 @@ impl RenderCpu
                 let limit = Math.min(nextCommand + 65_536, commands.count)
                 while end < limit and commands[end].op is .DrawScanFill do
                     end += 1
-                if end - nextCommand < 256 or not .tryDrawScanGroup(painter, commands[nextCommand until end])
+                if end - nextCommand < minScanGroup or
+                   not .tryDrawScanGroup(painter, commands[nextCommand until end], available)
                 {
                     for index in nextCommand until end do
                         .executeCommand(painter, &commands[index], index)

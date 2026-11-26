@@ -335,7 +335,8 @@ using Core
             let transform = Math.Transform2.createTranslation(0.25 + cast(f32, pass), 0.375)
             painter.setTransform(transform)
             painter.setClippingRect({5, 11 + cast(f32, pass) * 3, 133, 231})
-            for index in 384
+            let count = pass == 0 ? 128 : 384
+            for index in count
             {
                 let x     = cast(f32, 4 + (index * 13) % 96) + 0.125
                 let y     = cast(f32, 6 + (index * 17) % 220) + 0.25

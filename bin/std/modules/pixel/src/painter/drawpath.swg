@@ -175,11 +175,18 @@ impl Painter
         }
 
         .scanContourEnds.add(.scanPoints.count)
-        for point in points
+        var low  = .scanStrokeLow
+        var high = .scanStrokeHigh
+        for &point in points
         {
-            .scanStrokeLow  = Math.Vector2.min(.scanStrokeLow, point)
-            .scanStrokeHigh = Math.Vector2.max(.scanStrokeHigh, point)
+            low.x  = Math.min(low.x, point.x)
+            low.y  = Math.min(low.y, point.y)
+            high.x = Math.max(high.x, point.x)
+            high.y = Math.max(high.y, point.y)
         }
+
+        .scanStrokeLow  = low
+        .scanStrokeHigh = high
     }
 
     // Lays down one convex cap outline, expanded by the border width when this walk paints one.

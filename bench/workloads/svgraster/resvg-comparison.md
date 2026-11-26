@@ -1028,3 +1028,25 @@ median parse-plus-raster times in milliseconds.
 The gradient regression uses a four-worker render and a full-color-mask
 reference that runs serially at this size. Original, generated, and
 public control CRC-64s match.
+
+## Dividing shorter stroke runs by row range
+
+The painter accumulates the same extrema while borrowing the stroke
+contour's points. The CPU renderer can also schedule a shorter scan
+fill run when four workers are available and the sum of its visible
+bounds covers at least 65,536 pixels. Each worker follows the original
+draw order in its own rows. The existing command-count policy still
+applies to the other runs.
+
+Nine interleaved Release runs on four logical CPUs gave these median
+parse-plus-raster times in milliseconds.
+
+| Fixture | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| `strokes.svg` | 42.02 | 40.04 | 15.98 |
+| `hairline-strokes.svg` | 15.69 | 11.84 | 6.38 |
+| `wide-strokes.svg` | 19.36 | 15.16 | 14.48 |
+
+The generated, public, and original controls retain their Swag CRC-64s.
+The exact compositing regression compares runs of 128 and 384 fills with
+the same commands submitted individually.

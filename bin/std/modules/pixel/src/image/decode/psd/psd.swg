@@ -87,30 +87,28 @@ func decodePackBits(destination: [*] u8, expected: u64, source: const [..] u8) f
         fail InvalidFormatError{"PSD PackBits row has an invalid decoded length"}
 }
 
-func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] u8, depth: u16)
+func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [*] u8, depth: u16)
 {
-    let alphaChannel = image.pixelFormat.isGrayscale() ? 1'u16 : 3'u16
-    if channel >= image.pixelFormat.channels() or channel > alphaChannel do
-        return
-
     let targetY = image.height - sourceY - 1
-    var target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
+    let row     = image.pixels.storage() + cast(u64, targetY) * image.rowStride
+    let stride  = image.bytesPerPixel
     if depth == 8
     {
+        var target = row + channel
         for x in image.width
         {
-            target[channel] = source[x]
-            target += image.bytesPerPixel
+            target[0] = source[x]
+            target   += stride
         }
     }
     else
     {
+        let samples = cast(const [*] u16, source)
+        var target  = row + cast(u64, channel) * 2
         for x in image.width
         {
-            let sourceOffset = cast(u64, x) * 2
-            let sample       = (cast(u16, source[sourceOffset]) << 8) | cast(u16, source[sourceOffset + 1])
-            cast(*u16, (target + cast(u64, channel) * 2))[] = sample
-            target += image.bytesPerPixel
+            cast([*] u16, target)[0] = Math.byteSwap(samples[x])
+            target += stride
         }
     }
 }
@@ -490,10 +488,20 @@ impl Layer
         if not options.decodePixels do
             return result
         result.allocPixels()
-        result.fill(Argb.Black)
         let rowBytes = cast(u64, result.width) * (depth / 8)
         let required = rowBytes * cast(u64, result.height)
         let alpha    = result.pixelFormat.isGrayscale() ? 1'u16 : 3'u16
+        var present: u8
+        for channel in .channels where channel.id >= -1 and channel.id < alpha
+        {
+            let component = channel.id == -1 ? alpha : cast(u16, channel.id)
+            present |= 1'u8 << component
+        }
+
+        if present != (1'u8 << (alpha + 1)) - 1 do
+            result.fill(Argb.Black)
+
+        var rowScratch: Array'u8
         for channel in .channels
         {
             if channel.id < -1 or cast(s32, channel.id) >= cast(s32, alpha) do
@@ -504,12 +512,12 @@ impl Layer
                 fail InvalidFormatError{"PSD layer channel compression is missing"}
             let compression = readU16(bytes.buffer)
             var offset      = 2'u64
-            var pixels: Array'u8
+            var unpacked: Array'u8
+            var pixels = bytes[offset to]
             if compression == 0
             {
                 if bytes.count - offset != required do
                     fail InvalidFormatError{"PSD raw layer channel has an invalid size"}
-                pixels.add(bytes[offset to])
             }
             elif compression == 1
             {
@@ -517,30 +525,33 @@ impl Layer
                 if tableBytes > bytes.count - offset do
                     fail InvalidFormatError{"PSD layer row table is truncated"}
                 offset += tableBytes
-                pixels.resize(required)
+                rowScratch.reserve(rowBytes)
+                let row = rowScratch.storage()
                 for y in result.height
                 {
                     let length = cast(u64, readU16(bytes.buffer + 2 + cast(u64, y) * 2))
                     if length > bytes.count - offset do
                         fail InvalidFormatError{"PSD compressed layer row is truncated"}
-                    try decodePackBits(pixels.storage() + cast(u64, y) * rowBytes, rowBytes, bytes[offset until offset + length])
+                    try decodePackBits(row, rowBytes, bytes[offset until offset + length])
+                    storeChannel(&result, component, y, row, depth)
                     offset += length
                 }
 
                 if offset != bytes.count do
                     fail InvalidFormatError{"PSD layer channel has trailing bytes"}
+                continue
             }
             elif compression == 2 or compression == 3
             {
                 var zlib: Compress.ZLib
-                pixels = try zlib.decompress(bytes[offset to], required)
-                if pixels.count != required do
+                unpacked = try zlib.decompress(pixels, required)
+                if unpacked.count != required do
                     fail InvalidFormatError{"PSD ZIP layer channel has an invalid decoded size"}
                 if compression == 3
                 {
                     for y in result.height
                     {
-                        let row = pixels.storage() + cast(u64, y) * rowBytes
+                        let row = unpacked.storage() + cast(u64, y) * rowBytes
                         for x in range(1, result.width)
                         {
                             if depth == 8
@@ -556,6 +567,7 @@ impl Layer
                         }
                     }
                 }
+                pixels = unpacked.toSlice()
             }
             else
             {
@@ -563,7 +575,7 @@ impl Layer
             }
 
             for y in result.height do
-                storeChannel(&result, component, y, Swag.makeSlice(pixels.storage() + cast(u64, y) * rowBytes, rowBytes), depth)
+                storeChannel(&result, component, y, pixels.buffer + cast(u64, y) * rowBytes, depth)
         }
 
         return result

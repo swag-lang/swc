@@ -102,6 +102,11 @@ struct Decoder
     wppState:       CabacState
     dependentState: CabacState
 
+    // Private reconstruction scratch and wake events kept by this frame owner.
+    wavefrontWorkers:  [*] Decoder?
+    wavefrontEvents:   [*] Sync.Event?
+    wavefrontRowCount: u32
+
     // Picture order count state, clause 8.3.1.
     pocMsb:         s32
     prevPocLsb:     u32
@@ -164,6 +169,7 @@ impl Decoder
 {
     mtd opDrop()
     {
+        .releaseWavefrontWorkers()
         .releaseReferenceState()
     }
 

@@ -8,6 +8,9 @@
 
 using Core, Core.Errors
 
+// The row below sets this bit in the published column count before waiting.
+private const WppWaiting = 0x8000_0000_u32
+
 // One independently entropy-coded wavefront row.
 //
 // The row borrows all picture-wide storage from `owner`, while `worker` owns the arithmetic,
@@ -594,33 +597,24 @@ impl Decoder
         progress.resize(rowCount)
         states.resize(rowCount)
 
-        let workersSize = cast(u64, rowCount) * #sizeof(Decoder)
-        let workers     = cast([*] Decoder, Memory.alloc(workersSize))
-        Swag.init(workers, rowCount)
-        let eventsSize = cast(u64, rowCount) * #sizeof(Sync.Event)
-        let events     = cast([*] Sync.Event, Memory.alloc(eventsSize))
-        Swag.init(events, rowCount)
-        for row in rowCount
-        {
-            events[row].init(manual: true)
-        }
-
+        .ensureWavefrontWorkers(rowCount)
+        let workers = unwrap .wavefrontWorkers
+        let events  = unwrap .wavefrontEvents
         defer
         {
             for row in rowCount
             {
-                events[row].release()
-            }
-
-            Swag.drop(events, rowCount)
-            Memory.free(events, eventsSize)
-            for row in rowCount
-            {
                 .detachWavefrontWorker(&workers[row])
             }
+        }
 
-            Swag.drop(workers, rowCount)
-            Memory.free(workers, workersSize)
+        // The failure path broadcasts to every row, including those that never waited.
+        defer #fail
+        {
+            for row in rowCount
+            {
+                events[row].reset()
+            }
         }
 
         for row in rowCount
@@ -667,6 +661,46 @@ impl Decoder
         .ctbAddrRs = sps.sizeInCtbs - 1
     }
 
+    // Keep each row's decoder and event warm while the frame owner sees the same row count.
+    private mtd ensureWavefrontWorkers(rows: u32)
+    {
+        if rows == .wavefrontRowCount
+        {
+            return
+        }
+
+        .releaseWavefrontWorkers()
+        let workers = cast([*] Decoder, Memory.alloc(cast(u64, rows) * #sizeof(Decoder)))
+        let events  = cast([*] Sync.Event, Memory.alloc(cast(u64, rows) * #sizeof(Sync.Event)))
+        Swag.init(workers, rows)
+        Swag.init(events, rows)
+        for row in rows
+        {
+            events[row].init()
+        }
+
+        .wavefrontWorkers  = workers
+        .wavefrontEvents   = events
+        .wavefrontRowCount = rows
+    }
+
+    mtd releaseWavefrontWorkers()
+    {
+        let rows = .wavefrontRowCount
+        if not rows
+        {
+            return
+        }
+
+        Swag.drop(.wavefrontEvents, rows)
+        Memory.free(.wavefrontEvents, cast(u64, rows) * #sizeof(Sync.Event))
+        Swag.drop(.wavefrontWorkers, rows)
+        Memory.free(.wavefrontWorkers, cast(u64, rows) * #sizeof(Decoder))
+        .wavefrontWorkers  = null
+        .wavefrontEvents   = null
+        .wavefrontRowCount = 0
+    }
+
     // Gives a row decoder borrowed views of the picture-wide arrays. Its own fixed scratch and
     // arithmetic reader stay private, so concurrently reconstructed rows never share temporaries.
     private mtd prepareWavefrontWorker(worker: *Decoder)
@@ -685,6 +719,7 @@ impl Decoder
         // decoded, clause 8.5.3.2.8. A row decoder that does not carry that count scales every
         // temporal and spatial candidate against zero, and predicts from the wrong place.
         worker.pocValue = .pocValue
+        worker.saoUsed  = false
 
         worker.zScan.buffer         = .zScan.buffer
         worker.zScan.count          = .zScan.count
@@ -806,8 +841,11 @@ impl Decoder
                 fail InvalidFormatError{"HEVC slice segment data is truncated"}
             }
 
-            Atomic.exchange(unwrap job.progress + row, column + 1)
-            job.events![row].signal()
+            let previous = Atomic.exchange(unwrap job.progress + row, column + 1)
+            if previous & WppWaiting
+            {
+                job.events![row].signal()
+            }
             let finalBlock = row + 1 == job.rowCount and column + 1 == job.width
             if endOfSlice != finalBlock
             {
@@ -816,20 +854,24 @@ impl Decoder
         }
     }
 
-    // Sleeps until the row above has made enough progress. Resetting before the second check
-    // closes the signal race without burning a worker core while another row reconstructs.
+    // Arm the wakeup only if the observed progress is still current. Publishing more columns
+    // clears the bit and signals the auto-reset event, even if this row has yet to enter wait.
     private mtd waitWavefrontProgress(job: *WppRowJob, row, needed: u32)->bool
     {
-        while Atomic.get(unwrap job.progress + row) < needed and Atomic.get(unwrap job.failed) == 0
+        let progress = unwrap job.progress + row
+        let failed   = unwrap job.failed
+        var current  = Atomic.get(progress)
+        while (current & ~WppWaiting) < needed and Atomic.get(failed) == 0
         {
-            job.events![row].reset()
-            if Atomic.get(job.progress + row) < needed and Atomic.get(unwrap job.failed) == 0
+            if Atomic.compareExchange(progress, current, current | WppWaiting) == current and Atomic.get(failed) == 0
             {
-                job.events[row].wait()
+                job.events![row].wait()
             }
+
+            current = Atomic.get(progress)
         }
 
-        return Atomic.get(unwrap job.failed) == 0
+        return Atomic.get(failed) == 0
     }
 }
 

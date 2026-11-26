@@ -905,7 +905,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
     {
         var width = 0.0'f64
         if faceData.outlineSource == .Cff do
-            width = try runType2Charstring(&faceData.cff, gid, null)
+            width = try runType2Charstring(faceData.cffFont(), gid, null)
         else do
             width = try runType1Charstring(&faceData.type1, gid, null)
 
@@ -941,7 +941,7 @@ func buildSyntheticCMap(faceData: *FaceImpl)
 
     if faceData.outlineSource == .Cff
     {
-        for name, gid in faceData.cff.glyphNames.entries do
+        for name, gid in faceData.cffFont().glyphNames.entries do
             addNamedGlyph(faceData, name, gid)
     }
     else
@@ -964,13 +964,14 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
 
     if faceData.outlineSource == .Cff
     {
-        faceData.cff        = try parseCffFont(data)
-        faceData.unitsPerEm = faceData.cff.unitsPerEm
-        faceData.face.setGlyphCount(faceData.cff.charStrings.count())
-        faceData.face.setHeader(faceData.unitsPerEm, faceData.cff.xMin, faceData.cff.yMin, faceData.cff.xMax, faceData.cff.yMax)
-        name   = faceData.cff.fontName
-        italic = faceData.cff.italic
-        bold   = faceData.cff.bold
+        try faceData.loadCff(data)
+        let font = faceData.cffFont()
+        faceData.unitsPerEm = font.unitsPerEm
+        faceData.face.setGlyphCount(font.charStrings.count())
+        faceData.face.setHeader(faceData.unitsPerEm, font.xMin, font.yMin, font.xMax, font.yMax)
+        name   = font.fontName
+        italic = font.italic
+        bold   = font.bold
     }
     else
     {
@@ -1069,7 +1070,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     if faceData.outlineSource == .Cff
     {
         let record = unwrap cffTable
-        faceData.cff = parseCffFont(getSlice(data, record.offset, record.length))
+        faceData.loadCff(getSlice(data, record.offset, record.length))
     }
     else
     {

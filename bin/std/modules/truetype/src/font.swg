@@ -191,6 +191,7 @@ struct FaceImpl
     // `outlineSource` is populated.
     outlineSource: OutlineSource = OutlineSource.Glyf
     cff:           CffFont
+    sharedCff:     *CffFont?
     type1:         Type1Font
 
     // Unicode map built from the font's own encoding, for a program that ships no `cmap`.
@@ -261,6 +262,19 @@ impl FaceImpl
         return .fontSource.bytes()
     }
 
+    mtd loadCff(bytes: const [..] u8) fail
+    {
+        .sharedCff = try .fontSource.cachedCff(bytes)
+        if not .sharedCff do
+            .cff = try parseCffFont(bytes)
+    }
+
+    #[Swag.Inline]
+    mtd cffFont()->*CffFont => .sharedCff orelse &.cff
+
+    #[Swag.Inline]
+    mtd const cffFont()->const *CffFont => .sharedCff orelse &.cff
+
     // The validated hmtx table stores the first advances explicitly. All short metrics reuse
     // the last long advance. Bare PostScript faces supply their own charstring advances.
     mtd const glyphAdvance(glyphIndex: u32)->u16
@@ -299,7 +313,7 @@ impl FaceImpl
     {
         switch #complete .outlineSource
         {
-        case .Cff:   return .cff.glyphNames.glyphIndex(name)
+        case .Cff:   return .cffFont().glyphNames.glyphIndex(name)
         case .Type1: return .type1.nameToGid.getOrDefault(String.from(name), 0)
         case .Glyf:  return .postNames.glyphIndex(name)
         }
@@ -314,7 +328,7 @@ impl FaceImpl
         switch #complete .outlineSource
         {
         case .Cff:
-            return .cff.glyphNames.nameOf(glyphIndex)
+            return .cffFont().glyphNames.nameOf(glyphIndex)
 
         case .Type1:
             if glyphIndex >= .type1.glyphNames.count do
@@ -333,7 +347,7 @@ impl FaceImpl
     {
         switch #complete .outlineSource
         {
-        case .Cff:   return .cff.glyphIndexByCode(code)
+        case .Cff:   return .cffFont().glyphIndexByCode(code)
         case .Type1: return .type1.codeToGid.getOrDefault(code, 0)
         case .Glyf:  return 0
         }
@@ -342,9 +356,11 @@ impl FaceImpl
     // Returns the character identifier map of a CID-keyed CFF, or nothing for another font.
     mtd glyphIndexByCid(cid: u32)->u32
     {
-        if .outlineSource != .Cff or not .cff.isCid do
+        if .outlineSource != .Cff do
             return 0
-        return .cff.glyphIndexByCid(cid)
+
+        let font = .cffFont()
+        return font.isCid ? font.glyphIndexByCid(cid) : 0
     }
 }
 

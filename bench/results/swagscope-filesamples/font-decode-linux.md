@@ -233,3 +233,43 @@ opening each, setting 20 px, rendering U+65E5, and destroying each face. It take
 25.63 ms with per-face copies and 12.07 ms with a shared source. Each median uses
 11 interleaved batches of 11 complete passes after five warmups. The two Swag modes
 match glyph indices, advances, bitmap dimensions, and CRC-64 in both workloads.
+
+## Reusing a parsed CFF program
+
+All ten Noto Sans CJK TTC faces reference one CFF table. The five members of
+Noto Serif CJK do the same. A retained source now caches the validated CFF program
+by byte range, so the next face can reuse the indexes, dictionaries, and glyph
+selection data. The SFNT metrics, character maps, and rendering workspace stay
+per face. The corpus adds the serif collection and a variable TrueType CJK control.
+
+The source is already in memory and the parser cache is warm before the timed
+opens. Timings include setting 20 px and rendering one glyph. Each result is the
+median of 11 interleaved batches of 101 fresh faces after five warmups on one CPU.
+The baseline is `ef3a48a55d`. FreeType 2.14.3 uses `FT_New_Memory_Face`.
+The Swag builds agree on glyph indices, advances, bitmap dimensions, and CRC-64.
+[Raw samples and fixture hashes](font-decode-linux-cff-cache.json)
+
+| Fixture | Face | Glyph | Swag before (µs) | Swag cached (µs) | FreeType memory (µs) |
+| --- | ---: | --- | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | `U+65E5` | 148.34 | 63.31 | 745.04 |
+| `NotoSansCJK-Regular.ttc` | 1 | `U+D55C` | 143.06 | 75.21 | 747.58 |
+| `NotoSansCJK-Regular.ttc` | 2 | `U+4E2D` | 127.95 | 63.47 | 733.87 |
+| `NotoSansCJK-Regular.ttc` | 7 | `U+FF21` | 131.99 | 64.31 | 705.97 |
+| `NotoSansCJKjp-Regular.otf` | 0 | `U+65E5` | 138.09 | 66.23 | 909.93 |
+| `NotoSerifCJK-Regular.ttc` | 0 | `U+65E5` | 150.38 | 66.93 | 793.23 |
+| `NotoSerifCJK-Regular.ttc` | 1 | `U+D55C` | 168.89 | 88.37 | 825.53 |
+| `NotoSerifCJK-Regular.ttc` | 2 | `U+4E2D` | 152.44 | 67.78 | 788.46 |
+| `NotoSerifCJK-Regular.ttc` | 3 | `U+9F8D` | 176.26 | 97.42 | 838.45 |
+| `NotoSerifCJK-Regular.ttc` | 4 | `U+2000B` | 150.66 | 75.56 | 781.38 |
+| `NotoSansSC-Variable.ttf` | 0 | `U+9F8D` | 57.29 | 54.92 | 1664.71 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | `U+672C` | 150.23 | 73.36 | 808.39 |
+
+The collection passes below start with a fresh source and an empty parse cache each time.
+The input snapshot is made before timing. Each pass opens every member, renders U+65E5
+at 20 px, and destroys each face. The medians use 11 interleaved batches of 11 complete
+passes and matching glyph fingerprints between Swag builds.
+
+| Collection | Members | Swag before (µs) | Swag cached (µs) |
+| --- | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 10 | 1425.25 | 780.76 |
+| `NotoSerifCJK-Regular.ttc` | 5 | 774.06 | 468.94 |

@@ -287,6 +287,9 @@ profiles Swag's CFF setup. [CJK ownership and parsing results](font-decode-linux
 Sharing one immutable source cuts the ten-member CJK open-and-render pass from
 25.63 to 12.07 ms, including the initial file read. [Shared source results](font-decode-linux.md#shared-font-source)
 
+The parsed CFF cache adds Noto Serif CJK TTC and a variable TrueType control to the
+memory comparison. [Parsed CFF results](font-decode-linux.md#reusing-a-parsed-cff-program)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

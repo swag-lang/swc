@@ -92,3 +92,23 @@ Replace the four CPU IDs with CPUs from the process affinity. The one-worker run
 first CPU and the four-worker run uses the whole set. The default nine rounds shuffle the
 implementations within each round. The JSON keeps per-round wall and process CPU times,
 exact median intervals, and paired candidate/reference ratios for 1, 64, and 256 MiB.
+
+### Comparing OpenSSL versions
+
+Build the same C reference once per version. For a static OpenSSL build,
+add its include directory and link `libcrypto.a` in place of `-lcrypto`.
+
+```sh
+cc -std=c11 -O2 -I"$work/libargon2/include" -I"$openssl_dir/include" \
+    bench/workloads/argon2/compare/reference.c "$work/libargon2/libargon2.a" \
+    "$openssl_dir/libcrypto.a" -pthread -ldl -o "$work/argon2-reference-current"
+
+python3 -B bench/workloads/argon2/compare/run.py \
+    --candidate "$work/candidate/out/argon2-swag" --reference "$work/argon2-reference" \
+    --openssl-reference "$work/argon2-reference-current" \
+    --cpus 0 1 2 3 --workers 1 --rounds 11 --output "$work/openssl-versions.json"
+```
+
+Here `openssl_dir` is the configured OpenSSL source directory. Repeat `--openssl-reference` to
+include more versions. Include `--baseline` to pair the references with
+a second Swag executable.

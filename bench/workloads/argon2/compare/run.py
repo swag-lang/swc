@@ -56,9 +56,11 @@ def compare(commands, memory, workers, rounds, rng):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument("--baseline", type=Path)
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--reference", type=Path, required=True)
+    parser.add_argument("--openssl-reference", type=Path, action="append", default=[],
+                        help="compare another native OpenSSL build of the reference probe")
     parser.add_argument("--cpus", type=int, nargs=4, required=True)
     parser.add_argument("--rounds", type=int, default=9)
     parser.add_argument("--memory", type=int, nargs="+", default=[1024, 65536, 262144])
@@ -71,12 +73,30 @@ def main():
     if args.rounds < 7 or any(memory < 32 for memory in args.memory):
         parser.error("the campaign needs seven rounds and at least 32 KiB per profile")
     args.reference = args.reference.resolve()
-    commands = {
-        "baseline": [args.baseline.resolve()],
+    commands = {}
+    if args.baseline is not None:
+        commands["baseline"] = [args.baseline.resolve()]
+    commands.update({
         "candidate": [args.candidate.resolve()],
         "libargon2": [args.reference, "libargon2"],
-        "openssl": [args.reference, "openssl"],
-    }
+    })
+    versions = {}
+    if args.openssl_reference:
+        for path in (args.reference, *args.openssl_reference):
+            executable = path.resolve()
+            if not os.access(executable, os.X_OK):
+                parser.error(f"missing executable {executable}")
+            version = subprocess.check_output([executable, "--version"], text=True, timeout=30).strip()
+            components = version.split()
+            if len(components) < 2 or components[0] != "OpenSSL":
+                parser.error(f"invalid OpenSSL version from {executable}")
+            name = " ".join(components[:2])
+            if name in versions:
+                parser.error(f"duplicate OpenSSL version {name}")
+            versions[name] = version
+            commands[name] = [executable, "openssl"]
+    else:
+        commands["openssl"] = [args.reference, "openssl"]
     for command in commands.values():
         if not os.access(command[0], os.X_OK):
             parser.error(f"missing executable {command[0]}")
@@ -92,9 +112,10 @@ def main():
                                for key, val in result["estimates"]["wall_us"]["median"].items())
             print(f"{memory} KiB, {workers} workers  {timings}", flush=True)
 
-    args.output.write_text(json.dumps({
-        "cpus": args.cpus, "rounds": args.rounds, "profiles": results,
-    }, indent=2) + "\n", encoding="utf-8")
+    report = {"cpus": args.cpus, "rounds": args.rounds, "profiles": results}
+    if versions:
+        report["openssl_versions"] = versions
+    args.output.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
     return 0
 
 

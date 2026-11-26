@@ -7,6 +7,7 @@
 
 #include <argon2.h>
 #include <openssl/core_names.h>
+#include <openssl/crypto.h>
 #include <openssl/kdf.h>
 #include <openssl/params.h>
 #include <openssl/thread.h>
@@ -87,6 +88,11 @@ static int benchmark_openssl(uint32_t memory, uint32_t workers, uint8_t tag[32],
 
 int main(int argc, char **argv)
 {
+    if (argc == 2 && strcmp(argv[1], "--version") == 0) {
+        puts(OpenSSL_version(OPENSSL_VERSION));
+        return EXIT_SUCCESS;
+    }
+
     if (argc != 4)
         return EXIT_FAILURE;
     const uint32_t memory = (uint32_t)strtoul(argv[2], NULL, 10);

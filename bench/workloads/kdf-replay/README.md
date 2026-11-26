@@ -38,7 +38,9 @@ Build the probe once per library. Set `openssl_dir` to the configured
 OpenSSL source directory containing its headers and `libcrypto.a`.
 
 ```sh
-cc -std=c11 -O3 -Wall -Wextra -Werror   -I"$openssl_dir/include" bench/workloads/kdf-replay/openssl-reference.c   "$openssl_dir/libcrypto.a" -pthread -ldl -o "$work/openssl-reference"
+cc -std=c11 -O3 -Wall -Wextra -Werror \
+    -I"$openssl_dir/include" bench/workloads/kdf-replay/openssl-reference.c \
+    "$openssl_dir/libcrypto.a" -pthread -ldl -o "$work/openssl-reference"
 ```
 
 Add `--openssl-native "$work/openssl-reference"` to the replay. Repeat

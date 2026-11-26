@@ -178,42 +178,14 @@ impl Encoder
         let scanlineWidth = .subimage[pass].scanlineWidth
         if sl != .scanline
         {
-            if .encodeFlags.toBigEndian
-            {
-                let scanline = unwrap .scanline
-                for var i = 0; i < scanlineWidth - 1; i += 2
-                {
-                    scanline[i]     = sl[i + 1]
-                    scanline[i + 1] = sl[i]
-                }
-            }
-            elif .swapRB and .bytesPerPixel == 3
-            {
-                let scanline = unwrap .scanline
-                for var i = 0; i < scanlineWidth - 1; i += 3
-                {
-                    scanline[i]     = sl[i + 2]
-                    scanline[i + 1] = sl[i + 1]
-                    scanline[i + 2] = sl[i]
-                }
-            }
-            elif .swapRB and .bytesPerPixel == 4
-            {
-                // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
-                // of a full-desktop capture costs seconds in unoptimized builds.
-                let src   = cast(const [*] u32, sl)
-                let dst   = cast([*] u32, unwrap .scanline)
-                let count = (scanlineWidth - 1) / 4
-                for i in count
-                {
-                    let v = src[i]
-                    dst[i] = (v & 0xFF00FF00) | ((v & 0xFF) << 16) | ((v >> 16) & 0xFF)
-                }
-            }
-            else
-            {
+            if .encodeFlags.toBigEndian do
+                convert16Samples(sl, unwrap .scanline, (scanlineWidth - 1) / 2)
+            elif .swapRB and .bytesPerPixel == 3 do
+                PackedPixel.swapRedBlue24Row(sl, unwrap .scanline, (scanlineWidth - 1) / 3)
+            elif .swapRB and .bytesPerPixel == 4 do
+                PackedPixel.swapRedBlue32Row(sl, unwrap .scanline, (scanlineWidth - 1) / 4)
+            else do
                 Memory.copy(unwrap .scanline, sl, cast(u64, scanlineWidth) - 1)
-            }
         }
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)

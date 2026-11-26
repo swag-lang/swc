@@ -1024,3 +1024,41 @@ and leads with four cores in this series.
 
 Native Release passes 325 audio tests. Release-safe passes 38 focused MP3 and
 Dolby functional tests.
+
+## Twenty-ninth optimization pass
+
+This pass compares Opus and Vorbis on the same native Release compiler against
+`acfe1f9c13` and native FFmpeg 7.1.5. Each FileSamples median uses 56 samples
+and includes opening and materializing the first ten seconds of PCM16.
+
+[Raw stage times and PCM deltas](audio-decode-linux-round29.json)
+
+| Format | Before CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | Before CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Opus | 20.64 | 20.05 | 20.24 | 20.07 | 19.79 | 19.94 | 20.34 | 20.35 | 20.64 |
+| Vorbis | 7.09 | 7.01 | 7.52 | 6.98 | 6.58 | 7.30 | 7.88 | 7.47 | 7.85 |
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `opus-20ms-48k-stereo.opus` | 27.85 | 27.94 | 28.91 | 28.41 | 28.97 | 29.59 |
+| `opus-5ms-48k-stereo.opus` | 28.57 | 27.62 | 34.21 | 29.05 | 28.08 | 34.43 |
+| `opus-voip-48k-mono.opus` | 16.08 | 15.41 | 13.76 | 16.18 | 15.62 | 13.90 |
+| `vorbis-32k-mono.ogg` | 3.52 | 3.44 | 5.49 | 3.56 | 3.66 | 5.27 |
+| `vorbis-48k-5.1.ogg` | 27.60 | 27.85 | 27.88 | 28.48 | 28.27 | 29.18 |
+| `vorbis-48k-stereo.ogg` | 8.84 | 8.77 | 10.23 | 9.06 | 8.83 | 10.42 |
+
+Opus writes stereo CELT overlap in pairs without changing the order of floating-point
+operations. Its SILK resampler combines four FIR outputs in one loop while preserving
+each integer accumulation. Vorbis borrows the initial Ogg header payloads and reuses
+the ninth entropy bit in the stereo residue path.
+
+All eight fixtures produce byte-identical PCM to the previous build and across worker
+budgets. The two FileSamples outputs stay within one PCM16 unit of the original Swag
+reference. FileSamples Opus leads native FFmpeg by 0.15 to 0.29 ms in this series.
+The low-rate voice fixture still trails by 1.66 ms on one core. Generated 20 ms Opus
+and mono Vorbis take slightly longer with four cores and remain ahead of FFmpeg.
+
+Native Release passes 325 audio tests. Release-safe passes 28 focused Ogg, Opus and
+Vorbis tests.

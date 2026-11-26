@@ -335,6 +335,40 @@ private impl Codebook
         return -1
     }
 
+    // The stereo residue path consumes a ninth bit before a longer tree walk.
+    #[Swag.Inline]
+    mtd const decodeStereo(reader: *BitReader)->s32
+    {
+        let position = reader.bitPos
+        let offset   = position >> 3
+        if reader.size - offset >= 2
+        {
+            let data = unwrap reader.data
+            var window: u16
+            Memory.copy(&window, data + offset, #sizeof(u16))
+            let bits  = cast(u32, Math.littleEndianToNative(window)) >> cast(u32, position & 7)
+            let child = .prefixes[bits & PrefixMask]
+            if child < 0
+            {
+                let leaf = -child
+                reader.bitPos = position + cast(u64, leaf & LeafMask)
+                return leaf >> LeafBits
+            }
+
+            if child
+            {
+                // The two-byte window already contains a ninth bit at every alignment.
+                let next = .children[cast(u64, child) * 2 + ((bits >> PrefixBits) & 1)]
+                reader.bitPos = position + PrefixBits + 1
+                if next <= 0 do
+                    return next < 0 ? -next - 1 : -1
+                return .decodeTree(reader, cast(u32, next), PrefixBits + 1)
+            }
+        }
+
+        return .decodeTree(reader, 0, 0)
+    }
+
     mtd parse(reader: *BitReader) fail
     {
         if reader.read(24) != 0x564342 do
@@ -939,6 +973,7 @@ private impl Codec
     mtd readConfig(config: const [..] u8) fail
     {
         var headers: [3] Array'u8
+        var identification, setup: const [..] u8
         if config.count >= 4 and
            config[0] == 'O' and
            config[1] == 'g' and
@@ -979,7 +1014,10 @@ private impl Codec
                     for index in page.segments
                     {
                         let size = cast(u64, page.lacing[index])
-                        headers[completed].add(body[at until at + size])
+
+                        // Count comment laces without copying the unused payload.
+                        if completed != 1 do
+                            headers[completed].add(body[at until at + size])
                         at += size
                         if size < 255
                         {
@@ -1009,6 +1047,8 @@ private impl Codec
 
             if completed < 3 do
                 fail InvalidFormatError{"Vorbis stream ends inside its header packets"}
+            identification = headers[0].toSlice()
+            setup = headers[2].toSlice()
         }
         elif config.count >= 3 and config[0] == 2
         {
@@ -1039,17 +1079,16 @@ private impl Codec
                 fail InvalidFormatError{"Vorbis header lacing exceeds the configuration"}
             let firstEnd  = offset + sizes[0]
             let secondEnd = firstEnd + sizes[1]
-            headers[0].add(config[offset until firstEnd])
-            headers[1].add(config[firstEnd until secondEnd])
-            headers[2].add(config[secondEnd until config.count])
+            identification = config[offset until firstEnd]
+            setup = config[secondEnd until config.count]
         }
         else
         {
             fail InvalidFormatError{"Vorbis configuration is neither Ogg pages nor laced headers"}
         }
 
-        try .readIdentification(headers[0].toSlice())
-        try .readSetup(headers[2].toSlice())
+        try .readIdentification(identification)
+        try .readSetup(setup)
     }
 
     // Reads the floor of one channel and returns whether the channel carries audio in this block.
@@ -1507,7 +1546,7 @@ private impl Codec
             {
                 while index < limit
                 {
-                    let entry = book.decode(reader)
+                    let entry = book.decodeStereo(reader)
                     if entry < 0 do
                         return false
                     let vector = values + cast(u64, entry) * 2
@@ -1523,7 +1562,7 @@ private impl Codec
             {
                 while index + 2 <= limit
                 {
-                    let entry = book.decode(reader)
+                    let entry = book.decodeStereo(reader)
                     if entry < 0 do
                         return false
                     let vector = values + cast(u64, entry) * 4
@@ -1539,7 +1578,7 @@ private impl Codec
             {
                 while index + 4 <= limit
                 {
-                    let entry = book.decode(reader)
+                    let entry = book.decodeStereo(reader)
                     if entry < 0 do
                         return false
                     let vector      = values + cast(u64, entry) * 8
@@ -1555,7 +1594,7 @@ private impl Codec
 
             while index < limit
             {
-                let entry = book.decode(reader)
+                let entry = book.decodeStereo(reader)
                 if entry < 0 do
                     return false
                 let vector = values + cast(u64, entry) * book.dimensions

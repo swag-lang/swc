@@ -292,6 +292,18 @@ private func resampleFir(samples, coefficients: Simd.S16x8)->s16
     return cast(s16, sat16(rshiftRound(sum, 15)))
 }
 
+// Reduce four FIR accumulators into their rounded output samples.
+#[Swag.Inline]
+private func resampleFirFour(a, b, c, d: Simd.S32x4)->Simd.S32x4
+{
+    const Even = cast(Simd.U32x4, [0'u32, 2, 4, 6])
+    const Odd  = cast(Simd.U32x4, [1'u32, 3, 5, 7])
+    let first  = Swag.vecShuffle2(a, b, Even) + Swag.vecShuffle2(a, b, Odd)
+    let second = Swag.vecShuffle2(c, d, Even) + Swag.vecShuffle2(c, d, Odd)
+    let sum    = Swag.vecShuffle2(first, second, Even) + Swag.vecShuffle2(first, second, Odd)
+    return ((sum >> 14) + 1) >> 1
+}
+
 // The fixed-point resampler that takes one band to 48 kHz: a two-fold IIR upsampler followed by
 // fractional FIR interpolation.
 private struct Resampler
@@ -360,7 +372,39 @@ private impl Resampler
     {
         if .fsInKHz == 16
         {
-            for i in count
+            let packed = count & ~3'u32
+            let phase0 = ResamplerPhase[0]
+            let phase4 = ResamplerPhase[4]
+            let phase8 = ResamplerPhase[8]
+            for block in packed / 4
+            {
+                let at    = buffer + 8 * block
+                let dst   = out + 12 * block
+                let x0    = Simd.load(at)
+                let x1    = Simd.load(at + 1)
+                let x2    = Simd.load(at + 2)
+                let first = resampleFirFour(Swag.vecMulAddPairs(x0, phase0),
+                                            Swag.vecMulAddPairs(x0, phase8),
+                                            Swag.vecMulAddPairs(x1, phase4),
+                                            Swag.vecMulAddPairs(x2, phase0))
+                let x3     = Simd.load(at + 3)
+                let x4     = Simd.load(at + 4)
+                let second = resampleFirFour(Swag.vecMulAddPairs(x2, phase8),
+                                             Swag.vecMulAddPairs(x3, phase4),
+                                             Swag.vecMulAddPairs(x4, phase0),
+                                             Swag.vecMulAddPairs(x4, phase8))
+                let x5    = Simd.load(at + 5)
+                let x6    = Simd.load(at + 6)
+                let x7    = Simd.load(at + 7)
+                let third = resampleFirFour(Swag.vecMulAddPairs(x5, phase4),
+                                            Swag.vecMulAddPairs(x6, phase0),
+                                            Swag.vecMulAddPairs(x6, phase8),
+                                            Swag.vecMulAddPairs(x7, phase4))
+                Simd.store(dst, Simd.packSigned(first, second))
+                Simd.storeLow8(cast([*] u8, dst + 8), cast #bit(Simd.U8x16, Simd.packSigned(third, third)))
+            }
+
+            for i in packed until count
             {
                 let even = Simd.load(buffer + 2 * i)
                 let odd  = Simd.load(buffer + 2 * i + 1)

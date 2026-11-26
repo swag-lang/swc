@@ -138,6 +138,26 @@ The same comparison also matched all 42 RealVideo 4.0 pictures from four inputs 
 180 AVC and HEVC pictures. The focused native Release selection passed 94 tests.
 [Raw timings, picture quality, profile counts and fixture commands](mpeg4.json).
 
+## Matroska timing coverage
+
+The picture check established a dense display timeline before timing the file-backed
+reader. RealVideo uses two warm-up pictures and nine repetitions. MPEG-4 uses the
+standard 30 warm-up pictures and five repetitions. The table gives the median in
+milliseconds per picture.
+
+| Matroska stream | Swag | FFmpeg | Swag / FFmpeg | Compared pictures |
+| --- | ---: | ---: | ---: | ---: |
+| RealVideo intra | 0.164 | 0.066 | 2.49× | 11 |
+| RealVideo I/P/B | 0.262 | 0.041 | 6.39× | 9 |
+| RealVideo adaptive | 0.326 | 0.031 | 10.58× | 9 |
+| RealVideo multi-slice | 0.339 | 0.038 | 8.87× | 13 |
+| MPEG-4 B pictures with MPEG matrices | 1.377 | 0.380 | 3.62× | 90 |
+
+All RealVideo pictures were byte-exact. The MPEG-4 file differed by at most two levels.
+The short RealVideo timings include incremental indexing and describe these small
+fixtures. In the I/P/B profile, nearly half the samples fell in motion compensation
+and its pixel loads. [Raw timings, quality and profile counts](matroska.json).
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

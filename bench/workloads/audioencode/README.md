@@ -29,6 +29,11 @@ specific bitrate in bits per second. `--bandwidth voice` exercises the Swag voic
 and sets the reference cutoff to the same nominal band. The quality check removes each
 encoder's declared priming and measures PCM SNR and error over the submitted frames.
 
+Use `--aac-reference fdk` to compare native FDK AAC-LC with afterburner
+enabled. This mode uses the `fdk-aac` development package through pkg-config
+or a prebuilt `fdk_native` supplied with `--reference`. FFmpeg still decodes
+the outputs for the untimed PCM comparison.
+
 For FLAC, `--reference-setting` selects the FFmpeg compression level and defaults to 5.
 `--libflac 0` adds the installed libFLAC streaming reference at level 0. Its input is
 widened to the 32-bit API representation before the timer starts.

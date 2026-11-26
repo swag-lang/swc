@@ -163,3 +163,55 @@ files remain byte-identical to the previous writer.
 
 Native Release passes 328 audio tests. Release-safe passes 56 focused AAC,
 MDCT and FLAC writer tests.
+
+## AAC zero-band quantization and partitioned FLAC
+
+Both Swag builds use the same native Release compiler, with `9ec4f3b2c5`
+as the audio baseline. Each run submits ten seconds of PCM16. The medians
+use 12 samples per engine on CPU 3.
+
+[Raw stage times, quality metrics, and byte counts](audio-encode-linux-round5.json)
+
+### AAC-LC against FFmpeg 9.1 and FDK AAC 2.0.3
+
+The columns under each reference come from interleaved runs against the same
+Swag builds. FDK uses AAC-LC with afterburner enabled. Achieved payload rates
+are within 1% for these five cases. The native encoder delay is removed before
+amplitude comparison.
+
+| Input | Swag before with FFmpeg (ms) | Swag with FFmpeg (ms) | FFmpeg (ms) | Swag with FDK (ms) | FDK (ms) | Swag SNR (dB) | FFmpeg SNR (dB) | FDK SNR (dB) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 12.45 | 9.13 | 480.83 | 9.03 | 121.48 | 28.45 | 21.24 | 32.51 |
+| Mono 48 kHz | 6.41 | 4.73 | 267.85 | 4.53 | 53.88 | 28.92 | 21.89 | 24.01 |
+| Stereo 44.1 kHz | 10.93 | 8.11 | 670.30 | 8.22 | 103.27 | 28.96 | 22.73 | 25.79 |
+| Stereo 48 kHz | 12.08 | 9.29 | 616.63 | 8.80 | 110.68 | 28.80 | 21.55 | 24.80 |
+| Voice mono 48 kHz | 3.71 | 3.40 | 118.59 | 3.38 | 32.83 | 20.42 | 15.87 | 21.04 |
+
+The encoder skips a scalefactor band when its peak falls below its first
+nonzero magnitude threshold. Swag ADTS is byte-identical to the previous
+build on all six inputs, including noise and voice. FDK's FileSamples result
+has a 4.06 dB waveform SNR advantage at 220.43 kb/s versus Swag's 221.53 kb/s.
+
+### FLAC PCM16
+
+| Input | Swag before (ms) | Swag after (ms) | FFmpeg 9.1 level 0 (ms) | libFLAC 1.5.0 level 0 (ms) | Swag bytes before | Swag bytes after | FFmpeg bytes | libFLAC bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 8.96 | 8.87 | 11.85 | 13.09 | 1,214,438 | 1,186,502 | 1,078,821 | 1,052,820 |
+| Mono 48 kHz | 4.95 | 4.60 | 6.54 | 5.88 | 563,722 | 415,717 | 415,243 | 423,470 |
+| Stereo 44.1 kHz | 8.60 | 8.70 | 11.90 | 12.98 | 1,083,638 | 798,436 | 783,952 | 806,276 |
+| Stereo 48 kHz | 9.69 | 10.99 | 14.50 | 11.08 | 1,130,810 | 836,626 | 798,556 | 782,810 |
+| Stereo noise 48 kHz | 8.45 | 8.05 | 10.79 | 12.85 | 1,921,810 | 1,921,810 | 1,932,749 | 1,924,547 |
+| 5.1 at 48 kHz | 30.48 | 28.82 | 29.89 | 29.67 | 3,267,599 | 2,635,460 | 2,359,222 | 2,430,017 |
+
+The writer chooses up to eight Rice partitions and retains an exact
+single-partition fallback. All engines restore the original PCM.
+FileSamples shrinks by 2.3%, mono and stereo by 26.0–26.3%, and 5.1 by
+19.3%. Generated stereo 48 kHz takes 1.30 ms longer in this series and
+produces 294,184 fewer bytes. The noise file retains the same size.
+
+At level 5, FFmpeg encodes 5.1 in 46.25 ms and produces 2,682,537 bytes.
+libFLAC takes 38.45 ms and produces 2,652,952 bytes. In the same series Swag
+takes 27.57 ms and produces 2,635,460 bytes.
+
+Native Release passes 329 audio tests. Release-safe passes 57 focused AAC,
+MDCT and FLAC writer tests.

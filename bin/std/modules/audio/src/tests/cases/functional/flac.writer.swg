@@ -77,6 +77,33 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     expect writer.end()
 }
 
+// Blocks with changing residual widths can use up to eight Rice partitions.
+#test
+{
+    let path = flacWriterPath("rice-partitions")
+    defer discard catch File.delete(path)
+    const Frames = 4096
+    var samples: [Frames] s16
+    for index in Frames
+    {
+        let magnitude = cast(s16, 1'u32 << (2 + (cast(u32, index) >> 9)))
+        samples[index] = (index & 1) ? magnitude : -magnitude
+    }
+
+    let pcm    = Swag.makeSlice(&samples[0], samples.count)
+    var writer = expect Flac.Writer.create(path.toString(), 1, 48_000)
+    expect writer.addFrames(pcm)
+    expect writer.end()
+    assertFlacWriterSamples(path.toString(), pcm, 1, 48_000)
+
+    let file = expect File.readAllBytes(path)
+    let kind = file[66]
+    Swag.require(kind == 0x12 or kind == 0x14)
+    let warmup         = (kind - 0x10) >> 1
+    let residualHeader = file[67 + 2 * warmup]
+    Swag.require((residualHeader >> 2) == 3)     // Rice method zero, eight partitions.
+}
+
 // Silence and smooth ramps choose compact subframes; irregular noise stays verbatim.
 #test
 {

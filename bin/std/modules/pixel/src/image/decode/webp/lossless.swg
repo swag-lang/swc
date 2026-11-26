@@ -120,12 +120,76 @@ struct LosslessHuffmanTree
 {
     nodes:     Array'LosslessHuffmanNode
     nodeCount: u32
+    maxLength: u32
     lut:       [1 << LOSSLESS_LUT_BITS] u32
 }
 
 struct LosslessHuffmanGroup
 {
-    trees: [LOSSLESS_HUFFMAN_TREES] LosslessHuffmanTree
+    trees:        [LOSSLESS_HUFFMAN_TREES] LosslessHuffmanTree
+    literalTable: Array'u32
+    literalMask:  u32
+}
+
+impl LosslessHuffmanGroup
+{
+    mtd buildLiteralTable()
+    {
+        let maxBits = .trees[LOSSLESS_HUFF_RED].maxLength +
+                      .trees[LOSSLESS_HUFF_BLUE].maxLength +
+                      .trees[LOSSLESS_HUFF_ALPHA].maxLength
+        if maxBits > LOSSLESS_LUT_BITS do
+            return
+
+        let count = 1'u32 << maxBits
+        var entries: [1 << LOSSLESS_LUT_BITS] u32
+        for prefix in count
+        {
+            var bits = cast(u32, prefix)
+            let red  = .trees[LOSSLESS_HUFF_RED].lut[bits & LOSSLESS_LUT_MASK]
+            if not (red & 0xFF) do
+                return
+            let redBits = (red & 0xFF) - 1
+            bits >>= redBits
+            let blue = .trees[LOSSLESS_HUFF_BLUE].lut[bits & LOSSLESS_LUT_MASK]
+            if not (blue & 0xFF) do
+                return
+            let blueBits = (blue & 0xFF) - 1
+            bits >>= blueBits
+            let alpha = .trees[LOSSLESS_HUFF_ALPHA].lut[bits & LOSSLESS_LUT_MASK]
+            if not (alpha & 0xFF) do
+                return
+            let length = redBits + blueBits + (alpha & 0xFF)
+
+            // The green byte stores the combined bit count plus one.
+            entries[prefix] = (red >> 8) | (length << 8) | ((blue >> 8) << 16) | ((alpha >> 8) << 24)
+        }
+
+        .literalMask = count - 1
+        .literalTable.resize(count)
+        Memory.copy(.literalTable.storage(), &entries[0], count * #sizeof(u32))
+    }
+
+    #[Swag.Inline]
+    mtd readLiteral(reader: *LosslessBitReader, green: u32)->u32 fail
+    {
+        if not .literalTable.isEmpty()
+        {
+            let entry = .literalTable.storage()[reader.bits & .literalMask]
+            let bits  = ((entry >> 8) & 0xFF) - 1
+            if bits <= reader.nBits
+            {
+                reader.bits  >>= bits
+                reader.nBits -= bits
+                return (entry & 0xFFFF00FF) | (green << 8)
+            }
+        }
+
+        let red   = try .trees[LOSSLESS_HUFF_RED].next(reader)
+        let blue  = try .trees[LOSSLESS_HUFF_BLUE].next(reader)
+        let alpha = try .trees[LOSSLESS_HUFF_ALPHA].next(reader)
+        return red | (green << 8) | (blue << 16) | (alpha << 24)
+    }
 }
 
 struct LosslessTransform
@@ -233,6 +297,7 @@ impl LosslessHuffmanTree
         if symbolCount == 0 or maxLength > LOSSLESS_MAX_CODE_LENGTH do
             try losslessTreeError()
 
+        .maxLength = symbolCount == 1 ? 0 : maxLength
         .nodes.resize(2 * symbolCount - 1)
         .nodeCount = 1
         Memory.clear(cast([*] void, .nodes.storage()), .nodes.count * #sizeof(LosslessHuffmanNode))
@@ -271,6 +336,7 @@ impl LosslessHuffmanTree
 
     mtd buildSimple(symbolCount: u32, symbols: [2] u32, alphabetSize: u32) fail
     {
+        .maxLength = symbolCount - 1
         .nodes.resize(2 * symbolCount - 1)
         .nodeCount = 1
         Memory.clear(cast([*] void, .nodes.storage()), .nodes.count * #sizeof(LosslessHuffmanNode))
@@ -574,6 +640,9 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array'Loss
                 tree = &group.trees[treeIndex]
             try losslessDecodeHuffmanTree(reader, tree, alphabetSize)
         }
+
+        if group do
+            group.buildLiteralTable()
     }
 }
 
@@ -675,10 +744,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
         switch
         {
         case green < LOSSLESS_LITERAL_CODES:
-            output[offset + 0] = cast(u8, (try group.trees[LOSSLESS_HUFF_RED].next(reader)))
-            output[offset + 1] = cast(u8, green)
-            output[offset + 2] = cast(u8, (try group.trees[LOSSLESS_HUFF_BLUE].next(reader)))
-            output[offset + 3] = cast(u8, (try group.trees[LOSSLESS_HUFF_ALPHA].next(reader)))
+            cast([*] u32, output + offset)[0] = try group.readLiteral(reader, green)
             offset += 4
 
             x += 1

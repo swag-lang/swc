@@ -136,6 +136,33 @@ using Core
     Swag.require(image.pixelColor(2, 1).a == 64)
 }
 
+// Reordering a medium crossing list must preserve coincident boundaries and either fill rule.
+#test
+{
+    const Source = "<svg width='51' height='13'><path fill-rule='%' fill-opacity='.5' d='%'/></svg>"
+    var segments: String
+    for column in 24
+    {
+        let left  = 1.25 + cast(f32, (column * 7) % 24) * 2
+        let right = left + 2
+        segments.appendFormat("M% 2H%V11H%z ", left, right, left)
+    }
+
+    for rule in ["evenodd", "nonzero"]
+    {
+        let source    = Format.toString(Source, rule, segments.toString())
+        let rectangle = Format.toString(Source, rule, "M1.25 2H49.25V11H1.25z")
+        let options   = Svg.ParseOptions{preferScanFills: true}
+        let drawing   = expect Svg.Drawing.parse(source.toString(), options)
+        let reference = expect Svg.Drawing.parse(rectangle.toString(), options)
+        let image     = drawing.rasterize(51, 13, 1)
+        let expected  = reference.rasterize(51, 13, 1)
+        Swag.require(image.isValid() and expected.isValid())
+        Swag.require(image.pixelColor(23, 5).a == 127)
+        Swag.require(Memory.compare(image.pixels.storage(), expected.pixels.storage(), image.pixels.count) == 0)
+    }
+}
+
 // The row jobs for the first fill must finish before the translucent fill.
 #[Swag.TestTag("parallel")]
 #test

@@ -147,8 +147,12 @@ ships; history lives in Git, not here.
   cuts the largest four-worker thumbnail by 18% with identical pixels. Swag leads resvg
   on all four original bitmaps with four workers on Linux. At one worker, the mid-size
   and largest files still spend more time rasterizing than resvg.
-- Next: profile single-worker crossing collection on the mid-size and largest inputs.
-  Rerun the original Windows comparison at one worker and at the runtime default.
+- Evidence: [medium scan line sorting](../bench/workloads/svgraster/resvg-comparison.md#sorting-medium-scan-lines)
+  cuts the 1920 × 1280 single-worker raster phase by 11%. Full-width scan strips save work
+  on the largest bitmap but change coverage within the second horizontal tile.
+- Next: test sharing contour traversal across horizontal tiles while preserving each tile's
+  local-coordinate interpolation. Rerun the original Windows comparison at one worker
+  and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

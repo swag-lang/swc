@@ -302,3 +302,44 @@ worker counts. The generated dense fill kept its CRC-64 and went from
 With the default parse options, the largest bitmap also kept its
 CRC-64. Its total moved from 1358 to 1331 ms at one worker and from
 1489 to 1501 ms at four.
+
+## Sorting medium scan lines
+
+Each scan line with 9 to 127 crossings now uses a Shell sort with a final
+insertion pass over the crossing coordinates. The existing short insertion
+pass handles up to eight crossings and radix sorting handles longer lines.
+Crossings at the same X contribute the same net winding before the next
+covered span. A regression test compares shuffled, touching contours with
+a single equivalent rectangle under both SVG fill rules.
+
+These are seven interleaved Release medians in milliseconds against
+`740046dbe4`, which contains the preceding SVG implementation. Swag used
+the direct CPU path through `preferScanFills`. The programs had the same
+CPU affinity in each pair and resvg 0.50.0 rendered each document serially.
+The largest output was 2048 × 1365. The times include parsing and the first
+bitmap raster.
+
+| Source size | Swag before, 1 worker | Swag after, 1 worker | resvg, 1 CPU | Swag before, 4 workers | Swag after, 4 workers | resvg, 4 CPUs |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 640 × 426 | 5.02 | 4.78 | 5.45 | 4.38 | 4.15 | 5.61 |
+| 1280 × 853 | 21.49 | 20.38 | 20.54 | 16.10 | 16.48 | 21.70 |
+| 1920 × 1280 | 51.57 | 46.11 | 43.48 | 36.20 | 34.83 | 49.20 |
+| 5184 × 3456 | 257.99 | 256.08 | 251.91 | 205.14 | 213.22 | 286.56 |
+
+The 1920 × 1280 single-worker raster phase fell from 42.00 to 37.27 ms.
+The synthetic dense fill went from 54.90 to 49.66 ms at one worker and
+32.55 to 31.47 ms at four. A second series of nine runs on the largest
+bitmap at four workers measured 210.01 versus 208.32 ms. The total time
+varied between the two series while both raster medians stayed within
+2 ms of baseline. The largest 320 × 213 thumbnail measured 188.66 versus
+187.85 ms at one worker and 179.18 versus 169.63 ms at four, with two
+samples per axis.
+
+All four bitmaps, thumbnails and the generated dense fill kept their Swag
+CRC-64 at both worker counts. An experiment that scanned a full-width strip
+instead of handling horizontal tiles separately saved about 10 ms on the
+largest single-worker bitmap. It changed alpha by one level in 242 pixels
+of the 1920 × 1280 output and 438 pixels of the largest output, all in the
+second horizontal tile. The generated dense fill also changed CRC-64. The
+interpolation and coverage use coordinates relative to each tile, so sharing
+more work across tiles still needs to preserve those local coordinates.

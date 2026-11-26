@@ -294,28 +294,35 @@ private impl ScanRows
     {
         func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
         {
-            if line.count <= 8
+            #[Swag.Inline]
+            func insertWithGap(points: [*] Crossing, count, gap: u64)
             {
-                let points = line.storage()
-                for index in 1 until line.count
+                for index in gap until count
                 {
                     let crossing = points[index]
                     var target   = index
-                    while target and points[target - 1].x > crossing.x
+                    while target >= gap and points[target - gap].x > crossing.x
                     {
-                        points[target] = points[target - 1]
-                        target         -= 1
+                        points[target] = points[target - gap]
+                        target         -= gap
                     }
 
                     points[target] = crossing
                 }
-
-                return
             }
 
             if line.count < 128
             {
-                line.sort(func(left, right) => left.x <=> right.x)
+                let points = line.storage()
+
+                // A few coarse passes move out-of-order crossings before the final insertion pass.
+                if line.count > 8
+                {
+                    for gap in [23'u64, 10, 4] do
+                        insertWithGap(points, line.count, gap)
+                }
+
+                insertWithGap(points, line.count, 1)
                 return
             }
 

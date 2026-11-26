@@ -217,9 +217,9 @@ impl Decoder
                     if k > 63 do
                         fail InvalidFormatError{"decode error"}
                     let value = cast(s16, (amplitude * q[k]))
-                    p[Zag[k]] = value
-                    ac        |= value
-                    k         += 1
+                    p[ZigzagToTransposed[k]] = value
+                    ac |= value
+                    k  += 1
                 }
 
                 // Keep the current coefficients hot and reuse their storage for the next block.

@@ -72,7 +72,7 @@ impl Decoder
 
                 s = extendSign(rbits, s)
                 let coefficient = cast(s16, (s << .successiveLow))
-                p[Zag[k]] = coefficient
+                p[ZigzagToTransposed[k]] = coefficient
                 let bit = 1'u64 << k
                 mask = (mask & ~bit) | (coefficient != 0 ? bit : 0)
             }
@@ -142,7 +142,7 @@ impl Decoder
                 if run < zeros do
                     break
                 run -= zeros
-                .refineCoefficient(&p[Zag[occupied]], bit)
+                .refineCoefficient(&p[ZigzagToTransposed[occupied]], bit)
                 remaining &= remaining - 1
                 k         = occupied + 1
             }
@@ -150,7 +150,7 @@ impl Decoder
             k = Math.min(k + run, last + 1)
             if coefficient and k < 64
             {
-                p[Zag[k]] = coefficient
+                p[ZigzagToTransposed[k]] = coefficient
                 present[] |= 1'u64 << k
             }
 
@@ -162,7 +162,7 @@ impl Decoder
             while remaining
             {
                 let occupied = cast(s32, Swag.trailingZeros(remaining))
-                .refineCoefficient(&p[Zag[occupied]], bit)
+                .refineCoefficient(&p[ZigzagToTransposed[occupied]], bit)
                 remaining &= remaining - 1
             }
 
@@ -302,14 +302,14 @@ impl Decoder
         for &component in .coefficients do
             component.nonzeroAc.free()
 
-        // The entropy scan stores coefficients in natural order. Reorder each table once so
-        // dequantization can multiply an entire row of a block in one operation.
+        // Match the transposed coefficient layout so dequantization can multiply a vector of
+        // coefficients at a time.
         for &table in .quant where not table.isEmpty()
         {
-            var natural: [64] s16
+            var weights: [64] s16
             for i in 64 do
-                natural[Zag[i]] = table[i]
-            Memory.copy(table.storage(), &natural[0], #sizeof(natural))
+                weights[ZigzagToTransposed[i]] = table[i]
+            Memory.copy(table.storage(), &weights[0], #sizeof(weights))
         }
 
         .compsInScan = .compsInFrame

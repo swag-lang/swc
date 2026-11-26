@@ -62,6 +62,17 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
   machine, with exact conformance and reference planes.
 - Related: std.video.001, std.video.009, compiler.codegen.005, compiler.codegen.019
 
+### std.video.039 — Reduce the measured serial cost of MPEG-4 Part 2 decoding
+
+- Evidence: [the single-lane comparison](../bench/results/video/20261126-decode-comparison/README.md#mpeg-4-part-2-coefficient-decoding-and-reconstruction)
+  measures Simple Profile at 3.59× native single-threaded FFmpeg and textured intra pictures
+  at 3.86×. The profile still spends 22% in the inverse transform and 19% reading bits or
+  walking variable-length codes.
+- Next: measure a bounded word read and SIMD inverse quantization separately on Simple
+  Profile, textured intra and MPEG-quantized B pictures.
+- Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
+  the measured sample-error bounds and the MPEG-4 conformance tests.
+
 ### std.video.009 — H.265 range-extension chroma formats are not decoded
 
 - Evidence: `decode/hevc/sets.swg` rejects `chroma_format_idc` values other than 1, unequal luma

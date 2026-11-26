@@ -1,4 +1,4 @@
-"""Compare planar H.264 and HEVC pictures and serial decode time with FFmpeg."""
+"""Compare planar video pictures and serial decode time with FFmpeg."""
 
 import argparse
 import hashlib
@@ -30,11 +30,15 @@ def arguments():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--quality-only", action="store_true")
+    parser.add_argument("--mpeg4-max-sample-difference", type=int, default=0,
+                        help="allow this per-sample difference from FFmpeg for MPEG-4 Part 2")
     parser.add_argument("--reference", type=Path, help="prebuilt ffmpeg_native executable")
     parser.add_argument("input", type=Path, nargs="+")
     args = parser.parse_args()
     if args.repetitions < 1:
         parser.error("--repetitions must be positive")
+    if not 0 <= args.mpeg4_max_sample_difference <= 255:
+        parser.error("--mpeg4-max-sample-difference must be in 0 through 255")
     args.output = args.output.resolve()
     roots = [REPO, args.library_bin.resolve()]
     if args.baseline_bin:
@@ -83,17 +87,20 @@ def fixture_timeline(path):
     metadata = json.loads(probe)
     stream, = metadata["streams"]
     pixel_format = stream["pix_fmt"]
-    if stream["codec_name"] not in ("h264", "hevc") or pixel_format not in (
+    if stream["codec_name"] not in ("h264", "hevc", "mpeg4", "rv40") or pixel_format not in (
         "yuv420p", "yuv444p", "yuv420p10le"
     ):
         raise ValueError(f"{path} has an unsupported codec or planar layout")
     scale = Fraction(stream["time_base"])
     records = metadata["packets_and_frames"]
     # Reader's clock starts at the earliest sample, which may precede FFmpeg's first picture.
-    origin = min(record["pts"] for record in records if record["type"] == "packet" and "pts" in record)
-    times = [(record["best_effort_timestamp"] - origin) * scale
-             for record in records if record["type"] == "frame"]
-    if not times or any(a >= b for a, b in zip(times, times[1:])):
+    packet_pts = [record["pts"] for record in records if record["type"] == "packet" and "pts" in record]
+    picture_pts = [record.get("best_effort_timestamp") for record in records if record["type"] == "frame"]
+    if not packet_pts or not picture_pts or None in picture_pts:
+        raise ValueError(f"{path} needs packet and picture presentation timestamps")
+    origin = min(packet_pts)
+    times = [(pts - origin) * scale for pts in picture_pts]
+    if any(a >= b for a, b in zip(times, times[1:])):
         raise ValueError(f"{path} needs unique increasing presentation timestamps")
     return stream, times
 
@@ -204,8 +211,14 @@ def main():
         results.append(result)
         print(json.dumps(result), flush=True)
     version = subprocess.check_output(["ffmpeg", "-version"], text=True).splitlines()[0]
-    (args.output / "report.json").write_text(json.dumps({"ffmpeg": version, "results": results}, indent=2) + "\n")
-    return int(any(quality["different_frames"] for result in results for quality in result["quality"].values()))
+    report = {"ffmpeg": version, "mpeg4_max_sample_difference": args.mpeg4_max_sample_difference,
+              "results": results}
+    (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+    for result in results:
+        limit = args.mpeg4_max_sample_difference if result["stream"]["codec_name"] == "mpeg4" else 0
+        if any(quality["max_difference"] > limit for quality in result["quality"].values()):
+            return 1
+    return 0
 
 
 if __name__ == "__main__":

@@ -129,7 +129,7 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32'u32)->Array'u8
     }
 
     if huffman do
-        bits.add(0, 2)    // Use the Huffman codebook without a scale adjustment.
+        bits.add(0, 2)     // Use the Huffman codebook without a scale adjustment.
 
     bits.add(0, 2)     // One subsubframe.
     bits.add(0, 3)
@@ -141,13 +141,13 @@ private func dtsPredictionPacket(huffman = false, frameBytes = 32'u32)->Array'u8
     bits.add(huffman ? 104 : 64, 7)
     if huffman
     {
-        bits.add(0b10, 2)    // Symbol +1 in the three-level codebook.
+        bits.add(0b10, 2)     // Symbol +1 in the three-level codebook.
         for 7 do
-            bits.add(0, 1)    // Symbol 0.
+            bits.add(0, 1)     // Symbol 0.
     }
     else
     {
-        bits.add(1, 5)        // A directly coded impulse and seven zero residuals.
+        bits.add(1, 5)     // A directly coded impulse and seven zero residuals.
         for 7 do
             bits.add(0, 5)
     }
@@ -437,4 +437,42 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     var error: Swag.Error
     discard catch SoundFile.load(path.toString()) as error
     Swag.require(error.value() is InvalidFormatError)
+}
+
+// The packed LFE filter preserves the scalar tap sum, clipping, and interleaved channel gaps.
+#test
+{
+    func(Factor: u32, Taps: u32) compareLfe(coefficients: const [..] f64)
+    {
+        const SampleCount = 3
+        const Stride      = 2
+        let history: [8 + SampleCount] f64 = [
+            1_900_000.0, -7_040_000.0, 131_000.0, 4_700_000.0,
+            -13_000_000.0, 25_700_000.0, 2_100_000.0, -37_000_000.0,
+            -36_000_000.0, 30_000_000.0, 21_000_000.0]
+        var result: [Factor * SampleCount * Stride] s16
+        Dts.synthesisLfe'(Factor, Taps)(&result[1], Stride, &history[0], SampleCount)
+        for sample in SampleCount
+        {
+            for phase in Factor / 2
+            {
+                var first, second: f64
+                for tap in Taps
+                {
+                    let value = history[8 + sample - tap]
+                    first  += coefficients[phase * Taps + tap] * value
+                    second += coefficients[255 - phase * Taps - tap] * value
+                }
+
+                let firstSample  = cast(s16, Math.clamp(Math.round(first / 256.0), -32_768.0, 32_767.0))
+                let secondSample = cast(s16, Math.clamp(Math.round(second / 256.0), -32_768.0, 32_767.0))
+                let start        = (sample * Factor + phase) * Stride
+                Swag.require(result[start] == 0 and result[start + 1] == firstSample)
+                Swag.require(result[start + Factor] == 0 and result[start + Factor + 1] == secondSample)
+            }
+        }
+    }
+
+    compareLfe'(64, 8)(Dts.LfeFir64)
+    compareLfe'(128, 4)(Dts.LfeFir128)
 }

@@ -52,6 +52,31 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     }
 }
 
+// A sparse pulse produces long unary runs ahead of the unaligned verbatim channel.
+#test
+{
+    let path = flacWriterPath("long-rice")
+    defer discard catch File.delete(path)
+
+    const Frames = 4096
+    var samples: [Frames * 2] s16
+    var state = 0x4893_8717'u32
+    for frame in Frames
+    {
+        if frame == Frames / 2 do
+            samples[2 * frame] = 12_000
+        state = cast #wrap(u32, cast(u64, state) * 1_664_525 + 1_013_904_223)
+        samples[2 * frame + 1] = cast #bit(s16, cast(u16, state >> 16))
+    }
+
+    let pcm    = Swag.makeSlice(&samples[0], samples.count)
+    var writer = expect Flac.Writer.create(path.toString(), 2, 48_000)
+    expect writer.addFrames(pcm)
+    expect writer.flush()
+    assertFlacWriterSamples(path.toString(), pcm, 2, 48_000)
+    expect writer.end()
+}
+
 // Silence and smooth ramps choose compact subframes; irregular noise stays verbatim.
 #test
 {

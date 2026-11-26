@@ -138,7 +138,12 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 ### std.audio.015 — AAC recording still needs precise timing and rate control
 
-- Evidence: `Wav.Writer` and `Flac.Writer` stream resumable PCM16 recordings. `Aac.Encoder`
+- Evidence: `Wav.Writer` and `Flac.Writer` stream resumable PCM16 recordings.
+  The FLAC writer preserves encoded bytes with an exact Rice search and buffered bit writes.
+  In the ten-second cases it takes 5.82 ms for 48 kHz mono and 32.70 ms for 5.1.
+  The native FLAC references still produce smaller files on structured audio.
+  [FLAC and WAV encoding comparison](../bench/results/swagscope-filesamples/audio-encode-linux.md#flac-encoder)
+  `Aac.Encoder`
   now encodes mono/stereo 44.1/48 kHz PCM16 into AAC-LC in pure Swag, with full-band and voice
   profiles; `Aac.StreamEncoder` accepts arbitrary input chunks, reports packet sample times,
   pads the last block and drains the transform. `Aac.SilenceEncoder` covers source gaps.

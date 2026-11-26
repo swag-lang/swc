@@ -30,6 +30,8 @@ and sets the reference cutoff to the same nominal band. The quality check remove
 encoder's declared priming and measures PCM SNR and error over the submitted frames.
 
 For FLAC, `--reference-setting` selects the FFmpeg compression level and defaults to 5.
+`--libflac 0` adds the installed libFLAC streaming reference at level 0. Its input is
+widened to the 32-bit API representation before the timer starts.
 FLAC and WAV must decode to the submitted PCM byte for byte. The runner records each
 encoded file size and SHA-256, and the raw times and PCM checks appear in `results.json`.
 Choose `--baseline-bin` to compare a preserved Swag standard-module source tree with the

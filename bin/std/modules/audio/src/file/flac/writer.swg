@@ -26,7 +26,8 @@ struct Writer
         pending:       Array's16
         frame:         Array'u8
         checksum:      Hash.Md5
-        bitCount:      u64
+        bitBuffer:     u64
+        bufferedBits:  u32
         frameCount:    u64
         writtenFrames: u64
         sampleRate:    u32
@@ -378,7 +379,8 @@ private impl Writer
         let count = cast(u32, .pending.count / .channels)
         Swag.assert(count and count <= WriterBlockFrames)
         .frame.clear()
-        .bitCount = 0
+        .bitBuffer    = 0
+        .bufferedBits = 0
 
         .writeByte(0xFF)
         .writeByte(0xF9)     // Variable-block stream, with an absolute sample number.
@@ -438,33 +440,65 @@ private impl Writer
 
     mtd writeChannel(channel: u64, count: u32)
     {
-        let first    = cast(s32, .pending[channel])
-        var constant = true
-        for index in 1 until count where .pending[cast(u64, index) * .channels + channel] != first do
-            constant = false
-        if constant
+        let samples = .pending.storage() + channel
+        let stride  = cast(u64, .channels)
+        let first   = cast(s32, samples[0])
+        var changed = 1'u32
+        while changed < count and samples[cast(u64, changed) * stride] == first do
+            changed += 1
+        if changed == count
         {
             .writeBits(0, 8)
             .writeBits(cast #bit(u16, cast(s16, first)), 16)
             return
         }
 
+        var residuals: [WriterBlockFrames - 1] u32
+        var foldedSum     = 0'u32
+        var previous      = first
+        let residualCount = count - 1
+        for index in changed - 1 until residualCount
+        {
+            let current = cast(s32, samples[cast(u64, (index + 1)) * stride])
+            let delta   = current - previous
+            let folded  = (cast #bit(u32, delta) << 1) ^ cast #bit(u32, delta >> 31)
+            residuals[index] = folded
+            foldedSum        += folded
+            previous         = current
+        }
+
         let verbatimBits = cast(u64, count) * 16 + 8
         var bestBits     = verbatimBits
         var bestRice     = 15'u32
-        for rice in 15
+
+        // The cost difference for increasing k is N minus the sum of ceil((folded >> k) / 2).
+        // It increases with k. If 2^b <= the mean < 2^(b+1), it is negative below b-1 and
+        // positive from b+1. Testing b-1 through b+1 preserves the exact minimum and tie order.
+        let mean  = foldedSum / residualCount
+        let b     = mean ? 31 - cast(u32, Swag.leadingZeros(mean)) : 0
+        let start = b ? Math.min(b - 1, 14'u32) : 0
+        let stop  = Math.min(b + 2, 15'u32)
+        for rice in start until stop
         {
-            var bits     = 8'u64 + 16 + 6 + 4
-            var previous = first
-            for index in 1 until count
+            // Rounding each of N quotients separately can lose at most N - 1 bits.
+            let lowerBound = 35'u64 + cast(u64, residualCount) * rice + (foldedSum >> rice)
+            if lowerBound >= bestBits do
+                continue
+            const Zero = cast(Math.Simd.U32x4, [0'u32, 0, 0, 0])
+            var sums   = Zero
+            let limit  = residualCount & ~3'u32
+            let values = cast(const [*] u32, &residuals[0])
+            var index  = 0'u32
+            while index < limit
             {
-                let current = cast(s32, .pending[cast(u64, index) * .channels + channel])
-                let delta   = current - previous
-                let folded  = delta < 0 ? cast(u32, -delta) * 2 - 1 : cast(u32, delta) * 2
-                bits     += (folded >> rice) + 1 + rice
-                previous = current
+                sums  += Math.Simd.load(values + index) >> rice
+                index += 4
             }
 
+            var quotients = Math.Simd.sum(sums)
+            for tail in index until residualCount do
+                quotients += residuals[tail] >> rice
+            let bits = 34'u64 + cast(u64, residualCount) * (1 + rice) + quotients
             if bits < bestBits
             {
                 bestBits = bits
@@ -475,8 +509,22 @@ private impl Writer
         if bestRice == 15
         {
             .writeBits(0x02, 8)
-            for index in count do
-                .writeBits(cast #bit(u16, .pending[cast(u64, index) * .channels + channel]), 16)
+            if not (.bufferedBits & 7)
+            {
+                .alignByte()
+                let output = cast([*] u16, .frame.emplaceAddress(count * 2))
+                for index in count
+                {
+                    let sample = cast #bit(u16, samples[cast(u64, index) * stride])
+                    output[index] = Math.nativeToBigEndian(sample)
+                }
+            }
+            else
+            {
+                for index in count do
+                    .writeBits(cast #bit(u16, samples[cast(u64, index) * stride]), 16)
+            }
+
             return
         }
 
@@ -484,48 +532,74 @@ private impl Writer
         .writeBits(cast #bit(u16, cast(s16, first)), 16)
         .writeBits(0, 6)     // Rice method 0 and one partition.
         .writeBits(bestRice, 4)
-        var previous = first
-        for index in 1 until count
+        for index in residualCount
         {
-            let current = cast(s32, .pending[cast(u64, index) * .channels + channel])
-            let delta   = current - previous
-            let folded  = delta < 0 ? cast(u32, -delta) * 2 - 1 : cast(u32, delta) * 2
-            .writeUnary(folded >> bestRice)
-            .writeBits(folded, bestRice)
-            previous = current
+            let folded = residuals[index]
+            .writeRice(folded, bestRice)
         }
     }
 
-    mtd writeUnary(zeros: u32)
+    #[Swag.Inline]
+    mtd writeRice(value, parameter: u32)
     {
-        for zeros do
-            .writeBits(0, 1)
-        .writeBits(1, 1)
+        var zeros  = value >> parameter
+        let width  = zeros + 1 + parameter
+        let marker = 1'u32 << parameter
+        let suffix = marker | (value & (marker - 1))
+        if width <= 32
+        {
+            .writeBits(suffix, width)
+            return
+        }
+
+        let available = 32 - .bufferedBits
+        if zeros >= available
+        {
+            .writeBits(0, available)
+            zeros -= available
+            let zeroBytes = (zeros >> 5) * 4
+            .frame.resize(.frame.count + zeroBytes)
+            zeros &= 31
+        }
+
+        .writeBits(0, zeros)
+        .writeBits(suffix, 1 + parameter)
     }
 
     mtd writeByte(value: u8)
     {
-        Swag.assert(not (.bitCount & 7))
+        Swag.assert(not .bufferedBits)
         .frame.add(value)
-        .bitCount += 8
     }
 
+    #[Swag.Inline]
     mtd writeBits(value: u32, count: u32)
     {
-        for index in count
+        let bits   = cast(u64, value) & ((1'u64 << count) - 1)
+        let queued = (.bitBuffer << count) | bits
+        var used   = .bufferedBits + count
+        if used >= 32
         {
-            if .bitCount == .frame.count * 8 do
-                .frame.add(0'u8)
-            let shift = count - index - 1
-            .frame[.bitCount >> 3] |= cast(u8, ((value >> shift) & 1) << (7 - cast(u32, .bitCount & 7)))
-            .bitCount += 1
+            used -= 32
+            let word   = Math.nativeToBigEndian(cast #wrap(u32, queued >> used))
+            let output = cast([*] u32, .frame.emplaceAddress(4))
+            output[0] = word
         }
+
+        .bitBuffer    = queued
+        .bufferedBits = used
     }
 
     mtd alignByte()
     {
-        if .bitCount & 7 do
-            .bitCount = (.bitCount + 7) & ~7'u64
+        let padding = (8 - (.bufferedBits & 7)) & 7
+        let padded  = .bitBuffer << padding
+        let bytes   = (.bufferedBits + padding) >> 3
+        let output  = .frame.emplaceAddress(bytes)
+        for index in bytes do
+            output[index] = cast #wrap(u8, padded >> ((bytes - index - 1) * 8))
+        .bitBuffer    = 0
+        .bufferedBits = 0
     }
 
     func crc8(bytes: const [..] u8)->u8

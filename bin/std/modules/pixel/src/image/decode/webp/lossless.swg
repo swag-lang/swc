@@ -1092,9 +1092,14 @@ func losslessDecode(source: const [..] u8, pixels: *Array'u8, width: *s32, heigh
     var reader: LosslessBitReader
     try losslessDecodeHeader(&reader, source, width, height)
 
+    try losslessDecodeStream(&reader, pixels, width[], height[])
+}
+
+func losslessDecodeStream(reader: *LosslessBitReader, pixels: *Array'u8, width, height: s32) fail
+{
     var transforms:     Array'LosslessTransform
     var seenTransforms: [LOSSLESS_TRANSFORM_COUNT] bool
-    let originalWidth    = width[]
+    let originalWidth    = width
     var transformedWidth = originalWidth
 
     while try reader.read(1)
@@ -1104,22 +1109,22 @@ func losslessDecode(source: const [..] u8, pixels: *Array'u8, width: *s32, heigh
 
         transforms.resize(transforms.count + 1)
         let transform = &transforms[transforms.count - 1]
-        transformedWidth = try losslessDecodeTransform(&reader, transform, transformedWidth, height[])
+        transformedWidth = try losslessDecodeTransform(reader, transform, transformedWidth, height)
         if seenTransforms[transform.kind] do
             fail InvalidFormatError{"WebP lossless stream repeats a transform"}
         seenTransforms[transform.kind] = true
     }
 
-    try losslessDecodePixels(&reader, pixels, transformedWidth, height[], 0, true)
+    try losslessDecodePixels(reader, pixels, transformedWidth, height, 0, true)
 
     var index = transforms.count
     while index
     {
         index -= 1
-        losslessApplyInverseTransform(&transforms[index], pixels, height[])
+        losslessApplyInverseTransform(&transforms[index], pixels, height)
     }
 
-    let expectedSize = cast(u64, originalWidth) * height[] * 4
+    let expectedSize = cast(u64, originalWidth) * height * 4
     if pixels.count != expectedSize do
         fail InvalidFormatError{"WebP lossless transforms produce a pixel count different from the image dimensions"}
 }

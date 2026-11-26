@@ -262,10 +262,13 @@ func decodeLossless(container: Container, options: DecodeOptions)->Image fail
     return result
 }
 
-func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) fail
+// Returns a view into the input chunk or into the caller-owned alpha storage.
+func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8)->const [*] u8? fail
 {
+    using Math.Simd
+
     if not container.alpha.data do
-        return
+        return null
     if container.alpha.size == 0 do
         fail InvalidFormatError{"WebP ALPH chunk does not contain a control byte"}
 
@@ -277,12 +280,16 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         fail UnsupportedFormatError{"WebP ALPH chunk uses an unsupported preprocessing method"}
 
     let pixelCount = cast(u64, width) * height
+    let filter     = (control >> 2) & 3
     switch control & 3
     {
     case 0:
         if container.alpha.size - 1 != pixelCount do
             fail InvalidFormatError{"WebP uncompressed ALPH byte count differs from the canvas dimensions"}
-        alpha.resize(pixelCount)
+        if filter == 0 do
+            return source + 1
+        alpha.grow(pixelCount)
+        alpha.count = pixelCount
         Memory.copy(cast([*] u8, alpha.storage()), source + 1, pixelCount)
 
     case 1:
@@ -291,37 +298,55 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         if widthMinusOne > 0x3FFF or heightMinusOne > 0x3FFF do
             fail InvalidFormatError{"WebP compressed ALPH dimensions exceed the VP8L header range"}
 
-        var compressed: Array'u8
-        compressed.resize(cast(u64, container.alpha.size) + 4)
-        compressed[0] = 0x2F
-        compressed[1] = losslessWrap8(cast(s32, widthMinusOne))
-        compressed[2] = losslessWrap8(cast(s32, ((widthMinusOne >> 8) | (heightMinusOne << 6))))
-        compressed[3] = losslessWrap8(cast(s32, (heightMinusOne >> 2)))
-        compressed[4] = losslessWrap8(cast(s32, (heightMinusOne >> 10)))
-        Memory.copy(cast([*] u8, unwrap (compressed.buffer + 5)), source + 1, container.alpha.size - 1)
-
+        // The ALPH payload is a VP8L stream without the five-byte still-image header.
+        var reader = LosslessBitReader{ptr: source + 1, last: source + container.alpha.size}
         var rgba: Array'u8
-        var decodedWidth, decodedHeight: s32
-        try losslessDecode(compressed.toSlice(), &rgba, &decodedWidth, &decodedHeight)
-        if decodedWidth != width or decodedHeight != height do
-            fail InvalidFormatError{"WebP compressed ALPH dimensions differ from the canvas"}
-        alpha.resize(pixelCount)
-        let alphaData = cast([*] u8, alpha.storage())
-        let rgbaData  = cast([*] u8, rgba.storage())
-        for i in pixelCount do
-            alphaData[i] = rgbaData[4 * i + 1]
+        try losslessDecodeStream(&reader, &rgba, width, height)
+        alpha.grow(pixelCount)
+        alpha.count = pixelCount
+
+        const GreenBytes = cast(U8x16, [1'u8, 5, 9, 13, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+        let alphaData = alpha.storage()
+        let rgbaData  = rgba.storage()
+        var i: u64
+        while pixelCount - i >= 4
+        {
+            let green = shuffle(load(rgbaData + i * 4), GreenBytes)
+            cast([*] u32, alphaData + i)[0] = cast #bit(U32x4, green)[0]
+            i += 4
+        }
+
+        for j in i until pixelCount do
+            alphaData[j] = rgbaData[4 * j + 1]
 
     default:
         fail UnsupportedFormatError{"WebP ALPH chunk uses an unsupported compression method"}
     }
 
-    let data   = cast([*] u8, alpha.storage())
-    let filter = (control >> 2) & 3
+    let data = cast([*] u8, alpha.storage())
     if filter == 0 do
-        return
+        return data
 
-    for x in width - 1 do
-        data[x + 1] = losslessWrap8(data[x + 1] + data[x])
+    // Within a row, each residual is added to the previously restored alpha sample.
+    func undoHorizontal(row: [*] u8, width: s32)
+    {
+        let zero = splat(0'u8)
+        var x    = 1
+        while width - x >= 16
+        {
+            let values = load(row + x)
+            let pairs  = values + align(zero, values, 15)
+            let quads  = pairs + align(zero, pairs, 14)
+            let octets = quads + align(zero, quads, 12)
+            store(row + x, octets + align(zero, octets, 8) + splat(row[x - 1]))
+            x += 16
+        }
+
+        for i in x until width do
+            row[i] += #wrap row[i - 1]
+    }
+
+    undoHorizontal(data, width)
 
     if filter == 1
     {
@@ -329,18 +354,25 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         {
             let row = cast(u64, (y + 1)) * width
             data[row] = losslessWrap8(data[row] + data[row - width])
-            for x in width - 1 do
-                data[row + x + 1] = losslessWrap8(data[row + x + 1] + data[row + x])
+            undoHorizontal(data + row, width)
         }
     }
     elif filter == 2
     {
         var i = cast(u64, width)
-        while i < pixelCount
+
+        // All sixteen source samples precede the destination when the stride is at least sixteen.
+        if width >= 16
         {
-            data[i] = losslessWrap8(data[i] + data[i - width])
-            i       += 1
+            while pixelCount - i >= 16
+            {
+                store(data + i, load(data + i) + load(data + i - width))
+                i += 16
+            }
         }
+
+        for j in i until pixelCount do
+            data[j] += #wrap data[j - width]
     }
     else
     {
@@ -356,9 +388,11 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
             }
         }
     }
+
+    return data
 }
 
-func vp8WriteRgbaRow(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image, mbY, storageY: s32)
+func vp8WriteRgbaRow(decoder: *Vp8Decoder, alpha: const [*] u8?, result: *Image, mbY, storageY: s32)
 {
     using Math.Simd
 
@@ -406,7 +440,7 @@ func vp8WriteRgbaRow(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image, mbY
     let cbData  = cast([*] u8, decoder.cb.storage())
     let crData  = cast([*] u8, decoder.cr.storage())
     let outData = cast([*] u8, result.pixels.storage())
-    let aData   = alpha.buffer
+    let aData   = alpha
     let width   = decoder.header.width
     let height  = decoder.header.height
 
@@ -464,8 +498,8 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         return result
 
     try vp8ParseHeaders(&decoder)
-    var alpha: Array'u8
-    try vp8DecodeAlpha(container, decoder.header.width, decoder.header.height, &alpha)
+    var alphaPixels: Array'u8
+    let alpha = try vp8DecodeAlpha(container, decoder.header.width, decoder.header.height, &alphaPixels)
     result.allocPixels()
 
     // Reconstruct before filtering the row above, which still supplies unfiltered prediction
@@ -500,7 +534,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
         if mbY >= 1 do
             vp8ApplyFilter(&decoder, storageY - 1)
         if mbY >= 2 do
-            vp8WriteRgbaRow(&decoder, &alpha, &result, mbY - 2, storageY - 2)
+            vp8WriteRgbaRow(&decoder, alpha, &result, mbY - 2, storageY - 2)
         storageY += 1
     }
 
@@ -512,7 +546,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
     vp8ApplyFilter(&decoder, storageY - 1)
     let remaining = Math.min(decoder.mbHeight, 2)
     for index in remaining do
-        vp8WriteRgbaRow(&decoder, &alpha, &result, decoder.mbHeight - remaining + index, storageY - remaining + index)
+        vp8WriteRgbaRow(&decoder, alpha, &result, decoder.mbHeight - remaining + index, storageY - remaining + index)
     return result
 }
 

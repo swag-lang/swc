@@ -164,6 +164,45 @@ func webpExpectedChannel(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 8
 
+// Restore raw alpha with each predictor across short rows, vectors, and odd tails.
+#test
+{
+    const Height = 3
+    for width in [1, 15, 17, 33]
+    {
+        let pixels = width * Height
+        var expected: [33 * Height] u8
+        for i in pixels do
+            expected[i] = cast #wrap(u8, (i * 57 + (i / width) * 92))
+        for filter in 4
+        {
+            var payload: [1 + 33 * Height] u8
+            payload[0] = cast(u8, filter * 4)
+            for i in pixels
+            {
+                var prediction: s32
+                if filter and i
+                {
+                    if i < width or (filter == 1 and i % width) do
+                        prediction = expected[i - 1]
+                    elif filter == 2 or i % width == 0 do
+                        prediction = expected[i - width]
+                    else do
+                        prediction = Math.clamp(cast(s32, expected[i - 1]) + expected[i - width] - expected[i - width - 1], 0, 255)
+                }
+
+                payload[i + 1] = cast #wrap(u8, (cast(s32, expected[i]) - prediction))
+            }
+
+            let container = Webp.Container{alpha: {data: &payload[0], size: cast(u32, pixels + 1)}}
+            var storage: Array'u8
+            let decoded   = unwrap (expect Webp.vp8DecodeAlpha(container, width, Height, &storage))
+            for i in pixels do
+                Swag.require(decoded[i] == expected[i])
+        }
+    }
+}
+
 // The odd-sized VP8 image crosses two reconstruction window shifts and a partial final row.
 #test
 {
@@ -202,11 +241,10 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
     opaque.init(Width, Height, .RGBA8)
     var rgba: Image
     rgba.init(Width, Height, .RGBA8)
-    var noAlpha: Array'u8
     opaque.allocPixels()
-    Webp.vp8WriteRgbaRow(&decoder, &noAlpha, &opaque, 0, 0)
+    Webp.vp8WriteRgbaRow(&decoder, null, &opaque, 0, 0)
     rgba.allocPixels()
-    Webp.vp8WriteRgbaRow(&decoder, &alpha, &rgba, 0, 0)
+    Webp.vp8WriteRgbaRow(&decoder, alpha.buffer, &rgba, 0, 0)
     for row in Height
     {
         for x in Width

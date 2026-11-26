@@ -88,7 +88,7 @@ private func keccakRound(lanes: const [*] u64, output: [*] u64, roundConstant: u
     keccakChi(output + 20, b04, b14, b24, b34, b44)
 }
 
-private func permuteKeccak(state: *[25] u64)
+private func(EraseScratch: bool) permuteKeccak(state: *[25] u64)
 {
     var buffer: [25] u64
     let lanes = state[].buffer
@@ -103,7 +103,8 @@ private func permuteKeccak(state: *[25] u64)
         keccakRound(buffer.buffer, lanes, KeccakRoundConstants[round + 3])
     }
 
-    Crypto.secureClear(buffer)
+    #static if EraseScratch do
+        Crypto.secureClear(buffer)
 }
 
 #[Swag.Inline]
@@ -117,8 +118,31 @@ private func absorbKeccakWords(state: *[25] u64, data: const [*] u8, count: u64)
 private func absorbKeccak(state: *[25] u64, data: const [*] u8, rate: u64)
 {
     absorbKeccakWords(state, data, rate / 8)
-    permuteKeccak(state)
+    permuteKeccak'true(state)
 }
+
+private func buildEmptyKmacPrefixState(rate: u64)->[25] u64
+{
+    // bytepad(encode_string("KMAC") || encode_string(""), rate)
+    var prefix: [Sha3MaxRate] u8
+    prefix[0] = 1
+    prefix[1] = cast(u8, rate)
+    prefix[2] = 1
+    prefix[3] = 32
+    prefix[4] = 'K'
+    prefix[5] = 'M'
+    prefix[6] = 'A'
+    prefix[7] = 'C'
+    prefix[8] = 1
+
+    var state: #returntype
+    absorbKeccakWords(&state, prefix.buffer, rate / 8)
+    permuteKeccak'false(&state)
+    return state
+}
+
+private const EmptyKmac128PrefixState = #run buildEmptyKmacPrefixState(168)
+private const EmptyKmac256PrefixState = #run buildEmptyKmacPrefixState(136)
 
 private func finalizeKeccak(state: *[25] u64, tail: const [..] u8, rate: u64, suffix: u8)
 {
@@ -133,7 +157,7 @@ private func finalizeKeccak(state: *[25] u64, tail: const [..] u8, rate: u64, su
     last |= cast(u64, suffix) << cast(u32, remaining * 8)
     state[][complete]     ^= last
     state[][rate / 8 - 1] ^= 0x8000000000000000
-    permuteKeccak(state)
+    permuteKeccak'true(state)
 }
 
 #[Swag.Inline]
@@ -194,7 +218,7 @@ private func squeezeKeccak(state: *[25] u64, rate: u64, destination: [..] u8)
 
         written += count
         if written < destination.count do
-            permuteKeccak(state)
+            permuteKeccak'true(state)
     }
 }
 
@@ -306,6 +330,13 @@ private func shakeRate(securityBits: u64)->u64 fail
     return securityBits == 128 ? 168 : 136
 }
 
+private func cshakeRate(securityBits: u64)->u64 fail
+{
+    if securityBits != 128 and securityBits != 256 do
+        fail Errors.BadParameterError{"cSHAKE security strength must be 128 or 256 bits"}
+    return securityBits == 128 ? 168 : 136
+}
+
 public impl Shake
 {
     // Creates a SHAKE128 or SHAKE256 sequence.
@@ -318,11 +349,21 @@ public impl Shake
 
     // Creates an internal cSHAKE128 or cSHAKE256 sponge with the cSHAKE domain separator.
     //
-    // The caller supplies the SP 800-185 function-name and customization bytepads as input.
-    internal func createCShake(securityBits: u64)->Shake fail
+    // An empty KMAC customization can start after its fixed SP 800-185 name bytepad.
+    internal func createCShake(securityBits: u64, emptyKmacPrefix = false)->Shake fail
     {
+        let rate = try cshakeRate(securityBits)
         var result: #returntype
-        try result.resetCShake(securityBits)
+        result.rate   = rate
+        result.suffix = 0x04
+        if emptyKmacPrefix
+        {
+            if securityBits == 128 do
+                result.state = EmptyKmac128PrefixState
+            else do
+                result.state = EmptyKmac256PrefixState
+        }
+
         return result
     }
 
@@ -338,11 +379,9 @@ public impl Shake
     // Replaces prior state and selects cSHAKE128 or cSHAKE256 with its domain separator.
     internal mtd resetCShake(securityBits: u64) fail
     {
-        if securityBits != 128 and securityBits != 256 do
-            fail Errors.BadParameterError{"cSHAKE security strength must be 128 or 256 bits"}
-
+        let rate = try cshakeRate(securityBits)
         .clear()
-        .rate   = securityBits == 128 ? 168 : 136
+        .rate   = rate
         .suffix = 0x04
     }
 

@@ -132,3 +132,4 @@ optimizations moved each result.
 - [Packed AES-XTS tweak doubling](aes-xts-doubling.md)
 - [Direct AES-CMAC blocks](aes-cmac-direct.md)
 - [Deferred carries in Edwards formulas](ed25519-deferred-carries.md)
+- [KMAC bytepad and empty-customization initialization](kmac-bytepad.md)

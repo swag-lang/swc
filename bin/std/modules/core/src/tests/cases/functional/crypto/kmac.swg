@@ -84,3 +84,24 @@ func kmacHexBytes(text: string)->Array'u8
     expect Crypto.kmacXof128(key.toSlice(), message.toSlice(), "", output)
     Swag.require(Crypto.constantTimeEqual(output, expected.toSlice()))
 }
+
+#test
+{
+    // KMAC128 fills each bytepad block exactly. KMACXOF256 spills both blocks by one byte.
+    var keys, customs, message: [166] u8
+    for index in keys.count
+    {
+        keys[index]    = cast(u8, (index * 19 + 3) & 0xFF)
+        customs[index] = cast(u8, (index * 13 + 15) & 0xFF)
+        message[index] = cast(u8, (index * 37 + 11) & 0xFF)
+    }
+
+    var output: [32] u8
+    let fixed = kmacHexBytes("4232299a0d5277d477ca99be1b1f3b38b7a21215e15daeb8b61365afd5009cdb")
+    expect Crypto.kmac128(keys[1 until 164], message[1 to], customs[1 until 158], output)
+    Swag.require(Crypto.constantTimeEqual(output, fixed.toSlice()))
+
+    let xof = kmacHexBytes("73ecc264d279c2b3441fba81ae8d6b5906cb98e6c256d2f70cbff15072acc7fa")
+    expect Crypto.kmacXof256(keys[1 until 133], message[1 until 2], customs[1 until 127], output)
+    Swag.require(Crypto.constantTimeEqual(output, xof.toSlice()))
+}

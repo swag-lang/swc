@@ -450,12 +450,11 @@ private impl GroupState
         .isDisplayed and .isVisible and (.hasStroke or (not strokeOnly and .hasFill))
 
     #[Swag.Inline]
-    mtd const canDeferPrimitive()->bool =>
+    mtd const canDeferPrimitive(allowPaintServer = false)->bool =>
         .drawsShape() and
         not .inDefs and
-        not .fillPaintId.count and
-        not .strokePaintId.count and
-        not .filterId.count
+        not .filterId.count and
+        (allowPaintServer or (not .fillPaintId.count and not .strokePaintId.count))
 
     // Definitions keep their own geometry without placing markers on it.
     #[Swag.Inline]
@@ -2560,20 +2559,24 @@ private impl Parser
         }
         elif isAxisAligned(state.transform)
         {
-            let origin = mapPoint(state, x, y)
-            let scale  = state.transform.axisScale()
-            let rect   = Rectangle{origin.x, origin.y, w * scale.x, h * scale.y}
+            let origin   = mapPoint(state, x, y)
+            let scale    = state.transform.axisScale()
+            let rect     = Rectangle{origin.x, origin.y, w * scale.x, h * scale.y}
+            let opposite = Vector2{rect.right(), rect.bottom()}
             if crx > 0 and cry > 0
             {
                 list.newPath().setRoundRectRaw(rect.x, rect.y, rect.width, rect.height, crx * scale.x, cry * scale.y)
             }
-            elif state.canDeferPrimitive() and
+            // A gradient's object bounds come from the flattened path. Each edge must
+            // survive the flattening duplicate threshold for those bounds to be exact.
+            elif state.canDeferPrimitive(allowPaintServer: true) and
                  finitePoint(origin) and
-                 finitePoint(Vector2{rect.right(), rect.bottom()}) and
-                 not Math.isEqualEpsilon(rect.x, rect.right()) and
-                 not Math.isEqualEpsilon(rect.y, rect.bottom())
+                 finitePoint(opposite) and
+                 not Math.isEqualEpsilon(rect.x, opposite.x) and
+                 not Math.isEqualEpsilon(rect.y, opposite.y) and
+                 ((not state.fillPaintId.count and not state.strokePaintId.count) or
+                  (opposite.x - origin.x >= 0.0001 and opposite.y - origin.y >= 0.0001))
             {
-                let opposite = Vector2{rect.right(), rect.bottom()}
                 .emitShapeOne(#move list, state, geometry: DeferredGeometry{.Rect, origin, opposite})
                 return
             }
@@ -4601,7 +4604,13 @@ private impl Parser
     {
         var min = Vector2.Max
         var max = Vector2.Min
-        if gradient.userSpace
+        if shape.deferred == .Rect
+        {
+            let rect = &.drawing.primitives[shape.geometry - 1]
+            min = rect.min
+            max = rect.max
+        }
+        elif gradient.userSpace
         {
             // Preserve the decode-time curve tolerance for the first paint at draft quality.
             for path in .drawing.pathsFor(shape).paths where path.hasCurves() do
@@ -5437,10 +5446,11 @@ impl Drawing
 
     private mtd const paintPattern(painter: *Painter, shape: *Shape, pattern: const *Pattern)
     {
-        .pathsFor(shape).flatten(.Normal)
+        let paths = .materializeShape(shape)
+        paths.flatten(.Normal)
         var min = Vector2.Max
         var max = Vector2.Min
-        for path in .pathsFor(shape).paths
+        for path in paths.paths
         {
             min = Vector2.min(min, path.minBounds)
             max = Vector2.max(max, path.maxBounds)
@@ -5493,7 +5503,7 @@ impl Drawing
         let texture = painter.renderer().addImage(tileImage)
         var brush   = Brush.createTiled(texture)
 
-        painter.fillPath(.pathsFor(shape), brush)
+        painter.fillPath(paths, brush)
         painter.releaseTexture(texture)
     }
 

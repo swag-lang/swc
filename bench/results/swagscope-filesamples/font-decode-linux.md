@@ -967,3 +967,31 @@ sorted name and glyph ID CRC-64 also matches in every case.
 | `LXGWWenKaiTC-Regular.ttf` | 53.915 | 37.711 |
 | `Lato-Regular.ttf` | 0.633 | 0.704 |
 | `SourceCodePro-Regular.otf` | 1.133 | 0.837 |
+
+## Direct WOFF1 table output
+
+Parallel WOFF1 tasks inflate into their assigned ranges in the final
+sfnt buffer. The fixed-output zlib entry point shares checksum and
+limit validation with the growable decoder. The final match uses a
+bounded copy when the target has less than one vector of slack.
+
+The comparison with `0cacd90c1f` uses two requested workers on two
+logical CPUs, three warmups and nine interleaved batches of five
+opens. Three CJK variable WOFF1 fixtures take 15–20% less time. Seven
+fresh-process samples measure peak RSS with the same worker count.
+Glyph indices, advances, bitmap dimensions and checksums agree across
+all seven WOFF1 cases.
+[Raw timings, one-worker controls, and peak RSS](font-decode-linux-woff-direct.json)
+
+| Fixture | Open and render before (ms) | After | Peak RSS before (MiB) | After |
+| --- | ---: | ---: | ---: | ---: |
+| `DejaVuSans.woff` | 3.546 | 3.472 | — | — |
+| `Inter-Variable.woff` | 4.360 | 3.995 | — | — |
+| `SourceSans3-Regular.woff` | 1.775 | 1.723 | — | — |
+| `NotoSansCJKjp-Regular.woff` | 100.607 | 99.702 | 46.2 | 30.5 |
+| `NotoSansSC-Variable.woff` | 74.373 | 63.452 | 46.3 | 29.5 |
+| `NotoSansJP-Variable.woff` | 37.035 | 31.008 | 25.6 | 16.5 |
+| `NotoSansTC-Variable.woff` | 55.140 | 44.278 | 31.7 | 20.3 |
+
+The native compression cases pass in Release and Release Safe.
+The TrueType and selected Pixel PNG and collection cases pass.

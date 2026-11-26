@@ -21,13 +21,16 @@ private func aesSivDouble(value: *[AesSivTagSize] u8)
 
 private func aesSivComputeTag(macKey: const [..] u8, hasAssociatedData: bool, associatedData, plaintext: const [..] u8)->[AesSivTagSize] u8 fail
 {
+    var cmac = try AesCmac.create(macKey)
     var zero: [AesSivTagSize] u8
-    var value = try AesCmac.compute(macKey, zero)
+    try cmac.update(zero)
+    var value = try cmac.finalizeKeepingKey()
     defer Crypto.secureClear(value)
     if hasAssociatedData
     {
         aesSivDouble(&value)
-        var associatedTag = try AesCmac.compute(macKey, associatedData)
+        try cmac.update(associatedData)
+        var associatedTag = try cmac.finalizeKeepingKey()
         defer Crypto.secureClear(associatedTag)
         for index in AesSivTagSize do
             value[index] ^= associatedTag[index]
@@ -35,7 +38,6 @@ private func aesSivComputeTag(macKey: const [..] u8, hasAssociatedData: bool, as
 
     if plaintext.count >= AesSivTagSize
     {
-        var cmac         = try AesCmac.create(macKey)
         let prefixLength = plaintext.count - AesSivTagSize
         if prefixLength do
             try cmac.update(plaintext[until prefixLength])
@@ -57,8 +59,8 @@ private func aesSivComputeTag(macKey: const [..] u8, hasAssociatedData: bool, as
     aesSivDouble(&value)
     for index in AesSivTagSize do
         finalBlock[index] ^= value[index]
-    var result = try AesCmac.compute(macKey, finalBlock)
-    return result
+    try cmac.update(finalBlock)
+    return try cmac.finalize()
 }
 
 private func aesSivCrypt(key, associatedData: const [..] u8, hasAssociatedData: bool, input: const [..] u8, output: [..] u8, inputTag: const [..] u8, outputTag: [..] u8, decrypt: bool) fail

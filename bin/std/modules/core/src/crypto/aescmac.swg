@@ -91,6 +91,20 @@ impl AesCmac
     // Call [[reset]] before reusing this value.
     mtd finalize()->AesCmacTag fail
     {
+        let result = try .finishTag()
+        .clear()
+        return result
+    }
+
+    internal mtd finalizeKeepingKey()->AesCmacTag fail
+    {
+        let result = try .finishTag()
+        .clearMessage()
+        return result
+    }
+
+    private mtd finishTag()->AesCmacTag fail
+    {
         Swag.assert(.initialized, "AES-CMAC needs an initialized sequence")
         var finalBlock: [AesBlockSize] u8
         if .bufferCount == AesBlockSize
@@ -112,7 +126,6 @@ impl AesCmac
         var result: #returntype
         try .aes.encryptBlock(finalBlock, result)
         Crypto.secureClear(finalBlock)
-        .clear()
         return result
     }
 
@@ -122,10 +135,15 @@ impl AesCmac
         .aes.clear()
         Crypto.secureClear(.subKey1)
         Crypto.secureClear(.subKey2)
+        .clearMessage()
+        .initialized = false
+    }
+
+    private mtd clearMessage()
+    {
         Crypto.secureClear(.state)
         Crypto.secureClear(.buffer)
         .bufferCount = 0
-        .initialized = false
     }
 
     // Clears keyed state when this value leaves scope.

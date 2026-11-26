@@ -166,3 +166,4 @@ optimizations moved each result.
 - [Direct MD5 padding and packed digest output](md5-padding.md)
 - [KDF comparison with OpenSSL 4.1](kdf-openssl-versions.md)
 - [AES software rounds in the tower basis](aes-software-tower-rounds.md)
+- [Reuse the keyed CMAC state across AES-SIV inputs](aes-siv-cmac-reuse.md)

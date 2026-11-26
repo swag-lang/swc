@@ -240,3 +240,25 @@ baseline `747be17d13`. Loading precedes the timed save.
 The 16 distinct JPEG streams keep the saved bytes and all PDFium
 rasters. The focused GUI suite passes 124 PDF tests.
 [Fixture generator](../../workloads/pdfwrite/README.md)
+
+## Writing classic cross-reference entries directly
+
+The writer formats the ten-digit offset into a reusable 20-byte entry.
+Each ordinary entry goes directly to the output buffer without creating
+an intermediate formatted string. Larger offsets retain the existing
+formatting path.
+
+Eleven paired Release saves use one AMD EPYC 7763 logical CPU and
+baseline `747be17d13`. Loading precedes the timed save. The empty-page
+control contains 2,000 pages of 10 by 10 points.
+[Raw save times, sizes and checksums](pdf-write-linux-xref-rows.json)
+
+| Input | Save before, ms | Save after, ms | Output bytes |
+| --- | ---: | ---: | ---: |
+| `pdfium-blank-pages-2000.pdf` | 31.450 | 29.628 | 474,126 |
+| `vectors` | 45.289 | 46.048 | 123,459 |
+| `repeated-64.pdf` | 2.293 | 2.223 | 1,456,620 |
+
+All three saved outputs have identical bytes and PDFium rasters in the
+two builds. The 124 focused PDF tests pass.
+[Reproducing the empty-page fixture](../../workloads/pdfwrite/README.md#many-empty-pages)

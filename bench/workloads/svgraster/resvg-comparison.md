@@ -773,6 +773,27 @@ generated controls and thirteen public SVGs. A renderer regression compares a
 clipped fill and partial stencil clear with the same stencil held in larger
 bounds.
 
+### Skipping crossings before and outside the visible stencil
+
+Scan gathering starts at the first visible subrow of a band on the existing
+sample grid. An edge whose endpoints both fall beyond the same horizontal
+clip boundary can contribute its winding at that boundary without
+interpolating every crossing. The reference test checks discarded rows,
+crossing coordinates and winding against the full band.
+
+Eleven interleaved Release runs report median parse-plus-raster milliseconds.
+All three narrow masks and the generated, public, and attached controls retain
+their Swag CRC-64s.
+
+| Fixture | Worker budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: | ---: |
+| `mask-band.svg` | 1 | 8.31 | 7.15 | 5.65 |
+| `mask-column.svg` | 1 | 11.90 | 10.39 | 8.94 |
+| `mask-compact.svg` | 1 | 3.09 | 2.24 | 0.97 |
+| `mask-band.svg` | 4 | 8.39 | 7.23 | 5.75 |
+| `mask-column.svg` | 4 | 12.46 | 10.72 | 9.67 |
+| `mask-compact.svg` | 4 | 2.89 | 2.20 | 0.94 |
+
 ## Mapping path coordinates during parsing
 
 The parser evaluates the two affine coordinates inline, in the same arithmetic

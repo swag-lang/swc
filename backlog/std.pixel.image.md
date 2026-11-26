@@ -192,6 +192,8 @@ ships; history lives in Git, not here.
 - Evidence: [stencil-bounded scan fills](../bench/workloads/svgraster/resvg-comparison.md#limiting-scan-fills-to-the-stencil-bounds)
   reduce the three narrow-mask fixtures from 104–136 ms to 4–13 ms at one worker
   with unchanged pixels. resvg takes 1–10 ms on the same fixtures.
+- Evidence: [skipping clipped crossings](../bench/workloads/svgraster/resvg-comparison.md#skipping-crossings-before-and-outside-the-visible-stencil)
+  reduces the same three masks by 1–2 ms on one logical CPU with exact coverage.
 - Evidence: [inline affine mapping in the parser](../bench/workloads/svgraster/resvg-comparison.md#mapping-path-coordinates-during-parsing)
   reduces largest-original parse time from 66 to 59 ms on one logical CPU.
 - Evidence: [direct bounds updates on flattened points](../bench/workloads/svgraster/resvg-comparison.md#updating-bounds-as-curve-samples-are-emitted)

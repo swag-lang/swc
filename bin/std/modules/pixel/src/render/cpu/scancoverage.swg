@@ -236,7 +236,7 @@ internal impl ScanScratch
     }
 }
 
-internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32, minimumX = 0.0'f32)
+internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool, width: f32, minimumX = 0.0'f32, firstRow = 0's32)
 {
     #[Swag.Inline]
     func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
@@ -247,11 +247,11 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
     }
 
     #[Swag.Inline]
-    func sampleRow(point: Vector2, limit: f32)->s64
+    func sampleRow(point: Vector2, first, limit: f32)->s64
     {
         if not point.isFinite() do
             return -1
-        return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), 0.0, limit))
+        return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), first, limit))
     }
 
     func addEdge(rows: [..] ScanSample, a, b: Vector2, aRow, bRow: s64, minimumX, width: f32)
@@ -262,9 +262,23 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
         let start   = cast(u64, forward ? aRow : bRow)
         let end     = cast(u64, forward ? bRow : aRow)
         let winding = forward ? 1 : -1
-        if top.x == bottom.x
+        var constantX = top.x
+        var constant  = top.x == bottom.x
+        if not constant and minimumX > 0 and width <= 1_048_576
         {
-            let crossing = Crossing{Math.clamp(top.x, minimumX, width), winding}
+            let low  = Math.min(top.x, bottom.x)
+            let high = Math.max(top.x, bottom.x)
+
+            // The margin leaves every interpolated crossing on the same clip boundary.
+            if (high < minimumX - 1 or low > width + 1) and low >= -1_048_576 and high <= 1_048_576
+            {
+                constant  = true
+                constantX = low
+            }
+        }
+        if constant
+        {
+            let crossing = Crossing{Math.clamp(constantX, minimumX, width), winding}
             for row in start until end do
                 rows[row].crossings.add(crossing)
             return
@@ -286,17 +300,18 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
         }
     }
 
+    let first = cast(f32, firstRow * VerticalSamples)
     let limit = cast(f32, crossings.count)
     if points.count < 2 do
         return
 
     // Adjacent edges share the projected vertex and its sample row.
     var previous    = project(points[points.count - 1], transform, density, origin, uniform)
-    var previousRow = sampleRow(previous, limit)
+    var previousRow = sampleRow(previous, first, limit)
     for point in points
     {
         let next = project(point, transform, density, origin, uniform)
-        let row  = sampleRow(next, limit)
+        let row  = sampleRow(next, first, limit)
         if previousRow >= 0 and row >= 0 and previousRow != row do
             addEdge(crossings, previous, next, previousRow, row, minimumX, width)
         previous    = next

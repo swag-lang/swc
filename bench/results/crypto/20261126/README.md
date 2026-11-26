@@ -79,3 +79,4 @@ optimizations moved each result.
 - [Parallel CRC-64 on large buffers](crc64-parallel.md)
 - [Portable AES substitution with register shuffles](aes-software.md)
 - [CityHash32 short inputs and MurmurHash64A pointer walking](noncryptohash.md)
+- [Ed25519 coordinate square-root chain](ed25519-sqrt.md)

@@ -176,25 +176,23 @@ private func ed25519DecodePoint(encoded: const [..] u8)->(Ed25519Point, bool)
     let ySquared    = x25519Square(y)
     let numerator   = x25519Subtract(ySquared, one)
     let denominator = x25519Add(x25519Multiply(ed25519D(), ySquared), one)
-    let xSquared    = x25519Multiply(numerator, x25519Invert(denominator))
 
-    // sqrt(u) = u^((p+3)/8), with the standard sqrt(-1) correction.
-    var x: X25519Field
-    x.limbs[0] = 1
-    var bit = 252'u32
-    while bit
-    {
-        bit -= 1
-        x   = x25519Square(x)
-        if bit do
-            x = x25519Multiply(x, xSquared)
-    }
+    // For u = y^2 - 1 and v = d*y^2 + 1, this recovers sqrt(u/v) as
+    // u*v^3 * (u*v^7)^((p-5)/8). Checking x^2*v avoids an inversion.
+    let v2  = x25519Square(denominator)
+    let v3  = x25519Multiply(v2, denominator)
+    let v7  = x25519Multiply(x25519Square(v3), denominator)
+    let uv3 = x25519Multiply(numerator, v3)
+    let uv7 = x25519Multiply(numerator, v7)
+    var x   = x25519Multiply(uv3, x25519Pow252Minus3(uv7))
 
-    if not ed25519FieldEqual(x25519Square(x), xSquared)
+    let check = x25519Multiply(x25519Square(x), denominator)
+    if not ed25519FieldEqual(check, numerator)
     {
-        x = x25519Multiply(x, ed25519SqrtMinusOne())
-        if not ed25519FieldEqual(x25519Square(x), xSquared) do
+        var zero: X25519Field
+        if not ed25519FieldEqual(check, x25519Subtract(zero, numerator)) do
             return (ed25519Identity(), false)
+        x = x25519Multiply(x, ed25519SqrtMinusOne())
     }
 
     var xBytes: [32] u8

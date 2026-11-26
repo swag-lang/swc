@@ -173,10 +173,10 @@ private func x25519SquareRepeated(value: X25519Field, count: u32)->X25519Field
     return result
 }
 
-internal func x25519Invert(value: X25519Field)->X25519Field
+private func x25519Power(value: X25519Field, inverse: bool)->X25519Field
 {
-    // Build powers 2^n - 1, then append the low five bits of 2^255 - 21.
-    // This fixed addition chain replaces the multiplication after nearly every square.
+    // Build powers 2^n - 1 through 2^250 - 1. The suffix selects one of the
+    // fixed exponents used for inversion and for recovering Edwards coordinates.
     var powers: struct
     {
         z2, z9, z11: X25519Field
@@ -199,8 +199,14 @@ internal func x25519Invert(value: X25519Field)->X25519Field
     }
 
     defer Crypto.secureClear(Swag.makeSlice(&powers, 1))
-    return x25519Multiply(x25519SquareRepeated(powers.p250, 5), powers.z11)
+    if inverse do
+        return x25519Multiply(x25519SquareRepeated(powers.p250, 5), powers.z11)
+    return x25519Multiply(x25519SquareRepeated(powers.p250, 2), value)
 }
+
+internal func x25519Invert(value: X25519Field)->X25519Field => x25519Power(value, inverse: true)
+
+internal func x25519Pow252Minus3(value: X25519Field)->X25519Field => x25519Power(value, inverse: false)
 
 internal func x25519Decode(data: const [..] u8)->X25519Field
 {

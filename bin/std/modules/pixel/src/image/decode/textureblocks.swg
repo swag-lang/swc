@@ -175,12 +175,13 @@ private func(FMT: Format) storeChannelBlock(target: [*] u32, rowStep: s64, red, 
 }
 
 #[Swag.Inline]
-func explicitAlphaRow(indices: u16)->Simd.U32x4
+private func explicitAlphaBlock(indices: u64)->Simd.U8x16
 {
-    const Shift = cast(Simd.U16x8, [4096'u16, 4096, 256, 256, 16, 16, 1, 1])
-    let nibbles = (Simd.splat(indices) * Shift) >> 12
-    let values  = nibbles * 17'u16
-    return cast #bit(Simd.U32x4, (values << 8)) & 0xFF000000'u32
+    let bytes   = cast #bit(Simd.U8x16, Simd.splat(indices))
+    let low     = bytes & 15'u8
+    let high    = cast #bit(Simd.U8x16, (cast #bit(Simd.U16x8, bytes) >> 4)) & 15'u8
+    let nibbles = Simd.interleaveLow(low, high)
+    return nibbles | cast #bit(Simd.U8x16, (cast #bit(Simd.U16x8, nibbles) << 4))
 }
 
 func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, rows, oneBlock: u64, sourceTopDown: bool)
@@ -247,6 +248,18 @@ func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, row
                 }
             }
 
+            var blockAlpha: Simd.U8x16
+            #static if FMT == .BC2 or FMT == .BC3
+            {
+                if countX == 4
+                {
+                    #static if FMT == .BC2 do
+                        blockAlpha = explicitAlphaBlock(firstIndices)
+                    else do
+                        blockAlpha = alphaBlock(&firstPalette, firstIndices)
+                }
+            }
+
             // Clip partial blocks once and write each visible row as packed RGBA words.
             for row in countY
             {
@@ -270,12 +283,12 @@ func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, row
                         let palette = Simd.load(cast(const [*] u8, &colors[0]))
                         let indices = (colorIndices >> (row * 8)) & 255
                         rgba = cast #bit(Simd.U32x4, Simd.shuffle(palette, ColorRowShuffles[indices]))
-                        #static if FMT == .BC2 do
-                            rgba = (rgba & 0x00FFFFFF'u32) | explicitAlphaRow(cast(u16, ((firstIndices >> (row * 16)) & 0xFFFF)))
-                        elif FMT == .BC3
+                        #static if FMT == .BC2 or FMT == .BC3
                         {
-                            let alpha = alphaRow(&firstPalette, cast(u16, ((firstIndices >> (row * 12)) & 0xFFF)))
-                            rgba = (rgba & 0x00FFFFFF'u32) | (alpha & 0xFF000000'u32)
+                            const AlphaByteOffsets = cast(Simd.U8x16, [128'u8, 128, 128, 0, 128, 128, 128, 1, 128, 128, 128, 2, 128, 128, 128, 3])
+                            let offsets = AlphaByteOffsets + Simd.splat(cast(u8, row * 4))
+                            let alpha   = cast #bit(Simd.U32x4, Simd.shuffle(blockAlpha, offsets))
+                            rgba = (rgba & 0x00FFFFFF'u32) | alpha
                         }
                     }
 

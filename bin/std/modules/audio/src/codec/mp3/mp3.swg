@@ -410,7 +410,7 @@ struct Codec
     state:         [2] ChannelState
     lines:         [2] Granule576
     scalefac:      [2, 40] u8     // The previous granule's, for the bands `scfsi` shares.
-    intensityPos:  [2, 40] u8
+    intensityPos:  [40] u8     // Intensity stereo takes positions from the right channel.
     bandGain:      [2, 40] f32
     output:        [2, 1152] f32
     ready:         bool
@@ -500,9 +500,9 @@ private func packSymbol(symbol, axis: u32)->u32
 
 // A complete prefix reaches a negative leaf. Otherwise it names the node where
 // the bitwise walk must resume.
-private func walkPrefix(tree: const [..] s16, prefix, bits: u32)->{node: s16, length: u32}
+private func walkPrefix(tree: const [..] s16, prefix, bits: u32, start = 0's16)->{node: s16, length: u32}
 {
-    var node = 0's16
+    var node = start
     for length in 1 until bits + 1
     {
         let bit = (prefix >> (bits - length)) & 1
@@ -548,13 +548,22 @@ private const Count1Tokens        = #run buildCount1Tokens()
 private const SignedUnit: [4] f32 = [0.0, 1.0, 0.0, -1.0]
 
 private const PairPrefixBits = 10'u32
+private const PairTailBits   = 4'u32
+private const PairTailRows   = 149'u64 // Ten-bit prefixes that still name an internal node.
 
 // Leaf entries carry two five-bit magnitudes with signs, the four-bit code length,
 // and the two-bit sign count. A sign count of three leaves the trailing bits to the
-// reader. A zero code length carries a continuation node instead of magnitudes.
-private func buildSignedPairTokens()->[25, 1 << PairPrefixBits] u16
+// reader. A zero code length carries a continuation row instead of magnitudes.
+private struct PairLookup
 {
-    var tokens: #returntype
+    roots: [25, 1 << PairPrefixBits] u16
+    tails: [PairTailRows, 1 << PairTailBits] u16
+}
+
+private func buildPairLookup()->PairLookup
+{
+    var result: #returntype
+    var continuation = 0'u64
     for table in 25'u32
     {
         let tree = codeTree(table)
@@ -564,8 +573,25 @@ private func buildSignedPairTokens()->[25, 1 << PairPrefixBits] u16
             let {node, length} = walkPrefix(tree, prefix, PairPrefixBits)
             if node >= 0
             {
-                Swag.require(node < 1024)
-                tokens[table, prefix] = cast(u16, node)
+                Swag.require(continuation < PairTailRows)
+                result.roots[table, prefix] = cast(u16, continuation)
+                for suffix in 1'u32 << PairTailBits
+                {
+                    let entry = walkPrefix(tree, suffix, PairTailBits, node)
+                    let next  = entry.node
+                    let count = entry.length
+                    if next < 0
+                    {
+                        let pair = packSymbol(cast(u32, (-next - 1)), axis)
+                        result.tails[continuation, suffix] = cast(u16, ((count << 8) | pair))
+                    }
+                    else
+                    {
+                        Swag.require(next < 256)
+                        result.tails[continuation, suffix] = cast(u16, next)
+                    }
+                }
+                continuation += 1
                 continue
             }
 
@@ -576,7 +602,7 @@ private func buildSignedPairTokens()->[25, 1 << PairPrefixBits] u16
             let escapes = (table == 16 or table == 24) and (left == 15 or right == 15)
             if escapes or length + signs > PairPrefixBits
             {
-                tokens[table, prefix] = cast(u16, (right | (left << 5) | (length << 10) | (3 << 14)))
+                result.roots[table, prefix] = cast(u16, (right | (left << 5) | (length << 10) | (3 << 14)))
                 continue
             }
 
@@ -593,11 +619,12 @@ private func buildSignedPairTokens()->[25, 1 << PairPrefixBits] u16
                 right |= ((prefix >> (PairPrefixBits - total)) & 1) << 4
             }
 
-            tokens[table, prefix] = cast(u16, (right | (left << 5) | (length << 10) | (signs << 14)))
+            result.roots[table, prefix] = cast(u16, (right | (left << 5) | (length << 10) | (signs << 14)))
         }
     }
 
-    return tokens
+    Swag.require(continuation == PairTailRows)
+    return result
 }
 
 private func buildSignedPowers()->[32] f32
@@ -608,7 +635,7 @@ private func buildSignedPowers()->[32] f32
     return values
 }
 
-private const SignedPairTokens = #run buildSignedPairTokens()
+private const PairCodes        = #run buildPairLookup()
 private const SignedPowers     = #run buildSignedPowers()
 
 impl Codec
@@ -672,6 +699,7 @@ impl Codec
             counts[index] = cast(u32, LsfPartitions[partitionRow, partitionAt + index])
 
         var values: [40] u8
+        let saveLsfPosition = not header.isMpeg1 and channel == 1
         var at    = 0'u64
         var share = info.scfsi
         for partition in 4'u64
@@ -697,22 +725,17 @@ impl Codec
 
                     // A low sampling frequency granule marks an unusable intensity position by
                     // saturating the field.
-                    if not header.isMpeg1 and bits and value == full do
-                        .intensityPos[cast(u64, channel), at + index] = 255
-                    else do
-                        .intensityPos[cast(u64, channel), at + index] = cast(u8, value)
+                    if saveLsfPosition do
+                        .intensityPos[at + index] = bits and value == full ? 255'u8 : cast(u8, value)
                 }
-            }
-
-            if header.isMpeg1
-            {
-                for index in count where at + index < 40 do
-                    .intensityPos[cast(u64, channel), at + index] = values[at + index]
             }
 
             at    += count
             share <<= 1
         }
+
+        if header.isMpeg1 and channel == 1 do
+            Memory.copy(&.intensityPos[0], &values[0], Math.min(at, 40))
 
         while at < 40
         {
@@ -762,7 +785,7 @@ impl Codec
     mtd const decodeSymbolTail(tree: const [..] s16, start, axis: u32, reader: *BitReader)->s32
     {
         var node = cast(s32, start)
-        for PairPrefixBits until 32'u32
+        for PairPrefixBits + PairTailBits until 32'u32
         {
             let slot = cast(u64, (node * 2)) + cast(u64, reader.readBit())
             if slot >= tree.count do
@@ -836,7 +859,7 @@ impl Codec
 
                 for take
                 {
-                    let token = cast(u32, SignedPairTokens[table, reader.peek(PairPrefixBits)])
+                    let token = cast(u32, PairCodes.roots[table, reader.peek(PairPrefixBits)])
                     let bits  = (token >> 10) & 15
                     if bits
                     {
@@ -861,7 +884,16 @@ impl Codec
                     }
 
                     reader.consume(PairPrefixBits)
-                    let symbol = .decodeSymbolTail(tree, token, axis, reader)
+                    let tail       = cast(u32, PairCodes.tails[token, reader.peek(PairTailBits)])
+                    let tailLength = tail >> 8
+                    var symbol     = cast(s32, (tail & 255))
+                    if tailLength do
+                        reader.consume(tailLength)
+                    else
+                    {
+                        reader.consume(PairTailBits)
+                        symbol = .decodeSymbolTail(tree, tail, axis, reader)
+                    }
                     if symbol < 0 or reader.bitPos > limit do
                         return
 
@@ -991,9 +1023,9 @@ impl Codec
                 if top >= 40 do
                     continue
                 if prev >= 0 and topBand[index] < cast(s32, prev) do
-                    .intensityPos[1, top] = .intensityPos[1, cast(u64, prev)]
+                    .intensityPos[top] = .intensityPos[cast(u64, prev)]
                 else do
-                    .intensityPos[1, top] = neutral
+                    .intensityPos[top] = neutral
             }
         }
 
@@ -1004,7 +1036,7 @@ impl Codec
             if not width do
                 break
 
-            let position = cast(u32, .intensityPos[1, band])
+            let position = cast(u32, .intensityPos[band])
             if intensity and cast(s32, band) > topBand[band % 3] and position < maxPos
             {
                 var kl = 1.0'f32
@@ -1052,54 +1084,43 @@ impl Codec
         let lines = &.lines[cast(u64, channel)]
 
         // A short block interleaves its windows, and a mixed block does so past its long bands.
-        if info.blockType == 2
+        let shortBlock   = info.blockType == 2
+        var longSubbands = 32'u32
+        if shortBlock
         {
+            longSubbands = 0
+            if info.mixedBlock do
+                longSubbands = header.rateIndex == 1 ? 4 : 2
+
             var firstLine = 0'u32
-            var firstBand = 0'u64
-            for band in cast(u64, info.longBands)
-            {
+            for band in cast(u64, info.longBands) do
                 firstLine += info.bandWidth(header.rateIndex, band)
-                firstBand += 1
-            }
 
             var widths: [40] u8
             for band in 40'u64 do
                 widths[band] = cast(u8, info.bandWidth(header.rateIndex, band))
-            reorderShortBlocks(lines, widths, cast(u32, firstBand), firstLine)
+            reorderShortBlocks(lines, widths, info.longBands, firstLine)
         }
 
-        // Only long blocks were aliased. A mixed block aliased its long part alone.
-        var aliased = 32'u32
-        if info.blockType == 2
-        {
-            if info.mixedBlock do
-                aliased = header.rateIndex == 1 ? 4 : 2
-            else do
-                aliased = 1
-        }
-
-        reduceAlias(lines, aliased)
-
-        var longSubbands = 0'u32
-        if info.blockType == 2 and info.mixedBlock
-        {
-            if header.rateIndex == 1 do
-                longSubbands = 4
-            else do
-                longSubbands = 2
-        }
-        elif info.blockType != 2
-        {
-            longSubbands = 32
-        }
+        // Only the long part was aliased.
+        if longSubbands > 1 do
+            reduceAlias(lines, longSubbands)
 
         let state       = &.state[cast(u64, channel)]
         let overlap     = &state.overlap
         let previousEnd = state.overlapEnd
-        let longWindow  = info.blockType == 2 ? 0'u32 : info.blockType
-        let longEnd     = inverseTransformBands(lines, overlap, 0, longSubbands, longWindow, previousEnd)
-        let shortEnd    = inverseTransformBands(lines, overlap, longSubbands, 32, 2, previousEnd)
-        state.overlapEnd = Math.max(longEnd, shortEnd)
+        var currentEnd  = 0'u32
+        if longSubbands
+        {
+            let window = shortBlock ? 0'u32 : info.blockType
+            currentEnd = inverseTransformBands(lines, overlap, 0, longSubbands, window, previousEnd)
+        }
+        if longSubbands < 32
+        {
+            let end = inverseTransformBands(lines, overlap, longSubbands, 32, 2, previousEnd)
+            currentEnd = Math.max(currentEnd, end)
+        }
+        state.overlapEnd = currentEnd
 
         invertFrequencies(lines, Math.max(previousEnd, state.overlapEnd))
 
@@ -1115,7 +1136,7 @@ impl Codec
         .mainData.clear()
         .reservoirSize = 0
         Memory.set(cast(*void, &.scalefac[0, 0]), 0, 2 * 40)
-        Memory.set(cast(*void, &.intensityPos[0, 0]), 0, 2 * 40)
+        Memory.set(cast(*void, &.intensityPos[0]), 0, 40)
         .ready = false
     }
 

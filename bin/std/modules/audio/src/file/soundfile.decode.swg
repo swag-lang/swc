@@ -259,6 +259,8 @@ private impl SoundFile
         }
 
         try packetCodec!.initialize(.decoderConfig.toSlice(), .sampleRate, .channelCount)
+        if .encoding == .Vorbis and .channelCount >= 6 and not Swag.jit() and Swag.workerCount() > 1 do
+            try Vorbis.enablePageBatches(unwrap packetCodec, .decoderConfig.toSlice())
         var source        = try ByteSource.openFile(.path.toString(), .ReadWrite)
         var packetBytes:  Array'u8
         var decodedBytes: Array'u8

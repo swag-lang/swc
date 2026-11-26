@@ -798,11 +798,18 @@ private struct Mode
 
 private alias PcmPointer = [*] u16?
 
+// Offsets of one complete packet within its Ogg page body.
+private struct PagePacketSpan
+{
+    begin, end: u32
+}
+
 // Decodes Vorbis packets, one run of Ogg pages or one raw packet per call.
 //
 // The codec keeps the lapping state of the previous block and, when it decodes page runs, the
 // granule position the last run ended on, which is what lets it trim the first and last runs
 // exactly as the container promised.
+#[Swag.NoCopy]
 private struct Codec
 {
     // Every registered codec starts with the registry's own header: a voice destroys one through
@@ -836,12 +843,22 @@ private struct Codec
     entries:      Array's32                    // Codeword entries of one vector-sliced partition.
     output:       Array's16                    // Interleaved samples of the run being decoded.
     packet:       Array'u8                     // Packet being assembled across pages.
+    pageWorker:   *Codec?                     // Independent overlap state for a later packet batch.
 
     serial:                   u32
     firstAudioSequence:       u32
     headerPacketsOnAudioPage: u32
     granule:                  u64
     granuleKnown:             bool
+}
+
+impl Codec
+{
+    mtd opDrop()
+    {
+        if let worker = .pageWorker do
+            Memory.delete(worker)
+    }
 }
 
 private impl Codec
@@ -1994,6 +2011,93 @@ private impl Codec
         }
     }
 
+    mtd(Collect: bool) decodePage(body: const [..] u8, page: const *Ogg.PageHeader,
+                                 headersToSkip: u32, worker: *Codec?)->u64 fail
+    {
+        #static if not Collect do
+            discard worker
+
+        const Capacity = Collect ? Ogg.MaxSegments : 1
+        var packets: [Capacity] PagePacketSpan
+        var produced    = 0'u64
+        var count       = 0'u32
+        var at          = 0'u64
+        var packetStart = 0'u64
+        var skip        = headersToSkip
+        for segment in page.segments
+        {
+            let size = page.lacing[segment]
+            at += size
+            if size == 255 do
+                continue
+
+            // Borrow complete packets and join only those that span pages.
+            let payload = body[packetStart until at]
+            if skip
+            {
+                skip -= 1
+            }
+            elif .packet.count
+            {
+                .packet.add(payload)
+                produced += try .decodeAudioPacket(.packet.toSlice())
+            }
+            elif payload.count
+            {
+                #static if Collect
+                {
+                    packets[count] = {cast(u32, packetStart), cast(u32, at)}
+                    count += 1
+                }
+                else do
+                    produced += try .decodeAudioPacket(payload)
+            }
+            .packet.clear()
+            packetStart = at
+        }
+
+        if packetStart < at do
+            .packet.add(body[packetStart until at])
+        #static if Collect do
+            produced += try .decodeCompletePackets(unwrap worker, body, packets[0 until count])
+        return produced
+    }
+
+    mtd decodeCompletePackets(worker: *Codec, body: const [..] u8, packets: const [..] PagePacketSpan)->u64 fail
+    {
+        var produced = 0'u64
+        if packets.count < 16
+        {
+            for span in packets do
+                produced += try .decodeAudioPacket(body[span.begin until span.end])
+            return produced
+        }
+
+        // The preceding packet restores the overlap without producing samples.
+        let split = packets.count / 2
+        let tail  = packets[split - 1 until packets.count]
+        var jobs: Swag.TaskGroup
+        jobs.spawn(func|worker, tail, body|() fail
+        {
+            worker.output.clear()
+            worker.previousSize = 0
+            for span in tail do
+                discard try worker.decodeAudioPacket(body[span.begin until span.end])
+        })
+
+        for span in packets[0 until split] do
+            produced += try .decodeAudioPacket(body[span.begin until span.end])
+        try jobs.join()
+
+        produced += worker.output.count / .channels
+        .output.add(worker.output.toSlice())
+        .previousSize = worker.previousSize
+        let savedBytes = cast(u64, .previousSize) / 2 * #sizeof(f32)
+        for channel in .channels do
+            Memory.copy(.saved[channel].storage(), worker.saved[channel].storage(), savedBytes)
+        return produced
+    }
+
     // Decodes every packet of one run of pages and returns the frames the run completes, after the
     // trimming its granule positions ask for.
     mtd decodeRun(run: const [..] u8)->u64 fail
@@ -2018,39 +2122,11 @@ private impl Codec
                 if page.granule != Ogg.NoGranule do
                     lastGranule = page.granule
                 let body          = run[offset + page.headerBytes until offset + pageBytes]
-                var at            = 0'u64
-                var packetStart   = 0'u64
-                var headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
-                for index in page.segments
-                {
-                    let size = page.lacing[index]
-                    at += size
-                    if size == 255 do
-                        continue
-
-                    // Borrow packets that fit on this page. Only packets with a fragment from
-                    // a preceding page need to be joined in the scratch buffer.
-                    let payload = body[packetStart until at]
-                    if headersToSkip
-                    {
-                        headersToSkip -= 1
-                    }
-                    elif .packet.count
-                    {
-                        .packet.add(payload)
-                        produced += try .decodeAudioPacket(.packet.toSlice())
-                    }
-                    elif payload.count
-                    {
-                        produced += try .decodeAudioPacket(payload)
-                    }
-
-                    .packet.clear()
-                    packetStart = at
-                }
-
-                if packetStart < at do
-                    .packet.add(body[packetStart until at])
+                let headersToSkip = page.sequence == .firstAudioSequence ? .headerPacketsOnAudioPage : 0'u32
+                if let worker = .pageWorker where page.segments >= 32 do
+                    produced += try .decodePage'true(body, &page, headersToSkip, worker)
+                else do
+                    produced += try .decodePage'false(body, &page, headersToSkip, null)
             }
 
             offset += pageBytes
@@ -2314,6 +2390,22 @@ internal impl DurationProbe
     }
 }
 
+// Offline Ogg reads can decode two independent batches from a single page.
+internal func enablePageBatches(decoder: IPacketCodec, config: const [..] u8) fail
+{
+    if not (decoder is Codec) or config.count < 4 or config[0] != 'O' or config[1] != 'g' or
+       config[2] != 'g' or config[3] != 'S' do
+        return
+
+    let codec = try cast(*Codec, decoder)
+    if codec.pageWorker do
+        return
+
+    let worker = Memory.new'Codec()
+    codec.pageWorker = worker
+    try worker.readConfig(config)
+}
+
 impl IPacketCodec for Codec
 {
     mtd impl canDecode(encoding: SoundFileEncoding)->bool => encoding == .Vorbis
@@ -2324,6 +2416,11 @@ impl IPacketCodec for Codec
         if .sampleRate != sampleRateHz or .channels != channels do
             fail InvalidFormatError{"Vorbis stream shape differs from its container track"}
         .resetState()
+        if let worker = .pageWorker
+        {
+            Memory.delete(worker)
+            .pageWorker = null
+        }
     }
 
     mtd impl reset() => .resetState()

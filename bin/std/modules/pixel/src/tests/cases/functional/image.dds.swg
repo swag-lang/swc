@@ -310,3 +310,20 @@ func ddsRoundtrip(source: Image)->Image
         Swag.require(Memory.compare(decoded.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
     }
 }
+
+// Explicit BC2 alpha expands all sixteen nibbles in row order.
+#test
+{
+    const Block: [16] u8 = [0x10, 0x32, 0x54, 0x76, 0x98, 0xBA, 0xDC, 0xFE, 0, 0xF8, 0, 0xF8, 0, 0, 0, 0]
+    var image = Image.create(4, 4, .RGBA8)
+    for topDown in [true, false]
+    {
+        expect TextureBlocks.decode(&image, Block, .BC2, topDown)
+        for i in 16
+        {
+            let y     = cast(s32, i / 4)
+            let pixel = image.pixelColor(cast(s32, i % 4), topDown ? y : 3 - y)
+            Swag.require(pixel.r == 255 and pixel.g == 0 and pixel.b == 0 and pixel.a == i * 17)
+        }
+    }
+}

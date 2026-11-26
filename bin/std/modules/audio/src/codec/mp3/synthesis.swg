@@ -158,6 +158,20 @@ private func(T, K: u64) dct9Bin(pairs: const [*] T, middle: T)->T
     return sum
 }
 
+// Lee's even half supplies even indices. Each odd bin adds its next neighbor.
+#[Swag.Inline]
+private func(N: u64, T) mergeDctHalves(input: const [*] T, output: [*] T)
+{
+    const Half = N / 2
+    for i in Half - 1
+    {
+        output[2 * i]     = input[i]
+        output[2 * i + 1] = input[Half + i] + input[Half + i + 1]
+    }
+    output[N - 2] = input[Half - 1]
+    output[N - 1] = input[N - 1]
+}
+
 // Unnormalized DCT-II: X[k] = sum_i x[i] cos(pi*(i+1/2)*k/N).
 //
 // Pairing opposite input samples separates even and odd outputs. Lee's half-angle factor
@@ -216,14 +230,7 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
         dct'(Half, T)(output, input)
         dct'(Half, T)(output + Half, input + Half)
 
-        for i in Half - 1
-        {
-            output[2 * i]     = input[i]
-            output[2 * i + 1] = input[Half + i] + input[Half + i + 1]
-        }
-
-        output[N - 2] = input[Half - 1]
-        output[N - 1] = input[N - 1]
+        mergeDctHalves'(N, T)(input, output)
     }
 }
 
@@ -233,10 +240,32 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
 private func(N: u64, T) scaledCosineTransform(input: const [*] T, stride: u64, bins: [*] T)
 {
     const Factors = #run buildCosineReciprocals'N(cast(f64, 2 * N))
-    var scaled: [N] T
-    for i in N do
-        scaled[i] = input[i * stride] * Factors[i]
-    dct'(N, T)(&scaled[0], bins)
+    #static if N == 18
+    {
+        // Apply the input scaling while forming the first DCT-II butterfly.
+        const Half = N / 2
+        const Pairs = #run buildCosineReciprocals'Half(cast(f64, N))
+        var work: [N] T
+        for i in Half
+        {
+            let first = input[i * stride] * Factors[i]
+            let j     = N - 1 - i
+            let last  = input[j * stride] * Factors[j]
+            bins[i]        = first + last
+            bins[Half + i] = (first - last) * Pairs[i]
+        }
+
+        dct'(Half, T)(bins, &work[0])
+        dct'(Half, T)(bins + Half, &work[Half])
+        mergeDctHalves'(N, T)(&work[0], bins)
+    }
+    else
+    {
+        var scaled: [N] T
+        for i in N do
+            scaled[i] = input[i * stride] * Factors[i]
+        dct'(N, T)(&scaled[0], bins)
+    }
 }
 
 // A short block combines three overlapping windows.

@@ -259,7 +259,7 @@ func decodeLossless(container: Container, options: DecodeOptions)->Image fail
     try losslessDecode(imageData, &pixels, &width, &height)
     flipRgbaRows(&pixels, width, height)
     swap(&result.pixels, &pixels)
-    return result
+    return #move result
 }
 
 // Returns a view into the input chunk or into the caller-owned alpha storage.
@@ -553,7 +553,17 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
     let remaining = Math.min(decoder.mbHeight, 2)
     for index in remaining do
         vp8WriteRgbaRow(&decoder, alpha, &result, decoder.mbHeight - remaining + index, storageY - remaining + index)
-    return result
+    return #move result
+}
+
+private func decodeFrameImage(container: Container, options: DecodeOptions)->Image fail
+{
+    var result: #returntype
+    if container.image.kind == WEBP_FOURCC_VP8L do
+        result = #move try decodeLossless(container, options)
+    else do
+        result = #move try decodeLossy(container, options)
+    return #move result
 }
 
 internal impl IImageDecoder for Decoder
@@ -563,16 +573,16 @@ internal impl IImageDecoder for Decoder
     #[Swag.Propagate]
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        let container = parseContainer(buffer, options)
+        var container = #move parseContainer(buffer, options)
         if container.animated
         {
             var reader = ImageReader.decode("image.webp", buffer, options)
             return reader.read(0)
         }
 
-        var result: #returntype = container.image.kind == WEBP_FOURCC_VP8L ? decodeLossless(container, options) : decodeLossy(container, options)
-        result.metadata = container.metadata
-        return result
+        var result = #move decodeFrameImage(container, options)
+        result.metadata = #move container.metadata
+        return #move result
     }
 }
 
@@ -595,7 +605,7 @@ impl IImageSetDecoder for Decoder
         {
             var probeOptions = options
             probeOptions.decodePixels = false
-            let probe = .container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(.container, probeOptions) : try decodeLossy(.container, probeOptions)
+            let probe = #move try decodeFrameImage(.container, probeOptions)
             result.frames.add({width: probe.width, height: probe.height, pixelFormat: probe.pixelFormat})
         }
 
@@ -608,19 +618,19 @@ impl IImageSetDecoder for Decoder
         {
             if index do
                 fail InvalidFormatError{"WebP image index is out of range"}
-            var result: #returntype = .container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(.container, options) : try decodeLossy(.container, options)
+            var result = #move try decodeFrameImage(.container, options)
             if options.decodeMetadata do
                 result.metadata = .container.metadata
-            return result
+            return #move result
         }
 
         if index >= .container.frames.count do
             fail InvalidFormatError{"WebP image index is out of range"}
-        let frame = &.container.frames[index]
-        let container: Container   = Container{image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
-        var result:    #returntype = container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(container, options) : try decodeLossy(container, options)
+        let frame  = &.container.frames[index]
+        let container: Container = Container{image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
+        var result = #move try decodeFrameImage(container, options)
         if options.decodeMetadata do
             result.metadata = .container.metadata
-        return result
+        return #move result
     }
 }

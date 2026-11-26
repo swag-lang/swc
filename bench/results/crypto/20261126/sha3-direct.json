@@ -1,0 +1,786 @@
+{
+  "utc": "2026-11-26T11:35:06.593928+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "730fe7649af37073ad43297ac9e30aee8312c037035080f3473820f8242ca6ff",
+  "swag_builds": {
+    "fixed-lanes": "4ddef1b8d914b0686710daeb456fd65b47f9d82d4f173eeadf953bb466a0aad0",
+    "direct-sponge": "59027d8505608b680ae4b052d995688ca48f1e49a97831968cfaff80b73ae81a"
+  },
+  "rounds": 11,
+  "target_ms": 40,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "sha3-256",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "72d3bdc0868dc71fd1b2d5422e848e740bc95ad750dc53a5ea404c57d50aea6d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 122298,
+          "wall": [
+            0.089690069,
+            0.039917222,
+            0.039921879,
+            0.039809449,
+            0.039980562,
+            0.039558171,
+            0.0401942,
+            0.039539232,
+            0.039384008,
+            0.049559163,
+            0.041042439
+          ],
+          "cpu": [
+            0.044322827,
+            0.039906249,
+            0.039894233,
+            0.039780993,
+            0.039954836,
+            0.039460207,
+            0.040180427,
+            0.039523439,
+            0.039370802,
+            0.048525746,
+            0.040351306
+          ]
+        },
+        "fixed-lanes": {
+          "iterations": 73926,
+          "wall": [
+            0.0787509,
+            0.038495478,
+            0.038253944,
+            0.038263317,
+            0.03823789,
+            0.039432481,
+            0.038097318,
+            0.038228566,
+            0.04001508,
+            0.0435954,
+            0.038060251
+          ],
+          "cpu": [
+            0.038652073,
+            0.038466085,
+            0.038227079,
+            0.038175804,
+            0.038215271,
+            0.039342829,
+            0.038045569,
+            0.038202602,
+            0.039995133,
+            0.043575714,
+            0.038041032
+          ]
+        },
+        "direct-sponge": {
+          "iterations": 82356,
+          "wall": [
+            0.039190676,
+            0.039539693,
+            0.039310998,
+            0.039607735,
+            0.043779387,
+            0.039097776,
+            0.044390869,
+            0.038891285,
+            0.041320589,
+            0.039123785,
+            0.039299601
+          ],
+          "cpu": [
+            0.039188601,
+            0.039307025,
+            0.039281719,
+            0.03958404,
+            0.043745458,
+            0.039064916,
+            0.044370336,
+            0.038865059,
+            0.041231753,
+            0.039090255,
+            0.039280559
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "OpenSSL",
+          "direct-sponge",
+          "fixed-lanes"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-sponge",
+          "fixed-lanes"
+        ]
+      ]
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 136,
+      "offset": 0,
+      "input_sha256": "dd2ed010909e20e3de9011c55ae9e5633c8900b938ce12c5f13a4ee157ee2e23",
+      "output_sha256": "d13f522495ce89b79a423689b66f04f125298caeb497584f52c9d555b511b04f",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 68175,
+          "wall": [
+            0.042146634,
+            0.042463172,
+            0.040547803,
+            0.040848988,
+            0.0401944,
+            0.040328983,
+            0.040217736,
+            0.040297165,
+            0.040514834,
+            0.040517478,
+            0.040216303
+          ],
+          "cpu": [
+            0.042094189,
+            0.042433993,
+            0.040482728,
+            0.040824919,
+            0.040113868,
+            0.040308599,
+            0.040132315,
+            0.040273657,
+            0.040489627,
+            0.040384172,
+            0.040134488
+          ]
+        },
+        "fixed-lanes": {
+          "iterations": 43871,
+          "wall": [
+            0.039667956,
+            0.039299431,
+            0.03978324,
+            0.039464659,
+            0.04251479,
+            0.039324499,
+            0.039581286,
+            0.039255023,
+            0.039523408,
+            0.039513273,
+            0.040523667
+          ],
+          "cpu": [
+            0.039631201,
+            0.0392815,
+            0.039693263,
+            0.039451473,
+            0.042501985,
+            0.039307077,
+            0.039568377,
+            0.039229012,
+            0.03943686,
+            0.039489438,
+            0.040505022
+          ]
+        },
+        "direct-sponge": {
+          "iterations": 48796,
+          "wall": [
+            0.039593173,
+            0.039890612,
+            0.039757481,
+            0.040198276,
+            0.039481024,
+            0.039870197,
+            0.039442256,
+            0.039838554,
+            0.041303573,
+            0.040988598,
+            0.039373583
+          ],
+          "cpu": [
+            0.039572402,
+            0.039794593,
+            0.039734576,
+            0.040183794,
+            0.039460305,
+            0.039855419,
+            0.039420005,
+            0.03981966,
+            0.041279504,
+            0.04096746,
+            0.039359988
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "OpenSSL",
+          "direct-sponge",
+          "fixed-lanes"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-sponge",
+          "fixed-lanes"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ]
+      ]
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "3f39a41126304f1e9490b7448d19d1cd0aed034e51cfeb34c154ede953d01f70",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 4665,
+          "wall": [
+            0.039115052,
+            0.039052768,
+            0.039445781,
+            0.050223416,
+            0.039394875,
+            0.039316056,
+            0.039107421,
+            0.040576797,
+            0.045161141,
+            0.040374862,
+            0.041957759
+          ],
+          "cpu": [
+            0.039090444,
+            0.039035401,
+            0.03943089,
+            0.050109784,
+            0.039365755,
+            0.039282452,
+            0.039079398,
+            0.040560613,
+            0.04512951,
+            0.04034307,
+            0.041938757
+          ]
+        },
+        "fixed-lanes": {
+          "iterations": 3262,
+          "wall": [
+            0.039650059,
+            0.039814938,
+            0.039772183,
+            0.042171111,
+            0.040016662,
+            0.040597788,
+            0.040326189,
+            0.039536728,
+            0.046801656,
+            0.04295286,
+            0.040920365
+          ],
+          "cpu": [
+            0.039612562,
+            0.039732211,
+            0.039750226,
+            0.042151363,
+            0.040002934,
+            0.04057133,
+            0.040307548,
+            0.039524341,
+            0.046710392,
+            0.042872096,
+            0.040891356
+          ]
+        },
+        "direct-sponge": {
+          "iterations": 3713,
+          "wall": [
+            0.040127749,
+            0.0402872,
+            0.040165948,
+            0.071583029,
+            0.044741067,
+            0.040679712,
+            0.040338968,
+            0.04034005,
+            0.04016761,
+            0.04020073,
+            0.041376032
+          ],
+          "cpu": [
+            0.040113007,
+            0.040265904,
+            0.040136362,
+            0.071462966,
+            0.044211681,
+            0.040666832,
+            0.040260728,
+            0.040312324,
+            0.040152346,
+            0.040180549,
+            0.041352603
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "fixed-lanes",
+          "direct-sponge",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "direct-sponge",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ]
+      ]
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "10f5999be7b57a55f8bf546579525f459be4768a8bb95be12251424233d63945",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 289,
+          "wall": [
+            0.038210298,
+            0.038551964,
+            0.038696001,
+            0.037895683,
+            0.039684772,
+            0.038680457,
+            0.038826687,
+            0.046410846,
+            0.039272851,
+            0.041313658,
+            0.038071007
+          ],
+          "cpu": [
+            0.038127421,
+            0.038525563,
+            0.038683018,
+            0.037875234,
+            0.039397601,
+            0.038633184,
+            0.038801535,
+            0.043482797,
+            0.0392531,
+            0.040211867,
+            0.038051847
+          ]
+        },
+        "fixed-lanes": {
+          "iterations": 209,
+          "wall": [
+            0.040266419,
+            0.039823741,
+            0.042635182,
+            0.039939506,
+            0.039888819,
+            0.040608624,
+            0.040553572,
+            0.039759745,
+            0.039991224,
+            0.041174268,
+            0.040236845
+          ],
+          "cpu": [
+            0.040234849,
+            0.039803415,
+            0.042571066,
+            0.03989256,
+            0.039869665,
+            0.040586791,
+            0.040461927,
+            0.039739942,
+            0.039968592,
+            0.041151674,
+            0.040208559
+          ]
+        },
+        "direct-sponge": {
+          "iterations": 233,
+          "wall": [
+            0.039376586,
+            0.040021169,
+            0.041277063,
+            0.039933757,
+            0.039734707,
+            0.040010673,
+            0.039727375,
+            0.040660353,
+            0.042151191,
+            0.039565542,
+            0.038770643
+          ],
+          "cpu": [
+            0.039356991,
+            0.039958266,
+            0.040471799,
+            0.039803525,
+            0.039716467,
+            0.03999407,
+            0.039546324,
+            0.040644338,
+            0.042119404,
+            0.039513142,
+            0.038742156
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ],
+        [
+          "fixed-lanes",
+          "direct-sponge",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "direct-sponge",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "direct-sponge",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "9f98887cb07e82fb80e2f22b2b65214cd00d92afdf26a59531fe89a2c1c39427",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 19,
+          "wall": [
+            0.041338145,
+            0.040944472,
+            0.041452127,
+            0.040288162,
+            0.040957241,
+            0.043942052,
+            0.040511118,
+            0.041515092,
+            0.04041994,
+            0.039785032,
+            0.040563046
+          ],
+          "cpu": [
+            0.041304671,
+            0.040851849,
+            0.041424972,
+            0.040190794,
+            0.040918016,
+            0.04390775,
+            0.040481105,
+            0.041484941,
+            0.040311653,
+            0.039762175,
+            0.040528356
+          ]
+        },
+        "fixed-lanes": {
+          "iterations": 13,
+          "wall": [
+            0.040467713,
+            0.040849959,
+            0.039949391,
+            0.039336296,
+            0.040336775,
+            0.040536877,
+            0.040126718,
+            0.040262333,
+            0.039588517,
+            0.040647214,
+            0.040802688
+          ],
+          "cpu": [
+            0.040436879,
+            0.040830929,
+            0.03992695,
+            0.039312386,
+            0.040317923,
+            0.040459385,
+            0.040045316,
+            0.040235691,
+            0.039572962,
+            0.040627283,
+            0.040695416
+          ]
+        },
+        "direct-sponge": {
+          "iterations": 15,
+          "wall": [
+            0.041726701,
+            0.04066562,
+            0.039968931,
+            0.040764991,
+            0.040177274,
+            0.040491638,
+            0.040679983,
+            0.041695234,
+            0.040653943,
+            0.040736468,
+            0.047032273
+          ],
+          "cpu": [
+            0.04170523,
+            0.040643716,
+            0.039949203,
+            0.040740213,
+            0.040150043,
+            0.040473164,
+            0.040643587,
+            0.041664258,
+            0.040626232,
+            0.040715255,
+            0.047006465
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "fixed-lanes",
+          "OpenSSL"
+        ],
+        [
+          "fixed-lanes",
+          "OpenSSL",
+          "direct-sponge"
+        ],
+        [
+          "direct-sponge",
+          "OpenSSL",
+          "fixed-lanes"
+        ],
+        [
+          "OpenSSL",
+          "direct-sponge",
+          "fixed-lanes"
+        ],
+        [
+          "fixed-lanes",
+          "direct-sponge",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "direct-sponge",
+          "fixed-lanes"
+        ],
+        [
+          "OpenSSL",
+          "fixed-lanes",
+          "direct-sponge"
+        ]
+      ]
+    }
+  ]
+}

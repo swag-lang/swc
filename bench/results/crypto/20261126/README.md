@@ -53,3 +53,4 @@ optimizations moved each result.
 - [Keccak rounds with fixed lane positions](sha3-round.md)
 - [MD5 wide loads and direct blocks](md5-wide.md)
 - [BLAKE3 four-chunk batches](blake3-four-chunks.md)
+- [Poly1305 keyed-state cleanup](poly1305-cleanup.md)

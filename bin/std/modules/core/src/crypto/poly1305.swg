@@ -56,7 +56,8 @@ public impl Poly1305
         if key.count != Poly1305KeySize do
             fail Errors.BadParameterError{"Poly1305 needs a 32-byte key"}
 
-        .clear()
+        if .initialized do
+            .clear()
 
         // The first half of the key is clamped: the masks are what keep every
         // partial product inside the range the limb arithmetic below assumes.
@@ -190,18 +191,15 @@ public impl Poly1305
     // Clears all keyed state held by this value.
     mtd clear()
     {
-        secureClear(.r)
-        secureClear(.pad)
-        secureClear(.accumulator)
-        secureClear(.buffer)
-        .bufferCount = 0
-        .initialized = false
+        // Every field is zero-initialized and the state contains no owned resources.
+        secureClear(Swag.makeSlice(me, 1))
     }
 
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        .clear()
+        if .initialized do
+            .clear()
     }
 
     // Computes the Poly1305 tag of `data` under `key` in one operation.

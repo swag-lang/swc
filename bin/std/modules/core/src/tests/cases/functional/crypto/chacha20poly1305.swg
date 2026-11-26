@@ -150,6 +150,13 @@ func rangeBytes(count: u64, first: u8)->Array'u8
     let resetTag       = mac.finalize()
     let resetReference = expect Crypto.Poly1305.compute(secondKey.toSlice(), "fresh message")
     Swag.require(Crypto.constantTimeEqual(resetTag, resetReference))
+
+    expect mac.reset(firstKey.toSlice())
+    mac.update("another discarded prefix")
+    expect mac.reset(secondKey.toSlice())
+    mac.update("fresh message")
+    let replacementTag = mac.finalize()
+    Swag.require(Crypto.constantTimeEqual(replacementTag, resetReference))
 }
 
 #test

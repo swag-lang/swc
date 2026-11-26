@@ -96,6 +96,12 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
     if coordinateBytes > glyphData.count - offset do
         try fault(0x14)
 
+    if not pointCount do
+        return
+
+    let scaler     = try PointScale.create(faceData.unitsPerEm)
+    let xScale     = cast(s64, xPpem) * 64
+    let yScale     = cast(s64, yPpem) * 64
     let points     = faceData.outlinePoints.emplaceAddress(pointCount)
     var coordinate = input + offset
     var x          = 0's32
@@ -114,7 +120,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
             coordinate += 2
         }
 
-        points[index].x = try scale26_6(x, xPpem, faceData.unitsPerEm)
+        points[index].x = try scaler.apply(x, xScale)
     }
 
     var y = 0's32
@@ -133,7 +139,7 @@ func appendSimpleGlyph(faceData: *FaceImpl, glyphData: const [..] u8, xPpem, yPp
             coordinate += 2
         }
 
-        points[index].y = try scale26_6(y, yPpem, faceData.unitsPerEm)
+        points[index].y = try scaler.apply(y, yScale)
         flags[index]    = flag & CURVE_TAG_ON
     }
 

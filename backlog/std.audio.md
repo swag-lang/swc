@@ -228,6 +228,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [FLAC output and CELT history follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-fourth-optimization-pass)
   · [FLAC verbatim and wide sample follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-fifth-optimization-pass)
   · [MP3 bit reader and AC-3 stereo follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-eighth-optimization-pass)
+  · [CELT stereo, SILK filtering and Vorbis setup follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twenty-ninth-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.

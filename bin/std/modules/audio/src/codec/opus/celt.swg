@@ -582,6 +582,25 @@ private impl CeltMdct
             }
         }
 
+        func overlapPacked(output: [*] f32)
+        {
+            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+            let window = cast(const [*] f32, &CeltWindow[0])
+            for block in CeltOverlap / 8
+            {
+                let low  = 4 * block
+                let high = CeltOverlap - low - 4
+                let x1   = Swag.vecShuffle(Simd.load(output + high), Reverse)
+                let x2   = Simd.load(output + low)
+                let w1   = Swag.vecShuffle(Simd.load(window + high), Reverse)
+                let w2   = Simd.load(window + low)
+                Simd.store(output + low, w1 * x2 - w2 * x1)
+
+                // Keep the mirrored side's separate product and addition rounding.
+                Simd.store(output + high, Swag.vecShuffle(Math.mulAdd(w1, x1, w2 * x2), Reverse))
+            }
+        }
+
         let n      = CeltMdctSize >> shift
         let n2     = n / 2
         let n4     = n / 4
@@ -648,7 +667,14 @@ private impl CeltMdct
                 yr[n2 - 1 - 2 * i] = point[3]
             }
 
-            overlap(rightOut)
+            #static if #safety(Swag.SafetyWhat.BoundCheck) do
+                overlap(rightOut)
+            else
+            {
+                overlapPacked(rightOut)
+                overlapPacked(out)
+                return
+            }
         }
         else
         {

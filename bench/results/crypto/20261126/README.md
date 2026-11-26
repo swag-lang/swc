@@ -64,3 +64,4 @@ optimizations moved each result.
 - [Curve25519 field inversion and squaring](curve25519-inverse.md)
 - [P-256 four-bit scalar multiplication](p256-window.md)
 - [CPU feature discovery and AES instructions](hardware-instructions.md)
+- [AES-NI dispatch for AES and GCM](aesni.md)

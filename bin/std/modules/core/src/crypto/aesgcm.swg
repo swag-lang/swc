@@ -79,12 +79,14 @@ private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*
 {
     #static if not BIG_ENDIAN
     {
-        aesGcmGhashBlockClmul(state, hashKey, block)
+        if Swag.hasCpuFeature(.CarrylessMultiply)
+        {
+            aesGcmGhashBlockClmul(state, hashKey, block)
+            return
+        }
     }
-    else
-    {
-        aesGcmGhashBlockScalar(state, hashKey, block)
-    }
+
+    aesGcmGhashBlockScalar(state, hashKey, block)
 }
 
 private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..] u8)
@@ -101,29 +103,31 @@ private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..]
 
     #static if not BIG_ENDIAN
     {
-        let key = cast #bit (U64x2, Math.reverse(load(&hashKey[0])))
-        var accumulator = cast #bit (U64x2, Math.reverse(load(&state[][0])))
-        for block in fullBlockBytes / 16
+        if Swag.hasCpuFeature(.CarrylessMultiply)
         {
-            let value = cast #bit (U64x2, Math.reverse(load(source + block * 16)))
-            accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
-        }
+            let key         = cast #bit (U64x2, Math.reverse(load(&hashKey[0])))
+            var accumulator = cast #bit (U64x2, Math.reverse(load(&state[][0])))
+            for block in fullBlockBytes / 16
+            {
+                let value = cast #bit (U64x2, Math.reverse(load(source + block * 16)))
+                accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
+            }
 
-        if tailBytes != 0
-        {
-            let value = cast #bit (U64x2, Math.reverse(load(&tail[0])))
-            accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
-        }
+            if tailBytes != 0
+            {
+                let value = cast #bit (U64x2, Math.reverse(load(&tail[0])))
+                accumulator = aesGcmGhashMultiply(accumulator ^ value, key)
+            }
 
-        store(&state[][0], Math.reverse(cast #bit (U8x16, accumulator)))
+            store(&state[][0], Math.reverse(cast #bit (U8x16, accumulator)))
+            return
+        }
     }
-    else
-    {
-        for block in fullBlockBytes / 16 do
-            aesGcmGhashBlockScalar(state, hashKey, source + block * 16)
-        if tailBytes != 0 do
-            aesGcmGhashBlockScalar(state, hashKey, &tail[0])
-    }
+
+    for block in fullBlockBytes / 16 do
+        aesGcmGhashBlockScalar(state, hashKey, source + block * 16)
+    if tailBytes != 0 do
+        aesGcmGhashBlockScalar(state, hashKey, &tail[0])
 }
 
 private func aesGcmWriteU64(destination: [*] u8, value: u64)

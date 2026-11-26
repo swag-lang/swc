@@ -303,16 +303,6 @@ outcomes owned by `core` together.
   remains the default portable operation.
 - Related: platform.portability.103, std.pixel.040, std.pixel.043.
 
-### std.core.046 — AES round and key instructions have no typed surface
-
-- Evidence: `Swag.vecCarrylessMul` and the four `Math.Simd.clmul...` wrappers already expose
-  carry-less multiplication; `Hash.Crc32.foldClmul` consumes them and the x64 encoder has a byte
-  test. AES round/key instructions have no equivalent typed API.
-- Next: expose AES round/key operations with explicit availability and known-answer tests.
-- Done when: feature gating prevents illegal instructions, known-answer tests cover operands
-  and lane ordering, and portable fallbacks or explicit availability checks are part of the API.
-- Related: platform.portability.103.
-
 ### std.core.047 — Vector rounding and transcendental families remain incomplete
 
 - Evidence: vector sqrt, floor, ceil, trunc, abs, min/max, mul-add, sign, copysign, saturate and

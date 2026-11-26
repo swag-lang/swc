@@ -2,6 +2,8 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math.Simd
+
 // AES block size in bytes.
 public const AesBlockSize = 16
 
@@ -15,15 +17,23 @@ public const AesMaxKeySize = 32
 #[Swag.NoCopy, Swag.Opaque]
 public struct Aes
 {
-    roundKeys: [60] u32
-    rounds:    u32
-    ready:     bool
+    roundKeys:   [60] u32
+    rounds:      u32
+    ready:       bool
+    useHardware: bool
 }
 
 #[Swag.Inline]
 private func aesRotateByte(value: u8, bits: u8)->u8
 {
     return cast(u8, (value << bits) | (value >> (8 - bits)))
+}
+
+#[Swag.Inline]
+private func aesDouble(value: u8)->u8
+{
+    let highMask = cast(u8, 0'u8 - (value >> 7))
+    return cast(u8, (value << 1) ^ (0x1B'u8 & highMask))
 }
 
 #[Swag.Inline]
@@ -36,9 +46,8 @@ private func aesMultiply(left, right: u8)->u8
     while iteration < 8
     {
         let selected = cast(u8, 0'u8 - (b & 1))
-        result ^= a & selected
-        let highBit = cast(u8, 0'u8 - (a >> 7))
-        a         = cast(u8, (a << 1) ^ (0x1B'u8 & highBit))
+        result    ^= a & selected
+        a         = aesDouble(a)
         b         >>= 1
         iteration += 1
     }
@@ -80,27 +89,20 @@ private func aesInverseSubstitute(value: u8)->u8
 }
 
 #[Swag.Inline]
-private func aesSubWord(value: u32)->u32
+private func aesSubWord(value: u32, useHardware: bool)->u32
 {
-    return (cast(u32, aesSubstitute(Math.byteAt(value, 3))) << 24) |
-           (cast(u32, aesSubstitute(Math.byteAt(value, 2))) << 16) |
-           (cast(u32, aesSubstitute(Math.byteAt(value, 1))) << 8) |
-           cast(u32, aesSubstitute(Math.byteAt(value, 0)))
-}
-
-#[Swag.Inline]
-private func aesRoundConstant(index: u32)->u8
-{
-    var value = 1'u8
-    var round = 0'u32
-    while round < index
+    if useHardware
     {
-        let highMask = cast(u8, 0'u8 - (value >> 7))
-        value = cast(u8, (value << 1) ^ (0x1B'u8 & highMask))
-        round += 1
+        // With four identical columns, ShiftRows leaves every row unchanged.
+        const Zero = Swag.vecSplat(0'u8)
+        let columns = cast #bit (U8x16, splat(value))
+        return cast #bit (U32x4, Swag.vecAesEncryptLastRound(columns, Zero))[0]
     }
 
-    return value
+    return cast(u32, aesSubstitute(Math.byteAt(value, 0))) |
+           (cast(u32, aesSubstitute(Math.byteAt(value, 1))) << 8) |
+           (cast(u32, aesSubstitute(Math.byteAt(value, 2))) << 16) |
+           (cast(u32, aesSubstitute(Math.byteAt(value, 3))) << 24)
 }
 
 public impl Aes
@@ -121,34 +123,52 @@ public impl Aes
         if key.count != 16 and key.count != 24 and key.count != 32 do
             fail Errors.BadParameterError{"AES key must contain 16, 24, or 32 bytes"}
 
-        let keyWords = key.count / 4
-        let rounds   = cast(u32, keyWords + 6)
+        let keyWords    = key.count / 4
+        let rounds      = cast(u32, keyWords + 6)
+        let useHardware = Swag.hasCpuFeature(.Aes)
         var expanded: [60] u32
-        for index in keyWords
+        Swag.memcpy(&expanded[0], key.buffer, key.count)
+        #static if BIG_ENDIAN
         {
-            let offset = index * 4
-            expanded[index] = (cast(u32, key.buffer[offset]) << 24) |
-                              (cast(u32, key.buffer[offset + 1]) << 16) |
-                              (cast(u32, key.buffer[offset + 2]) << 8) |
-                              cast(u32, key.buffer[offset + 3])
+            for index in keyWords do
+                expanded[index] = Swag.byteSwap(expanded[index])
         }
 
-        let wordCount = 4 * (rounds + 1)
+        let wordCount     = 4 * (rounds + 1)
+        var roundConstant = 1'u8
+        var column        = 0'u64
+        var previousWord  = expanded[keyWords - 1]
         for index in keyWords until wordCount
         {
-            var temp = expanded[index - 1]
-            if index % keyWords == 0 do
-                temp = aesSubWord(Swag.rol(temp, 8'u8)) ^
-                       (cast(u32, aesRoundConstant(cast(u32, index / keyWords - 1))) << 24)
-            elif keyWords > 6 and index % keyWords == 4 do
-                temp = aesSubWord(temp)
-            expanded[index] = expanded[index - keyWords] ^ temp
+            var temp = previousWord
+            if column == 0
+            {
+                temp = aesSubWord(Swag.ror(temp, 8'u8), useHardware) ^ roundConstant
+                roundConstant = aesDouble(roundConstant)
+            }
+            elif keyWords > 6 and column == 4
+            {
+                temp = aesSubWord(temp, useHardware)
+            }
+
+            previousWord   = expanded[index - keyWords] ^ temp
+            expanded[index] = previousWord
+            column += 1
+            if column == keyWords do
+                column = 0
         }
 
         .clear()
+        #static if BIG_ENDIAN
+        {
+            for index in wordCount do
+                expanded[index] = Swag.byteSwap(expanded[index])
+        }
+
         Swag.memcpy(&.roundKeys[0], &expanded[0], wordCount * #sizeof(u32))
-        .rounds = rounds
-        .ready  = true
+        .rounds      = rounds
+        .ready       = true
+        .useHardware = useHardware
         Crypto.secureClear(expanded)
     }
 
@@ -158,6 +178,12 @@ public impl Aes
     mtd encryptBlock(source: const [..] u8, destination: [..] u8) fail
     {
         try .validateBlockRanges(source, destination)
+        if .useHardware
+        {
+            store(destination.buffer, .encryptBlockHardware(load(source.buffer)))
+            return
+        }
+
         var state: [AesBlockSize] u8
         Swag.memcpy(&state[0], source.buffer, AesBlockSize)
         .addRoundKey(&state, 0)
@@ -185,6 +211,12 @@ public impl Aes
     mtd decryptBlock(source: const [..] u8, destination: [..] u8) fail
     {
         try .validateBlockRanges(source, destination)
+        if .useHardware
+        {
+            store(destination.buffer, .decryptBlockHardware(load(source.buffer)))
+            return
+        }
+
         var state: [AesBlockSize] u8
         Swag.memcpy(&state[0], source.buffer, AesBlockSize)
         .addRoundKey(&state, .rounds)
@@ -210,8 +242,9 @@ public impl Aes
     mtd clear()
     {
         Crypto.secureClear(.roundKeys)
-        .rounds = 0
-        .ready  = false
+        .rounds      = 0
+        .ready       = false
+        .useHardware = false
     }
 
     private mtd validateBlockRanges(source: const [..] u8, destination: [..] u8) fail
@@ -222,14 +255,37 @@ public impl Aes
             fail Errors.BadParameterError{"AES block operations need exactly 16 input and output bytes"}
     }
 
+    #[Swag.Inline]
+    private mtd roundKey(round: u32)->U8x16
+    {
+        return load(cast(const [*] u8, &.roundKeys[round * 4]))
+    }
+
+    #[Swag.Inline]
+    private mtd encryptBlockHardware(value: U8x16)->U8x16
+    {
+        var state = value ^ .roundKey(0)
+        for round in 1 until .rounds do
+            state = Swag.vecAesEncryptRound(state, .roundKey(round))
+        return Swag.vecAesEncryptLastRound(state, .roundKey(.rounds))
+    }
+
+    #[Swag.Inline]
+    private mtd decryptBlockHardware(value: U8x16)->U8x16
+    {
+        var state = value ^ .roundKey(.rounds)
+        for round in 1 until .rounds
+        {
+            let inverseRoundKey = Swag.vecAesInverseMixColumns(.roundKey(.rounds - round))
+            state = Swag.vecAesDecryptRound(state, inverseRoundKey)
+        }
+
+        return Swag.vecAesDecryptLastRound(state, .roundKey(0))
+    }
+
     private mtd addRoundKey(state: *[AesBlockSize] u8, round: u32)
     {
-        for column in 4
-        {
-            let word = .roundKeys[round * 4 + column]
-            for row in 4 do
-                state[][column * 4 + row] ^= Math.byteAt(word, 3 - row)
-        }
+        store(&state[][0], load(&state[][0]) ^ .roundKey(round))
     }
 
     private mtd shiftRows(state: *[AesBlockSize] u8)
@@ -266,10 +322,10 @@ public impl Aes
             let c      = state[][offset + 2]
             let d      = state[][offset + 3]
             let total  = a ^ b ^ c ^ d
-            state[][offset]     = a ^ total ^ aesMultiply(a ^ b, 2)
-            state[][offset + 1] = b ^ total ^ aesMultiply(b ^ c, 2)
-            state[][offset + 2] = c ^ total ^ aesMultiply(c ^ d, 2)
-            state[][offset + 3] = d ^ total ^ aesMultiply(d ^ a, 2)
+            state[][offset]     = a ^ total ^ aesDouble(a ^ b)
+            state[][offset + 1] = b ^ total ^ aesDouble(b ^ c)
+            state[][offset + 2] = c ^ total ^ aesDouble(c ^ d)
+            state[][offset + 3] = d ^ total ^ aesDouble(d ^ a)
         }
     }
 

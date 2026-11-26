@@ -25,6 +25,9 @@ func aesGcmHexBytes(text: string)->Array'u8
 #test
 {
     // Carry-less GHASH agrees with the portable multiply across a chained sequence of blocks.
+    if not Swag.hasCpuFeature(.CarrylessMultiply) do
+        return
+
     var hashKey:     [16] u8
     var scalarState: [16] u8
     for index in 16

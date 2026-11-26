@@ -142,6 +142,59 @@ private func sampleDocument()->Document
     Swag.require(loaded.pages[0].items.count == 3)
 }
 
+// Identical images share a resource across pages. The same bytes in a different channel
+// order describe a distinct image. An opaque channel needs no soft-mask stream.
+#test
+{
+    const Pixels: [8] u8 = [11, 33, 211, 31, 64, 92, 8, 255]
+    const Opaque: [8] u8 = [11, 33, 211, 255, 64, 92, 8, 255]
+    let rgba   = Image.create(2, 1, .RGBA8, Pixels)
+    let bgra   = Image.create(2, 1, .BGRA8, Pixels)
+    let opaque = Image.create(2, 1, .BGRA8, Opaque)
+    var document = Document.create()
+    for index in 2
+    {
+        var page = Page.create(80, 60)
+        page.addImage(rgba, 4, 4, 20, 10)
+        if not index
+        {
+            page.addImage(bgra, 4, 20, 20, 10)
+            page.addImage(opaque, 4, 36, 20, 10)
+        }
+
+        document.addPage(#move page)
+    }
+
+    let bytes = expect document.encode()
+    let text  = String.from(cast(string, bytes.toSlice()))
+    func occurrences(text: const *String, term: string)->u64
+    {
+        var count, start: u64
+        while true
+        {
+            let next = text.indexOf(term, start)
+            if next == Swag.U64.Max do
+                return count
+            count += 1
+            start = next + term.count
+        }
+    }
+
+    Swag.require(occurrences(&text, "/Subtype /Image") == 5)
+    Swag.require(occurrences(&text, " /SMask ") == 2)
+    let decoded = expect Document.decode(bytes.toSlice())
+    for page in decoded.pages
+    {
+        let repeated = unwrap page.items[0].imageValue()
+        Swag.require(repeated.pixelColor(0, 0) == rgba.pixelColor(0, 0))
+    }
+
+    let distinct = unwrap decoded.pages[0].items[1].imageValue()
+    let solid    = unwrap decoded.pages[0].items[2].imageValue()
+    Swag.require(distinct.pixelColor(0, 0) == bgra.pixelColor(0, 0))
+    Swag.require(solid.pixelColor(0, 0) == opaque.pixelColor(0, 0))
+}
+
 // The streaming reader indexes every page but does not decode a later page's stream until that
 // page is requested.
 #test

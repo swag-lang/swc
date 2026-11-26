@@ -381,10 +381,12 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 
 - Intent: `encodeImagePixels` reduces every image to eight-bit gray or RGB and Flate-compresses
   it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
-  bilevel scan leaves as eight bits per pixel, and a palette image loses its palette. The same
-  image used on twenty pages is written twenty times.
-- Next: preserve supported encoded JPEG and natural-depth image representations and share repeated
-  image objects.
+  bilevel scan leaves as eight bits per pixel, and a palette image loses its palette.
+- Evidence: [shared image objects](../bench/results/swagscope-filesamples/pdf-write-linux.md#shared-image-resources)
+  cut save time from 1,410 to 197 ms on eight pages using one photo. The output shrinks
+  from 9.81 to 1.23 MB. PDFium renders every saved page identically. Opaque images
+  skip compression of redundant soft masks.
+- Next: preserve supported encoded JPEG and natural-depth image representations.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.

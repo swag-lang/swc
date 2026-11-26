@@ -482,8 +482,21 @@ impl Inflate
             // One vector of slack past the match lets the copy below run in whole
             // blocks and overshoot the last one; the overshoot is inside the buffer
             // and the next symbol overwrites it.
-            if count + length + #sizeof(Math.Simd.U8x16) > cap
+            let writable = cap - count
+            if length + #sizeof(Math.Simd.U8x16) > writable
             {
+                if length <= writable
+                {
+                    // The last match can fit exactly in a caller's output slice.
+                    // Copy forward without touching bytes outside that slice.
+                    let obuf = unwrap buf
+                    let from = count - distance
+                    for index in length do
+                        obuf[count + index] = obuf[from + index]
+                    count += length
+                    continue
+                }
+
                 dest.count = count
                 dest.grow(count + length + #sizeof(Math.Simd.U8x16))
                 buf        = dest.buffer

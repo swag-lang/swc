@@ -327,3 +327,35 @@ func ddsRoundtrip(source: Image)->Image
         }
     }
 }
+
+// Parallel block rows preserve orientation and clip the last column and row.
+#test
+{
+    const Width   = 4097
+    const Height  = 4097
+    const Columns = (Width + 3) / 4
+    const Rows    = (Height + 3) / 4
+    var blocks: Array'u64
+    blocks.resize(Columns * Rows)
+    for row in Rows
+    {
+        let color = row & 1 ? 0x07E0'u64 : 0xF800'u64
+        let word  = Core.BIG_ENDIAN ? Swag.byteSwap(color) : color
+        for column in Columns do
+            blocks[row * Columns + column] = word
+    }
+
+    let packed = Swag.makeSlice(cast(const [*] u8, blocks.storage()), blocks.count * 8)
+    var image  = Image.create(Width, Height, .RGBA8)
+    for topDown in [true, false]
+    {
+        expect TextureBlocks.decode(&image, packed, .BC1, topDown)
+        for y in Height
+        {
+            let color = (y / 4) & 1 ? Color.fromRgb(0, 255, 0) : Color.fromRgb(255, 0, 0)
+            let first = cast(s32, (topDown ? y : Height - 1 - y))
+            Swag.require(image.pixelColor(0, first) == color)
+            Swag.require(image.pixelColor(Width - 1, first) == color)
+        }
+    }
+}

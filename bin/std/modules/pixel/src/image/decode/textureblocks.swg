@@ -184,14 +184,14 @@ private func explicitAlphaBlock(indices: u64)->Simd.U8x16
     return nibbles | cast #bit(Simd.U8x16, (cast #bit(Simd.U16x8, nibbles) << 4))
 }
 
-func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, rows, oneBlock: u64, sourceTopDown: bool)
+private func(FMT: Format) decodeBlockRange(image: *Image, source: const [*] u8, columns, first, end, oneBlock: u64, sourceTopDown: bool)
 {
     let width     = cast(u64, image.width)
     let height    = cast(u64, image.height)
     let pixels    = cast([*] u32, image.pixels.storage())
     let rowStride = cast(s64, (image.rowStride / 4))
     let rowStep   = sourceTopDown ? -rowStride : rowStride
-    for blockY in rows
+    for blockY in first until end
     {
         let firstY    = blockY * 4
         let countY    = Math.min(4'u64, height - firstY)
@@ -332,6 +332,31 @@ func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, row
             }
         }
     }
+}
+
+private func(FMT: Format) decodeBlocks(image: *Image, source: const [*] u8, columns, rows, oneBlock: u64, sourceTopDown: bool)
+{
+    const ParallelOutputBytes = 64'u64 * 1024 * 1024
+    if image.byteCount >= ParallelOutputBytes and rows >= 8
+    {
+        let workers = cast(u64, Swag.workerCount())
+        if workers > 1
+        {
+            // Each batch writes separate rows in either storage orientation.
+            let rowsPerBatch = (rows + workers - 1) / workers
+            let batches      = (rows + rowsPerBatch - 1) / rowsPerBatch
+            parallel for |image, source, columns, rows, oneBlock, sourceTopDown, rowsPerBatch| batch in batches
+            {
+                let first = batch * rowsPerBatch
+                let end   = Math.min(first + rowsPerBatch, rows)
+                decodeBlockRange'(FMT)(image, source, columns, first, end, oneBlock, sourceTopDown)
+            }
+
+            return
+        }
+    }
+
+    decodeBlockRange'(FMT)(image, source, columns, 0, rows, oneBlock, sourceTopDown)
 }
 
 internal func decode(image: *Image, source: const [..] u8, format: Format, sourceTopDown = true) fail

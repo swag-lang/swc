@@ -411,11 +411,16 @@ private func lookupCffName(thread: const *Threading.Thread)
     Swag.require(ranged.glyphIndexByCid(3) == 0)
     bytes[57] = 0
 
-    // Sparse charsets preserve the final glyph index for a repeated CID.
+    // Nonidentity maps keep the final glyph index for a repeated CID.
     bytes[59], bytes[61] = 7
+    let dense = expect parseCffFont(bytes.toSlice())
+    Swag.require(dense.denseCidToGid.count == 8)
+    Swag.require(dense.glyphIndexByCid(1) == 0 and dense.glyphIndexByCid(7) == 2)
+
+    bytes[58], bytes[60] = 0x7F
     let sparse = expect Face.load(bytes.toSlice())
     defer sparse.destroy()
-    Swag.require(sparse.glyphIndexByCid(1) == 0 and sparse.glyphIndexByCid(7) == 2)
+    Swag.require(sparse.glyphIndexByCid(7) == 0 and sparse.glyphIndexByCid(0x7F07) == 2)
 }
 
 #test

@@ -209,10 +209,9 @@ private func inflateWoffTables(block: const [..] u8, tables: const [..] WoffTabl
             else
             {
                 var zlib: Compress.ZLib
-                let decoded = try zlib.decompress(bytes, record.origLength, record.origLength)
-                if decoded.count != record.origLength do
+                let decoded = try zlib.decompressInto(Swag.makeSlice(output, record.origLength), bytes)
+                if decoded != record.origLength do
                     try fault(0x08)
-                Memory.copy(output, unwrap decoded.buffer, decoded.count)
             }
 
             let padding = (4 - (record.origLength & 3)) & 3

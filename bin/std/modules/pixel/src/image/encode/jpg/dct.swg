@@ -11,7 +11,7 @@ impl Encoder
 {
     // Lifts one colour channel of four consecutive pixels into four 32-bit lanes.
     #[Swag.Inline]
-    func channelOf(source: const [*] u8, lanes: Math.Simd.U8x16)->Math.Simd.S32x4 => cast #bit(Math.Simd.S32x4, Math.Simd.shuffle(Math.Simd.load(source), lanes))
+    func channelOf(samples, lanes: Math.Simd.U8x16)->Math.Simd.S32x4 => cast #bit(Math.Simd.S32x4, Math.Simd.shuffle(samples, lanes))
 
     // Rounds the fixed-point dot product to the nearest sample. Chroma ties round down so
     // the top half-step (127.5) fits in the signed range of the centered sample.
@@ -26,28 +26,42 @@ impl Encoder
     //
     // Each component is a dot product of the pixel, so a row is converted eight pixels at a time
     // and the luma one carries the level shift of the format.
-    mtd loadFromRGB(xpos: u16, ypos: u16)
+    mtd loadFromRGB(source: const [*] u8, columns, rows: u32)
     {
-        var location = cast(s32, ypos) * .imageX + xpos
-        let pixels   = cast(const [*] u8, .bufferRGB.storage())
-        let luma     = cast([*] s16, &.duY[0])
-        let blue     = cast([*] s16, &.duCb[0])
-        let red      = cast([*] s16, &.duCr[0])
+        var edge: [32] u8
+        let padded = cast([*] u8, edge)
+        let luma   = cast([*] s16, &.duY[0])
+        let blue   = cast([*] s16, &.duCb[0])
+        let red    = cast([*] s16, &.duCr[0])
 
+        let redLanes   = .redLanes
+        let greenLanes = .greenLanes
+        let blueLanes  = .blueLanes
         let levelShift = Math.Simd.splat(128's32)
         var pos        = 0
 
-        for 8
+        for line in 8
         {
-            let row  = pixels + cast(u64, location) * #sizeof(ColorRGB)
-            let next = row + 4 * #sizeof(ColorRGB)
+            // Rows are stored bottom up. Repeat the last source row or column at a partial block.
+            var row = source - Math.min(line, rows - 1) * .stride
+            if columns < 8
+            {
+                let bytes = columns * .pixelSize
+                let last  = bytes - .pixelSize
+                Memory.copy(padded, row, bytes)
+                for column in columns until 8 do
+                    Memory.copy(padded + column * .pixelSize, padded + last, .pixelSize)
+                row = padded
+            }
 
-            let redLow    = channelOf(row, RedLanes)
-            let greenLow  = channelOf(row, GreenLanes)
-            let blueLow   = channelOf(row, BlueLanes)
-            let redHigh   = channelOf(next, RedLanes)
-            let greenHigh = channelOf(next, GreenLanes)
-            let blueHigh  = channelOf(next, BlueLanes)
+            let low       = Math.Simd.load(row)
+            let high      = Math.Simd.load(row + .rightOffset)
+            let redLow    = channelOf(low, redLanes)
+            let greenLow  = channelOf(low, greenLanes)
+            let blueLow   = channelOf(low, blueLanes)
+            let redHigh   = channelOf(high, .redLanesHigh)
+            let greenHigh = channelOf(high, .greenLanesHigh)
+            let blueHigh  = channelOf(high, .blueLanesHigh)
 
             Math.Simd.store(luma + pos,
                             Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffYR, CoeffYG, CoeffYB, 32_768) - levelShift,
@@ -59,8 +73,7 @@ impl Encoder
                             Math.Simd.packSigned(componentOf(redLow, greenLow, blueLow, CoeffCrR, CoeffCrG, CoeffCrB, 32_767),
                                                  componentOf(redHigh, greenHigh, blueHigh, CoeffCrR, CoeffCrG, CoeffCrB, 32_767)))
 
-            location += .imageX
-            pos      += 8
+            pos += 8
         }
     }
 
@@ -193,27 +206,56 @@ impl Encoder
         return cast(u8, (32 - Math.leadingZeros(magnitude)))
     }
 
-    // Check a few distant pixels before setting up the full comparison. Four-byte
-    // reads can cross the final pixel because loadBitmap gives the buffer a readable tail.
     #[Swag.Inline]
-    func flatColorBlock(source: const [*] ColorRGB, stride: u64)->bool
+    func rgbWord(source: const [*] u8)->u32
     {
-        let first = cast(const [*] u32, source)[0] & 0xFF_FFFF
-        if (cast(const [*] u32, source + 7)[0] & 0xFF_FFFF) != first or
-           (cast(const [*] u32, source + stride * 3 + 4)[0] & 0xFF_FFFF) != first or
-           (cast(const [*] u32, source + stride * 7 + 7)[0] & 0xFF_FFFF) != first do
+        return cast(u32, cast(const [*] u16, source)[0]) | (cast(u32, source[2]) << 16)
+    }
+
+    func flatColorBlock(source: const [*] u8, stride: u64, pixelSize, columns, rows: u32)->bool
+    {
+        let color = rgbWord(source)
+        let last  = (columns - 1) * pixelSize
+        if rgbWord(source + last) != color or rgbWord(source - (rows - 1) * stride + last) != color do
             return false
 
-        const Head = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
-        const Tail = cast(Math.Simd.U8x16, [2'u8, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
-        let seed = Math.Simd.load(cast(const [*] u8, source))
-        let head = Math.Simd.shuffle(seed, Head)
-        let tail = Math.Simd.shuffle(seed, Tail)
-        for y in 8'u64
+        if columns != 8 or rows != 8
         {
-            let row = cast(const [*] u8, source + y * stride)
-            if Math.Simd.anyTrue((Math.Simd.load(row) != head) | (Math.Simd.load(row + 8) != tail)) do
-                return false
+            for y in rows
+            {
+                let row = source - y * stride
+                for x in columns where rgbWord(row + x * pixelSize) != color do
+                    return false
+            }
+
+            return true
+        }
+
+        if pixelSize == 4
+        {
+            let rgbMask  = Math.Simd.splat(0xFF_FFFF'u32)
+            let repeated = Math.Simd.splat(color)
+            for y in 8
+            {
+                let row = cast(const [*] u32, source - y * stride)
+                if Math.Simd.anyTrue(((Math.Simd.load(row) & rgbMask) != repeated) |
+                                     ((Math.Simd.load(row + 4) & rgbMask) != repeated)) do
+                    return false
+            }
+        }
+        else
+        {
+            const Head = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
+            const Tail = cast(Math.Simd.U8x16, [2'u8, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
+            let seed = Math.Simd.load(source)
+            let head = Math.Simd.shuffle(seed, Head)
+            let tail = Math.Simd.shuffle(seed, Tail)
+            for y in 8
+            {
+                let row = source - y * stride
+                if Math.Simd.anyTrue((Math.Simd.load(row) != head) | (Math.Simd.load(row + 8) != tail)) do
+                    return false
+            }
         }
 
         return true

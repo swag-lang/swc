@@ -84,6 +84,37 @@ final variant derives the active planes from the stored SAO parameters before fi
 Reproduce the grayscale input by adding `-vf hue=s=0` to the 1080p Main10 generation
 command and setting `-frames:v 120`.
 
+## Y4M and Motion JPEG to RGB24
+
+The [RGB workload](../../../workloads/videodecode/README.md) times sequential decoding with
+colour conversion to a reusable RGB24 buffer. Release Swag at `591e02ef05` is the baseline.
+Both Swag variants and FFmpeg 7.1.5 with libswscale ran on one logical CPU. Each median uses
+nine rotated repetitions and excludes the first six pictures and the RGB serialization.
+The generator commands, fixture hashes and individual observations are in
+[rgb-fixtures.json](rgb-fixtures.json) and [rgb-decode.json](rgb-decode.json).
+
+| Stream | Before, ms/picture | After, ms/picture | FFmpeg, ms/picture | Swag time change | RGB PSNR vs FFmpeg | Maximum RGB difference |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Y4M 4:1:1, 652×370 | 1.275 | 0.249 | 0.737 | -80.5% | 46.12 dB | 3 |
+| Y4M 4:2:0 full range, 651×371 | 1.237 | 0.325 | 0.989 | -73.7% | 24.82 dB | 255 |
+| Y4M 4:2:0 limited range, 1080p | 11.239 | 2.644 | 1.146 | -76.5% | 48.24 dB | 3 |
+| Y4M 4:2:2, 720p | 5.668 | 1.355 | 0.604 | -76.1% | 48.27 dB | 3 |
+| Y4M 4:4:4, 720p | 5.315 | 1.337 | 4.806 | -74.8% | 57.86 dB | 1 |
+| Y4M monochrome, 650×370 | 1.041 | 0.157 | 0.285 | -84.9% | Exact | 0 |
+| Motion JPEG 4:2:0, 1080p | 2.320 | 2.321 | 3.310 | +0.0% | 55.14 dB | 4 |
+| Motion JPEG 4:2:2 texture, 720p | 3.348 | 3.304 | 2.900 | -1.3% | 51.05 dB | 4 |
+| Motion JPEG 4:4:4, 720p | 1.846 | 1.832 | 7.095 | -0.7% | 70.32 dB | 3 |
+
+The Y4M decoder converts four pixels at a time and packs exactly twelve output bytes. It
+selects the sample layout and quantization range once per frame and uses the same integer
+matrix on the last one to three pixels of a row. All 216 Y4M pictures matched the scalar
+Swag baseline byte for byte. The full-range odd-size clip differs from libswscale at chroma
+transitions. An independent calculation from FFmpeg's raw YUV planes reproduced the first
+Swag picture exactly using `row / 2`, `column / 2` chroma indices and the BT.601 coefficients.
+No Motion JPEG decoder code changed in this pass. Its 216 pictures also matched between the
+two Swag builds. The 19 Y4M Release tests passed, and the planar workload still matched FFmpeg
+on 69 AVC and RealVideo pictures.
+
 ## HEVC CABAC look-ahead
 
 The CABAC decoder now shifts the arithmetic offset and the next 32 input bits together.

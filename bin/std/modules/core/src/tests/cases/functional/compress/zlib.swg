@@ -225,3 +225,29 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     Swag.require(outcome.value() is Errors.InvalidFormatError)
     Swag.require(Slice.equals(output.toSlice(), expected))
 }
+
+// Direct output stays inside the supplied range even on the final overlapping match.
+#test
+{
+    var input: [4097] u8
+    Memory.set(&input[0], 0x5A, input.count)
+    var codec: Compress.ZLib
+    let packed = expect codec.compress(input)
+
+    var target: [4099] u8
+    target[0] = 0xA5
+    target[target.count - 1] = 0xC3
+    let size = expect codec.decompressInto(target[1 until target.count - 1], packed.toSlice())
+    Swag.require(size == input.count)
+    Swag.require(Slice.equals(target[1 until target.count - 1], input))
+    Swag.require(target[0] == 0xA5 and target[target.count - 1] == 0xC3)
+
+    var rejected: Swag.Error
+    discard catch codec.decompressInto(target[1 until target.count - 2], packed.toSlice()) as rejected
+    Swag.require(rejected.value() is Errors.UnsupportedFormatError)
+    Swag.require(target[0] == 0xA5 and target[target.count - 2] == 0x5A and target[target.count - 1] == 0xC3)
+
+    rejected = {}
+    discard catch codec.decompressInto(packed[1 to], packed.toSlice()) as rejected
+    Swag.require(rejected.value() is Errors.BadParameterError)
+}

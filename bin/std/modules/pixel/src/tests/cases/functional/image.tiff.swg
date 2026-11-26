@@ -1233,3 +1233,52 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         }
     }
 }
+
+// Index an increasing directory chain and reject a cycle back to its first page.
+#test
+{
+    const Pixels: [1] u8 = [17]
+    let single = buildTiff(true, 1, 1, 1, 1, 1, 1, 8, Pixels, null, false)
+    let first  = Tiff.rd32(single.storage() + 4, true)
+    let size   = 6'u64 + cast(u64, Tiff.rd16(single.storage() + first, true)) * 12
+    let entry  = Swag.makeSlice(single.storage() + first, size)
+    var pages: Array'u8
+    pages.add(single.toSlice())
+    var link = cast(u64, first) + size - 4
+    for 16
+    {
+        let offset = pages.count
+        pages.add(entry)
+        cast(*u32, (pages.storage() + link))[] = cast(u32, offset)
+        link = offset + size - 4
+    }
+
+    var reader = expect ImageReader.decode("memory.tiff", nnBytes(pages.toSlice()))
+    Swag.require(reader.info.frames.count == 17)
+    let last = expect reader.read(16)
+    Swag.require(last.pixelColor(0, 0) == Color.fromRgb(17, 17, 17))
+
+    cast(*u32, (pages.storage() + link))[] = first
+    var invalid: ImageReader
+    var outcome: Swag.Error
+    catch { invalid = try ImageReader.decode("memory.tiff", nnBytes(pages.toSlice())) } as outcome
+    Swag.require(outcome.value() != null)
+}
+
+// A scalar tag still validates the entire declared field before using its first value.
+#test
+{
+    const Pixels: [1] u8 = [17]
+    const Values: [8] u8 = [1, 0, 0, 0, 255, 255, 255, 255]
+    var fixture = buildTiff(true, 1, 1, 1, 1, 1, 1, 8, Pixels, null, false)
+    let payload = cast(u32, fixture.count)
+    fixture.add(Values)
+    let bytes = fixture.storage()
+    let width = bytes + Tiff.rd32(bytes + 4, true) + 2
+    cast(*u32, (width + 4))[] = 2
+    cast(*u32, (width + 8))[] = payload
+
+    let image = expect decodeTiff(nnBytes(fixture.toSlice()))
+    Swag.require(image.width == 1 and image.pixelColor(0, 0).r == 17)
+    Swag.require(tiffDecodeFails(nnBytes(fixture.toSlice()[0 until fixture.count - 1])))
+}

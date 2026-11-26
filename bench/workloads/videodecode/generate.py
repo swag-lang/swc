@@ -44,16 +44,32 @@ def fixtures():
     )
 
 
+def rgb_fixtures():
+    return (
+        ("y4m-420-limited-1080p.y4m", "1920x1080", 36, None, ["-pix_fmt", "yuv420p"]),
+        ("y4m-420-full-odd.y4m", "650x370", 36, "scale=651:371:out_range=full:flags=neighbor",
+         ["-pix_fmt", "yuv420p", "-color_range", "pc"]),
+        ("y4m-411.y4m", "652x370", 36, None, ["-pix_fmt", "yuv411p", "-strict", "-1"]),
+        ("y4m-422.y4m", "1280x720", 36, None, ["-pix_fmt", "yuv422p", "-strict", "-1"]),
+        ("y4m-444.y4m", "1280x720", 36, None, ["-pix_fmt", "yuv444p", "-strict", "-1"]),
+        ("y4m-mono.y4m", "650x370", 36, None, ["-pix_fmt", "gray"]),
+        ("mjpeg-420-1080p.avi", "1920x1080", 72, None, ["-c:v", "mjpeg", "-q:v", "4", "-pix_fmt", "yuvj420p"]),
+        ("mjpeg-422-720p.avi", "1280x720", 72, TEXTURE, ["-c:v", "mjpeg", "-q:v", "4", "-pix_fmt", "yuvj422p"]),
+        ("mjpeg-444-720p.avi", "1280x720", 72, None, ["-c:v", "mjpeg", "-q:v", "4", "-pix_fmt", "yuvj444p"]),
+    )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--rgb", action="store_true", help="generate Y4M and Motion JPEG fixtures")
     args = parser.parse_args()
     output = args.output.resolve()
     if output == REPO or REPO in output.parents:
         parser.error("--output must be outside the checkout")
     output.mkdir(parents=True)
     records = []
-    for name, size, count, filters, encoder in fixtures():
+    for name, size, count, filters, encoder in rgb_fixtures() if args.rgb else fixtures():
         path = output / name
         command = ["ffmpeg", "-nostdin", "-v", "error", "-filter_threads", "1",
                    "-f", "lavfi", "-i", "testsrc2=size=" + size + ":rate=30"]

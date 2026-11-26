@@ -15,6 +15,17 @@ bounded sound windows.
 Motion JPEG decoding in AVI uses Pixel's JPEG decoder. Its generic minimum-coded-unit walker accepts
 the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output.
 
+### std.video.041 — Reduce the remaining Y4M subsampled RGB conversion cost
+
+- Evidence: [The RGB comparison](../bench/results/video/20261126-decode-comparison/README.md#y4m-and-motion-jpeg-to-rgb24)
+  puts 1080p 4:2:0 at 2.64 ms per picture and 720p 4:2:2 at 1.36 ms, over twice the respective
+  libswscale times. Its 4:4:4 and monochrome fixtures are faster than the reference. The odd
+  full-range 4:2:0 fixture exposes a chroma placement difference from libswscale.
+- Next: reuse 4:2:0 chroma correction across paired rows. Use a fixture with isolated chroma
+  transitions to compare siting conventions separately from matrix rounding.
+- Done when: the 4:2:0 and 4:2:2 conversion narrows the measured gap and existing RGB pictures
+  match byte for byte or an explicit chroma-siting decision explains every changed fixture.
+
 ### std.video.004 — An AVI larger than four gigabytes is refused
 
 - Evidence: AVI sizes are 32-bit, so `encode/avi/avi.swg` refuses a stream past four

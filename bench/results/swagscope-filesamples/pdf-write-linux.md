@@ -131,3 +131,21 @@ at one pixel per point. The existing Flate save had a mean RGB delta
 of 0.420 and 0.029 respectively. The 43 supported raster cases keep
 their Swag checksums, and the 139 PDF tests cover compressed-byte
 equality, explicit decoding parameters and an independent pixel edit.
+
+## Retaining original grayscale JPEG streams
+
+The same save path retains a one-component DeviceGray JPEG with default
+decoding parameters and no mask. The output keeps its grayscale color
+space. Nine alternating Release runs use one AMD EPYC 7763 logical CPU
+and baseline `5c169b416c`. The timings cover `Document.save` after loading.
+[Timings, output sizes, and PDFium raster checksums](pdf-write-linux-retained-gray-jpeg.json)
+
+| Input | Save before, ms | Save after, ms | Bytes before | Bytes after |
+| --- | ---: | ---: | ---: | ---: |
+| `perf_codecs_jpeg_gray_progressive.pdf` | 123.532 | 0.966 | 2,775,608 | 980,922 |
+
+At one pixel per point, PDFium renders the new output identically to the
+source PDF. The earlier Flate output has a different raster checksum.
+The RGB JPEG and scan controls keep their saved PDF checksums. The 142
+PDF tests include a generated one-component JPEG with the grayscale
+dictionary and compressed samples checked after a round trip.

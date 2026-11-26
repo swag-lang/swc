@@ -62,6 +62,27 @@ impl ZLib
         return result
     }
 
+    // Writes the decompressed zlib stream into a caller's fixed-size `output` slice.
+    //
+    // Returns the number of bytes written. The input and output storage must be disjoint.
+    // The call can modify `output` before failing. An undersized slice fails with
+    // [[Core.Errors.UnsupportedFormatError]]. Invalid streams have the same errors
+    // as [[Core.Compress.ZLib.decompress]].
+    mtd decompressInto(output: [..] u8, buffer: const [..] u8)->u64 fail
+    {
+        if buffer.count and
+           output.count and
+           buffer.buffer < output.buffer + output.count and
+           output.buffer < buffer.buffer + buffer.count do
+            fail BadParameterError{}
+
+        // The output limit prevents this temporary header from reallocating the slice.
+        var result = Array'u8{buffer: output.buffer, capacity: output.count}
+        defer result.buffer = null
+        try .decompress(&result, buffer, maxOutputSize: output.count)
+        return result.count
+    }
+
     // Appends the decompressed zlib stream in `buffer` to `result`.
     //
     // `buffer` must come from separate storage. `hintSize` and `maxOutputSize` count only

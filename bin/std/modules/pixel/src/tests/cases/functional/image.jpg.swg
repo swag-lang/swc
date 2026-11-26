@@ -688,6 +688,40 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertEncodedJpgRoundtrip(src, 120'u8, 30'u8, 200'u8, 8'u8, 95'u8)
 }
 
+// Direct reads of full and partial blocks preserve channel order and ignore alpha.
+#test
+{
+    for width in [1's32, 8, 17]
+    {
+        let height = width == 1 ? 37 : 9
+        var source = Image.create(width, height, .BGR8)
+        let count  = cast(u64, width) * height
+        for i in count
+        {
+            let pixel = source.pixels.storage() + i * 3
+            pixel[0] = cast(u8, ((i * 71 + 11) & 255))
+            pixel[1] = cast(u8, ((i * 31 + 19) & 255))
+            pixel[2] = cast(u8, ((i * 13 + 97) & 255))
+        }
+
+        let options  = Jpg.EncodeOptions{quality: 100}
+        let expected = expect source.encodeToBytes("memory.jpg", options)
+        for format in [PixelFormat.RGB8, PixelFormat.BGRA8, PixelFormat.RGBA8]
+        {
+            var converted = source.convertedTo(format)
+            if converted.bytesPerPixel == 4
+            {
+                for i in count do
+                    converted.pixels[i * 4 + 3] = cast(u8, (i & 255))
+            }
+
+            let actual = expect converted.encodeToBytes("memory.jpg", options)
+            Swag.require(actual.count == expected.count)
+            Swag.require(Memory.compare(actual.storage(), expected.storage(), expected.count) == 0)
+        }
+    }
+}
+
 // Adobe APP14 transform 0 marks three equally sampled components as direct RGB.
 #test
 {

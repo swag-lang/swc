@@ -701,7 +701,8 @@ private impl Writer
             let jpeg  = item.image.jpeg()
             if jpeg.count
             {
-                let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode", image.width, image.height)
+                let space = item.image.jpegChannels() == 1 ? "Gray" : "RGB"
+                let dictionary = Format.toString("/Type /XObject /Subtype /Image /Width % /Height % /ColorSpace /Device% /BitsPerComponent 8 /Filter /DCTDecode", image.width, image.height, space)
                 .streamObject(imageObject.number, jpeg, dictionary.toString())
                 continue
             }

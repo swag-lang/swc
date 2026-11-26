@@ -76,3 +76,4 @@ optimizations moved each result.
 - [PBKDF2-HMAC prefix reuse](pbkdf2.md)
 - [Four-word P-256 Montgomery products](p256-wide.md)
 - [Ed25519 masked four-bit scalar windows](ed25519-window.md)
+- [Parallel CRC-64 on large buffers](crc64-parallel.md)

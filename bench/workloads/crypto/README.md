@@ -2,8 +2,9 @@
 
 The workload compares native Release Swag Core calls with byte-equivalent public library
 calls. It measures one-shot digest, checksum, MAC, stream encryption and authenticated
-encryption. Each implementation uses the same deterministic input, one worker pinned to
-the same Linux CPU, and the same synthetic key, nonce and associated data when applicable.
+encryption. Each implementation uses the same deterministic input, CPU affinity and
+synthetic key, nonce and associated data when applicable. The default is one worker
+and one Linux CPU.
 Whole ciphertext and tags are checked. Checksums use little-endian bytes and digests use
 the standard byte order.
 
@@ -13,8 +14,9 @@ I/O, a warm-up call and output comparison sit outside it. OpenSSL context contai
 reused, and ciphers still receive the key and nonce per message. The harness calibrates a
 fixed number of iterations per implementation, shuffles their order in each round and
 verifies output in every sample. The JSON records wall and process CPU time. The table
-uses CPU time by default. Run with `--clock wall` to include time waiting to be scheduled. Confidence intervals use the shared distribution-free
-paired median estimator when enough samples are available. With multiple library versions
+uses process CPU time by default. Run with `--clock wall` to measure elapsed time,
+including waits for CPU scheduling. Confidence intervals use the shared
+distribution-free paired median estimator when enough samples are available. With multiple library versions
 of the same operation the Markdown table uses the fastest median at that size. The JSON
 retains all trials, library results, execution order and output fingerprints.
 
@@ -64,8 +66,23 @@ against its own standard-library snapshot and output directories. The first buil
 is the baseline. Repeat `--algorithm` and `--size` to select a subset. `--verify-only` skips
 timings and can be combined with `--offset 1` to check unaligned input.
 
-[Recorded comparison](../../results/crypto/20261126/README.md).
+## Worker scaling
 
+Repeat `--cpu` to set a common affinity mask for every build and reference. Give each Swag
+label a worker count with `--workers LABEL=COUNT`. Omitted counts default to one, and
+references run with the one-worker setting. Wall time measures parallel throughput.
+Process CPU time adds the work done by all the threads. The JSON keeps both clocks and
+records the CPU affinity and worker counts.
+
+```sh
+python3 -B "$REPO/bench/workloads/crypto/run.py" \
+  --swag "serial=$WORK/swag-bin/swag-crypto" --swag "parallel=$WORK/swag-bin/swag-crypto" \
+  --workers parallel=4 --cpu 0 --cpu 1 --cpu 2 --cpu 3 --clock wall \
+  --reference "$WORK/reference" --algorithm crc64-ecma --size 4194304 --size 16777216 \
+  --scratch "$WORK" --output "$WORK/worker-scaling.json" --markdown "$WORK/worker-scaling.md"
+```
+
+## Public-key operations
 
 The public-key operations are selected individually with `--algorithm x25519-public`,
 `x25519-shared`, `ed25519-public`, `ed25519-sign` and `p256-public`. Fixed-size key inputs
@@ -73,3 +90,5 @@ are 32 bytes. Ed25519 signing defaults to 64-byte and 4 KiB messages. Public-key
 report operations per second. OpenSSL receives a raw key or seed on each call, just
 as Swag does. The P-256 comparator uses OpenSSL's fixed-base EC multiplication with
 the group and scratch containers allocated before timing.
+
+[Recorded comparison](../../results/crypto/20261126/README.md).

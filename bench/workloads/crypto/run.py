@@ -1,4 +1,4 @@
-"""Compare native Swag Core operations with byte-equivalent library calls on one Linux CPU."""
+"""Benchmark native Swag Core and byte-equivalent library calls with a fixed Linux CPU affinity."""
 
 import argparse
 from datetime import datetime, timezone
@@ -57,11 +57,26 @@ def program(value):
     return label, executable
 
 
-def invoke(executable, algorithm, fixture, output, iterations, offset):
+def worker_count(value):
+    label, separator, text = value.partition("=")
+    try:
+        count = int(text)
+    except ValueError:
+        count = 0
+    if not separator or not label or not 0 < count <= 0xFFFFFFFF:
+        raise argparse.ArgumentTypeError("use LABEL=COUNT with a positive 32-bit worker count")
+    return label, count
+
+
+def invoke(runner, fixture, output, iterations, offset):
+    executable, algorithm, workers = runner
     output.unlink(missing_ok=True)
     command = [executable, algorithm, fixture, output, str(iterations), str(offset)]
-    environment = {**os.environ, "SWAG_RUNTIME_THREADS": "1"}
-    stdout = subprocess.check_output(command, text=True, timeout=120, env=environment)
+    environment = {**os.environ, "SWAG_RUNTIME_THREADS": str(workers)}
+    try:
+        stdout = subprocess.check_output(command, text=True, timeout=120, env=environment)
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError(f"{executable} exited with status {error.returncode}\n{error.output}") from error
     wall, cpu, frequency = map(int, stdout.split())
     if wall < 0 or cpu < 0 or frequency <= 0:
         raise RuntimeError(f"invalid clock result from {executable}")
@@ -80,16 +95,16 @@ def compare(work, name, size, offset, runners, rounds, target_ms, clock, verify_
     fixture, output = work / "input.bin", work / "output.bin"
     source = random.Random(0x5A6D_2026).randbytes(size + offset)
     fixture.write_bytes(source)
-    reference, operation = next(iter(runners.values()))
-    _, expected = invoke(reference, operation, fixture, output, 1, offset)
+    reference = next(iter(runners.values()))
+    _, expected = invoke(reference, fixture, output, 1, offset)
     samples = {}
-    for label, (executable, algorithm) in runners.items():
-        elapsed, result = invoke(executable, algorithm, fixture, output, 1, offset)
+    for label, runner in runners.items():
+        elapsed, result = invoke(runner, fixture, output, 1, offset)
         require_output(result, expected, label, name, size, offset)
         if not verify_only:
             # Bring the calibration itself above timer noise before choosing the fixed sample size.
             probe = max(1, min(10_000_000, int(0.005 / max(elapsed[clock], 1e-9))))
-            elapsed, result = invoke(executable, algorithm, fixture, output, probe, offset)
+            elapsed, result = invoke(runner, fixture, output, probe, offset)
             require_output(result, expected, label, name, size, offset)
             samples[label] = {"iterations": max(1, min(10_000_000,
                              round(probe * target_ms / (1000 * max(elapsed[clock], 1e-9))))),
@@ -102,9 +117,9 @@ def compare(work, name, size, offset, runners, rounds, target_ms, clock, verify_
             order.shuffle(labels)
             paired_order.append(labels)
             for label in labels:
-                executable, algorithm = runners[label]
+                runner = runners[label]
                 series = samples[label]
-                elapsed, result = invoke(executable, algorithm, fixture, output,
+                elapsed, result = invoke(runner, fixture, output,
                                          series["iterations"], offset)
                 require_output(result, expected, label, name, size, offset)
                 if elapsed[clock] <= 0:
@@ -163,7 +178,10 @@ def main():
     parser.add_argument("--swag", action="append", type=program, required=True,
                         help="LABEL=PATH, with baseline first when comparing multiple Swag builds")
     parser.add_argument("--reference", required=True, type=lambda value: Path(value).resolve())
-    parser.add_argument("--cpu", type=int, required=True)
+    parser.add_argument("--cpu", action="append", type=int, required=True,
+                        help="CPU in the common affinity mask, repeat to allow several CPUs")
+    parser.add_argument("--workers", action="append", type=worker_count, default=[],
+                        help="LABEL=COUNT for one Swag build, defaults to one worker")
     parser.add_argument("--algorithm", action="append", choices=REFERENCES)
     parser.add_argument("--size", action="append", type=int)
     parser.add_argument("--offset", action="append", type=int)
@@ -184,6 +202,10 @@ def main():
     if (len(set(labels)) != len(labels) or
         any(label in refs for refs in REFERENCES.values() for label in labels)):
         parser.error("Swag labels must be unique and distinct from reference labels")
+    requested_workers = dict(args.workers)
+    if len(requested_workers) != len(args.workers) or any(label not in labels for label in requested_workers):
+        parser.error("worker counts must name distinct Swag build labels")
+    workers = {label: requested_workers.get(label, 1) for label in labels}
     if any(size < 0 or (size == 0 and not args.verify_only)
            for row in sizes.values() for size in row):
         parser.error("sizes must be positive for timing and nonnegative for verification")
@@ -194,13 +216,15 @@ def main():
         parser.error("offsets must be nonnegative")
     if args.rounds < 6 or args.target_ms < 1:
         parser.error("timed campaigns need at least six positive-duration rounds")
-    if args.cpu not in os.sched_getaffinity(0):
+    affinity = list(dict.fromkeys(args.cpu))
+    if not set(affinity).issubset(os.sched_getaffinity(0)):
         parser.error("CPU is outside the current affinity mask")
-    os.sched_setaffinity(0, {args.cpu})
+    os.sched_setaffinity(0, set(affinity))
 
     version = subprocess.check_output([args.reference, "--version"], text=True).strip()
     report = {"utc": datetime.now(timezone.utc).isoformat(), "system": platform.platform(),
-              "cpu": args.cpu, "processor": cpu_features(), "reference_build": version,
+              "cpu": affinity[0], "affinity": affinity, "workers": workers,
+              "processor": cpu_features(), "reference_build": version,
               "reference_sha256": hashlib.sha256(args.reference.read_bytes()).hexdigest(),
               "swag_builds": {label: hashlib.sha256(executable.read_bytes()).hexdigest()
                               for label, executable in args.swag},
@@ -209,9 +233,9 @@ def main():
     order = random.Random(0xC0DEC0DE)
     with tempfile.TemporaryDirectory(dir=args.scratch, prefix="crypto-") as directory:
         for name in algorithms:
-            runners = {label: (args.reference, algorithm)
+            runners = {label: (args.reference, algorithm, 1)
                        for label, algorithm in REFERENCES[name].items()}
-            runners.update({label: (executable, name) for label, executable in args.swag})
+            runners.update({label: (executable, name, workers[label]) for label, executable in args.swag})
             for size in sizes[name]:
                 for offset in offsets:
                     row = compare(Path(directory), name, size, offset, runners, args.rounds,

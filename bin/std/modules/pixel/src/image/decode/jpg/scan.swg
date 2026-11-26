@@ -574,11 +574,12 @@ impl Decoder
 
         Memory.clear(hs.tree, #sizeof(hs.tree))
 
-        let packAmplitude = idx >= MaxHuffTables / 2 and not .progressiveFlag and .decOptions.decodePixels
-        let lookupBits    = packAmplitude ? BaselineAcLookupBits : HuffLookupBits
+        let packAmplitude = idx >= MaxHuffTables / 2 and (.decOptions.decodePixels or (.progressiveFlag and .decOptions.decodeMetadata))
+        let wideAc        = packAmplitude and not .progressiveFlag and .decOptions.decodePixels
+        let lookupBits    = wideAc ? BaselineAcLookupBits : HuffLookupBits
         let lookupCount   = 1 << lookupBits
         var lookup        = cast([*] s32, &hs.lookUp[0])
-        if packAmplitude
+        if wideAc
         {
             hs.baselineAc.resize(BaselineAcLookupCount)
             lookup = hs.baselineAc.storage()

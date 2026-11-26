@@ -553,3 +553,26 @@ drawing. The changed strokes and clips have smaller mean differences from
 resvg. The maximum delta from the previous raster is 113 on the strokes and
 195 on the clipped fixture. A focused test verifies a translucent stroke
 behind a fractional clip in both a tiled and an untiled render.
+
+## Preparing undashed strokes
+
+The solid-stroke paths only need flattened points, their bounds, and a
+check for a degenerate contour. Winding and simplicity stay deferred until
+an operation requests them. Dashed strokes still measure the perimeter
+used by their pattern. The regression checks a freshly flattened contour,
+a contour with cached metrics, and a short two-point contour.
+
+After direct CPU scan conversion and target readback, nine interleaved
+Release runs measured these parse-plus-raster medians in milliseconds.
+The benchmark used Scope's CPU bitmap options.
+
+| Fixture | Before, 1 worker | After | Before, 4 workers | After |
+| --- | ---: | ---: | ---: | ---: |
+| One-pixel strokes | 70.67 | 64.29 | 71.37 | 67.69 |
+| 0.5 px strokes | 21.78 | 20.78 | 21.96 | 21.04 |
+| 4 px strokes | 29.99 | 28.51 | 29.07 | 28.90 |
+
+At two samples per axis, the one-pixel stroke fixture took 414.92 versus
+389.84 ms at one worker and 453.64 versus 416.06 ms at four. All six
+bitmap controls and the three supersampled stroke fixtures matched their
+baseline CRC-64s.

@@ -28,7 +28,10 @@ Swag runtime workers (one by default).
 
 Pass `--against-bin /path/to/baseline/bin` to rebuild the same benchmark against a baseline
 standard library with the same compiler. The runner alternates the Swag builds and checks
-their raster CRC-64 values on every fixture. It prints ratios against resvg for timings.
+their raster CRC-64 values on every fixture. For antialiasing changes, add
+`--report-raster-differences` to print both checksums for each changed fixture.
+Each build must still produce deterministic output across repetitions.
+The runner prints ratios against resvg for timings.
 
 On Linux x86-64 (AMD EPYC 9V45), with one worker and seven interleaved repetitions, the generated
 corpus gave the following median parse-plus-raster times in milliseconds. The baseline was

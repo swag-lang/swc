@@ -146,6 +146,8 @@ def main():
     parser.add_argument("--swc", type=Path, required=True)
     parser.add_argument("--resvg", type=Path, required=True)
     parser.add_argument("--against-bin", type=Path, help="baseline bin/ directory with matching std sources")
+    parser.add_argument("--report-raster-differences", action="store_true",
+                        help="report both checksums when comparing different antialiasing implementations")
     parser.add_argument("--filesamples", type=Path, help="directory containing the four original SVGs")
     parser.add_argument("--reps", type=int, default=7)
     parser.add_argument("--workers", type=int, default=1)
@@ -153,6 +155,8 @@ def main():
     args = parser.parse_args()
     if args.reps < 1 or args.workers < 1:
         parser.error("--reps and --workers must be positive")
+    if args.report_raster_differences and not args.against_bin:
+        parser.error("--report-raster-differences requires --against-bin")
 
     compiler, resvg = args.swc.resolve(), args.resvg.resolve()
     print(subprocess.check_output([resvg, "--version"], text=True).strip(), flush=True)
@@ -176,9 +180,17 @@ def main():
                     samples[engine].append(measure_swag(program, fixture, width, height, args.workers, scratch))
                 samples["resvg"].append(measure_resvg(resvg, fixture, width, height, scratch))
 
-            checksums = {sample[3] for engine in programs for sample in samples[engine]}
-            if len(checksums) != 1:
-                raise ValueError(f"Swag output differs between runs for {fixture.name}")
+            checksums = {}
+            for engine in programs:
+                observed = {sample[3] for sample in samples[engine]}
+                if len(observed) != 1:
+                    raise ValueError(f"{engine} output differs between runs for {fixture.name}")
+                checksums[engine] = observed.pop()
+            if len(set(checksums.values())) > 1:
+                if not args.report_raster_differences:
+                    raise ValueError(f"Swag output differs from the baseline for {fixture.name}")
+                print(f"{fixture.stem:<22} CRC-64 baseline={checksums['baseline']:016x} "
+                      f"swag={checksums['swag']:016x}", flush=True)
             competitor = statistics.median(sample[2] for sample in samples["resvg"])
             for engine, runs in samples.items():
                 parse, raster, total = (statistics.median(values) for values in list(zip(*runs))[:3])

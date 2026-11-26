@@ -5564,7 +5564,7 @@ impl Drawing
                 .scanFills[shape.scanFill - 1].paint(painter, paths, shape.fillColor, shape.evenOdd)
             elif shape.fillGradient do
                 painter.fillPath(paths, .gradientBrushAt(shape.fillGradient)[])
-            else do
+            elif not painter.recordScanFill(paths, shape.fillColor, shape.evenOdd ? .EvenOdd : .NonZero) do
                 painter.fillPath(paths, shape.fillColor)
         }
 
@@ -6061,8 +6061,13 @@ impl Drawing
         let white = Brush.createSolid(Color.fromArgb(Argb.White))
         let range = .clipRange(incoming)
         painter.startClippingRegion(.Set)
-        for i in range.count do
-            painter.fillPath(.pathsFor(&.shapes[range.first + i]), white)
+        for i in range.count
+        {
+            let shape = &.shapes[range.first + i]
+            let paths = .pathsFor(shape)
+            if not painter.recordScanFill(paths, white.color, shape.evenOdd ? .EvenOdd : .NonZero) do
+                painter.fillPath(paths, white)
+        }
         painter.endClippingRegion()
     }
 
@@ -6175,6 +6180,7 @@ impl Drawing
                 for matte in (mask != .Color or paired ? 1 : 2)
                 {
                     var painter = Painter.create(renderer)
+                    painter.useScanlineFills = cpu != null and .preferScanFills and ss == 1
                     painter.begin()
                     painter.bindRenderTarget(&sampled)
                     painter.setColorMaskFull()

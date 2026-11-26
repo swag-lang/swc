@@ -558,7 +558,8 @@ public impl Painter
     private mtd const canRecordScanPath()->bool
     {
         let mask = .curState.colorMask
-        return .useScanlineFills and not .curRT and not .overlapMode and .usesDefaultShader and .canSetTexture0 and
+        return .useScanlineFills and (not .curRT or (not .curPaintAlpha and .curRT.colorBuffer.pixelFormat == .BGRA8)) and
+               not .overlapMode and .usesDefaultShader and .canSetTexture0 and
                (.curState.paintParams & .Antialiased) and .curState.blendingMode == .Alpha and
                mask.r and mask.g and mask.b and not mask.a
     }
@@ -614,7 +615,7 @@ public impl Painter
         return {first: start, end: .scanContourEnds.count, low: lowest, high: highest, color: color, rule: rule}
     }
 
-    private mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
+    internal mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
     {
         if not .canRecordScanPath() do
             return false

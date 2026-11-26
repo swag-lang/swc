@@ -77,7 +77,7 @@ using Core
         Swag.require(value == whole.pixels[index])
 }
 
-// A referenced clip and a different ink keep the general painter in charge.
+// A referenced clip restricts one fill while the second color remains visible.
 #test
 {
     const Source = """
@@ -99,6 +99,32 @@ using Core
     for y in 24 do
         for x in 13 do
             Swag.require(image.pixelColor(x, y) == previous.pixelColor(x, y))
+}
+
+// A fractional stencil clips the translucent stroke on both opaque mattes.
+#test
+{
+    const Source = """
+        <svg width='33' height='25'>
+          <defs><clipPath id='c'><rect x='5.25' y='3' width='19.5' height='16'/></clipPath></defs>
+          <path clip-path='url(#c)' d='M0 10H28' stroke='#ff0000' stroke-opacity='.5' stroke-width='4'/>
+          <rect x='27' y='16' width='4' height='4' fill='#0000ff'/>
+        </svg>
+        """
+    let drawing = expect Svg.Drawing.parse(Source, {preferScanFills: true})
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    let whole = drawing.rasterize(33, 25, 1)
+    let tiled = drawing.rasterizeWithSampleTileSide(renderer, 33, 25, 1, 8, &cpu)
+    Swag.require(whole.isValid() and tiled.isValid())
+    Swag.require(whole.pixelColor(4, 10).a == 0)
+    Swag.require(whole.pixelColor(5, 10).a == 95)
+    Swag.require(whole.pixelColor(12, 10).argb == 0x7FFF_0000)
+    Swag.require(whole.pixelColor(28, 17).argb == 0xFF00_00FF)
+    Swag.require(Memory.compare(whole.pixels.storage(), tiled.pixels.storage(), whole.byteCount) == 0)
 }
 
 // Resolve supersamples after the intersecting fills have composed on that grid.

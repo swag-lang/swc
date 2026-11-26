@@ -90,3 +90,20 @@ using Swag, Core.Errors
     discard catch Image.decode("unused.png", null) as errorOutcome
     Swag.require((errorOutcome.value() is InvalidFormatError))
 }
+
+// PNG enforces limits itself, using the output format after palette transparency expansion.
+#test
+{
+    let path   = getTestDataPath("paletted.png")
+    let pixels = 34 * 24
+    let bytes  = pixels * 4
+    let image  = expect Image.load(path, {maxPixels: pixels, maxDecodedBytes: bytes})
+    Swag.require(image.pixels.count == bytes)
+
+    var pixelError: Swag.Error
+    discard catch Image.load(path, {maxPixels: pixels - 1}) as pixelError
+    Swag.require((pixelError.value() is UnsupportedFormatError))
+    var byteError: Swag.Error
+    discard catch Image.load(path, {maxDecodedBytes: bytes - 1}) as byteError
+    Swag.require((byteError.value() is UnsupportedFormatError))
+}

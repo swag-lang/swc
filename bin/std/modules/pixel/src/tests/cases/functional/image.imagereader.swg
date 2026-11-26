@@ -56,6 +56,38 @@ impl IImageSetDecoder for ImageReaderMixedDepthDecoder
     }
 }
 
+struct ImageReaderRgba8OverDecoder {}
+
+impl IImageDecoder for ImageReaderRgba8OverDecoder
+{
+    mtd impl format()->ImageFormat => {"RGBA8 animation blend", ".rgba8animationblend"}
+    mtd impl decode(_: const [..] u8, _: DecodeOptions)->Image fail => Image.create(9, 1, .RGBA8)
+}
+
+impl IImageSetDecoder for ImageReaderRgba8OverDecoder
+{
+    mtd impl open(_: const [..] u8, _: DecodeOptions)->ImageSetInfo fail
+    {
+        var result: #returntype
+        result.canvasWidth  = 9
+        result.canvasHeight = 1
+        result.frames.add(ImageFrameInfo{kind: .Animation, width: 9, height: 1, blend: .Replace})
+        result.frames.add(ImageFrameInfo{kind: .Animation, width: 9, height: 1, blend: .Over})
+        return result
+    }
+
+    mtd impl readFrame(index: u32, _: DecodeOptions)->Image fail
+    {
+        const Background: [36] u8 = [
+            90, 80, 70, 0, 31, 69, 101, 177, 60, 255, 31, 17, 100, 23, 5, 0,
+            20, 40, 60, 255, 227, 99, 73, 180, 151, 157, 163, 0, 173, 179, 181, 0, 191, 193, 197, 0]
+        const Foreground: [36] u8 = [
+            17, 19, 23, 0, 29, 31, 37, 0, 41, 43, 47, 255, 53, 59, 61, 255,
+            220, 100, 40, 128, 67, 71, 73, 0, 79, 83, 89, 0, 97, 101, 103, 255, 107, 109, 113, 255]
+        return Image.create(9, 1, .RGBA8, index == 0 ? Background : Foreground)
+    }
+}
+
 struct ImageReaderDecoderAllocatorProbe
 {
     upstream:        IAllocator
@@ -329,6 +361,21 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
     var image:        #decltype(expect reader.read(0))
     catch { image = try reader.read(0) } as errorOutcome
     Swag.require(errorOutcome.value() != null)
+}
+
+// Byte alpha endpoints preserve the same pixels around the ordinary partial-alpha blend.
+#test
+{
+    Image.registerDecoder'(ImageReaderRgba8OverDecoder)()
+    var reader  = expect ImageReader.decode("image.rgba8animationblend", "input")
+    let initial = expect reader.read(0)
+    Swag.require(initial.pixels[0] == 90 and initial.pixels[3] == 0)
+
+    let image = expect reader.read(1)
+    const Expected: [36] u8 = [
+        0, 0, 0, 0, 31, 69, 101, 177, 41, 43, 47, 255, 53, 59, 61, 255,
+        120, 70, 50, 255, 227, 99, 73, 180, 0, 0, 0, 0, 97, 101, 103, 255, 107, 109, 113, 255]
+    Swag.require(Memory.compare(image.pixels.storage(), Expected, Expected.count) == 0)
 }
 
 // A high-precision later animation frame keeps its channels in the composited canvas.

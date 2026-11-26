@@ -788,6 +788,33 @@ func buildRgbTransparencyPng(width: u32)->Array'u8
     return result.toArray()
 }
 
+// Empty IDAT chunks leave the logical byte stream unchanged on either side of a split.
+#test
+{
+    const row: [7] u8 = [0, 1, 2, 3, 9, 8, 7]
+    var zlib: Compress.ZLib
+    let packed = expect zlib.compress(row)
+    let bytes  = nnBytes(packed.toSlice())
+    let split  = bytes.count / 2
+
+    var encoded: ConcatBuffer
+    addPngSignature(&encoded)
+    addPngHeader(&encoded, 2, 1, 8, 2)
+    addPngChunk(&encoded, "IDAT", "")
+    addPngChunk(&encoded, "IDAT", bytes[until split])
+    addPngChunk(&encoded, "IDAT", "")
+    addPngChunk(&encoded, "IDAT", bytes[split to])
+    addPngChunk(&encoded, "IDAT", "")
+    addPngChunk(&encoded, "IEND", "")
+
+    let image = expect Image.decode("split-idat.png", nnBytes(encoded.toSlice()))
+    assertImage(image, 2, 1, .RGB8)
+    let first  = image.pixelColor(0, 0)
+    let second = image.pixelColor(1, 0)
+    Swag.require(first.r == 1 and first.g == 2 and first.b == 3)
+    Swag.require(second.r == 9 and second.g == 8 and second.b == 7)
+}
+
 // APNG control payloads begin at unaligned addresses after the 13-byte IHDR payload.
 #test
 {

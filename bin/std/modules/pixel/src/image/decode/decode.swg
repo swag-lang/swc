@@ -103,7 +103,11 @@ impl Image
     {
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
-        if options.decodePixels and (options.maxPixels or options.maxDecodedBytes)
+
+        // PNG enforces both limits before allocating its compressed or decoded pixel buffers.
+        if decoderType != #typeof(Png.Decoder) and
+           options.decodePixels and
+           (options.maxPixels or options.maxDecodedBytes)
         {
             var probeOptions = options
             probeOptions.decodePixels   = false

@@ -121,14 +121,89 @@ impl ImageReader
 
     mtd clearRectangle(frame: ImageFrameInfo)
     {
-        let value = colorPixelValue(.info.background)
+        let bottom = .canvas.height - frame.y - frame.height
+        let stride = .canvas.rowStride
+        let target = .canvas.pixels.storage() + cast(u64, bottom) * stride + cast(u64, frame.x) * .canvas.bytesPerPixel
+        let color  = .info.background
+        if .canvas.pixelFormat == .RGBA8
+        {
+            let packed = cast(u32, color.r) | (cast(u32, color.g) << 8) |
+                         (cast(u32, color.b) << 16) | (cast(u32, color.a) << 24)
+            for y in frame.height
+            {
+                let row = cast([*] u32, (target + cast(u64, y) * stride))
+                for x in frame.width do
+                    row[x] = packed
+            }
+
+            return
+        }
+
+        let value = colorPixelValue(color)
         for y in frame.height
         {
-            let row = .canvas.height - frame.y - y - 1
-            for x in frame.width
+            let row = target + cast(u64, y) * stride
+            for x in frame.width do
+                writePixelValue(row + cast(u64, x) * .canvas.bytesPerPixel, .canvas.pixelFormat, value)
+        }
+    }
+
+    #[Swag.Inline]
+    func blendOver(source, behind: PixelValue)->PixelValue
+    {
+        let remainder = behind.a * (1 - source.a)
+        let alpha     = source.a + remainder
+        if alpha > 0
+        {
+            let red   = (source.r * source.a + behind.r * remainder) / alpha
+            let green = (source.g * source.a + behind.g * remainder) / alpha
+            let blue  = (source.b * source.a + behind.b * remainder) / alpha
+            return {red, green, blue, alpha}
+        }
+
+        return {0, 0, 0, 0}
+    }
+
+    func blendRgba8Row(source: const [*] u8, target: [*] u8, width: s32)
+    {
+        let input   = cast(const [*] u32, source)
+        let output  = cast([*] u32, target)
+        let zero    = Math.Simd.splat(0'u32)
+        let maximum = Math.Simd.splat(255'u32)
+        var x       = 0
+        while width - x >= 4
+        {
+            let colors = Math.Simd.load(input + x)
+            let alpha  = colors >> 24
+            let opaque = alpha == maximum
+            if Math.Simd.bitmask(opaque | (alpha == zero)) != 0xF do
+                break
+
+            // A transparent source retains visible destination colors and clears hidden RGB.
+            let behind  = Math.Simd.load(output + x)
+            let visible = (behind >> 24) != zero
+            Math.Simd.store(output + x, (colors & opaque) | (behind & visible & ~opaque))
+            x += 4
+        }
+
+        for pixel in x until width
+        {
+            let color = input[pixel]
+            let alpha = color >> 24
+            if alpha == 255
             {
-                let target = .canvas.pixels.storage() + cast(u64, row) * .canvas.rowStride + cast(u64, (frame.x + x)) * .canvas.bytesPerPixel
-                writePixelValue(target, .canvas.pixelFormat, value)
+                output[pixel] = color
+            }
+            elif alpha
+            {
+                let offset = cast(u64, pixel) * 4
+                let value  = readPixelValue(source + offset, .RGBA8)
+                let behind = readPixelValue(target + offset, .RGBA8)
+                writePixelValue(target + offset, .RGBA8, blendOver(value, behind))
+            }
+            elif output[pixel] >> 24 == 0
+            {
+                output[pixel] = 0
             }
         }
     }
@@ -136,34 +211,45 @@ impl ImageReader
     mtd composite(frame: ImageFrameInfo, image: Image) fail
     {
         try .validateDecodedFrame(frame, image)
+        let bottom       = .canvas.height - frame.y - frame.height
+        let stride       = .canvas.rowStride
+        let start        = .canvas.pixels.storage() + cast(u64, bottom) * stride + cast(u64, frame.x) * .canvas.bytesPerPixel
+        let pixels       = image.pixels.storage()
+        let packedCanvas = .canvas.pixelFormat == .RGBA8 and image.alphaMode == .Straight
         for y in frame.height
         {
-            let sourceRow = image.height - y - 1
-            let targetRow = .canvas.height - frame.y - y - 1
-            for x in frame.width
+            let source = pixels + cast(u64, y) * image.rowStride
+            let target = start + cast(u64, y) * stride
+            if packedCanvas and image.pixelFormat == .RGBA8
             {
-                let source = image.pixels.storage() + cast(u64, sourceRow) * image.rowStride + cast(u64, x) * image.bytesPerPixel
-                let target = .canvas.pixels.storage() + cast(u64, targetRow) * .canvas.rowStride + cast(u64, (frame.x + x)) * .canvas.bytesPerPixel
-                var value  = readLogicalPixelValue(source, image.pixelFormat, image.alphaMode)
-                if frame.blend == .Over and value.a < 1
+                if frame.blend == .Replace do
+                    Memory.copy(target, source, cast(u64, image.rowStride))
+                else do
+                    blendRgba8Row(source, target, frame.width)
+                continue
+            }
+
+            if packedCanvas and image.pixelFormat == .RGB8
+            {
+                let output = cast([*] u32, target)
+                for x in frame.width
                 {
-                    let behind    = readPixelValue(target, .canvas.pixelFormat)
-                    let remainder = behind.a * (1 - value.a)
-                    let alpha     = value.a + remainder
-                    if alpha > 0
-                    {
-                        let red   = (value.r * value.a + behind.r * remainder) / alpha
-                        let green = (value.g * value.a + behind.g * remainder) / alpha
-                        let blue  = (value.b * value.a + behind.b * remainder) / alpha
-                        value = PixelValue{red, green, blue, alpha}
-                    }
-                    else
-                    {
-                        value = {0, 0, 0, 0}
-                    }
+                    let pixel = source + cast(u64, x) * 3
+                    let low   = cast(const [*] u16, pixel)[0]
+                    output[x] = 0xFF000000'u32 | (cast(u32, pixel[2]) << 16) | cast(u32, low)
                 }
 
-                writePixelValue(target, .canvas.pixelFormat, value)
+                continue
+            }
+
+            for x in frame.width
+            {
+                let input  = source + cast(u64, x) * image.bytesPerPixel
+                let output = target + cast(u64, x) * .canvas.bytesPerPixel
+                var value  = readLogicalPixelValue(input, image.pixelFormat, image.alphaMode)
+                if frame.blend == .Over and value.a < 1 do
+                    value = blendOver(value, readPixelValue(output, .canvas.pixelFormat))
+                writePixelValue(output, .canvas.pixelFormat, value)
             }
         }
     }

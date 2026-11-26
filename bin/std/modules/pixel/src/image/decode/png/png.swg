@@ -162,25 +162,23 @@ impl Decoder
 
         result.header = ch
 
-        // Resync the byte cursor before ? any raw pointer access: the bit reader may have
-        // buffered bytes ahead of the consumed position (its refill loads several bytes at
-        // once), so rewind those back into 'curByte' so 'curPtr' is the true chunk start.
+        // Revert the bit reader's lookahead to reach the encoded chunk payload.
         .stream.revert()
 
         if .stream.bytePosition() + ch.length > .stream.size() do
             fail InvalidFormatError{"invalid chunk"}
-        result.datas = Swag.makeSlice(.stream.currentPointer(), ch.length)
+        let payload = unwrap .stream.currentPointer()
+        result.datas = Swag.makeSlice(payload, ch.length)
         .stream.advanceBytes(ch.length)
 
-        var crc: Hash.Crc32
-        crc.update(Swag.makeSlice(cast(const [*] u8, &ch.type), 4))
-        crc.update(Decoder.safeDatas(result))
+        // The four bytes immediately before the payload are its type in wire order.
+        let crc = Hash.Crc32.compute(Swag.makeSlice(payload - 4, cast(u64, ch.length) + 4))
 
         var vcrc: u32
         .stream.read32Be(cast([*] u8, &vcrc))
         if .stream.isEof() do
             fail InvalidFormatError{"PNG data ends before the chunk checksum"}
-        if vcrc != crc.value() do
+        if vcrc != crc do
             fail InvalidFormatError{"invalid checksum"}
 
         return result
@@ -264,8 +262,10 @@ impl Decoder
         if signature != 0x0A1A0A0D474E5089 do
             fail InvalidFormatError{"not a png"}
 
-        var result:   #returntype
-        var iDataBuf: Array'u8
+        var result:    #returntype
+        var frameData: Array'u8
+        var firstIdat: const [..] u8?
+        var idatSize:  u64
 
         // Zero-initialized: on iterations where 'chIsHere' skips the peek, the header
         // was already loaded by the look-ahead; the flow analysis cannot prove it.
@@ -377,7 +377,7 @@ impl Decoder
                 sequence     += 1
                 frameHasData = true
                 if .decOptions.decodePixels and selected == currentFrame do
-                    iDataBuf.add(data[4 to])
+                    frameData.add(data[4 to])
 
             case .TRNS:
                 if .seenTRSN do
@@ -473,8 +473,15 @@ impl Decoder
                 while ch.type == IDAT
                 {
                     let chunk = try .readChunk(ch)
-                    if .decOptions.decodePixels and (selected < 0 or selected == currentFrame) do
-                        iDataBuf.add(Decoder.safeDatas(chunk))
+                    if .decOptions.decodePixels and
+                       (selected < 0 or selected == currentFrame) and
+                       ch.length
+                    {
+                        if not firstIdat do
+                            firstIdat = Decoder.safeDatas(chunk)
+                        idatSize += ch.length
+                    }
+
                     if currentFrame >= 0 do
                         frameHasData = true
                     .stream.read32Be(cast([*] u8, &ch.length))
@@ -636,10 +643,42 @@ impl Decoder
             ownsDestination = true
         }
 
-        // deflate content; hint the expected decompressed size to avoid realloc churn
+        // Validate all chunks before assembling the stream. A single payload needs no copy.
+        var joined:     Array'u8
+        var compressed: const [..] u8 = frameData.toSlice()
+        if let first = firstIdat
+        {
+            if first.count == idatSize and frameData.isEmpty()
+            {
+                compressed = first
+            }
+            else
+            {
+                joined.grow(idatSize + frameData.count)
+                var payload   = first.buffer
+                var length    = first.count
+                var remaining = idatSize
+                for
+                {
+                    if length do
+                        joined.add(Swag.makeSlice(payload, length))
+                    remaining -= length
+                    if not remaining do
+                        break
+
+                    // IDAT chunks are consecutive and have already been checked for size and CRC.
+                    payload += length + 12
+                    length  = Decoder.read32Be(payload - 8)
+                }
+
+                joined.add(frameData.toSlice())
+                compressed = joined.toSlice()
+            }
+        }
+
         var dec: Compress.ZLib
         let hintSize = .getExpectedDecompressedSize()
-        .dcmpBuf = try dec.decompress(iDataBuf.toSlice(), hintSize)
+        .dcmpBuf = try dec.decompress(compressed, hintSize)
         if .dcmpBuf.count != hintSize do
             fail InvalidFormatError{"invalid PNG decompressed scanline size"}
 

@@ -326,6 +326,22 @@ impl Inflate
                 let obuf = unwrap buf
                 obuf[count] = cast(u8, value)
                 count       += 1
+
+                // A short literal can reuse the buffered bits. With FastBits available,
+                // every occupied entry in the fast table fits in the current window.
+                if nb >= FastBits and count < literalEnd
+                {
+                    let next = repeatHt.fast[cb & FastMask]
+                    if next and (next & FastMask) < 256
+                    {
+                        let length = cast(u32, (next >> FastBits))
+                        obuf[count] = cast(u8, (next & 255))
+                        count       += 1
+                        cb          >>= length
+                        nb          -= #wrap length
+                    }
+                }
+
                 continue
             }
 

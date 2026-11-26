@@ -15,7 +15,9 @@ impl Decoder
         {
             .blockNumX = blkNumX
             .blockNumY = blkNumY
-            .values.resize(cast(u64, blkNumX) * blkNumY * 64)
+            let blocks = cast(u64, blkNumX) * blkNumY
+            .values.resize(blocks * 64)
+            .nonzeroAc.resize(blocks)
         }
 
         return result
@@ -44,7 +46,7 @@ impl Decoder
         }
     }
 
-    mtd decodeBlockAcFirst(cmpId: u32, blkX, blkY: s32) fail
+    mtd decodeBlockAcFirst(p: [*] s16, present: *u64, table: *HuffTables) fail
     {
         if .eobRun
         {
@@ -52,11 +54,10 @@ impl Decoder
             return
         }
 
-        var p = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
-
+        var mask = present[]
         for var k = .spectralStart; k <= .spectralEnd; k += 1
         {
-            var s = .huffDecode(&.h[.compAcTab[cmpId]])
+            var s = .huffDecode(table)
             var r = s >> 4
             s &= 0x0F
 
@@ -69,8 +70,11 @@ impl Decoder
                 if s > 15 do
                     fail InvalidFormatError{"decode error"}
 
-                s         = extendSign(rbits, s)
-                p[Zag[k]] = cast(s16, (s << .successiveLow))
+                s = extendSign(rbits, s)
+                let coefficient = cast(s16, (s << .successiveLow))
+                p[Zag[k]] = coefficient
+                let bit = 1'u64 << k
+                mask = (mask & ~bit) | (coefficient != 0 ? bit : 0)
             }
             else
             {
@@ -90,111 +94,114 @@ impl Decoder
                 }
             }
         }
+
+        present[] = mask
     }
 
-    mtd decodeBlockAcRefine(cmpId: u32, blkX, blkY: s32) fail
+    #[Swag.Inline]
+    mtd refineCoefficient(coeff: *s16, bit: s16)
     {
-        let p1 = 1 << .successiveLow
-        let m1 = -1 << .successiveLow
-        var p  = coeffBufGetp(.coefficients[cmpId], blkX, blkY)
-        var k  = .spectralStart
-        if .eobRun == 0
+        let value = coeff[]
+        if .getBits2(1) and (value & bit) == 0 do
+            coeff[] = value + (value < 0 ? -bit : bit)
+    }
+
+    mtd decodeBlockAcRefine(p: [*] s16, present: *u64, table: *HuffTables) fail
+    {
+        let bit       = cast(s16, 1 << .successiveLow)
+        let first     = .spectralStart
+        let last      = .spectralEnd
+        let band      = (Swag.U64.Max << first) & (Swag.U64.Max >> (63 - last))
+        var remaining = present[] & band
+        var k         = first
+
+        while .eobRun == 0 and k <= last
         {
-            if .spectralEnd >= 64 do
-                fail InvalidFormatError{"decode error"}
-
-            while k <= .spectralEnd
+            let symbol = .huffDecode(table)
+            var run    = symbol >> 4
+            let size   = symbol & 15
+            var coefficient: s16
+            if size
             {
-                var s = .huffDecode(&.h[.compAcTab[cmpId]])
-                var r = s >> 4
-                s &= 15
-
-                if s
-                {
-                    if s != 1 do
-                        fail InvalidFormatError{"decode error"}
-                    if .getBits2(1) do
-                        s = p1
-                    else do
-                        s = m1
-                }
-                else
-                {
-                    if r != 15
-                    {
-                        .eobRun = 1 << r
-                        if r do
-                            .eobRun += .getBits2(r)
-                        break
-                    }
-                }
-
-                for
-                {
-                    var thisCoef = p + Zag[k]
-                    if thisCoef[] != 0
-                    {
-                        if .getBits2(1)
-                        {
-                            if (thisCoef[] & cast(s16, p1)) == 0
-                            {
-                                if thisCoef[] >= 0 do
-                                    thisCoef[] += cast(s16, p1)
-                                else do
-                                    thisCoef[] += cast(s16, m1)
-                            }
-                        }
-                    }
-                    else
-                    {
-                        r -= 1
-                        if r < 0 do
-                            break
-                    }
-
-                    k += 1
-                    if k > .spectralEnd do
-                        break
-                }
-
-                if s and (k < 64)
-                {
-                    p[Zag[k]] = cast(s16, s)
-                }
-
-                k += 1
+                if size != 1 do
+                    fail InvalidFormatError{"decode error"}
+                coefficient = .getBits2(1) ? bit : -bit
             }
+            elif run != 15
+            {
+                .eobRun = (1 << run) + (run ? .getBits2(run) : 0)
+                break
+            }
+
+            // Refinement bits are stored only for occupied positions, while the run counts
+            // vacant positions. Skip directly to the next occupied index in the scan band.
+            while remaining
+            {
+                let occupied = cast(s32, Swag.trailingZeros(remaining))
+                let zeros    = occupied - k
+                if run < zeros do
+                    break
+                run -= zeros
+                .refineCoefficient(&p[Zag[occupied]], bit)
+                remaining &= remaining - 1
+                k         = occupied + 1
+            }
+
+            k = Math.min(k + run, last + 1)
+            if coefficient and k < 64
+            {
+                p[Zag[k]] = coefficient
+                present[] |= 1'u64 << k
+            }
+
+            k += 1
         }
 
-        if .eobRun > 0
+        if .eobRun
         {
-            if .spectralEnd >= 64 do
-                fail InvalidFormatError{"decode error"}
-            while k <= .spectralEnd
+            while remaining
             {
-                var thisCoef = p + Zag[k]
-                if thisCoef[] != 0
-                {
-                    if .getBits2(1)
-                    {
-                        if (thisCoef[] & cast(s16, p1)) == 0
-                        {
-                            if thisCoef[] >= 0 do
-                                thisCoef[] += cast(s16, p1)
-                            else do
-                                thisCoef[] += cast(s16, m1)
-                        }
-                    }
-                }
-
-                k += 1
+                let occupied = cast(s32, Swag.trailingZeros(remaining))
+                .refineCoefficient(&p[Zag[occupied]], bit)
+                remaining &= remaining - 1
             }
 
             .eobRun -= 1
         }
     }
 
-    mtd decodeScan(dcOnlyScan, refinementScan: bool) fail
+    // An AC scan always visits one component in coefficient-block order.
+    mtd decodeAcScan(refinementScan: bool) fail
+    {
+        let component    = .compList[0]
+        let table        = &.h[.compAcTab[component]]
+        let coefficients = &.coefficients[component]
+        let stride       = cast(u64, coefficients.blockNumX) * 64
+        var row          = coefficients.values.storage()
+        var presenceRow  = coefficients.nonzeroAc.storage()
+        for .mcusPerCol
+        {
+            var block    = row
+            var presence = presenceRow
+            for .mcusPerRow
+            {
+                if .restartInterval and .restartsLeft == 0 do
+                    try .restartProcess()
+                if refinementScan do
+                    try .decodeBlockAcRefine(block, &presence[0], table)
+                else do
+                    try .decodeBlockAcFirst(block, &presence[0], table)
+                .restartsLeft -= 1
+                block         += 64
+                presence      += 1
+            }
+
+            row         += stride
+            presenceRow += coefficients.blockNumX
+        }
+    }
+
+    mtd decodeDcScan(refinementScan: bool) fail
     {
         var blockMcutX: [MaxComponents] s32
         var blockMcutY: [MaxComponents] s32
@@ -215,20 +222,10 @@ impl Decoder
                     let componentId = .mcuOrg[mcuBlock]
                     let blkX        = blockMcutX[componentId] + blockMcuOfsX
                     let blkY        = blockMcutY[componentId] + blockMcuOfsY
-                    if dcOnlyScan
-                    {
-                        if refinementScan do
-                            try .decodeBlockDcRefine(componentId, blkX, blkY)
-                        else do
-                            try .decodeBlockDcFirst(componentId, blkX, blkY)
-                    }
-                    else
-                    {
-                        if refinementScan do
-                            try .decodeBlockAcRefine(componentId, blkX, blkY)
-                        else do
-                            try .decodeBlockAcFirst(componentId, blkX, blkY)
-                    }
+                    if refinementScan do
+                        try .decodeBlockDcRefine(componentId, blkX, blkY)
+                    else do
+                        try .decodeBlockDcFirst(componentId, blkX, blkY)
 
                     if .compsInScan == 1
                     {
@@ -289,13 +286,21 @@ impl Decoder
             if not res do
                 break
 
-            try .decodeScan(.spectralStart == 0, .successiveHigh != 0)
+            let refinementScan = .successiveHigh != 0
+            if .spectralStart == 0 do
+                try .decodeDcScan(refinementScan)
+            else do
+                try .decodeAcScan(refinementScan)
 
             .primeMarkerBits()
         }
 
         if .lastMarkerSynthetic do
             fail InvalidFormatError{"JPEG data ends before the end-of-image marker"}
+
+        // The masks have no further use once every scan has been decoded.
+        for &component in .coefficients do
+            component.nonzeroAc.free()
 
         // The entropy scan stores coefficients in natural order. Reorder each table once so
         // dequantization can multiply an entire row of a block in one operation.

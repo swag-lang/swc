@@ -75,6 +75,7 @@ private
     struct CoeffBuf
     {
         values:    Array's16
+        nonzeroAc: Array'u64     // Occupied AC positions in zigzag order for each block.
         blockNumX: s32
         blockNumY: s32
     }

@@ -1,0 +1,337 @@
+{
+  "utc": "2026-11-26T13:12:17.781670+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    4
+  ],
+  "workers": {
+    "baseline": 4,
+    "candidate": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "BLAKE3 C 1.8.7 | dispatch width 16",
+  "reference_sha256": "ebef2902c071c78e7e333d4b7b55ad247c765e012517d1eb044dda4c2858a5fb",
+  "swag_builds": {
+    "baseline": "0bbbd8439b183076ca2c63cf908040c2101531f7e4dd6b66ad27e20e014256f9",
+    "candidate": "6172ce81c59018d305d37b323162878e069b96467876abe45328072ded321afb"
+  },
+  "rounds": 11,
+  "target_ms": 20,
+  "clock": "wall",
+  "rows": [
+    {
+      "algorithm": "blake3",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 14,
+          "wall": [
+            0.019062709,
+            0.01847301,
+            0.018317345,
+            0.018437436,
+            0.018781725,
+            0.019083351,
+            0.027844994,
+            0.018646202,
+            0.018613111,
+            0.018388263,
+            0.018396435
+          ],
+          "cpu": [
+            0.019027397,
+            0.018471208,
+            0.018315656,
+            0.018435465,
+            0.018770264,
+            0.019061347,
+            0.022946701,
+            0.018643484,
+            0.018603726,
+            0.018386472,
+            0.018367785
+          ]
+        },
+        "baseline": {
+          "iterations": 4,
+          "wall": [
+            0.021574869,
+            0.015904337,
+            0.016973889,
+            0.016393233,
+            0.015865247,
+            0.018040007,
+            0.016147914,
+            0.016289467,
+            0.016247684,
+            0.016593876,
+            0.016906348
+          ],
+          "cpu": [
+            0.051740486,
+            0.045428173,
+            0.051338063,
+            0.041063225,
+            0.045122359,
+            0.051873021,
+            0.040384009,
+            0.040599771,
+            0.040233766,
+            0.051229418,
+            0.046002051
+          ]
+        },
+        "candidate": {
+          "iterations": 8,
+          "wall": [
+            0.021574077,
+            0.020641651,
+            0.020575471,
+            0.019592409,
+            0.020484754,
+            0.021566615,
+            0.020907271,
+            0.018459039,
+            0.02071996,
+            0.022287834,
+            0.022570269
+          ],
+          "cpu": [
+            0.053778236,
+            0.04924816,
+            0.049427103,
+            0.048691145,
+            0.049556452,
+            0.04997264,
+            0.050698469,
+            0.042332703,
+            0.051390855,
+            0.042582655,
+            0.04752798
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 3,
+          "wall": [
+            0.019819922,
+            0.020314628,
+            0.02038249,
+            0.019357824,
+            0.020221988,
+            0.02070747,
+            0.020809113,
+            0.020279385,
+            0.020061386,
+            0.020279015,
+            0.020300587
+          ],
+          "cpu": [
+            0.019807368,
+            0.020299811,
+            0.02037964,
+            0.019355004,
+            0.020219742,
+            0.020704904,
+            0.020806486,
+            0.020275786,
+            0.020059173,
+            0.020276776,
+            0.020297948
+          ]
+        },
+        "baseline": {
+          "iterations": 1,
+          "wall": [
+            0.01584685,
+            0.021723031,
+            0.016842071,
+            0.021724914,
+            0.015856575,
+            0.022812585,
+            0.018365824,
+            0.014129339,
+            0.01346646,
+            0.021976785,
+            0.01822713
+          ],
+          "cpu": [
+            0.051893291,
+            0.056902211,
+            0.043309363,
+            0.056652048,
+            0.05162364,
+            0.059417194,
+            0.046962784,
+            0.043477048,
+            0.042515347,
+            0.057101447,
+            0.05473264
+          ]
+        },
+        "candidate": {
+          "iterations": 2,
+          "wall": [
+            0.022557029,
+            0.022192569,
+            0.024735044,
+            0.022118218,
+            0.021948953,
+            0.018313901,
+            0.048636301,
+            0.023059006,
+            0.019129631,
+            0.01981917,
+            0.021937455
+          ],
+          "cpu": [
+            0.05655379,
+            0.051390563,
+            0.058792386,
+            0.056917422,
+            0.055610146,
+            0.049861505,
+            0.10768799,
+            0.052869166,
+            0.04656253,
+            0.051782185,
+            0.056637065
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ]
+      ]
+    }
+  ]
+}

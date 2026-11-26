@@ -235,23 +235,35 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
             blockFlags |= Blake3ChunkStart
         if blockIndex == Blake3BlocksPerChunk - 1 do
             blockFlags |= Blake3ChunkEnd
-        var state: [16] Blake3Vector = [
-            cv[0], cv[1], cv[2], cv[3], cv[4], cv[5], cv[6], cv[7],
-            Math.Simd.splat(Blake3Iv[0]), Math.Simd.splat(Blake3Iv[1]),
-            Math.Simd.splat(Blake3Iv[2]), Math.Simd.splat(Blake3Iv[3]),
-            low, high, blockSize, Math.Simd.splat(blockFlags)]
+        // Keep the round state in separate vector locals so mixes can reuse registers.
+        var a0 = cv[0]
+        var a1 = cv[1]
+        var a2 = cv[2]
+        var a3 = cv[3]
+        var b0 = cv[4]
+        var b1 = cv[5]
+        var b2 = cv[6]
+        var b3 = cv[7]
+        var c0 = Math.Simd.splat(Blake3Iv[0])
+        var c1 = Math.Simd.splat(Blake3Iv[1])
+        var c2 = Math.Simd.splat(Blake3Iv[2])
+        var c3 = Math.Simd.splat(Blake3Iv[3])
+        var d0 = low
+        var d1 = high
+        var d2 = blockSize
+        var d3 = Math.Simd.splat(blockFlags)
 
         #[Swag.Mixin]
-        func(A: u64, B: u64, C: u64, D: u64) mix(x, y: Blake3Vector)
+        func mix(a, b, c, d: *Blake3Vector, x, y: Blake3Vector)
         {
-            state[A] += state[B] + x
-            state[D] = Math.ror(state[D] ^ state[A], 16)
-            state[C] += state[D]
-            state[B] = Math.ror(state[B] ^ state[C], 12)
-            state[A] += state[B] + y
-            state[D] = Math.ror(state[D] ^ state[A], 8)
-            state[C] += state[D]
-            state[B] = Math.ror(state[B] ^ state[C], 7)
+            a[] += b[] + x
+            d[] = Math.ror(d[] ^ a[], 16)
+            c[] += d[]
+            b[] = Math.ror(b[] ^ c[], 12)
+            a[] += b[] + y
+            d[] = Math.ror(d[] ^ a[], 8)
+            c[] += d[]
+            b[] = Math.ror(b[] ^ c[], 7)
         }
 
         #[Swag.Mixin]
@@ -260,14 +272,14 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
             scope
             {
                 const Schedule = Blake3MessageSchedule[Round]
-                mix'(0, 4, 8, 12)(message[Schedule[0]], message[Schedule[1]])
-                mix'(1, 5, 9, 13)(message[Schedule[2]], message[Schedule[3]])
-                mix'(2, 6, 10, 14)(message[Schedule[4]], message[Schedule[5]])
-                mix'(3, 7, 11, 15)(message[Schedule[6]], message[Schedule[7]])
-                mix'(0, 5, 10, 15)(message[Schedule[8]], message[Schedule[9]])
-                mix'(1, 6, 11, 12)(message[Schedule[10]], message[Schedule[11]])
-                mix'(2, 7, 8, 13)(message[Schedule[12]], message[Schedule[13]])
-                mix'(3, 4, 9, 14)(message[Schedule[14]], message[Schedule[15]])
+                mix(&a0, &b0, &c0, &d0, message[Schedule[0]], message[Schedule[1]])
+                mix(&a1, &b1, &c1, &d1, message[Schedule[2]], message[Schedule[3]])
+                mix(&a2, &b2, &c2, &d2, message[Schedule[4]], message[Schedule[5]])
+                mix(&a3, &b3, &c3, &d3, message[Schedule[6]], message[Schedule[7]])
+                mix(&a0, &b1, &c2, &d3, message[Schedule[8]], message[Schedule[9]])
+                mix(&a1, &b2, &c3, &d0, message[Schedule[10]], message[Schedule[11]])
+                mix(&a2, &b3, &c0, &d1, message[Schedule[12]], message[Schedule[13]])
+                mix(&a3, &b0, &c1, &d2, message[Schedule[14]], message[Schedule[15]])
             }
         }
 
@@ -278,17 +290,16 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
         mixRound'4()
         mixRound'5()
         mixRound'6()
+        var next: [8] Blake3Vector = [a0 ^ c0, a1 ^ c1, a2 ^ c2, a3 ^ c3,
+                                       b0 ^ d0, b1 ^ d1, b2 ^ d2, b3 ^ d3]
         if keepLastInput and blockIndex == Blake3BlocksPerChunk - 1
         {
             const RetainLast = cast(Blake3Vector, [0'u32, 0, 0, Swag.U32.Max])
             for index in 8 do
-                cv[index] = Math.Simd.select(RetainLast, cv[index], state[index] ^ state[index + 8])
+                next[index] = Math.Simd.select(RetainLast, cv[index], next[index])
         }
-        else
-        {
-            for index in 8 do
-                cv[index] = state[index] ^ state[index + 8]
-        }
+
+        cv = next
     }
 
     var result: #returntype

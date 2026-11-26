@@ -1,0 +1,949 @@
+{
+  "utc": "2026-11-26T13:12:21.471342+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 0,
+  "affinity": [
+    0,
+    1,
+    2,
+    4
+  ],
+  "workers": {
+    "baseline": 4,
+    "candidate": 4
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "BLAKE3 C 1.8.7 | dispatch width 16",
+  "reference_sha256": "ebef2902c071c78e7e333d4b7b55ad247c765e012517d1eb044dda4c2858a5fb",
+  "swag_builds": {
+    "baseline": "0bbbd8439b183076ca2c63cf908040c2101531f7e4dd6b66ad27e20e014256f9",
+    "candidate": "6172ce81c59018d305d37b323162878e069b96467876abe45328072ded321afb"
+  },
+  "rounds": 11,
+  "target_ms": 20,
+  "clock": "wall",
+  "rows": [
+    {
+      "algorithm": "blake3-stream-4096",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 6,
+          "wall": [
+            0.019622563,
+            0.019928044,
+            0.020250631,
+            0.021498794,
+            0.020125162,
+            0.02093987,
+            0.02035594,
+            0.019577086,
+            0.019786701,
+            0.019656224,
+            0.01942085
+          ],
+          "cpu": [
+            0.019612287,
+            0.019925504,
+            0.020234975,
+            0.021489549,
+            0.020105712,
+            0.020937721,
+            0.020326731,
+            0.019563504,
+            0.019784343,
+            0.019642402,
+            0.019418799
+          ]
+        },
+        "baseline": {
+          "iterations": 2,
+          "wall": [
+            0.020616253,
+            0.020751356,
+            0.020921764,
+            0.023024424,
+            0.020398023,
+            0.042793319,
+            0.021187114,
+            0.020367417,
+            0.020602792,
+            0.021530922,
+            0.020459966
+          ],
+          "cpu": [
+            0.020613137,
+            0.02074871,
+            0.020918783,
+            0.023021635,
+            0.020395273,
+            0.042790094,
+            0.021184419,
+            0.020365218,
+            0.020585136,
+            0.02152787,
+            0.020456695
+          ]
+        },
+        "candidate": {
+          "iterations": 4,
+          "wall": [
+            0.021861732,
+            0.021793088,
+            0.023104125,
+            0.021610102,
+            0.023272929,
+            0.022120011,
+            0.022102745,
+            0.02261674,
+            0.024834544,
+            0.048064379,
+            0.022992306
+          ],
+          "cpu": [
+            0.021858542,
+            0.021790541,
+            0.023101403,
+            0.021607578,
+            0.023269674,
+            0.022117588,
+            0.022100413,
+            0.022614078,
+            0.024820573,
+            0.047979913,
+            0.022989356
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3-stream-4096",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 1,
+          "wall": [
+            0.014800601,
+            0.015140585,
+            0.015573627,
+            0.015190059,
+            0.015102317,
+            0.015211452,
+            0.014293157,
+            0.015203179,
+            0.015201176,
+            0.016488227,
+            0.01662957
+          ],
+          "cpu": [
+            0.014798729,
+            0.015138154,
+            0.015571139,
+            0.015187638,
+            0.015099146,
+            0.015208539,
+            0.014291133,
+            0.015199866,
+            0.015198404,
+            0.0164854,
+            0.01662615
+          ]
+        },
+        "baseline": {
+          "iterations": 1,
+          "wall": [
+            0.042883585,
+            0.042011931,
+            0.043141925,
+            0.043280123,
+            0.062567257,
+            0.044915039,
+            0.043111449,
+            0.109595037,
+            0.054091238,
+            0.085644486,
+            0.074617906
+          ],
+          "cpu": [
+            0.042880128,
+            0.042007579,
+            0.043137271,
+            0.043249378,
+            0.057714123,
+            0.044909971,
+            0.043106856,
+            0.109579079,
+            0.054085706,
+            0.085638095,
+            0.074612776
+          ]
+        },
+        "candidate": {
+          "iterations": 1,
+          "wall": [
+            0.02341953,
+            0.024685951,
+            0.023097454,
+            0.024961987,
+            0.024381281,
+            0.02377078,
+            0.023851763,
+            0.024117543,
+            0.023673884,
+            0.024132075,
+            0.023688566
+          ],
+          "cpu": [
+            0.02341486,
+            0.024682508,
+            0.023092941,
+            0.02495892,
+            0.024376883,
+            0.023766904,
+            0.023842957,
+            0.024114171,
+            0.023669559,
+            0.024127662,
+            0.023671282
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3-stream-65536",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 14,
+          "wall": [
+            0.019295971,
+            0.021961386,
+            0.018863739,
+            0.019363864,
+            0.018956349,
+            0.019308431,
+            0.019087998,
+            0.019293547,
+            0.018929419,
+            0.01952034,
+            0.019193517
+          ],
+          "cpu": [
+            0.01927873,
+            0.021543755,
+            0.01886157,
+            0.019361313,
+            0.018953987,
+            0.019305901,
+            0.019085994,
+            0.019275646,
+            0.018907278,
+            0.019503795,
+            0.019167725
+          ]
+        },
+        "baseline": {
+          "iterations": 3,
+          "wall": [
+            0.025298173,
+            0.026069056,
+            0.024971311,
+            0.02251786,
+            0.022673756,
+            0.018850169,
+            0.022905576,
+            0.019547951,
+            0.025128517,
+            0.020598646,
+            0.02011753
+          ],
+          "cpu": [
+            0.058076541,
+            0.060634193,
+            0.050256312,
+            0.044676904,
+            0.046551748,
+            0.041396179,
+            0.045977989,
+            0.04260203,
+            0.042581485,
+            0.044498942,
+            0.043347156
+          ]
+        },
+        "candidate": {
+          "iterations": 4,
+          "wall": [
+            0.023562086,
+            0.05025976,
+            0.021085319,
+            0.016913659,
+            0.017445921,
+            0.021393705,
+            0.020928403,
+            0.020725497,
+            0.022156926,
+            0.021532074,
+            0.02239179
+          ],
+          "cpu": [
+            0.045577111,
+            0.084958445,
+            0.034664271,
+            0.029650125,
+            0.030366572,
+            0.036011339,
+            0.035593026,
+            0.034838576,
+            0.038263329,
+            0.038241163,
+            0.038550735
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3-stream-65536",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 3,
+          "wall": [
+            0.019663872,
+            0.022515467,
+            0.020824587,
+            0.020823014,
+            0.020277352,
+            0.02005738,
+            0.020299675,
+            0.020057139,
+            0.020371483,
+            0.019659309,
+            0.020462111
+          ],
+          "cpu": [
+            0.019660905,
+            0.022512226,
+            0.020821708,
+            0.020819355,
+            0.020275344,
+            0.020041797,
+            0.020295855,
+            0.020044261,
+            0.020368193,
+            0.019610814,
+            0.020459378
+          ]
+        },
+        "baseline": {
+          "iterations": 1,
+          "wall": [
+            0.027539834,
+            0.025740541,
+            0.031869725,
+            0.025447599,
+            0.027695929,
+            0.03013578,
+            0.030783326,
+            0.031305443,
+            0.027123176,
+            0.030417715,
+            0.030671838
+          ],
+          "cpu": [
+            0.05960594,
+            0.057107849,
+            0.051928488,
+            0.056215828,
+            0.061599595,
+            0.060758499,
+            0.063443806,
+            0.070622082,
+            0.058438701,
+            0.062145026,
+            0.063823665
+          ]
+        },
+        "candidate": {
+          "iterations": 1,
+          "wall": [
+            0.018886695,
+            0.022162265,
+            0.017913527,
+            0.019079985,
+            0.022884994,
+            0.024279117,
+            0.023403746,
+            0.021821199,
+            0.022417288,
+            0.019758579,
+            0.020992279
+          ],
+          "cpu": [
+            0.033071638,
+            0.036767209,
+            0.032068167,
+            0.034074383,
+            0.043698562,
+            0.045625087,
+            0.044813986,
+            0.038782138,
+            0.03966517,
+            0.034198828,
+            0.036438352
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3-stream-1048576",
+      "bytes": 8388608,
+      "offset": 0,
+      "input_sha256": "ade1e9c1570b805b0b6bb760a570b3db94883af4443f42fb63a15e0904251298",
+      "output_sha256": "d82f87dfcb44bad2a6ac04ea48601a1aa611e855c3ceaec164233d651e984be3",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 15,
+          "wall": [
+            0.020520909,
+            0.019940313,
+            0.019871199,
+            0.019787893,
+            0.01973972,
+            0.019778229,
+            0.019764898,
+            0.019519739,
+            0.019763136,
+            0.019642514,
+            0.020233926
+          ],
+          "cpu": [
+            0.020504246,
+            0.019938082,
+            0.01986882,
+            0.019765596,
+            0.019737293,
+            0.019763922,
+            0.019729641,
+            0.019516975,
+            0.019741409,
+            0.019639438,
+            0.020215225
+          ]
+        },
+        "baseline": {
+          "iterations": 5,
+          "wall": [
+            0.020449902,
+            0.020386507,
+            0.02042888,
+            0.020348694,
+            0.019810848,
+            0.020274456,
+            0.02140311,
+            0.020272664,
+            0.020450222,
+            0.020652307,
+            0.021006992
+          ],
+          "cpu": [
+            0.05350363,
+            0.05272063,
+            0.05526701,
+            0.054456177,
+            0.053413377,
+            0.054577308,
+            0.055685041,
+            0.05382147,
+            0.054242251,
+            0.054950598,
+            0.055399284
+          ]
+        },
+        "candidate": {
+          "iterations": 8,
+          "wall": [
+            0.019952421,
+            0.020339085,
+            0.020054515,
+            0.02430095,
+            0.022171177,
+            0.019954535,
+            0.020035817,
+            0.023583497,
+            0.020125863,
+            0.020780099,
+            0.021284551
+          ],
+          "cpu": [
+            0.046656086,
+            0.046752868,
+            0.046508773,
+            0.054991381,
+            0.050108373,
+            0.046625045,
+            0.047247269,
+            0.051686204,
+            0.047436509,
+            0.047563137,
+            0.048684311
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ]
+      ]
+    },
+    {
+      "algorithm": "blake3-stream-1048576",
+      "bytes": 33554432,
+      "offset": 0,
+      "input_sha256": "918b2032f3b6c2f026d357c78de1b3bfa182ef66a681c2cd92527db549fde2b1",
+      "output_sha256": "9989b8f3e5334b320e626eb20d8ab2572231a5ba9eb4f84053625b99d7f15b26",
+      "samples": {
+        "BLAKE3 C": {
+          "iterations": 3,
+          "wall": [
+            0.019617727,
+            0.020385895,
+            0.019577736,
+            0.019874253,
+            0.019892231,
+            0.020222319,
+            0.019952632,
+            0.019404816,
+            0.020397242,
+            0.020595791,
+            0.019326087
+          ],
+          "cpu": [
+            0.019613869,
+            0.020382514,
+            0.019575242,
+            0.019871383,
+            0.019874378,
+            0.020218971,
+            0.019939254,
+            0.019376296,
+            0.020394973,
+            0.020593349,
+            0.019316346
+          ]
+        },
+        "baseline": {
+          "iterations": 1,
+          "wall": [
+            0.018175742,
+            0.019438467,
+            0.016394045,
+            0.015864576,
+            0.015900521,
+            0.016525544,
+            0.016047001,
+            0.016244118,
+            0.01627843,
+            0.01628472,
+            0.016476349
+          ],
+          "cpu": [
+            0.049571058,
+            0.053278109,
+            0.042995891,
+            0.04279352,
+            0.043215386,
+            0.043897556,
+            0.044409304,
+            0.043996509,
+            0.043296278,
+            0.043591294,
+            0.04463528
+          ]
+        },
+        "candidate": {
+          "iterations": 2,
+          "wall": [
+            0.020771527,
+            0.021367797,
+            0.020540479,
+            0.021624613,
+            0.020465515,
+            0.0197254,
+            0.020551855,
+            0.020679928,
+            0.020092954,
+            0.02054792,
+            0.020153524
+          ],
+          "cpu": [
+            0.049167955,
+            0.049606028,
+            0.047887646,
+            0.05062454,
+            0.048484874,
+            0.047018428,
+            0.048082262,
+            0.047986674,
+            0.047286983,
+            0.048234746,
+            0.047813136
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "candidate",
+          "BLAKE3 C"
+        ],
+        [
+          "BLAKE3 C",
+          "candidate",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "baseline",
+          "BLAKE3 C",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "BLAKE3 C",
+          "baseline",
+          "candidate"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "BLAKE3 C",
+          "baseline"
+        ],
+        [
+          "candidate",
+          "baseline",
+          "BLAKE3 C"
+        ]
+      ]
+    }
+  ]
+}

@@ -82,7 +82,8 @@ def build(compiler, bin_root, build_root):
 
 def measure_swag(command, fixture, width, height, workers, scratch):
     output = subprocess.check_output([command, fixture, str(width), str(height), str(workers)],
-                                     cwd=scratch, text=True)
+                                     cwd=scratch, env=dict(os.environ, SWAG_RUNTIME_THREADS=str(workers)),
+                                     text=True)
     parse, raster, total, checksum = map(int, output.split())
     return parse / 1000, raster / 1000, total / 1000, checksum
 

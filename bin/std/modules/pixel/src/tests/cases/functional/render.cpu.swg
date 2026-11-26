@@ -862,6 +862,14 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.fillRect(0, 0, 1024.0, 512.0, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
     painter.fillRoundRect(0, 0, 960.0, 480.0, 24, 24, Color.fromArgb(128'u8, 0'u8, 255'u8, 0'u8))
     painter.fillRoundRect(0, 16, 900.0, 460.0, 40, 40, Color.fromArgb(96'u8, 0'u8, 0'u8, 255'u8))
+    for i in 160 do
+        painter.fillRect(1, cast(f32, (i * 79) % Height), 12, 5, Color.fromArgb(80'u8, 153'u8, 222'u8, 118'u8))
+    var path: LinePath
+    path.start(3.25, 4)
+    path.lineTo(7, 490)
+    path.lineTo(920, 18)
+    path.lineTo(4.1, 300)
+    painter.drawPath(&path, Pen.createSolid(Color.fromArgb(176'u8, 239'u8, 152'u8, 52'u8), 9))
     painter.end()
 
     let serial = renderCpu(Narrow, Height, &painter)

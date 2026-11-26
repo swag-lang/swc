@@ -126,7 +126,7 @@ ships; history lives in Git, not here.
   and these output sizes only; it does not establish whole-format correctness or universal speed.
 - Next: run the [Release SVG benchmark](../bench/workloads/svgraster/README.md) against the four
   SHA-256-verified original files. Profile the remaining gap on the 453 KiB and 7.9 MiB samples,
-  particularly triangle setup and raster work for large collections of individual paths.
+  particularly stroke coverage and the remaining triangle work in individual colored paths.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

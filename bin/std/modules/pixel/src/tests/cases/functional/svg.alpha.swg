@@ -13,6 +13,44 @@ using Swag, Core
     assertSvgWhiteMaskRaster(renderer, 64)
 }
 
+// One traversal must preserve both mattes even at clipped overlaps and partial edge tiles.
+#test
+{
+    const Source = #raw """
+        <svg width="91" height="73">
+          <defs>
+            <clipPath id="c"><ellipse cx="49" cy="34" rx="44" ry="29"/></clipPath>
+            <linearGradient id="ink">
+              <stop offset="0" stop-color="#e45428" stop-opacity=".5"/>
+              <stop offset="1" stop-color="#2164ac"/>
+            </linearGradient>
+          </defs>
+          <g clip-path="url(#c)">
+            <rect x="7.5" y="4.25" width="81" height="68" fill="url(#ink)"/>
+            <path d="M6 42L82 21L40 62L65 7" fill="none" stroke="#92246d"
+                  stroke-width="7" stroke-opacity=".63" stroke-linejoin="round"/>
+            <path d="M25 18Q73 4 79 48" fill="none" stroke="url(#ink)"
+                  stroke-width="4" stroke-opacity=".47"/>
+          </g>
+          <rect x="67" y="46" width="24" height="27" fill="#407649" opacity=".4"/>
+        </svg>
+        """
+    let drawing   = expect Svg.Drawing.parse(Source)
+    let reference = expect Svg.Drawing.parse(Source)
+    var cpu:      RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
+    let paired   = drawing.rasterizeWithSampleTileSide(renderer, 91, 73, 1, 32, &cpu)
+    let separate = reference.rasterizeWithSampleTileSide(renderer, 91, 73, 1, 32)
+    Swag.require(paired.isValid() and separate.isValid())
+    Swag.require(paired.pixelColor(0, 0).a == 0)
+    Swag.require(paired.pixelColor(89, 72).a == 102)
+    for byte, index in paired.pixels do
+        Swag.require(byte == separate.pixels[index])
+}
+
 // An intersected clip must remain visible in every raster tile, including tiles whose origin
 // lies beyond the generated contour's first vertex.
 #test

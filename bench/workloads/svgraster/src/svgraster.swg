@@ -10,6 +10,7 @@ using Core, Pixel
     let workers = expect StrConv.toU32(args[4])
     Swag.setWorkerCount(workers)
     Swag.startWorkers()
+    Swag.require(Swag.workerCount() == workers)
 
     // A fresh drawing includes first-paint geometry preparation in every timed sample.
     for sample in 2

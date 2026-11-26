@@ -6047,7 +6047,7 @@ impl Drawing
         var cpu:      RenderCpu
         let renderer: IRenderer = &cpu
         renderer.init()
-        var result = .rasterize(renderer, width, height, supersample)
+        var result = .rasterizeWithSampleTileSide(renderer, width, height, supersample, RasterSampleTileSide, &cpu)
         renderer.end()
         return result
     }
@@ -6069,7 +6069,7 @@ impl Drawing
     }
 
     // Rasterizes with an explicit sampled-tile bound for module tests.
-    internal mtd const rasterizeWithSampleTileSide(renderer: IRenderer, width, height: s32, supersample: u8, sampleTileSide: s32)->Image
+    internal mtd const rasterizeWithSampleTileSide(renderer: IRenderer, width, height: s32, supersample: u8, sampleTileSide: s32, cpu: *RenderCpu? = null)->Image
     {
         Swag.assert(width > 0 and height > 0)
         Swag.assert(sampleTileSide > 0)
@@ -6080,10 +6080,11 @@ impl Drawing
         let sampledWidth  = tileWidth * ss
         let sampledHeight = tileHeight * ss
         let whiteMask     = .hasOnlyWhiteShapes()
+        let paired        = cpu != null and ss == 1 and not whiteMask and .canShareMatteCoverage()
 
         // Strokes use destination alpha as scratch. Recover source-over coverage from two
-        // opaque mattes instead: white minus black is the uncovered fraction. Both passes
-        // paint the authored colors and clips normally, including translucent overlaps.
+        // opaque mattes instead: white minus black is the uncovered fraction. Each matte
+        // preserves the authored colors and clips, including translucent overlaps.
         var result = Image.create(width, height, .BGRA8)
 
         // Targets are created at the exact size instead of acquired from the pool, which
@@ -6101,6 +6102,13 @@ impl Drawing
             renderer.deleteRenderTarget(&resolved)
         if ss > 1 and not resolved.colorBuffer.isValid() do
             return {}
+        var whiteMatte: RenderTarget
+        if paired do
+            whiteMatte = renderer.createRenderTarget(sampledWidth, sampledHeight)
+        defer if paired do
+            renderer.deleteRenderTarget(&whiteMatte)
+        if paired and not whiteMatte.colorBuffer.isValid() do
+            return {}
 
         var tileY = 0
         while tileY < height
@@ -6111,7 +6119,7 @@ impl Drawing
             {
                 let copyWidth = Math.min(tileWidth, width - tileX)
                 var mattes: [2] Image
-                for matte in (whiteMask ? 1 : 2)
+                for matte in (whiteMask or paired ? 1 : 2)
                 {
                     var painter = Painter.create(renderer)
                     painter.begin()
@@ -6151,12 +6159,23 @@ impl Drawing
                     }
 
                     painter.end()
+                    if paired do
+                        cpu!.beginSvgMattes(whiteMatte.colorBuffer)
+                    defer if paired do
+                        cpu!.endSvgMattes()
                     catch renderer.draw(&painter) { return {} }
 
                     // Render-target readbacks and images share the bottom-up row convention. Copy
                     // each tile into the matching bottom-up rows of the complete result.
                     mattes[matte] = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
                     if not mattes[matte].isValid() do
+                        return {}
+                }
+
+                if paired
+                {
+                    mattes[1] = renderer.readRenderTarget(&whiteMatte, 0, 0, copyWidth, copyHeight)
+                    if not mattes[1].isValid() do
                         return {}
                 }
 
@@ -6220,6 +6239,16 @@ impl Drawing
         }
 
         return result
+    }
+
+    // The shared coverage path handles solid and gradient geometry in a single target.
+    private mtd const canShareMatteCoverage()->bool
+    {
+        if .filters.count or .patterns.count do
+            return false
+        for item in .items where item.kind != .Shape do
+            return false
+        return true
     }
 
     // White masks need one matte. Keep pictures, text, paint servers and filters on the

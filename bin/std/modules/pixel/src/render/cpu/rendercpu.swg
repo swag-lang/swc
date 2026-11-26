@@ -62,7 +62,9 @@ struct RenderCpu
         overlapPass:    u8
         overlapAlpha:   Array'u8
         overlapWritten: Array'u8
+        overlapRows:    Array'OverlapRow
         alphaResolve:   bool
+        whiteMatte:     [*] u8?
 
         blurAxis:      s32
         blurRadius:    f32 = 4
@@ -152,6 +154,12 @@ private struct CpuStencil
     dirty:  PixelBounds = PixelBounds.Empty
 }
 
+private struct OverlapRow
+{
+    first: s32 = Swag.S32.Max
+    last:  s32 = -1
+}
+
 private
 {
     // Pixel area below which splitting a batch into bands costs more than the rasterization saves.
@@ -216,6 +224,7 @@ private struct RasterBatch
     clipMaxY: s32
 
     late stencil: [*] u8     // Stencil plane of the target, one byte per pixel, top-down rows.
+    overlapRows:  [*] OverlapRow?
 
     solidPaint:  bool                   // The paint multiplies by opaque white, which is the identity.
     paintImage:  *Image?                // Storage of a bound texture paint, resolved once.
@@ -868,6 +877,9 @@ private impl RenderCpu
         return Math.Simd.select(CpuBgraRgbMask, Math.Simd.packUnsigned(low, high), dst)
     }
 
+    #[Swag.Inline]
+    func coverageAlpha(alpha: u8, coverage: f32)->u8 => cast(u8, Math.clamp(Math.round(cast(f32, alpha) * coverage), 0.0, 255.0))
+
     mtd blendPixel(image: *Image, x, y: s32, src: Color)
     {
         // A zero-alpha source is coverage, not ink: the OpenGL shader discards it under
@@ -907,8 +919,12 @@ private impl RenderCpu
             let alpha = .overlapAlpha[pixelIdx]
             if image.pixelFormat == .BGRA8 and image.alphaMode == .Straight
             {
-                let pixel = image.pixels.storage() + cast(u64, image.height - y - 1) * image.rowStride + cast(u64, x) * 4
-                blendAlphaBgra8(pixel, Color.fromArgb(alpha, src.r, src.g, src.b))
+                let offset = cast(u64, image.height - y - 1) * image.rowStride + cast(u64, x) * 4
+                let pixel  = image.pixels.storage() + offset
+                let color  = Color.fromArgb(alpha, src.r, src.g, src.b)
+                blendAlphaBgra8(pixel, color)
+                if let matte = .whiteMatte do
+                    blendAlphaBgra8(matte + offset, color)
                 pixel[3] = 0
                 return
             }
@@ -1832,7 +1848,7 @@ private impl RenderCpu
         }
         elif .program == CpuProgram_Default
         {
-            result.a = cast(u8, Math.clamp(Math.round(cast(f32, result.a) * coverage), 0.0, 255.0))
+            result.a = coverageAlpha(result.a, coverage)
         }
 
         return result
@@ -1913,6 +1929,7 @@ private impl RenderCpu
         let plainBgra8  = not .alphaResolve and .overlapPass == 0 and image.pixelFormat == .BGRA8
         let fastAlpha   = plainBgra8 and .blendingMode == .Alpha and maskColor
         let fastCopy    = plainBgra8 and .blendingMode == .Copy and (maskColor or maskFull)
+        let whiteMatte  = .whiteMatte
 
         // A triangle whose vertices agree on color and coverage shades one constant fragment
         // under a solid paint, and the frequent blend states then collapse per pixel.
@@ -1969,7 +1986,8 @@ private impl RenderCpu
                     let rowDy0     = sy - edge0Origin.y
                     let rowDy1     = sy - edge1Origin.y
                     let rowDy2     = sy - edge2Origin.y
-                    let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
+                    let rowOffset  = cast(u64, batch.height - y - 1) * batch.rowStride
+                    let rowPixels  = batch.pixels + rowOffset
                     let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
                     var x0         = minX
                     var x1         = maxX
@@ -2018,6 +2036,12 @@ private impl RenderCpu
                                 Math.Simd.store(pixel, blendAlphaBgra8x4(fill, Math.Simd.load(pixel), alpha))
                             else do
                                 Math.Simd.store(pixel, Math.Simd.select(CpuBgraRgbMask, fill, Math.Simd.load(pixel)))
+                            if let matte = whiteMatte
+                            {
+                                let target = matte + rowOffset + cast(u64, x) * 4
+                                Math.Simd.store(target, blendAlphaBgra8x4(fill, Math.Simd.load(target), alpha))
+                            }
+
                             x += 4
                             continue
                         }
@@ -2056,6 +2080,8 @@ private impl RenderCpu
                             if fastAlpha
                             {
                                 blendAlphaBgra8(lanePixel, laneColor)
+                                if let matte = whiteMatte do
+                                    blendAlphaBgra8(matte + rowOffset + cast(u64, pixelX) * 4, laneColor)
                             }
                             elif alphaMaskStore
                             {
@@ -2092,6 +2118,7 @@ private impl RenderCpu
         let paint = &.paint
         let white = Color.fromArgb(Argb.White).argb
         if fastAlpha and
+           whiteMatte == null and
            not batch.solidPaint and
            not stencilTest and
            batch.paintImage != null and
@@ -2201,6 +2228,7 @@ private impl RenderCpu
         let needPaintPos = not batch.solidPaint
         let needCoverage = .program == CpuProgram_Default
         let copyAll      = fastCopy and maskFull
+        let solidMask    = batch.overlapRows ? .overlapAlpha.storage() : null
 
         for var y = minY; y <= maxY; y += 1
         {
@@ -2208,7 +2236,8 @@ private impl RenderCpu
             let rowDy0     = sy - edge0Origin.y
             let rowDy1     = sy - edge1Origin.y
             let rowDy2     = sy - edge2Origin.y
-            let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
+            let rowOffset  = cast(u64, batch.height - y - 1) * batch.rowStride
+            let rowPixels  = batch.pixels + rowOffset
             let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
             var x0         = minX
             var x1         = maxX
@@ -2217,6 +2246,14 @@ private impl RenderCpu
                 narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
                 narrowEdgeSpan(&x0, &x1, -dy1, dx1 * rowDy1, edge1Origin.x)
                 narrowEdgeSpan(&x0, &x1, -dy2, dx2 * rowDy2, edge2Origin.x)
+            }
+
+            // Workers own disjoint rows. Track the candidate span once per triangle row
+            // so a solid stroke can composite by reading its coverage plane.
+            if let rows = batch.overlapRows where x0 <= x1
+            {
+                rows[y].first = Math.min(rows[y].first, x0)
+                rows[y].last  = Math.max(rows[y].last, x1)
             }
 
             for var x = x0; x <= x1; x += 1
@@ -2238,16 +2275,25 @@ private impl RenderCpu
                         continue
                 }
 
-                let w0          = e0 * invArea
-                let w1          = e1 * invArea
-                let w2          = e2 * invArea
+                let w0  = e0 * invArea
+                let w1  = e1 * invArea
+                let w2  = e2 * invArea
+                let cov = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
+                if let mask = solidMask
+                {
+                    let alpha   = needCoverage ? coverageAlpha(c0.a, cov) : c0.a
+                    let offset  = cast(u64, y) * batch.width + cast(u64, x)
+                    let clipped = cast(u8, (cast(u32, alpha) * clip / 255))
+                    mask[offset] = Math.max(mask[offset], clipped)
+                    continue
+                }
+
                 let paintPos    = needPaintPos ? v0.pos * w0 + v1.pos * w1 + v2.pos * w2 : {}
                 let fontPos     = needFontPos ? fontFrame.at(w1, w2) : {}
                 let vertexColor = constantColor ? c0 : Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
                                                                          (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
                                                                          (c0.b * w0 + c1.b * w1 + c2.b * w2) / 255.0)
-                let cov = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
                 var src = .shadeBatch(batch, paintPos, fontPos, fontFrame.dx, fontFrame.dy, vertexColor, cov)
 
                 // Writing the region: the fragment's coverage — its antialiased edge, the alpha of
@@ -2282,6 +2328,8 @@ private impl RenderCpu
                     if src.a == 0 do
                         continue
                     blendAlphaBgra8(rowPixels + cast(u64, x) * 4, src)
+                    if let matte = whiteMatte do
+                        blendAlphaBgra8(matte + rowOffset + cast(u64, x) * 4, src)
                 }
                 elif fastCopy
                 {
@@ -2298,6 +2346,52 @@ private impl RenderCpu
                 {
                     .blendPixel(image, x, y, src)
                 }
+            }
+        }
+    }
+
+    // A solid batch with identical vertex colors needs only the greatest coverage.
+    // Paint that varies across a batch still needs the first contributing fragment.
+    mtd solidOverlapColor(batch: *RasterBatch)->{valid: bool, color: Color}
+    {
+        let image = unwrap batch.image
+        if not batch.solidPaint or
+           .stencilWrite or
+           .blendingMode != .Alpha or
+           image.pixelFormat != .BGRA8 or
+           image.alphaMode != .Straight or
+           (.program != CpuProgram_Default and .program != CpuProgram_Simple) do
+            return {false, {}}
+
+        let vertices = batch.painter!.vertexBuffer.storage() + batch.start
+        let color    = vertices[0].color
+        for i in batch.count where vertices[i].color != color do
+            return {false, {}}
+        return {true, Color.fromArgb(color)}
+    }
+
+    mtd compositeSolidOverlap(batch: *RasterBatch, bounds: PixelBounds, color: Color)
+    {
+        let white = .whiteMatte
+        let alpha = .overlapAlpha.storage()
+        let rows  = .overlapRows.storage()
+        for y in bounds.minY until bounds.maxY + 1
+        {
+            let span = rows[y]
+            if span.first > span.last do
+                continue
+            let rowOffset = cast(u64, batch.height - y - 1) * batch.rowStride
+            let maskRow   = alpha + cast(u64, y) * batch.width
+            for x in span.first until span.last + 1
+            {
+                let coverage = maskRow[x]
+                if not coverage do
+                    continue
+                let offset = rowOffset + cast(u64, x) * 4
+                let ink    = Color.fromArgb(coverage, color.r, color.g, color.b)
+                blendAlphaBgra8(batch.pixels + offset, ink)
+                if let matte = white do
+                    blendAlphaBgra8(matte + offset, ink)
             }
         }
     }
@@ -2321,6 +2415,46 @@ private impl RenderCpu
     // rasterized image is therefore identical to the serial one, band split or not.
     mtd rasterizeRange(batch: *RasterBatch, bounds: PixelBounds)
     {
+        func binTriangles(batch: *RasterBatch, bounds: PixelBounds, bandCount: s32)->Array'Array'u32
+        {
+            var bins: #returntype
+            bins.resize(cast(u64, bandCount))
+            let vertices      = batch.painter!.vertexBuffer.storage() + batch.start
+            let triangleCount = batch.count / 3
+            var references    = 0'u64
+            for triangle in triangleCount
+            {
+                let index = triangle * 3
+                let y0    = batch.transform.transformPoint(vertices[index].pos).y
+                let y1    = batch.transform.transformPoint(vertices[index + 1].pos).y
+                let y2    = batch.transform.transformPoint(vertices[index + 2].pos).y
+                let low   = Math.min(y0, y1, y2)
+                let high  = Math.max(y0, y1, y2)
+                if not Math.isFinite(y0) or
+                   not Math.isFinite(y1) or
+                   not Math.isFinite(y2) or
+                   low < -2_000_000_000.0 or
+                   high > 2_000_000_000.0 do
+                    return {}
+
+                // Use the same rounded, target-clamped range as drawTriangleBatch.
+                let firstY = Math.max(bounds.minY, Math.clamp(cast(s32, Math.floor(low)), 0, batch.height - 1))
+                let lastY  = Math.min(bounds.maxY, Math.clamp(cast(s32, Math.ceil(high)) - 1, 0, batch.height - 1))
+                if firstY > lastY do
+                    continue
+                let first = (firstY - bounds.minY) / CpuBandRows
+                let last  = (lastY - bounds.minY) / CpuBandRows
+                references += cast(u64, last - first + 1)
+                if references > cast(u64, triangleCount) * 8 do
+                    return {}
+
+                for band in first until last + 1 do
+                    bins[band].add(cast(u32, index))
+            }
+
+            return bins
+        }
+
         if bounds.area() < CpuBandPixelThreshold or
            bounds.rows() <= CpuBandRows or
            Swag.workerCount() <= 1
@@ -2332,12 +2466,23 @@ private impl RenderCpu
         // More blocks than workers let the runtime balance localized overdraw. Whole blocks
         // keep triangle order and exclusive row ownership; the final block may be shorter.
         let bandCount = (bounds.rows() - 1) / CpuBandRows + 1
+        let bins      = bandCount >= 4 and batch.count >= 384 ? binTriangles(batch, bounds, bandCount) : {}
+        let indexed   = bins.toSlice()
         let renderer  = me
-        parallel for |renderer, batch, bounds| index in cast(u64, bandCount)
+        parallel for |renderer, batch, bounds, indexed| index in cast(u64, bandCount)
         {
             let bandY = bounds.minY + cast(s32, index) * CpuBandRows
             let lastY = bandY + Math.min(CpuBandRows - 1, bounds.maxY - bandY)
-            renderer.drawTriangleRange(batch, bandY, lastY)
+            if indexed.count
+            {
+                let vertices = batch.painter!.vertexBuffer.storage() + batch.start
+                for triangle in indexed[index] do
+                    renderer.drawTriangleBatch(batch, vertices + triangle, bandY, lastY)
+            }
+            else
+            {
+                renderer.drawTriangleRange(batch, bandY, lastY)
+            }
         }
     }
 
@@ -2521,7 +2666,8 @@ private impl RenderCpu
             let sourceY   = srcY + y - dstY
             let sourceX   = srcX + left - dstX
             let sourceRow = source.pixels.storage() + cast(u64, (source.height - sourceY - 1)) * source.rowStride + cast(u64, sourceX) * 4
-            let targetRow = target.pixels.storage() + cast(u64, (target.height - y - 1)) * target.rowStride + cast(u64, left) * 4
+            let dstOffset = cast(u64, target.height - y - 1) * target.rowStride + cast(u64, left) * 4
+            let targetRow = target.pixels.storage() + dstOffset
             if copy
             {
                 Memory.copy(targetRow, sourceRow, rowBytes)
@@ -2539,6 +2685,12 @@ private impl RenderCpu
                 let bgra    = rgba ? ((src & 0x00FF_0000'u32) >> 16) | (src & 0xFF00_FF00'u32) | ((src & 0xFF'u32) << 16) : src
                 let pixel   = targetRow + x * 4
                 Math.Simd.store(pixel, blendAlphaBgra8x4(cast #bit(Math.Simd.U8x16, bgra), Math.Simd.load(pixel), weights))
+                if let matte = .whiteMatte
+                {
+                    let dst = matte + dstOffset + x * 4
+                    Math.Simd.store(dst, blendAlphaBgra8x4(cast #bit(Math.Simd.U8x16, bgra), Math.Simd.load(dst), weights))
+                }
+
                 x += 4
             }
 
@@ -2546,8 +2698,13 @@ private impl RenderCpu
             {
                 let texel = sourceRow + column * 4
                 let alpha = texel[3]
-                if alpha do
-                    blendAlphaBgra8(targetRow + column * 4, Color.fromArgb(alpha, texel[sourceRed], texel[1], texel[sourceBlue]))
+                if alpha
+                {
+                    let color = Color.fromArgb(alpha, texel[sourceRed], texel[1], texel[sourceBlue])
+                    blendAlphaBgra8(targetRow + column * 4, color)
+                    if let matte = .whiteMatte do
+                        blendAlphaBgra8(matte + dstOffset + column * 4, color)
+                }
             }
         }
 
@@ -2764,17 +2921,33 @@ private impl RenderCpu
         let pixelCount = cast(u64, image.width) * cast(u64, image.height)
         if .overlapAlpha.count != pixelCount do
             .overlapAlpha.resize(pixelCount)
-        if .overlapWritten.count != pixelCount do
-            .overlapWritten.resize(pixelCount)
         clearScratchRows(.overlapAlpha.storage(), image.width, bounds)
-        clearScratchRows(.overlapWritten.storage(), image.width, bounds)
+        let solid = .solidOverlapColor(&batch)
+        if solid.valid
+        {
+            .overlapRows.resize(cast(u64, image.height))
+            for y in bounds.minY until bounds.maxY + 1 do
+                .overlapRows[y] = {}
+            batch.overlapRows = .overlapRows.storage()
+        }
 
         // Destination alpha is the scratch channel in the OpenGL overlap path.
         .clearAlpha(image, bounds)
         .overlapPass = 1
         .rasterizeRange(&batch, bounds)
-        .overlapPass = 2
-        .rasterizeRange(&batch, bounds)
+        if solid.valid
+        {
+            .compositeSolidOverlap(&batch, bounds, solid.color)
+        }
+        else
+        {
+            if .overlapWritten.count != pixelCount do
+                .overlapWritten.resize(pixelCount)
+            clearScratchRows(.overlapWritten.storage(), image.width, bounds)
+            .overlapPass = 2
+            .rasterizeRange(&batch, bounds)
+        }
+
         .overlapPass = 0
     }
 
@@ -3471,6 +3644,21 @@ impl RenderCpu
             .executeCommand(painter, cmd, cast(u64, idx))
             nextCommand = cast(u64, idx) + 1
         }
+    }
+
+    // Shares geometry and coverage with a second matte during an SVG tile submission.
+    // The paired targets are distinct BGRA buffers of identical dimensions.
+    internal mtd beginSvgMattes(white: Texture)
+    {
+        let image = &.findTexture(white.handle)!.image
+        let bytes = image.pixels.storage()
+        Memory.set(bytes, 255, image.byteCount)
+        .whiteMatte = bytes
+    }
+
+    internal mtd endSvgMattes()
+    {
+        .whiteMatte = null
     }
 
     // Binds an off-screen target for following direct operations or painter submission.

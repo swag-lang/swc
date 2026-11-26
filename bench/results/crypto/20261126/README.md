@@ -68,3 +68,4 @@ optimizations moved each result.
 - [CPU-gated carry-less CRC folding](crc64-fold.md)
 - [Argon2id packed BlaMka permutation](argon2-packed.md)
 - [Five-limb Curve25519 field arithmetic](curve25519-limbs.md)
+- [P-256 fixed-base generator comb](p256-comb.md)

@@ -632,18 +632,79 @@ private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P25
     return result
 }
 
-private func p256Generator()->P256Point
+private struct P256AffinePoint
 {
-    var result: #returntype
-    var x:      P256Field
-    x.limbs = [0xD898C296, 0xF4A13945, 0x2DEB33A0, 0x77037D81,
-               0x63A440F2, 0xF8BCE6E5, 0xE12C4247, 0x6B17D1F2]
-    var y: P256Field
-    y.limbs = [0x37BF51F5, 0xCBB64068, 0x6B315ECE, 0x2BCE3357,
-               0x7C0F9E16, 0x8EE7EB4A, 0xFE1A7F9B, 0x4FE342E2]
-    result.x       = p256ToMontgomery(x)
-    result.y       = p256ToMontgomery(y)
-    result.z.limbs = P256MontgomeryOne
+    x: P256Field
+    y: P256Field
+}
+
+// Entry d-1 is the Montgomery representation of the sum of [2^(64*j)]G
+// for each set bit j in d. The zero entry is the point at infinity.
+private const P256GeneratorComb: [15] P256AffinePoint = [
+    {P256Field{limbs: [0x18A9143C, 0x79E730D4, 0x5FEDB601, 0x75BA95FC, 0x77622510, 0x79FB732B, 0xA53755C6, 0x18905F76]},
+     P256Field{limbs: [0xCE95560A, 0xDDF25357, 0xBA19E45C, 0x8B4AB8E4, 0xDD21F325, 0xD2E88688, 0x25885D85, 0x8571FF18]}},
+    {P256Field{limbs: [0x16A0D2BB, 0x4F922FC5, 0x1A623499, 0x0D5CC16C, 0x57C62C8B, 0x9241CF3A, 0xFD1B667F, 0x2F5E6961]},
+     P256Field{limbs: [0xF5A01797, 0x5C15C70B, 0x60956192, 0x3D20B44D, 0x071FDB52, 0x04911B37, 0x8D6F0F7B, 0xF648F916]}},
+    {P256Field{limbs: [0xE137BBBC, 0x9E566847, 0x8A6A0BEC, 0xE434469E, 0x79D73463, 0xB1C42761, 0x133D0015, 0x5ABE0285]},
+     P256Field{limbs: [0xC04C7DAB, 0x92AA837C, 0x43260C07, 0x573D9F4C, 0x78E6CC37, 0x0C931562, 0x6B6F7383, 0x94BB725B]}},
+    {P256Field{limbs: [0xBFE20925, 0x62A8C244, 0x8FDCE867, 0x91C19AC3, 0xDD387063, 0x5A96A5D5, 0x21D324F6, 0x61D587D4]},
+     P256Field{limbs: [0xA37173EA, 0xE87673A2, 0x53778B65, 0x23848008, 0x05BAB43E, 0x10F8441E, 0x4621EFBE, 0xFA11FE12]}},
+    {P256Field{limbs: [0x2CB19FFD, 0x1C891F2B, 0xB1923C23, 0x01BA8D5B, 0x8AC5CA8E, 0xB6D03D67, 0x1F13BEDC, 0x586EB04C]},
+     P256Field{limbs: [0x27E8ED09, 0x0C35C6E5, 0x1819EDE2, 0x1E81A33C, 0x56C652FA, 0x278FD6C0, 0x70864F11, 0x19D5AC08]}},
+    {P256Field{limbs: [0xD2B533D5, 0x62577734, 0xA1BDDDC0, 0x673B8AF6, 0xA79EC293, 0x577E7C9A, 0xC3B266B1, 0xBB6DE651]},
+     P256Field{limbs: [0xB65259B3, 0xE7E9303A, 0xD03A7480, 0xD6A0AFD3, 0x9B3CFC27, 0xC5AC83D1, 0x5D18B99B, 0x60B4619A]}},
+    {P256Field{limbs: [0x1AE5AA1C, 0xBD6A38E1, 0x49E73658, 0xB8B7652B, 0xEE5F87ED, 0x0B130014, 0xAEEBFFCD, 0x9D0F27B2]},
+     P256Field{limbs: [0x7A730A55, 0xCA924631, 0xDDBBC83A, 0x9C955B2F, 0xAC019A71, 0x07C1DFE0, 0x356EC48D, 0x244A566D]}},
+    {P256Field{limbs: [0xF4F8B16A, 0x56F8410E, 0xC47B266A, 0x97241AFE, 0x6D9C87C1, 0x0A406B8E, 0xCD42AB1B, 0x803F3E02]},
+     P256Field{limbs: [0x04DBEC69, 0x7F0309A8, 0x3BBAD05F, 0xA83B85F7, 0xAD8E197F, 0xC6097273, 0x5067ADC1, 0xC097440E]}},
+    {P256Field{limbs: [0xC379AB34, 0x846A56F2, 0x841DF8D1, 0xA8EE068B, 0x176C68EF, 0x20314459, 0x915F1F30, 0xF1AF32D5]},
+     P256Field{limbs: [0x5D75BD50, 0x99C37531, 0xF72F67BC, 0x837CFFBA, 0x48D7723F, 0x0613A418, 0xE2D41C8B, 0x23D0F130]}},
+    {P256Field{limbs: [0xD5BE5A2B, 0xED93E225, 0x5934F3C6, 0x6FE79983, 0x22626FFC, 0x43140926, 0x7990216A, 0x50BBB4D9]},
+     P256Field{limbs: [0xE57EC63E, 0x378191C6, 0x181DCDB2, 0x65422C40, 0x0236E0F6, 0x41A8099B, 0x01FE49C3, 0x2B100118]}},
+    {P256Field{limbs: [0x9B391593, 0xFC68B5C5, 0x598270FC, 0xC385F5A2, 0xD19ADCBB, 0x7144F3AA, 0x83FBAE0C, 0xDD558999]},
+     P256Field{limbs: [0x74B82FF4, 0x93B88B8E, 0x71E734C9, 0xD2E03C40, 0x43C0322A, 0x9A7A9EAF, 0x149D6041, 0xE6E4C551]}},
+    {P256Field{limbs: [0x80EC21FE, 0x5FE14BFE, 0xC255BE82, 0xF6CE116A, 0x2F4A5D67, 0x98BC5A07, 0xDB7E63AF, 0xFAD27148]},
+     P256Field{limbs: [0x29AB05B3, 0x90C0B6AC, 0x4E251AE6, 0x37A9A83C, 0xC2AADE7D, 0x0A7DC875, 0x9F0E1A84, 0x77387DE3]}},
+    {P256Field{limbs: [0xA56C0DD7, 0x1E9ECC49, 0x46086C74, 0xA5CFFCD8, 0xF505AECE, 0x8F7A1408, 0xBEF0C47E, 0xB37B85C0]},
+     P256Field{limbs: [0xCC0E6A8F, 0x3596B6E4, 0x6B388F23, 0xFD6D4BBF, 0xC39CEF4E, 0xABA453FA, 0xF9F628D5, 0x9C135AC8]}},
+    {P256Field{limbs: [0x95C8F8BE, 0x0A1C7294, 0x3BF362BF, 0x2961C480, 0xDF63D4AC, 0x9E418403, 0x91ECE900, 0xC109F9CB]},
+     P256Field{limbs: [0x58945705, 0xC2D095D0, 0xDDEB85C0, 0xB9083D96, 0x7A40449B, 0x84692B8D, 0x2EEE1EE1, 0x9BC3344F]}},
+    {P256Field{limbs: [0x42913074, 0x0D5AE356, 0x48A542B1, 0x55491B27, 0xB310732A, 0x469CA665, 0x5F1A4CC1, 0x29591D52]},
+     P256Field{limbs: [0xB84F983F, 0xE76F5B6B, 0x9F5F84E1, 0xBE7EEF41, 0x80BAA189, 0x1200D496, 0x18EF332C, 0x6376551F]}}]
+
+private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
+{
+    let one    = P256Field{limbs: P256MontgomeryOne}
+    var result = p256Infinity()
+    for step in 64
+    {
+        result = p256PointDouble(result)
+        let bitIndex  = 63 - step
+        let wordIndex = bitIndex / 32
+        let shift     = bitIndex % 32
+        let digits0   = (scalar[].limbs[wordIndex] >> shift) & 1
+        let digits1   = (scalar[].limbs[wordIndex + 2] >> shift) & 1
+        let digits2   = (scalar[].limbs[wordIndex + 4] >> shift) & 1
+        let digits3   = (scalar[].limbs[wordIndex + 6] >> shift) & 1
+        let digit     = digits0 | (digits1 << 1) | (digits2 << 2) | (digits3 << 3)
+
+        var selection: P256Point
+        for index in P256GeneratorComb.count
+        {
+            let matched = index + 1 == digit
+            let point   = P256GeneratorComb[index]
+            selection.x = p256FieldSelect(selection.x, point.x, matched)
+            selection.y = p256FieldSelect(selection.y, point.y, matched)
+        }
+
+        selection.z = p256FieldSelect(P256Field{}, one, digit != 0)
+
+        var doubled = p256PointDouble(result)
+        result = p256PointAdd(result, selection, doubled)
+        Crypto.secureClear(Swag.makeSlice(&selection, 1))
+        Crypto.secureClear(Swag.makeSlice(&doubled, 1))
+    }
+
     return result
 }
 
@@ -678,7 +739,7 @@ func p256PublicKey(privateKey: const [..] u8, publicKey: [..] u8) fail
         fail Errors.BadParameterError{"P-256 public key output must be 65 bytes"}
     var scalar = try p256ScalarDecode(privateKey)
     defer Crypto.secureClear(Swag.makeSlice(&scalar, 1))
-    var point = p256ScalarMultiply(&scalar, p256Generator())
+    var point = p256MultiplyGenerator(&scalar)
     defer Crypto.secureClear(Swag.makeSlice(&point, 1))
 
     var inverse = p256FieldPower(point.z, P256InverseExponent)
@@ -736,7 +797,7 @@ func p256EcdsaSign(privateKey, message: const [..] u8, signature: [..] u8) fail
     var nonce = try p256ScalarDecode(nonceBytes)
     defer Crypto.secureClear(Swag.makeSlice(&nonce, 1))
 
-    var noncePoint = p256ScalarMultiply(&nonce, p256Generator())
+    var noncePoint = p256MultiplyGenerator(&nonce)
     defer Crypto.secureClear(Swag.makeSlice(&noncePoint, 1))
     var r = p256OrderReduce(p256FromMontgomery(p256AffineX(noncePoint)))
     if not p256ScalarIsValid(r) do
@@ -859,7 +920,7 @@ func p256EcdsaVerify(publicKey, message, signature: const [..] u8)->bool fail
     var u2 = p256OrderFromMontgomery(u2Montgomery)
     defer Crypto.secureClear(Swag.makeSlice(&u2, 1))
 
-    var first = p256ScalarMultiply(&u1, p256Generator())
+    var first = p256MultiplyGenerator(&u1)
     defer Crypto.secureClear(Swag.makeSlice(&first, 1))
     var second = p256ScalarMultiply(&u2, publicPoint)
     defer Crypto.secureClear(Swag.makeSlice(&second, 1))

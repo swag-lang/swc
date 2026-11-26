@@ -83,3 +83,4 @@ optimizations moved each result.
 - [P-256 mixed affine and projective addition](p256-affine.md)
 - [SHA instruction encoding and lowering](sha-instructions.md)
 - [SHA-NI block compression](sha-ni.md)
+- [Ed25519 fixed-base comb](ed25519-comb.md)

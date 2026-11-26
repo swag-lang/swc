@@ -96,26 +96,26 @@ private func ed25519Double(point: Ed25519Point)->Ed25519Point
     return result
 }
 
-private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->Ed25519Point
+private func ed25519SelectMultiple(multiples: const [..] Ed25519Point, nibble: u8)->Ed25519Point
 {
-    func selectMultiple(multiples: const *[16] Ed25519Point, nibble: u8)->Ed25519Point
+    var result: #returntype
+    for index in 16
     {
-        var result: #returntype
-        for index in 16
+        let mask = 0'u64 - cast(u64, index == nibble)
+        for limb in result.x.limbs.count
         {
-            let mask = 0'u64 - cast(u64, index == nibble)
-            for limb in result.x.limbs.count
-            {
-                result.x.limbs[limb] |= multiples[][index].x.limbs[limb] & mask
-                result.y.limbs[limb] |= multiples[][index].y.limbs[limb] & mask
-                result.z.limbs[limb] |= multiples[][index].z.limbs[limb] & mask
-                result.t.limbs[limb] |= multiples[][index].t.limbs[limb] & mask
-            }
+            result.x.limbs[limb] |= multiples[index].x.limbs[limb] & mask
+            result.y.limbs[limb] |= multiples[index].y.limbs[limb] & mask
+            result.z.limbs[limb] |= multiples[index].z.limbs[limb] & mask
+            result.t.limbs[limb] |= multiples[index].t.limbs[limb] & mask
         }
-
-        return result
     }
 
+    return result
+}
+
+private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->Ed25519Point
+{
     // The table depends on the point alone. Every scalar nibble scans all entries.
     var multiples: [16] Ed25519Point
     multiples[0] = ed25519Identity()
@@ -131,7 +131,7 @@ private func ed25519ScalarMultiply(point: Ed25519Point, scalar: const [..] u8)->
 
         let nibbleIndex = 2 * Ed25519KeySize - 1 - window
         let nibble      = (scalar[nibbleIndex / 2] >> (4 * (nibbleIndex & 1))) & 15
-        var selected    = selectMultiple(&multiples, nibble)
+        var selected    = ed25519SelectMultiple(multiples, nibble)
         result = ed25519Add(result, selected)
         Crypto.secureClear(Swag.makeSlice(&selected, 1))
     }
@@ -148,6 +148,54 @@ private func ed25519BasePoint()->Ed25519Point
                                      0x3_3333_3333_3333, 0x6_6666_6666_6666])
     result.z.limbs[0] = 1
     result.t = x25519Multiply(result.x, result.y)
+    return result
+}
+
+// Each column contributes a multiple of 2^(64 * column) times the base point.
+// The table is built at compile time from public coordinates.
+private const Ed25519GeneratorComb = #run ed25519BuildGeneratorComb()
+
+private func ed25519BuildGeneratorComb()->[16] Ed25519Point
+{
+    var result: #returntype
+    result[0] = ed25519Identity()
+    var base = ed25519BasePoint()
+    for column in 4
+    {
+        let count = 1'u32 << column
+        for index in count do
+            result[count + index] = ed25519Add(result[index], base)
+
+        if column < 3
+        {
+            for 64 do
+                base = ed25519Double(base)
+        }
+    }
+
+    return result
+}
+
+private func ed25519MultiplyGenerator(scalar: const [..] u8)->Ed25519Point
+{
+    var result = ed25519Identity()
+    for row in 64
+    {
+        result = ed25519Double(result)
+        let bit    = 63 - row
+        let byte   = bit / 8
+        let shift  = bit & 7
+        let first  = (scalar[byte] >> shift) & 1
+        let second = (scalar[byte + 8] >> shift) & 1
+        let third  = (scalar[byte + 16] >> shift) & 1
+        let fourth = (scalar[byte + 24] >> shift) & 1
+        let digit  = first | (second << 1) | (third << 2) | (fourth << 3)
+
+        var selected = ed25519SelectMultiple(Ed25519GeneratorComb, digit)
+        result = ed25519Add(result, selected)
+        Crypto.secureClear(Swag.makeSlice(&selected, 1))
+    }
+
     return result
 }
 
@@ -372,7 +420,7 @@ private func ed25519PublicKeyFromExpanded(expanded: [64] u8)->[32] u8
     scalar[0]  &= 248
     scalar[31] &= 63
     scalar[31] |= 64
-    var point   = ed25519ScalarMultiply(ed25519BasePoint(), scalar)
+    var point   = ed25519MultiplyGenerator(scalar)
     let encoded = ed25519EncodePoint(point)
     Crypto.secureClear(point.x.limbs)
     Crypto.secureClear(point.y.limbs)
@@ -423,7 +471,7 @@ func ed25519Sign(privateSeed, message: const [..] u8, signature: [..] u8) fail
     nonceHash.update(message)
     let nonceDigest = ed25519HashFinalize(&nonceHash)
     let nonce       = ed25519Reduce(nonceDigest)
-    var noncePoint  = ed25519ScalarMultiply(ed25519BasePoint(), nonce)
+    var noncePoint  = ed25519MultiplyGenerator(nonce)
     let encodedR    = ed25519EncodePoint(noncePoint)
     Crypto.secureClear(noncePoint.x.limbs)
     Crypto.secureClear(noncePoint.y.limbs)
@@ -480,7 +528,7 @@ func ed25519Verify(publicKey, message, signature: const [..] u8)->bool fail
     challengeHash.update(message)
     let challengeDigest = ed25519HashFinalize(&challengeHash)
     let challenge       = ed25519Reduce(challengeDigest)
-    let left            = ed25519ScalarMultiply(ed25519BasePoint(), encodedS)
+    let left            = ed25519MultiplyGenerator(encodedS)
     let right           = ed25519Add(rPoint, ed25519ScalarMultiply(publicPoint, challenge))
     let verified        = Crypto.constantTimeEqual(ed25519EncodePoint(left), ed25519EncodePoint(right))
     Crypto.secureClear(challengeDigest)

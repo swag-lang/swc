@@ -1211,3 +1211,32 @@ faces that share offsets and declare different outline lengths.
 | `Iansui-Regular.ttf` | U+9F9C | 22.41 | 13.49 | 87.10 | 78.93 |
 | `Lato-Regular.ttf` | U+0041 | 14.88 | 15.47 | 22.43 | 23.41 |
 | `OpenSans-Regular.ttf` | U+0041 | 12.71 | 11.87 | 18.72 | 19.73 |
+
+## PostScript Type 1 decoding
+
+Type 1 decrypts directly into its output buffer, uses the byte
+substring search for dictionary markers, and moves each decoded
+charstring into the font. Bare programs can borrow their input while
+parsing. The common leading `hsbw` sequence supplies the advance
+directly. Computed widths and other operators use the interpreter.
+
+Three pinned URW Type 1 files add six cases, for 85 cases on 65 files.
+All six take 22–28% less time to open and render than `9a7d0f5cdc`,
+and all six are ahead of Pillow 12.3.0 with FreeType 2.14.3. The test
+uses 13 interleaved batches of 41 opens on one CPU. The Swag builds
+match glyph IDs, advances, dimensions and bitmap checksums. Both
+engines select the same PostScript glyph names.
+[Raw timings and glyph names](font-decode-linux-type1.json)
+
+| Fixture | Character | Before (µs) | Buffer and scan changes | With width fast path | Pillow |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 1348.6 | 1020.2 | 975.6 | 1250.8 |
+| `NimbusSans-Regular.t1` | U+0067 | 1293.1 | 1030.4 | 998.0 | 1295.4 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 1642.3 | 1288.1 | 1245.8 | 1427.1 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 1599.4 | 1267.6 | 1238.4 | 1456.6 |
+| `P052-Roman.t1` | U+0067 | 1814.4 | 1429.1 | 1382.8 | 1667.2 |
+| `P052-Roman.t1` | U+0045 | 1876.3 | 1441.8 | 1398.0 | 1582.2 |
+
+The timing set uses Latin Type 1 glyphs. The Standard Symbols PS
+trial for U+03A9 has no Unicode glyph in Swag and is excluded from
+the timing set.

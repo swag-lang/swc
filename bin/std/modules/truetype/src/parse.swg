@@ -1041,7 +1041,7 @@ func buildCharstringMetrics(faceData: *FaceImpl) fail
         if faceData.outlineSource == .Cff do
             width = try runType2Charstring(faceData.cffFont(), gid, null)
         else do
-            width = try runType1Charstring(&faceData.type1, gid, null)
+            width = try type1CharstringWidth(&faceData.type1, gid)
 
         faceData.charstringAdvances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
     }

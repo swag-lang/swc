@@ -50,3 +50,4 @@ optimizations moved each result.
 - [BLAKE3 register-resident compression](blake3.md)
 - [Packed ChaCha20 block output](chacha20.md)
 - [CRC-32 on short byte slices](crc32-short.md)
+- [Keccak rounds with fixed lane positions](sha3-round.md)

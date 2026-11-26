@@ -485,7 +485,8 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
     FlatKeySet addressCopies;
     if (!addrRegOffset.empty())
     {
-        FlatKeyMap<uint32_t> definitions;
+        thread_local FlatKeyMap<uint32_t> definitions;
+        definitions.clear();
         for (auto it = storage.view().begin(), end = storage.view().end(); it != end; ++it)
         {
             const MicroInstrOperand* ops = it->ops(operands);

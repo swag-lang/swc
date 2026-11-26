@@ -643,3 +643,43 @@ ends, points, tags, and rendered bitmap bytes.
 The 64 px TrueType control and the large Serif CJK bitmap case show small
 timing increases. The CFF outline phase improves at both sizes on all six
 CFF faces.
+
+## TrueType glyph output buffers
+
+Simple TrueType glyphs expand their flags into the reusable tag buffer and
+decode coordinates directly into the reusable point buffer. Coordinate
+lengths are checked while expanding flag runs. Contour ends remain in the
+font bytes until final append. A failed load rolls back the appended points
+and tags. Composite glyphs use the same simple-glyph decoder for their parts.
+
+The probe uses the glyph workload at 24 px and 64 px on nine TrueType files,
+including two of the supplied fonts. It compares with `65bb993978` and uses
+nine interleaved batches of five passes after one warmup. The table gives
+the median time per glyph. Both builds match point counts and CRC-64 for
+points, tags, contour ends, and rendered bitmap bytes.
+[Raw timings and the control repeat](font-glyph-linux-glyf-output.json)
+
+| Fixture | Pixels | Outline before (µs/glyph) | After | Bitmap before (µs/glyph) | After |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 24 | 5.176 | 2.825 | 10.751 | 9.114 |
+| `DejaVuSans.ttf` | 64 | 4.972 | 3.290 | 19.020 | 18.253 |
+| `GowunBatang-Regular.ttf` | 24 | 11.928 | 8.753 | 73.112 | 72.749 |
+| `GowunBatang-Regular.ttf` | 64 | 12.612 | 9.372 | 179.808 | 176.497 |
+| `Lato-Regular.ttf` | 24 | 2.821 | 2.188 | 14.281 | 13.597 |
+| `Lato-Regular.ttf` | 64 | 2.942 | 1.856 | 31.378 | 30.801 |
+| `MaShanZheng-Regular.ttf` | 24 | 13.806 | 10.282 | 101.881 | 100.752 |
+| `MaShanZheng-Regular.ttf` | 64 | 13.616 | 9.948 | 268.862 | 265.235 |
+| `NotoSansJP-Variable.ttf` | 24 | 6.437 | 4.584 | 35.697 | 35.217 |
+| `NotoSansJP-Variable.ttf` | 64 | 6.659 | 4.737 | 83.918 | 78.398 |
+| `NotoSansSC-Variable.ttf` | 24 | 5.950 | 4.600 | 37.871 | 36.265 |
+| `NotoSansSC-Variable.ttf` | 64 | 6.845 | 4.925 | 83.778 | 81.983 |
+| `NotoSansTC-Variable.ttf` | 24 | 7.358 | 4.834 | 44.744 | 35.438 |
+| `NotoSansTC-Variable.ttf` | 64 | 6.932 | 5.133 | 82.338 | 81.927 |
+| `OpenSans-Regular.ttf` | 24 | 2.946 | 1.802 | 16.213 | 15.668 |
+| `OpenSans-Regular.ttf` | 64 | 2.894 | 1.927 | 36.945 | 37.090 |
+| `ZenKakuGothicNew-Regular.ttf` | 24 | 6.032 | 4.575 | 34.856 | 33.126 |
+| `ZenKakuGothicNew-Regular.ttf` | 64 | 6.261 | 4.748 | 77.721 | 76.109 |
+
+In the 11-batch repeat on three files, Open Sans at 64 px moves from 2.632
+to 2.001 µs per outline. Gowun Batang moves from 11.954 to 8.624 µs and
+Noto Sans SC from 6.895 to 4.822 µs at the same size.

@@ -8,6 +8,9 @@ using Swag, Core
 {
     var faceData: FaceImpl
     faceData.unitsPerEm = 1
+    faceData.outlinePoints.add(Vector{x: 13, y: -4})
+    faceData.outlineTags.add(CURVE_TAG_ON)
+    faceData.outlineContours.add(0)
 
     var glyphData: Array'u8
     glyphData.resize(17)
@@ -20,7 +23,11 @@ using Swag, Core
     var rejected: Swag.Error
     discard catch appendSimpleGlyph(&faceData, glyphData.toSlice(), 65_535, 65_535) as rejected
     Swag.require(rejected.value() != null)
-    Swag.require(faceData.outlinePoints.isEmpty() and faceData.outlineContours.isEmpty())
+    Swag.require(faceData.outlinePoints.count == 1 and
+                 faceData.outlineTags.count == 1 and
+                 faceData.outlineContours.count == 1)
+    Swag.require(faceData.outlinePoints[0].x == 13 and faceData.outlinePoints[0].y == -4)
+    Swag.require(faceData.outlineTags[0] == CURVE_TAG_ON and faceData.outlineContours[0] == 0)
 }
 
 // Truncated glyph headers, endpoints, instructions, flags, and coordinates are rejected.
@@ -80,4 +87,15 @@ using Swag, Core
     rejected      = {}
     discard catch appendSimpleGlyph(&faceData, glyphData.toSlice(), 16, 16) as rejected
     Swag.require(rejected.value() != null)
+    Swag.require(faceData.outlineTags.isEmpty())
+
+    glyphData.resize(16)
+    glyphData[14] = 0x39
+    glyphData[15] = 1
+    rejected      = {}
+    discard catch appendSimpleGlyph(&faceData, glyphData.toSlice(), 16, 16) as rejected
+    Swag.require(rejected.value() != null)
+    Swag.require(faceData.outlinePoints.isEmpty() and
+                 faceData.outlineTags.isEmpty() and
+                 faceData.outlineContours.isEmpty())
 }

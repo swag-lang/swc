@@ -193,3 +193,30 @@ using Swag, Core
     Swag.require(face.outlinePoints.count == 2)
     Swag.require(face.outlinePoints[0].x == 64 and face.outlinePoints[0].y == 128)
 }
+
+// A width set in a nested subroutine ends width-only execution in its callers.
+#test
+{
+    const Glyphs: [11] u8 = [
+        0, 1, 1, 1, 7,
+        189, 32, 10, 255, 0, 0]     // width 50, local subr 0, truncated fixed operand
+    const Local: [8] u8 = [
+        0, 1, 1, 1, 4,
+        32, 29, 11]     // global subr 0, return
+    const Global: [9] u8 = [
+        0, 1, 1, 1, 5,
+        139, 139, 21, 11]     // rmoveto (0, 0), return
+
+    var font: CffFont
+    font.block       = Glyphs
+    font.charStrings = expect readCffIndex(Glyphs, 0)
+    font.defaultPrivate.subrs = expect readCffIndex(Local, 0)
+    font.globalSubrs = expect readCffIndex(Global, 0)
+    Swag.require(expect runType2Charstring(&font, 0, null) == 50)
+
+    var face:  FaceImpl
+    var builder = OutlineBuilder.create(&face, 1000, 1000, 1000)
+    var error: Swag.Error
+    discard catch runType2Charstring(&font, 0, &builder) as error
+    Swag.require(error.value() != null)
+}

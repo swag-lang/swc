@@ -63,3 +63,5 @@ intervals spanning parity. The C reference still reaches 6.435 GB/s at
 [Four-worker one-shot raw samples](blake3-vector-locals-wall.json) ·
 [Streaming raw samples](blake3-vector-locals-stream.json) ·
 [Workload and build instructions](../../../workloads/blake3/README.md)
+
+[Full-byte verification](blake3-vector-locals-verification.json)

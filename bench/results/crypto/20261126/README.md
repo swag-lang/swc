@@ -49,6 +49,8 @@ optimizations moved each result.
 
 [Final differential checks at byte boundaries](integrated-final-edges.md).
 
+[Final differential checks with hardware features disabled](integrated-final-qemu-fallback.md).
+
 [Integrated replay and validation at 16:19 CET](integrated-validation-1619.md).
 
 [Asymmetric replay](asymmetric-cumulative.md) · [RSA replay](rsa-cumulative.md).

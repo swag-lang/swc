@@ -1,0 +1,1058 @@
+{
+  "utc": "2026-11-26T15:57:45.788199+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "qemu-fallback": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1 | libb2 | libsodium 1.0.22",
+  "reference_sha256": "16e0f0e5b19c292be481d9940663b69c2cb6f36d3f7050150a5b15a9e16f4f7b",
+  "swag_builds": {
+    "qemu-fallback": "6ecd05b861c029515f0c9bfc978cfc1d1eaff2457738d9b1c0b7d9032ee14503"
+  },
+  "rounds": 0,
+  "target_ms": 50,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "adler32",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "67abdd721024f0ff4e0b3f4c2fc13bc5bad42d0b7851d456d88d203d15aaa450",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "1c0b6e324551ac5f8243aa5d53f5a1a961af9b40664562feaea50f4babc1af45",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "5337dd2633e00e45f1cc2b8b10c2e301b651aba29a95efac62d4fd1f88fdedda",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "feeedc49772b08f05ff210b854edce9d4e534ff66a33259db4404d98869f9efb",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "e24282eb9a5fd4b4a56f64fbc9c396a5fb5695ce0acf3b0ce3c9f446c4e79f66",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "adler32",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "ed56c05ba1f561d6628bbdd1d6b7b7b440574ee37230b726f1676541eb369e3c",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "9495af741a557ea80f0ddf2b8b0cf1af89517f886f2e812f3abb8db435a12210",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "caa6405147484a9e9ef74630134d0cf03a76517639f1c762e072ce1f7e0b7d5f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "ed88cc4f7611a37a8223a8ae16f0389be54aa939a3c6725c54bdc61e074972a2",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "f8fe26eeab7d0b65a7e722dce5cb18218c38601ae9bcf73b1d00eda680fa0eac",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc32",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "cc70e231cd31ff2e031bdb55e30e020f238f9b046df064e5b55462dffdc4db8f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-ecma",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-ecma",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "75832593247b9b7b2ed9ad9e5c9c4778d444dfefce83655fd1306868bfae675d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-ecma",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "83fa9dfcb3ca867b56ef442845dcdae047bb032953277acb883b662f81174c46",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-ecma",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "0f77cfd1a8d7998c3341591025a6b3e675d4ce70979e8ac7aafbd2359b3b8178",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-ecma",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "e7e546f6217178c89391ba44374136102dfc9079c0cf3b4428d9aadd4acfa532",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-ecma",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "b05ee620b97031565e4fbd1290d53c854387bafdaf82ad6a2a64e4bee88f09b0",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-iso",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-iso",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "459b2780da3ab20f3c48baa8e3cdc40d57c0c4b424d57072622b477ef76e34dc",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-iso",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "dfbd8aba60a20cb9c0fe863b250b5897d4327355f08a77ac837eb2eb07a6de07",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-iso",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "ffe38274ff97eae89ef7787413b70d96316f613fe50aaeac67ff8434aace6294",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-iso",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "92e896edb2dcf023676687ea67afb6ea0c76a304e415cfebbdc4541cdf0a7bc7",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-iso",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "187659df48ce55bb8dfe3aa4c3b4eec604651847c8415d2b5b9de98effcaee77",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-xz",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-xz",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "9778cdcbaed117538ad46e3cbdd2e1445aa30ac7af83d39ddb64f82314acd29d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-xz",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "4c39057b6e9eaa8cab365d857dac409d07463af6043250c60fe552533fcff02a",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-xz",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "31b9e27b078ef936d72037350a82607d9e0ad27e57386e02a6cc258a51389867",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-xz",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "8f68d026fa63a065a2d3fe22f70197cfddacca4b20f5aec5af6a35ee64c57442",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "crc64-xz",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "2f5548ec06bf06d74a04eb825240a92b1c284b73f26be4c3f1e1b6e21e8ef7db",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "md5",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "32d2ae03b8b636b73de1709b6cf0c3880ae1b548510d4807fc0ad20fa04db4a4",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "md5",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "3d032dc8b5642b2c2221ef4bbea60a8b17b088ef4b4896c10ebc5d5b2b20029f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "md5",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "fcde9a3089dcb770df8f9a6c93bdca8a37c2a369dfaed44e0361b435650a85c9",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "md5",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "daf70a910036b775589cce17bc99397b30929751b7a407df30576ad380462d23",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "md5",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "f879e2581022371ae210fd6153360f7ec106853090d97db2c6dc39ee061c2351",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "md5",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "1915e9b11ba91a7e63cbb3fcb9fca2fcd953ad3e1f77df6d0cfbc9d45a51dc44",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha1",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "533b8c444f951e83eff7305e3807b66ce0005de0a2d0a44873c130895a3be6aa",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha1",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "63b5affa0f407760b964cd1ef88fcd5ab98b84a5fda4ac9ea9b39bdf0c793b5a",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha1",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ba12675ab7df33fec34d4c0ad97d2370c8183729510bd4c9a40732d98c448dcb",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha1",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "c74da22466681d4a2a130e9dcd07d731416eb22bb0a3f967299535c44f70188d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha1",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "6b5974bdb18693ac973a41ad1068f9ab35f61b139645c1efb3fc7064a4bb282c",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha1",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "8865aec6804a930b406fed32cb9401c6973e97afd8ac38dd24dca4047c71ef05",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha224",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "70e01c74bb4c4b3e5b2dc7cba0694f9bc78e220e89e1f133f62c38781ebd1378",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha224",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "d4d7854ccb2d3ecfacbeee6c78943ec6f19e40d65cbd5ff699daaa2e2f7ee49f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha224",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "85757d40b595cf5acd07c12ad9c6626e2d3499fc6a43b857d80bd576f7ee8b16",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha224",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "50833110507eda6258ea938fc0a2888381296760592ad693c5c5d4b0cf795737",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha224",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "9d226b186c58d527d2b2b0b52ed8a50f29057bb9f7608527abde2ba3322fd817",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha224",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "8de790b8e7a32368df60435d282b648b8f3ab7c40fe574007723888a0ec60f09",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha256",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "5df6e0e2761359d30a8275058e299fcc0381534545f55cf43e41983f5d4c9456",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha256",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "ff55f98176c4470d1a5662673bbe0d744074f1c3caf13bf744edb3096139e18b",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha256",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "aa644e758e7df484249bd111f7cd4000d47ae8ca153f855a3125f3593ce3c61f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha256",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "6056f8ac56a0ab418a49c588088a0fe4a2cc69ad0f6c8b056556bb68638fb269",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha256",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "fee8df3ea2123591754b746835991a338952d9b5beecd2bb4a0981c4ea816def",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha256",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "2609255e6d6338ef684f95f3e40bcc93b6f66b78dc55f48626477e5ec4cc434d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha384",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "4800fbfc4566eb02d1727a4b1c949ccbc7535c216a0766564c199308631b5dd6",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha384",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "582db73c5a456d8d4e9f555562126306d3c3cd62071b133c101de2e7c342c87d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha384",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "c12514af27399fc95c55b9fa52bb7db8077ebab8635d4bd17767c90ade22fe44",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha384",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "d98056567832ecb2a83405b995e4cf095674dc65b3d2454e294db3951b73f750",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha384",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "5faa90801d5e8c77beb212394c7e2468952748e3404271b54452def1113579d2",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha384",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "2ccfd0fb54c0b39d6f7fb24d45ea637094f816a14069cb293b5c1734cc0e92aa",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha512",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "001d686db504e20c792eaa07fe09224a45ff328e24a80072d04d16abc5c2b5d2",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha512",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "60a14723a89a6d5ca4d22c63b79a4cfb5372368609dbf64402311c21fccc70e6",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha512",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ab4131bb008bd099e5dca8785340621a6ea0974db103b114b274c25830eb6a9d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha512",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "9279cb731242c8542cd24bdc9a2f3f3ec6f360765b815d58cdd482279796b74e",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha512",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "2b8e4db273a643afc527ad06a6d6ffcee148c95f7b8bed1a1fa509c57441e126",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha512",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "0f120aa2b503be0beb17ea28776da191dc5eaad9d8e8fda97420a0f581fdce0e",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "a09941949df508620d027c03ac12a3286382e745b9b17c656a98f7b5fb316918",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "6030447721dc38a7fa10703907093223f3f3fb62c51932883c183344cfce45d7",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "7311e754a7571aa171ba2b44f7e57905904f6475fe1a8803a58a6ac6286f0920",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "61d80c1ebd8136342627b2d582b2d82634f77eb2dab129c138d1395a7a0a92d2",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "0bfed399e5d0a72c6e53395e8b3c4d0b4c67e3a7beffa3f3f1f752e62cf34ead",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "sha3-256",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "3c1e683a6f811a3b44cf157c7b811de2bdaaedc11764eb35262651d4d69ae18e",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2b-512",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "3a28da97ec66911e5796144fbc6558548c275c3710680d430f54dc6c2d56e40d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2b-512",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "67c465e1e3ffa2018051c3a7ff6ff3e895d2bba991f0c7d4ce05002401efe5cf",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2b-512",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "443445f73d0a4ab76418f0ee080e7404191d3abb9657864f00b0440435cd047a",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2b-512",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "35d5983d7675acdca4e5d645ff4ab5e54d428940a4d294af1cc254ce724dc99f",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2b-512",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "e4bdffa4d834afa99edadfac43f4e1df38b8542f8b971cc8cac0897868a323a7",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2b-512",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "fde81c52253a98482d8673617757a024b050cdf81b1817bd99fad364b50064c5",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2s-256",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "022e638faec1f91f87883d0966c2b6195d95569c51f808f28cb5be052aabc95c",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2s-256",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "b0583c0f9b57f236d898252424a25dde48ab9bdc644e541c977bbb15d3f7bbb1",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2s-256",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "6fa612fdc9c1b287ee40559951c7a80fb5f99493c6215b4e0bf963ffdd2568bf",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2s-256",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "8d5f99e0db6854a2e204e39be25305edf51a0c96cca7fe757430c7d802413a07",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2s-256",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "d9f7d8bfcd3d37ebb54c4c77feb3778d335fc40b01d4beda78b332f1ce27e803",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake2s-256",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "459de7a605c157675e6ccbc7db08426e487dad8b2a3fea69eff1ca3d142c0e88",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "41647e8353c7a76a2c15f997632d9a9c79acc8837c65e6c0e01f85cafab5f6d3",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "7bc3faf5044b3a60be057452ec67ca8870333997b2e5e22beadbc88d9acc99d1",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ff4e3571a3787d75fc67d04614eeeffe51b7d3c71fb411ea713b84b4a1cbe380",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "c30f7026da8bae0fbddcdfe018fe3b6f5fbe804439f520cc0510bb4fab44991b",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "fd77551b1045c9c48c18474aa1a6fe53a3fa5f5a75fbffcab24a891bb65a65a0",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "blake3",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "656dfe4bbf16753e591ef29bee879ef7ce64ce3ad84fef7669c48fd556b740f7",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "85f98cfa09adef46c9aff806226e258fb4584caf2e772a453f26837529548025",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "1f2a901cd91f1ca7c8bf42389b6444f35d1a1d391e58769596691ac1a50e644a",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "81be4041d678c61b8e799552192e337b70ffc27e817728f34e4370eea5880087",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "b0935402e1eb67124e12d6521cd3610f35c826eb0baabe9c715713a8b6d36e46",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "93603ba548bbbe8b8ff32c5414d44d3a132726d998b9ad896656cf7bbfab1dbe",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "poly1305",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "bf0c5b6d23139e46fc2580d208be84d595c3e64e323b1d5b456635c6e709fbcb",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "65be9cfb045947c319494712006152884ac87d16eda9edebf1b673964834e8fc",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ed2d6bc52971ee2fee78a43f59af10fbf12fff506c4675d154b85862f6a101af",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "0e8ece386846d9536db28d411396eb8251153c0e9b65f82fabea1fa36b9898ed",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "9904ce669ddabd3483e41d9756ebdda2b27884633bd9eb559521df75f550a216",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "c522251627f70402c28f54cbc01a61852089f7c601b63550776e5ba8c56d4af5",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "ee9da8aa9a9f59d11ec39de98cfe4129fd60f1cd520c0be60791e1078c9d9c5e",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "85dc2dc7cb78f7dbf2b2c151475baa892e5fb3f0846f9ca622a41e4759c8733d",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "ea003d09885479aa011d305ba38a91fd088efd287427460c6327e960447e9249",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "382432ad9e7aaf22f8e2a8cdee91bdfb26d6a96acece587d93b6c9227f364468",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "7d3091822504768109fe03cc8dd59a6802844f4bc56a2c4eb4f53395fd3c0c61",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "chacha20-poly1305",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "0d7b8f9905fb1e7cefddf67b37c00ed273be0c553fcdd194a887029fe9440592",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 0,
+      "offset": 1,
+      "input_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "output_sha256": "e862176f3fb4753588d3c685b92cae31ef826f5b880355a7d27d0e66fd30f2db",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 7,
+      "offset": 1,
+      "input_sha256": "00e5ee0a5854afc88b790eb8a88176dd2bd912c8278000060baa588d6f17d79c",
+      "output_sha256": "f142e82b389f6d102c5f8e03f1e90fb05ae2ede06dcc57766bf946cbe056c382",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 64,
+      "offset": 1,
+      "input_sha256": "e6147dcd81a6acd67e31bcd7542d14497d6264e4d25596b78fdc6c5590701ea9",
+      "output_sha256": "9ead71228386f587377a554b52a55ba99fdd76467bc35b591d89870e1ac04c6c",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 255,
+      "offset": 1,
+      "input_sha256": "a1c9c8a2014702acda76aacec31ea2c754c5dbea60bfdccd9a3d43f636a8a45b",
+      "output_sha256": "3802ae06efdeaab02f4bcace06bb83f1f6c2d8ade60ba8f452ad9132f5add0d0",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 1024,
+      "offset": 1,
+      "input_sha256": "7311fb0bdb03a2ad4957e5b8431c3acf9618869e56e321bb0a2170d1d6b8816a",
+      "output_sha256": "60ccd4c91512a7af2be91040b09a2c678bb4e677cc72d6e665bf8c05d6d1b6d1",
+      "samples": {},
+      "round_order": []
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 8193,
+      "offset": 1,
+      "input_sha256": "a49cc00a231b848c36a0138c122a8b8264af9abd027c686e5fa8dc626463cd86",
+      "output_sha256": "eabd3fe5a870557ec59c13f3c25004194b4bfde453f8fcbe707612987bc0e7fb",
+      "samples": {},
+      "round_order": []
+    }
+  ],
+  "additional_openssl": {
+    "OpenSSL4.1": {
+      "version": "OpenSSL 4.1.0 23 Oct 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+      "sha256": "711b8f569020ac48e5eb5f12794431065962c1247e7bf50f28124ebac77d9c69"
+    }
+  }
+}

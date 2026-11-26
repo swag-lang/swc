@@ -323,19 +323,32 @@ public impl TypeFace
     mtd buildRuneOutline(c: rune, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
     {
         Sync.scopedLock(&.glyphMutex)
-        var result: #returntype
-
         try .face.setPixelSize(0, size)
         try .face.loadChar(c)
         try .transform(size, embolden)
+        return .copyGlyphOutline(embolden)
+    }
 
-        let prevIdx  = result.outline.paths.count
+    // Builds an owned outline for a glyph index at the requested size.
+    //
+    // Coordinates are in pixels with the baseline at zero and `y` growing downward.
+    // Emboldening widens the outline and advance by the given number of pixels.
+    mtd buildGlyphOutline(glyphIndex: u32, size: u32, embolden: u32 = 0)->{outline: LinePathList, advance: f32} fail
+    {
+        Sync.scopedLock(&.glyphMutex)
+        try .face.setPixelSize(0, size)
+        try .face.loadGlyph(glyphIndex)
+        try .transform(size, embolden)
+        return .copyGlyphOutline(embolden)
+    }
+
+    private mtd copyGlyphOutline(embolden: u32)->{outline: LinePathList, advance: f32}
+    {
+        var result: #returntype
         let commands = .face.glyph.outline.decompose()
         addOutlineToPathList(&result.outline, commands.toSlice())
-
-        for i in prevIdx until result.outline.paths.count do
-            result.outline.paths[i].assumeClosed()
-
+        for path in result.outline.paths do
+            path.assumeClosed()
         result.advance = embolden + (.face.glyph.advance.x / 64.0)
         return result
     }

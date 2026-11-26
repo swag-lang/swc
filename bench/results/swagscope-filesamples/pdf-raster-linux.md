@@ -340,3 +340,39 @@ produced the same Swag CRC-32. The Pixel suite checks all 65,537 weights
 against the scalar expression and exercises mirrored blending with
 transparent texels. Large downscaled images still filter their source
 rows separately.
+
+## Direct coverage for transformed glyph outlines
+
+Swag's opaque CPU export can scan-convert embedded glyph outlines for
+rotated or sheared runs whose effective size is between 12 and 128 pixels.
+The render keeps the glyph mapping, font baseline, and PDF advances.
+It caches the owned outlines for reuse on the page. Profiling the
+transformed text fixture showed that evaluating four distance-field
+taps per covered pixel dominated the former path. PDFium uses transformed FreeType glyph
+masks and composites them through AGG.
+
+Release medians in milliseconds use seven interleaved runs at each size
+on one logical AMD EPYC 7763 CPU, with `b50a786180` as the Swag baseline
+and PDFium 159.0.8149.0 as the reference.
+[Phase timings and pixel measurements](pdf-raster-linux-transformed-text.json)
+
+| PDF | Long side | Swag before | Swag after | PDFium | Render before | Render after | PDFium render |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.pdf` | 1200 | 44.70 | 34.64 | 25.55 | 29.54 | 20.41 | 22.76 |
+| `sample2.pdf` | 1200 | 11.37 | 10.84 | 4.35 | 8.87 | 8.32 | 3.49 |
+| `sample3.pdf` | 1200 | 34.01 | 23.33 | 10.66 | 26.42 | 15.97 | 5.60 |
+| `perf_text_cmap_mixed.pdf` | 1200 | 5.38 | 5.11 | 10.84 | 3.18 | 2.95 | 7.01 |
+| `perf_text_transformed.pdf` | 1200 | 974.37 | 389.40 | 163.19 | 968.87 | 384.52 | 157.19 |
+| `sample1.pdf` | 2400 | 134.73 | 92.74 | 45.08 | 96.88 | 75.25 | 42.47 |
+| `sample2.pdf` | 2400 | 34.66 | 34.13 | 9.01 | 31.97 | 30.87 | 8.03 |
+| `sample3.pdf` | 2400 | 72.88 | 47.24 | 17.34 | 65.07 | 39.64 | 11.31 |
+| `perf_text_cmap_mixed.pdf` | 2400 | 24.80 | 33.02 | 27.28 | 22.53 | 29.79 | 21.93 |
+| `perf_text_transformed.pdf` | 2400 | 5132.81 | 1371.87 | 291.79 | 5125.78 | 1366.27 | 286.47 |
+
+Of 43 supported cases, 39 kept their Swag CRC-32. On the dense transformed
+text fixture, the mean absolute RGB error from PDFium fell from 23.84 to
+21.61 at 1200 px and from 17.95 to 17.11 at 2400 px, out of 255. The same
+metric improved on the nested forms fixture and `sample3.pdf`. It rose
+from 8.588 to 8.632 on `sample1.pdf` at 1200 px, with 0.46% of pixels
+changing. A test renders two rotated embedded glyphs and checks their
+position, spacing and counters.

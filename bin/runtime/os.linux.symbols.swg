@@ -180,65 +180,6 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
     return section
 }
 
-private func __linuxDecodeLz4(source: const [*] u8, sourceSize: u64, target: [*] u8, targetSize: u64)->bool
-{
-    func readLength(source: const [*] u8, size: u64, cursor: *u64, length: *u64)->bool
-    {
-        if length[] != 15 do
-            return true
-        while cursor[] < size
-        {
-            let extra = source[cursor[]]
-            cursor[] += 1
-            length[] += extra
-            if extra != 255 do
-                return true
-        }
-
-        return false
-    }
-
-    var input, output: u64
-    while input < sourceSize
-    {
-        let token = source[input]
-        input += 1
-        var literals = cast(u64, token >> 4)
-        if not readLength(source, sourceSize, &input, &literals) or
-           literals > sourceSize - input or
-           literals > targetSize - output do
-            return false
-        if literals do
-            Swag.memcpy(&target[output], &source[input], literals)
-        input  += literals
-        output += literals
-        if input == sourceSize do
-            return output == targetSize
-
-        if sourceSize - input < 2 do
-            return false
-        let distance = cast(u64, source[input]) | (cast(u64, source[input + 1]) << 8)
-        input += 2
-        var match = cast(u64, token & 15)
-        if not distance or
-           distance > output or
-           not readLength(source, sourceSize, &input, &match) or
-           match + 4 > targetSize - output do
-            return false
-        match += 4
-
-        // A match can repeat bytes produced by the same sequence.
-        if distance >= match do
-            Swag.memcpy(&target[output], &target[output - distance], match)
-        else do
-            for index in match do
-                target[output + index] = target[output - distance + index]
-        output += match
-    }
-
-    return false
-}
-
 // Expand the packed table on first use. Version 1 remains a view of the image.
 func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSize: *u64)->[*] u8?
 {
@@ -263,7 +204,7 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSize: *u
     let decoded = cast([*] u8?, __LinuxRT.malloc(size))
     if not decoded do
         return null
-    if not __linuxDecodeLz4(&section[16], packedSize, decoded, size)
+    if not Swag.__dbgDecodeLz4(&section[16], packedSize, decoded, size)
     {
         __LinuxRT.free(decoded)
         return null

@@ -3,6 +3,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Debug/SymbolTable.h"
 #include "Backend/Linker/ImageWriter.PE.h"
 #include "Backend/Linker/Linker.PE.h"
 #include "Backend/Linker/Linker.h"
@@ -17,11 +18,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-#ifdef _WIN32
-    using RtlDecompressBufferFn = LONG(WINAPI*)(USHORT compressionFormat, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG* finalUncompressedSize);
-
-#endif
-
     uint16_t peSubsystem(const ByteArray& bytes)
     {
         if (!bytes.containsRange(0x3C, sizeof(uint32_t)))
@@ -81,26 +77,6 @@ namespace
 
         return false;
     }
-
-#ifdef _WIN32
-    bool decompressLznt1(ByteArray& outBytes, const std::span<const std::byte> compressedBytes, const uint32_t uncompressedSize)
-    {
-        const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-        if (!ntdll)
-            return false;
-
-        const auto decompressBuffer = reinterpret_cast<RtlDecompressBufferFn>(GetProcAddress(ntdll, "RtlDecompressBuffer"));
-        if (!decompressBuffer)
-            return false;
-
-        outBytes.resize(uncompressedSize);
-        ULONG finalSize = 0;
-        if (decompressBuffer(0x0002, reinterpret_cast<PUCHAR>(outBytes.data()), uncompressedSize, reinterpret_cast<PUCHAR>(const_cast<std::byte*>(compressedBytes.data())), static_cast<ULONG>(compressedBytes.size()), &finalSize) < 0)
-            return false;
-        return finalSize == uncompressedSize;
-    }
-
-#endif
 
     ByteArray makeSingleImageIcon(const ByteArray& image)
     {
@@ -414,13 +390,12 @@ SWC_TEST_BEGIN(PeWriter_PreservesEmbeddedDebugTable)
     textSection.flags = LinkSectionFlagsE::Code | LinkSectionFlagsE::Execute | LinkSectionFlagsE::Read;
 
     ByteArray debugBytes;
-    debugBytes.appendLe32(0x42445753u);
-    debugBytes.appendLe32(1);
+    debugBytes.appendLe32(SymbolTable::MAGIC);
+    debugBytes.appendLe32(SymbolTable::VERSION_PLAIN);
     debugBytes.appendLe32(0);
-    debugBytes.appendLe32(16);
+    debugBytes.appendLe32(SymbolTable::HEADER_SIZE);
     debugBytes.resize(200'000, std::byte{'A'});
-    const uint32_t  originalDebugSize  = static_cast<uint32_t>(debugBytes.size());
-    const ByteArray originalDebugBytes = debugBytes;
+    const uint32_t originalDebugSize = static_cast<uint32_t>(debugBytes.size());
 
     LinkSection debugSection;
     debugSection.name  = ".swagdbg";
@@ -453,34 +428,37 @@ SWC_TEST_BEGIN(PeWriter_PreservesEmbeddedDebugTable)
     PeSectionView dataView;
     if (!findPeSection(debugView, peBytes, ".swagdbg") || !findPeSection(dataView, peBytes, ".data"))
         return Result::Error;
-#ifdef _WIN32
-    if (debugView.virtualSize != originalDebugSize || debugView.rawSize >= Math::alignUpU32(originalDebugSize, 0x200))
-        return Result::Error;
-    if (dataView.rawOffset <= debugView.rawOffset || dataView.rawOffset >= debugView.rawOffset + Math::alignUpU32(originalDebugSize, 0x200))
-        return Result::Error;
-    if (!peBytes.containsRange(debugView.rawOffset, 16))
-        return Result::Error;
-    if (peBytes.readLe32(debugView.rawOffset) != 0x42445753u || peBytes.readLe32(debugView.rawOffset + 4) != 2)
-        return Result::Error;
-    if (peBytes.readLe32(debugView.rawOffset + 8) != originalDebugSize)
-        return Result::Error;
-    const uint32_t compressedSize = peBytes.readLe32(debugView.rawOffset + 12);
-    if (compressedSize + 16 > debugView.rawSize)
+    if (debugView.virtualSize != originalDebugSize ||
+        debugView.rawSize >= Math::alignUpU32(originalDebugSize, 0x200) ||
+        !peBytes.containsRange(debugView.rawOffset, debugView.rawSize) ||
+        debugView.rawSize < SymbolTable::HEADER_SIZE)
         return Result::Error;
 
-    ByteArray decompressedBytes;
-    if (!decompressLznt1(decompressedBytes, {peBytes.data() + debugView.rawOffset + 16, compressedSize}, originalDebugSize))
+    if (peBytes.readLe32(debugView.rawOffset) != SymbolTable::MAGIC ||
+        peBytes.readLe32(debugView.rawOffset + 4) != SymbolTable::VERSION_LZ4 ||
+        peBytes.readLe32(debugView.rawOffset + 8) != originalDebugSize)
         return Result::Error;
-    if (decompressedBytes != originalDebugBytes)
+
+    const uint32_t packedSize = peBytes.readLe32(debugView.rawOffset + 12);
+    if (!packedSize || packedSize > debugView.rawSize - SymbolTable::HEADER_SIZE ||
+        Math::alignUpU32(SymbolTable::HEADER_SIZE + packedSize, 0x200) != debugView.rawSize)
         return Result::Error;
-#else
-    if (debugView.virtualSize != originalDebugSize || debugView.rawSize != Math::alignUpU32(originalDebugSize, 0x200))
+
+    // Skip table compression for the control image, keeping the same section layout inputs.
+    image.sections[1].bytes.writeLe32(0, 0);
+    ByteArray unpackedPe;
+    PEWriter  unpackedWriter;
+    if (!unpackedWriter.writeImage(unpackedPe, pdbBytes, diag, image, noDebugInfo, fs::path{}))
         return Result::Error;
-    if (!peBytes.containsRange(debugView.rawOffset, originalDebugSize) || std::memcmp(peBytes.data() + debugView.rawOffset, originalDebugBytes.data(), originalDebugSize) != 0)
+
+    PeSectionView unpackedData;
+    const uint32_t savedBytes = Math::alignUpU32(originalDebugSize, 0x200) - debugView.rawSize;
+    if (!findPeSection(unpackedData, unpackedPe, ".data") ||
+        dataView.rva != unpackedData.rva ||
+        dataView.rawOffset + savedBytes != unpackedData.rawOffset ||
+        !peBytes.containsRange(dataView.rawOffset, 64) ||
+        !std::ranges::all_of(peBytes.span().subspan(dataView.rawOffset, 64), [](const std::byte byte) { return byte == std::byte{0x5A}; }))
         return Result::Error;
-    if (dataView.rawOffset < debugView.rawOffset + debugView.rawSize)
-        return Result::Error;
-#endif
 }
 SWC_TEST_END()
 

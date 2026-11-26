@@ -26,6 +26,65 @@ private var __dbgMutex:  MutexRW
 
 func __dbgU32(p: [*] u8, off: u64)->u32 => cast(const *u32, (&p[off]))[]
 
+func __dbgDecodeLz4(source: const [*] u8, sourceSize: u64, target: [*] u8, targetSize: u64)->bool
+{
+    func readLength(source: const [*] u8, size: u64, cursor: *u64, length: *u64)->bool
+    {
+        if length[] != 15 do
+            return true
+        while cursor[] < size
+        {
+            let extra = source[cursor[]]
+            cursor[] += 1
+            length[] += extra
+            if extra != 255 do
+                return true
+        }
+
+        return false
+    }
+
+    var input, output: u64
+    while input < sourceSize
+    {
+        let token = source[input]
+        input += 1
+        var literals = cast(u64, token >> 4)
+        if not readLength(source, sourceSize, &input, &literals) or
+           literals > sourceSize - input or
+           literals > targetSize - output do
+            return false
+        if literals do
+            Swag.memcpy(&target[output], &source[input], literals)
+        input  += literals
+        output += literals
+        if input == sourceSize do
+            return output == targetSize
+
+        if sourceSize - input < 2 do
+            return false
+        let distance = cast(u64, source[input]) | (cast(u64, source[input + 1]) << 8)
+        input += 2
+        var match = cast(u64, token & 15)
+        if not distance or
+           distance > output or
+           not readLength(source, sourceSize, &input, &match) or
+           match + 4 > targetSize - output do
+            return false
+        match += 4
+
+        // A match can repeat bytes produced by the same sequence.
+        if distance >= match do
+            Swag.memcpy(&target[output], &target[output - distance], match)
+        else do
+            for index in match do
+                target[output + index] = target[output - distance + index]
+        output += match
+    }
+
+    return false
+}
+
 func readDebugString(section: [*] u8, size: u64, stringsOffset, offset: u32, value: *string)->bool
 {
     if not offset

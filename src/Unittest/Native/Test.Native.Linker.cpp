@@ -629,6 +629,34 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeStartupPreservesArguments)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeRuntimeReadsPackedStackSymbols)
+{
+    const LinkerTestDirectory  testDir("native_packed_stack_symbols");
+    constexpr std::string_view source = R"(#[Swag.NoInline]
+func tracedFunction()->u32
+{
+    return 7
+}
+
+#main
+{
+    let symbol = Swag.symbolizeStackAddress(cast(*void, &tracedFunction))
+    Swag.require(symbol.found and symbol.hasLine)
+    Swag.require(symbol.name == "StackSymbolTest.tracedFunction")
+    Swag.require(symbol.file.count > 0 and symbol.line == 4)
+    Swag.print("native stack symbols passed\n")
+}
+)";
+    SWC_RESULT(testDir.write("main.swg", source));
+    const std::vector<Utf8> args = {
+        "run", "--os", Utf8(K_HOST_TARGET_ARGUMENT), "-f", Utf8(testDir.path() / "main.swg"),
+        "--module-namespace", "StackSymbolTest", "-n", "stack-symbols", "--artifact-kind", "executable",
+        "--out-dir", Utf8(testDir.path() / "output"), "--work-dir", Utf8(testDir.path() / "work"),
+        "--build-cfg", "release", "--num-cores", std::to_string(Unittest::compilerWorkerCount(ctx))};
+    SWC_RESULT(runCompiler(args, ExitCode::Success, "native stack symbols passed"));
+}
+SWC_TEST_END()
+
 SWC_FILESYSTEM_TEST_BEGIN(Linker_NativeTestsDiscardRejectedCallees)
 {
     const LinkerTestDirectory testDir("rejected_callee");

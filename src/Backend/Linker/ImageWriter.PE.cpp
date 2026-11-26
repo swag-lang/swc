@@ -17,55 +17,6 @@ namespace
     constexpr uint32_t SECTION_ALIGNMENT = 0x1000;
     constexpr uint32_t FILE_ALIGNMENT    = 0x200;
 
-#ifdef _WIN32
-    constexpr USHORT K_COMPRESSION_FORMAT_LZNT1   = 0x0002;
-    constexpr USHORT K_COMPRESSION_ENGINE_MAXIMUM = 0x0100;
-
-    using RtlGetCompressionWorkSpaceSizeFn = LONG(WINAPI*)(USHORT compressionFormatAndEngine, ULONG* compressBufferWorkSpaceSize, ULONG* compressFragmentWorkSpaceSize);
-    using RtlCompressBufferFn              = LONG(WINAPI*)(USHORT compressionFormatAndEngine, PUCHAR uncompressedBuffer, ULONG uncompressedBufferSize, PUCHAR compressedBuffer, ULONG compressedBufferSize, ULONG uncompressedChunkSize, ULONG* finalCompressedSize, PVOID workSpace);
-
-    bool tryCompressLznt1(ByteArray& outBytes, const ByteArray& source)
-    {
-        if (source.empty() || source.size() > std::numeric_limits<ULONG>::max() - 4096ull)
-            return false;
-
-        const HMODULE ntdll = GetModuleHandleW(L"ntdll.dll");
-        if (!ntdll)
-            return false;
-
-        const auto getWorkspaceSize = reinterpret_cast<RtlGetCompressionWorkSpaceSizeFn>(GetProcAddress(ntdll, "RtlGetCompressionWorkSpaceSize"));
-        const auto compressBuffer   = reinterpret_cast<RtlCompressBufferFn>(GetProcAddress(ntdll, "RtlCompressBuffer"));
-        if (!getWorkspaceSize || !compressBuffer)
-            return false;
-
-        constexpr USHORT format                = K_COMPRESSION_FORMAT_LZNT1 | K_COMPRESSION_ENGINE_MAXIMUM;
-        ULONG            workspaceSize         = 0;
-        ULONG            fragmentWorkspaceSize = 0;
-        if (getWorkspaceSize(format, &workspaceSize, &fragmentWorkspaceSize) < 0)
-            return false;
-
-        std::vector<std::byte> workspace(workspaceSize);
-        // RtlCompressBuffer writes the output prefix reported by compressedSize.
-        // The destination does not need to be initialized before compression.
-        const size_t compressedCapacity = source.size() + 4096;
-        const auto   compressed         = std::make_unique_for_overwrite<std::byte[]>(compressedCapacity);
-        ULONG        compressedSize     = 0;
-        const LONG   status             = compressBuffer(format, reinterpret_cast<PUCHAR>(const_cast<std::byte*>(source.data())), static_cast<ULONG>(source.size()), reinterpret_cast<PUCHAR>(compressed.get()), static_cast<ULONG>(compressedCapacity), 4096, &compressedSize, workspace.data());
-        if (status < 0 || compressedSize >= source.size())
-            return false;
-
-        outBytes.clear();
-        outBytes.reserve(16 + compressedSize);
-        outBytes.appendLe32(SymbolTable::MAGIC);
-        outBytes.appendLe32(SymbolTable::VERSION_PACKED);
-        outBytes.appendLe32(static_cast<uint32_t>(source.size()));
-        outBytes.appendLe32(compressedSize);
-        outBytes.append(std::span{compressed.get(), compressedSize});
-        return true;
-    }
-
-#endif
-
     // The PDB path is embedded both in the exe's RSDS debug-directory record and in the PDB header.
     // Emit it with native (backslash) separators: a forward-slash path built from a
     // forward-slash workspace argument can stop Visual Studio from loading the module's symbols.
@@ -662,8 +613,6 @@ SWC_FORCE_INLINE void PEWriter::sortSectionsByRva(std::vector<uint32_t>& order) 
 
 void PEWriter::compressEmbeddedDebugTable()
 {
-    // LZNT1 is optional: the plain embedded table has the same runtime contract.
-#ifdef _WIN32
     for (OutSection& section : sections_)
     {
         if (section.name.view() != SymbolTable::IMAGE_SECTION || section.bytes.size() < SymbolTable::HEADER_SIZE)
@@ -671,18 +620,16 @@ void PEWriter::compressEmbeddedDebugTable()
         if (section.bytes.readLe32(0) != SymbolTable::MAGIC || section.bytes.readLe32(4) != SymbolTable::VERSION_PLAIN)
             continue;
 
-        ByteArray compressed;
-        if (!tryCompressLznt1(compressed, section.bytes))
-            continue;
-        if (Math::alignUpU32(static_cast<uint32_t>(compressed.size()), FILE_ALIGNMENT) >= section.rawSize)
+        ByteArray compressed = SymbolTable::packRuntimeSymbols(section.bytes);
+        if (compressed.empty() || Math::alignUpU32(static_cast<uint32_t>(compressed.size()), FILE_ALIGNMENT) >= section.rawSize)
             continue;
 
-        section.bytes   = std::move(compressed);
-        section.rawSize = Math::alignUpU32(static_cast<uint32_t>(section.bytes.size()), FILE_ALIGNMENT);
+        // The runtime sees the reserved virtual section size after raw file compaction.
+        compressed.writeLe32(12, static_cast<uint32_t>(compressed.size() - SymbolTable::HEADER_SIZE));
+        section.bytes = std::move(compressed);
         compactFileLayout();
         return;
     }
-#endif
 }
 
 void PEWriter::compactFileLayout()

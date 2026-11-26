@@ -915,20 +915,35 @@ func __hostDebugSection(base: *void, size: *u64)->[*] u8?
     return null
 }
 
-// Expands the linker-owned version-2 debug table on first use. Version 1 remains a
-// direct image view for compatibility with artifacts produced by older compilers.
+// Own a stable copy of the table so symbol names can outlive the mapped PE image.
 func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut: *u64)->[*] u8?
 {
+    func decodeLznt1(source: const [*] u8, sourceSize: u32, target: [*] u8, targetSize: u32)->bool
+    {
+        let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
+        if not ntdll do
+            return false
+        let address = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
+        if not address do
+            return false
+        let decompress = cast(__Win32RT.RtlDecompressBufferFn, address)
+        var finalSize: u32
+        let status     = decompress(2, target, targetSize, source, sourceSize, &finalSize)
+        return status >= 0 and finalSize == targetSize
+    }
+
     decodedSizeOut[] = 0
-    if sectionSize < 16 do
-        return null
-    if __peU32(section, 0) != 0x4244_5753 do
+    if sectionSize < 16 or __peU32(section, 0) != 0x4244_5753 do
         return null
 
     let version = __peU32(section, 4)
     if version == 1
     {
-        let decoded = cast([*] u8?, __Win32RT.VirtualAlloc(null, sectionSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
+        let decoded = cast([*] u8?,
+                           __Win32RT.VirtualAlloc(null,
+                                                  sectionSize,
+                                                  __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE,
+                                                  __Win32RT.PAGE_READWRITE))
         if not decoded do
             return null
         Swag.memcpy(decoded, section, sectionSize)
@@ -936,35 +951,34 @@ func __hostDecodeDebugSection(section: [*] u8, sectionSize: u64, decodedSizeOut:
         return decoded
     }
 
-    if version != 2 do
+    if version != 2 and version != 4 do
         return null
 
     let decodedSize = __peU32(section, 8)
     let packedSize  = __peU32(section, 12)
     if decodedSize < 16 or packedSize == 0 or cast(u64, packedSize) > sectionSize - 16 do
         return null
-
-    let ntdll = __Win32RT.GetModuleHandleA(("ntdll.dll").buffer)
-    if not ntdll do
+    if version == 4 and cast(u64, decodedSize) > cast(u64, packedSize) * 255 do
         return null
-    let decompressAddress = __Win32RT.GetProcAddress(ntdll, ("RtlDecompressBuffer").buffer)
-    if not decompressAddress do
-        return null
-    let decompress = cast(__Win32RT.RtlDecompressBufferFn, decompressAddress)
 
-    let decoded = cast([*] u8?, __Win32RT.VirtualAlloc(null, decodedSize, __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE, __Win32RT.PAGE_READWRITE))
+    let decoded = cast([*] u8?,
+                       __Win32RT.VirtualAlloc(null,
+                                              decodedSize,
+                                              __Win32RT.MEM_COMMIT | __Win32RT.MEM_RESERVE,
+                                              __Win32RT.PAGE_READWRITE))
     if not decoded do
         return null
 
-    var finalSize: u32
-    let status = decompress(2, decoded, decodedSize, &section[16], packedSize, &finalSize)
-    if status < 0 or finalSize != decodedSize
+    let payload = &section[16]
+    let ok      = version == 4 ? Swag.__dbgDecodeLz4(payload, packedSize, decoded, decodedSize)
+                  : decodeLznt1(payload, packedSize, decoded, decodedSize)
+    if not ok
     {
         discard __Win32RT.VirtualFree(decoded, 0, __Win32RT.MEM_RELEASE)
         return null
     }
 
-    decodedSizeOut[] = cast(u64, finalSize)
+    decodedSizeOut[] = decodedSize
     return decoded
 }
 

@@ -14,7 +14,7 @@ struct NativeFunctionInfo;
 // table when it pulls the object in: without it, a program that takes a library's code in would print
 // traces that skip every frame of that library.
 //
-// Both sections share one layout: a 16-byte header (magic, version, entry count, offset of the
+// Both plain sections share one layout: a 16-byte header (magic, version, entry count, offset of the
 // strings), then 20-byte entries (image-relative start, size, name, file, line), then the strings.
 // String offsets count from the start of the table, and 0 stands for no string. A start address is
 // relocated against the entry's symbol.
@@ -24,8 +24,8 @@ namespace SymbolTable
     inline constexpr std::string_view OBJECT_SECTION  = ".swagsym";
     inline constexpr uint32_t         MAGIC           = 0x42445753u; // 'SWDB'
     inline constexpr uint32_t         VERSION_PLAIN   = 1;
-    inline constexpr uint32_t         VERSION_PACKED  = 2; // an image's table, LZNT1-compressed by the PE writer
-    inline constexpr uint32_t         VERSION_LZ4     = 4; // an ELF image table in an LZ4 block
+    inline constexpr uint32_t         VERSION_PACKED  = 2; // legacy LZNT1 in PE images
+    inline constexpr uint32_t         VERSION_LZ4     = 4; // an image table in an LZ4 block
     inline constexpr uint32_t         HEADER_SIZE     = 16;
     inline constexpr uint32_t         ENTRY_SIZE      = 20;
     inline constexpr uint32_t         ENTRY_START_RVA = 0;
@@ -52,6 +52,10 @@ namespace SymbolTable
     void build(ByteArray& outBytes, std::vector<Relocation>& outRelocations, std::span<const Entry> entries);
     // Lays out an image table when the caller writes its relocations directly to the image.
     void build(ByteArray& outBytes, std::span<const Entry> entries);
+
+    // Packs a relocated plain image table, or returns an empty array when packing does not save space.
+    // A padded section must set the last header word to the exact payload size.
+    ByteArray packRuntimeSymbols(const ByteArray& table);
 
     // Appends the entries of a table, given the symbol each start address is relocated against.
     // Returns false, and appends nothing, when the bytes are not such a table.

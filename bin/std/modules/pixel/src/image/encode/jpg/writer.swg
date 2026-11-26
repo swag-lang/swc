@@ -43,10 +43,7 @@ impl Encoder
         .outCount = 0
     }
 
-    // Appends one Huffman or magnitude code to the entropy-coded segment.
-    //
-    // The pending bits are kept right-aligned in an accumulator that never holds a full byte on
-    // entry, so a code costs one shift and the loop below only runs when a byte completed.
+    // Entropy bits are accumulated until a complete word can be written.
     #[Swag.Inline]
     mtd writeBits(code: BitString)
     {
@@ -62,20 +59,53 @@ impl Encoder
         .appendEntropyBits(cast(u32, prefix.length) + category, bits)
     }
 
+    #[Swag.Inline]
     mtd appendEntropyBits(length: u32, bits: u32)
     {
         .bitBuffer = (.bitBuffer << length) | bits
         .bitCount  += length
+        if .bitCount >= 32 do
+            .writeEntropyWord()
+    }
 
+    #[Swag.Inline]
+    private mtd writeEntropyByte(byte: u8)
+    {
+        .writeByte(byte)
+        if byte == 0xFF do
+            .writeByte(0)
+    }
+
+    #[Swag.NoInline]
+    private mtd writeEntropyWord()
+    {
+        .bitCount -= 32
+        let word        = cast(u32, ((.bitBuffer >> .bitCount) & 0xFFFFFFFF))
+        let low         = word & 0x7F7F7F7F'u32
+        let hasStuffing = ((low + 0x01010101'u32) & word & 0x80808080'u32) != 0
+
+        if not hasStuffing and .outCount <= OutBufSize - 4
+        {
+            cast([*] u32, &.outBuf[.outCount])[] = Math.nativeToBigEndian(word)
+            .outCount += 4
+            if .outCount == OutBufSize do
+                .flushStaged()
+        }
+        else
+        {
+            .writeEntropyByte(cast(u8, word >> 24))
+            .writeEntropyByte(cast(u8, ((word >> 16) & 0xFF)))
+            .writeEntropyByte(cast(u8, ((word >> 8) & 0xFF)))
+            .writeEntropyByte(cast(u8, (word & 0xFF)))
+        }
+    }
+
+    mtd flushEntropyBytes()
+    {
         while .bitCount >= 8
         {
             .bitCount -= 8
-            let written = cast(u8, ((.bitBuffer >> .bitCount) & 0xFF))
-            .writeByte(written)
-
-            // A 0xFF inside entropy-coded data is stuffed, or a decoder reads it as a marker.
-            if written == 0xFF do
-                .writeByte(0)
+            .writeEntropyByte(cast(u8, ((.bitBuffer >> .bitCount) & 0xFF)))
         }
     }
 

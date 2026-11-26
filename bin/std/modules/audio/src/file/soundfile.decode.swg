@@ -81,6 +81,7 @@ impl SoundFile
 
         // A contiguous PCM payload can reuse one read window for the whole range.
         let contiguous = .packets.isEmpty()
+        let direct     = contiguous and .encoding == .Pcm16
         var source: ByteSource
         if contiguous
         {
@@ -123,13 +124,23 @@ impl SoundFile
                     fail InvalidFormatError{"sound payload is truncated"}
             }
 
-            decoded.resize(input.count / bytesPerSample)
-            let outputBytes = decoded.count * #sizeof(s16)
-            let progress    = try decoder.decode(decoded.storage(), outputBytes, input.buffer, input.count)
-            if progress.bytesRead != input.count or progress.bytesWritten != outputBytes do
-                fail InvalidFormatError{"sound payload decoded to an unexpected size"}
-            if not consumer(decoded.toSlice()) do
-                return
+            if direct
+            {
+                let samples = Swag.makeSlice(cast(const [*] s16, input.buffer), input.count / #sizeof(s16))
+                if not consumer(samples) do
+                    return
+            }
+            else
+            {
+                decoded.resize(input.count / bytesPerSample)
+                let outputBytes = decoded.count * #sizeof(s16)
+                let progress    = try decoder.decode(decoded.storage(), outputBytes, input.buffer, input.count)
+                if progress.bytesRead != input.count or progress.bytesWritten != outputBytes do
+                    fail InvalidFormatError{"sound payload decoded to an unexpected size"}
+                if not consumer(decoded.toSlice()) do
+                    return
+            }
+
             if contiguous do
                 try source.skip(wantedBytes)
             byteOffset += wantedBytes

@@ -1098,15 +1098,18 @@ impl Codec
             longSubbands = 32
         }
 
-        let overlap    = &.state[cast(u64, channel)].overlap
-        let longWindow = info.blockType == 2 ? 0'u32 : info.blockType
-        inverseTransformBands(lines, overlap, 0, longSubbands, longWindow)
-        inverseTransformBands(lines, overlap, longSubbands, 32, 2)
+        let state       = &.state[cast(u64, channel)]
+        let overlap     = &state.overlap
+        let previousEnd = state.overlapEnd
+        let longWindow  = info.blockType == 2 ? 0'u32 : info.blockType
+        let longEnd     = inverseTransformBands(lines, overlap, 0, longSubbands, longWindow, previousEnd)
+        let shortEnd    = inverseTransformBands(lines, overlap, longSubbands, 32, 2, previousEnd)
+        state.overlapEnd = Math.max(longEnd, shortEnd)
 
-        invertFrequencies(lines)
+        invertFrequencies(lines, Math.max(previousEnd, state.overlapEnd))
 
         let base = cast(u64, granule) * 576
-        synthesizeGranule(&.state[cast(u64, channel)], lines, &.output[cast(u64, channel), base])
+        synthesizeGranule(state, lines, &.output[cast(u64, channel), base])
     }
 
     // Restores the state a decode starts from.

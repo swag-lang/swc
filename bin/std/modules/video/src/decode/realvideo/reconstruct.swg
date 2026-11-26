@@ -177,55 +177,135 @@ func predictSmall(dst: [*] u8, stride, mode: s32, top, left, down, right: bool)
     }
 }
 
-func filtered(a, b, c, d, e, f, fraction: s32)->s32
+private struct MotionFilter
 {
-    let c1    = fraction == 1 ? 52 : 20
-    let c2    = fraction == 3 ? 52 : 20
-    let shift = fraction == 2 ? 5'u32 : 6'u32
-    return Math.clamp((a + f - 5 * (b + e) + c * c1 + d * c2 + (1 << (shift - 1))) >> shift, 0, 255)
+    centerLeft:  s32
+    centerRight: s32
+    bias:        s32
+    shift:       u32
 }
 
-func horizontal(plane: const *Plane, x, y, fraction: s32)->s32
+private const MotionFilters: [4] MotionFilter = [
+    {0, 0, 0, 0}, {52, 20, 32, 6}, {20, 20, 16, 5}, {20, 52, 32, 6}]
+
+#[Swag.Inline]
+private func filterMotion(a, b, c, d, e, f: s32, filter: MotionFilter)->u8
 {
-    if not fraction do
-        return plane.sample(x, y)
-    return filtered(plane.sample(x - 2, y), plane.sample(x - 1, y), plane.sample(x, y), plane.sample(x + 1, y), plane.sample(x + 2, y), plane.sample(x + 3, y), fraction)
+    return clipped((a + f - 5 * (b + e) + c * filter.centerLeft + d * filter.centerRight + filter.bias) >> filter.shift)
 }
 
-func motionPixel(plane: const *Plane, x, y: s32, motion: Motion, chroma: bool)->s32
+#[Swag.Inline]
+private func rowSample(row: const [*] u8, x, width: s32)->s32
 {
-    if chroma
+    return cast(s32, row[Math.clamp(x, 0, width - 1)])
+}
+
+private func horizontalMotion(into: [*] u8, source: const [*] u8, x, size, width, fraction: s32)
+{
+    if not fraction
     {
-        let cx = motion.x / 2
-        let cy = motion.y / 2
-        let sx = x + (cx >> 2)
-        let sy = y + (cy >> 2)
-        var fx = (cx & 3) * 2
-        var fy = (cy & 3) * 2
-        if fx == 6 and fy == 6
+        if x >= 0 and x + size <= width
         {
-            fx = 4
-            fy = 4
+            Memory.copy(into, source + x, cast(u64, size))
+            return
         }
 
-        const Bias = [0, 16, 32, 16, 32, 28, 32, 28, 0, 32, 16, 32, 32, 28, 32, 28]
-        return ((8 - fx) * (8 - fy) * plane.sample(sx, sy) + fx * (8 - fy) * plane.sample(sx + 1, sy) +
-                (8 - fx) * fy * plane.sample(sx, sy + 1) + fx * fy * plane.sample(sx + 1, sy + 1) + Bias[fy / 2 * 4 + fx / 2]) >> 6
+        for i in size do
+            into[i] = cast(u8, rowSample(source, x + i, width))
+        return
     }
 
-    let sx = x + (motion.x >> 2)
-    let sy = y + (motion.y >> 2)
-    let fx = motion.x & 3
-    let fy = motion.y & 3
-    if fx == 3 and fy == 3 do
-        return (plane.sample(sx, sy) + plane.sample(sx + 1, sy) + plane.sample(sx, sy + 1) + plane.sample(sx + 1, sy + 1) + 2) >> 2
-    if not fy do
-        return horizontal(plane, sx, sy, fx)
-    return filtered(horizontal(plane, sx, sy - 2, fx),
-                    horizontal(plane, sx, sy - 1, fx),
-                    horizontal(plane, sx, sy, fx),
-                    horizontal(plane, sx, sy + 1, fx),
-                    horizontal(plane, sx, sy + 2, fx),
-                    horizontal(plane, sx, sy + 3, fx),
-                    fy)
+    let filter = MotionFilters[fraction]
+    if x >= 2 and x + size + 3 <= width
+    {
+        let first = source + x - 2
+        for i in size
+        {
+            let tap = first + i
+            into[i] = filterMotion(tap[0], tap[1], tap[2], tap[3], tap[4], tap[5], filter)
+        }
+
+        return
+    }
+
+    for i in size
+    {
+        let at = x + i
+        into[i] = filterMotion(rowSample(source, at - 2, width), rowSample(source, at - 1, width), rowSample(source, at, width), rowSample(source, at + 1, width), rowSample(source, at + 2, width), rowSample(source, at + 3, width), filter)
+    }
+}
+
+private func interpolateMotion(into: [*] u8, stride: s32, plane: const *Plane, x, y, size, fx, fy: s32, chroma: bool)
+{
+    const Bias = [0, 16, 32, 16, 32, 28, 32, 28, 0, 32, 16, 32, 32, 28, 32, 28]
+    let a     = chroma ? (8 - fx) * (8 - fy) : 1
+    let b     = chroma ? fx * (8 - fy) : 1
+    let c     = chroma ? (8 - fx) * fy : 1
+    let d     = chroma ? fx * fy : 1
+    let bias  = chroma ? Bias[fy / 2 * 4 + fx / 2] : 2
+    let shift = chroma ? 6'u32 : 2'u32
+    for row in size
+    {
+        let top    = plane.referenceRow(y + row)
+        let bottom = plane.referenceRow(y + row + 1)
+        let dst    = into + row * stride
+        for column in size
+        {
+            let left  = Math.clamp(x + column, 0, plane.width - 1)
+            let right = Math.clamp(x + column + 1, 0, plane.width - 1)
+            dst[column] = cast(u8,
+                               ((a * cast(s32, top[left]) + b * cast(s32, top[right]) +
+                                 c * cast(s32, bottom[left]) + d * cast(s32, bottom[right]) + bias) >> shift))
+        }
+    }
+}
+
+// Reconstructs one 4x4 chroma or 8x8 luma motion partition.
+func predictMotion(into: [*] u8, stride: s32, plane: const *Plane, x, y, size: s32, motion: Motion, chroma: bool)
+{
+    let dx = chroma ? motion.x / 2 : motion.x
+    let dy = chroma ? motion.y / 2 : motion.y
+    let sx = x + (dx >> 2)
+    let sy = y + (dy >> 2)
+    let fx = dx & 3
+    let fy = dy & 3
+    if chroma and (fx or fy)
+    {
+        // RV40 maps the 3/4-by-3/4 chroma phase to the half-sample filter.
+        let diagonal = fx == 3 and fy == 3
+        interpolateMotion(into, stride, plane, sx, sy, size, diagonal ? 4 : fx * 2, diagonal ? 4 : fy * 2, true)
+        return
+    }
+
+    if fx == 3 and fy == 3
+    {
+        interpolateMotion(into, stride, plane, sx, sy, size, fx, fy, false)
+        return
+    }
+
+    if not fy
+    {
+        for row in size do
+            horizontalMotion(into + row * stride, plane.referenceRow(sy + row), sx, size, plane.width, fx)
+        return
+    }
+
+    // Each horizontal result is clipped before it contributes to the vertical filter.
+    var horizontal: [13, 8] u8
+    for row in size + 5 do
+        horizontalMotion(&horizontal[row, 0], plane.referenceRow(sy + row - 2), sx, size, plane.width, fx)
+
+    let filter = MotionFilters[fy]
+    for row in size
+    {
+        let dst = into + row * stride
+        for column in size do
+            dst[column] = filterMotion(horizontal[row, column],
+                                       horizontal[row + 1, column],
+                                       horizontal[row + 2, column],
+                                       horizontal[row + 3, column],
+                                       horizontal[row + 4, column],
+                                       horizontal[row + 5, column],
+                                       filter)
+    }
 }

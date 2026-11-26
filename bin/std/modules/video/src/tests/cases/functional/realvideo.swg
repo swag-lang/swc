@@ -54,6 +54,45 @@ func realVideoCompare(name: string)
 #test { realVideoCompare("rv40-legacy-clock") }
 #test { realVideoCompare("rv40-slices") }
 
+// Motion uses the visible edges even when a whole partition lies outside the picture.
+#test
+{
+    var plane: RealVideo.Plane
+    plane.resize(11, 9)
+    for y in 9's32
+    {
+        let row = plane.at(0, y)
+        for x in 11's32 do
+            row[x] = cast(u8, ((x * 37 + y * 61 + x * y * 7) & 255))
+    }
+
+    var luma: [80] u8
+    Memory.set(&luma[0], 0xA5, luma.count)
+    RealVideo.predictMotion(&luma[0], 10, &plane, 0, 0, 8, {-3, -2}, false)
+    const FirstRow: [8] u8 = [0, 2, 41, 74, 101, 146, 237, 181]
+    const LastRow:  [8] u8 = [148, 140, 62, 46, 130, 108, 164, 101]
+    for column in 8'u64
+    {
+        Swag.require(luma[column] == FirstRow[column])
+        Swag.require(luma[70 + column] == LastRow[column])
+    }
+
+    RealVideo.predictMotion(&luma[0], 10, &plane, 0, 0, 8, {-32768, 32767}, false)
+    for row in 8'u64
+    {
+        for column in 8'u64 do
+            Swag.require(luma[row * 10 + column] == 232)
+        Swag.require(luma[row * 10 + 8] == 0xA5 and luma[row * 10 + 9] == 0xA5)
+    }
+
+    // The 3/4-by-3/4 chroma phase selects the half-by-half filter.
+    var chroma: [16] u8
+    RealVideo.predictMotion(&chroma[0], 4, &plane, 8, 6, 4, {7, 7}, true)
+    const Chroma: [16] u8 = [138, 92, 69, 69, 130, 92, 72, 72, 126, 91, 138, 138, 126, 91, 138, 138]
+    for sample, index in chroma do
+        Swag.require(sample == Chroma[index])
+}
+
 // Every table edge preserves either its target row or its decoded leaf value.
 #test
 {

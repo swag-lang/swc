@@ -45,7 +45,7 @@ using Core
                     expected[band, i] += cast(f64, overlap[i, band])
             }
 
-            Mp3.inverseTransformBands(&lines, &overlap, 0, bands, blockType)
+            discard Mp3.inverseTransformBands(&lines, &overlap, 0, bands, blockType)
             for band in bands
             {
                 let base = cast(u64, band) * 18
@@ -54,6 +54,41 @@ using Core
                     Swag.require(Math.abs(cast(f64, lines[base + i]) - expected[band, i]) < 2e-5)
                     Swag.require(Math.abs(cast(f64, overlap[i, band]) - expected[band, 18 + i]) < 2e-5)
                 }
+            }
+        }
+    }
+}
+
+// Expanding and shrinking the spectrum must still drain the preceding granule's overlap.
+#test
+{
+    const Bounds: [6] u32 = [12, 4, 0, 9, 1, 0]
+    var fullOverlap, boundedOverlap: Mp3.SubbandOverlap
+    var previousEnd = 0'u32
+    for frame in Bounds.count
+    {
+        var expected: Mp3.Granule576
+        for i in cast(u64, Bounds[frame]) * 18 do
+            expected[i] = cast(f32, cast(s32, ((i * 13) % 23)) - 11) / 16
+        var actual = expected
+
+        let mixed       = (frame & 1) != 0
+        let longSubbands = mixed ? 2'u32 : 32'u32
+        discard Mp3.inverseTransformBands(&expected, &fullOverlap, 0, longSubbands, 0)
+        discard Mp3.inverseTransformBands(&expected, &fullOverlap, longSubbands, 32, 2)
+
+        let longEnd  = Mp3.inverseTransformBands(&actual, &boundedOverlap, 0, longSubbands, 0, previousEnd)
+        let shortEnd = Mp3.inverseTransformBands(&actual, &boundedOverlap, longSubbands, 32, 2, previousEnd)
+        previousEnd = Math.max(longEnd, shortEnd)
+        Swag.require(previousEnd == Bounds[frame])
+
+        for band in 32'u64
+        {
+            for i in 18'u64
+            {
+                let at = band * 18 + i
+                Swag.require(actual[at] == expected[at])
+                Swag.require(boundedOverlap[i, band] == fullOverlap[i, band])
             }
         }
     }

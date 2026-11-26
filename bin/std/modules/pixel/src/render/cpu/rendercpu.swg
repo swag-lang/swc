@@ -4574,6 +4574,13 @@ impl RenderCpu
         .ensureStencil(rt.colorBuffer.width, rt.colorBuffer.height)
     }
 
+    // Borrows the CPU target image until the next change to texture storage.
+    internal mtd renderTargetImage(rt: const *RenderTarget)->const *Image?
+    {
+        let texture = .findTexture(rt.colorBuffer.handle)
+        return texture ? &texture.image : null
+    }
+
     // Reads a rectangle of an off-screen target into a new image.
     //
     // The rectangle is clamped to the target and must retain at least one pixel.

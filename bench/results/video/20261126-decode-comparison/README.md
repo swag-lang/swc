@@ -181,6 +181,32 @@ The short RealVideo timings include incremental indexing and describe these smal
 fixtures. In the I/P/B profile, nearly half the samples fell in motion compensation
 and its pixel loads. [Raw timings, quality and profile counts](matroska.json).
 
+## RealVideo motion partitions
+
+RealVideo now prepares motion vectors once per partition. Luma that needs a vertical
+filter reuses clipped horizontal-filter rows. Chroma and the special luma diagonal
+case reuse their interpolation weights, and bidirectional prediction blends whole
+partitions. The new regression test covers visible edges, an entirely out-of-picture
+vector, the chroma diagonal phase and destination stride.
+
+The medians of seven repetitions compare against `44f1e36f64` with the Release
+compiler built from that revision. Both variants use one logical CPU. Times are in
+milliseconds per picture.
+
+| RealVideo stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Repeated I/P/B, 720 pictures | 0.338 | 0.157 | 0.038 | -53.5% | 4.09× |
+| Intra | 0.175 | 0.170 | 0.066 | -2.9% | 2.57× |
+| I/P/B | 0.264 | 0.128 | 0.042 | -51.7% | 3.02× |
+| Adaptive | 0.332 | 0.136 | 0.035 | -59.0% | 3.91× |
+| Multiple slices | 0.348 | 0.131 | 0.039 | -62.3% | 3.38× |
+
+The 720-picture stream and the four original clips match FFmpeg byte for byte.
+The targeted native Release selection passed 45 tests. A paired check with the earlier
+compiler confirmed 43–54% lower process CPU time on the three clips using motion.
+The intra-only result was within a few percent in both series.
+[Raw timings, hashes and repeat command](realvideo-motion.json).
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

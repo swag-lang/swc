@@ -6175,9 +6175,11 @@ impl Drawing
             var tileX      = 0
             while tileX < width
             {
-                let copyWidth = Math.min(tileWidth, width - tileX)
+                let copyWidth  = Math.min(tileWidth, width - tileX)
                 var mattes: [2] Image
-                for matte in (mask != .Color or paired ? 1 : 2)
+                let matteCount = mask != .Color or paired ? 1'u64 : 2'u64
+                let readTarget = ss == 1 ? &sampled : &resolved
+                for matte in matteCount
                 {
                     var painter = Painter.create(renderer)
                     painter.useScanlineFills = cpu != null and .preferScanFills and ss == 1
@@ -6224,23 +6226,41 @@ impl Drawing
                         cpu!.endSvgMattes()
                     catch renderer.draw(&painter) { return {} }
 
-                    // Render-target readbacks and images share the bottom-up row convention. Copy
-                    // each tile into the matching bottom-up rows of the complete result.
-                    mattes[matte] = ss == 1 ? renderer.readRenderTarget(&sampled, 0, 0, copyWidth, copyHeight) : renderer.readRenderTarget(&resolved, 0, 0, copyWidth, copyHeight)
-                    if not mattes[matte].isValid() do
-                        return {}
+                    // Preserve a snapshot when the next draw will overwrite this target.
+                    if not cpu or matte + 1 < matteCount
+                    {
+                        mattes[matte] = renderer.readRenderTarget(readTarget, 0, 0, copyWidth, copyHeight)
+                        if not mattes[matte].isValid() do
+                            return {}
+                    }
                 }
 
-                if paired
+                var first:  const *Image = &mattes[0]
+                var second: const *Image = &mattes[1]
+                if cpu
                 {
-                    mattes[1] = renderer.readRenderTarget(&whiteMatte, 0, 0, copyWidth, copyHeight)
-                    if not mattes[1].isValid() do
+                    // Both borrowed images are consumed before the next renderer operation.
+                    let target = cpu.renderTargetImage(readTarget)
+                    if not target or not target.isValid() do
                         return {}
+                    if matteCount == 1 do
+                        first = target
+                    else do
+                        second = target
+                    if paired
+                    {
+                        let white = cpu.renderTargetImage(&whiteMatte)
+                        if not white or not white.isValid() do
+                            return {}
+                        second = white
+                    }
                 }
 
+                // A borrowed target is stored bottom-up and can extend below the tile.
+                let firstBottom = first.height - copyHeight
                 for row in copyHeight
                 {
-                    let firstMatte  = mattes[0].pixels.storage() + cast(u64, row) * cast(u64, mattes[0].rowStride)
+                    let firstMatte  = first.pixels.storage() + cast(u64, firstBottom + cast(s32, row)) * cast(u64, first.rowStride)
                     let resultRow   = result.height - tileY - copyHeight + row
                     let destination = result.pixels.storage() + cast(u64, resultRow) * cast(u64, result.rowStride) + cast(u64, tileX) * result.bytesPerPixel
                     let output      = cast([*] u32, destination)
@@ -6266,7 +6286,7 @@ impl Drawing
                     }
 
                     let black      = firstMatte
-                    let white      = mattes[1].pixels.storage() + cast(u64, row) * cast(u64, mattes[1].rowStride)
+                    let white      = second.pixels.storage() + cast(u64, second.height - copyHeight + cast(s32, row)) * cast(u64, second.rowStride)
                     let blackWords = cast(const [*] u32, black)
                     let whiteWords = cast(const [*] u32, white)
                     for column in copyWidth

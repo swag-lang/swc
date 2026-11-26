@@ -847,6 +847,62 @@ impl Part
         return ParallelZipBytes
     }
 
+    #[Swag.Inline]
+    func scanlineWork(chunk: ScanlineChunk)->u64
+    {
+        // Inflating bytes costs considerably more than copying stored scanlines.
+        let inflateBytes = chunk.pixels.count < chunk.expected ? chunk.pixels.count : 0
+        return inflateBytes + (chunk.expected >> 5)
+    }
+
+    func unequalScanlineWork(work: const [..] ScanlineChunk)->bool
+    {
+        var lightest = Swag.U64.Max
+        var heaviest: u64
+        for quarter in 4'u64
+        {
+            var weight: u64
+            let first = quarter * work.count / 4
+            let end   = (quarter + 1) * work.count / 4
+            for chunkIndex in first until end do
+                weight += scanlineWork(work[chunkIndex])
+            lightest = Math.min(lightest, weight)
+            heaviest = Math.max(heaviest, weight)
+        }
+
+        // Equal-sized ranges preserve locality for the common, uniformly packed case.
+        return heaviest > 2 * lightest
+    }
+
+    mtd const partitionScanlineBatches(work: const [..] ScanlineChunk, compressedBytes, batches: u64, ends: [*] u64)
+    {
+        ends[0] = 0
+        ends[batches] = work.count
+        if not compressedBytes or work.count < batches * 4 or not unequalScanlineWork(work)
+        {
+            for batch in 1 until batches do
+                ends[batch] = batch * work.count / batches
+            return
+        }
+
+        // Keep neighboring chunks together so each batch can reuse its decoder.
+        let total = compressedBytes + (.rowBytes * cast(u64, .info.height) >> 5)
+        var accumulated: u64
+        var next: u64
+        for batch in 1 until batches
+        {
+            let target = batch * total / batches
+            let limit  = work.count - (batches - batch)
+            while next < limit and (next == ends[batch - 1] or accumulated < target)
+            {
+                accumulated += scanlineWork(work[next])
+                next += 1
+            }
+
+            ends[batch] = next
+        }
+    }
+
     #[Swag.NoInline]
     mtd const decodeScanlineBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, largePacking: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
     {
@@ -883,12 +939,14 @@ impl Part
         let batches = Math.min(chunks.count, Math.min(cast(u64, workers) * 2, MaxBatches))
         let part    = me
         let work:   const [..] ScanlineChunk = chunks.toSlice()
+        var ends:   [MaxBatches + 1] u64
         var errors: [MaxBatches] Swag.Error
-        parallel for |part, image, layout, work, batches, &errors| batch in batches
+        .partitionScanlineBatches(work, compressedBytes, batches, ends.buffer)
+        parallel for |part, image, layout, work, &ends, &errors| batch in batches
         {
             var scratch: ScanlineScratch = {}
-            let first = batch * work.count / batches
-            let end   = (batch + 1) * work.count / batches
+            let first = ends[batch]
+            let end   = ends[batch + 1]
             for chunkIndex in first until end
             {
                 catch part.decodeScanlineChunk(image, work[chunkIndex], layout[], &scratch)

@@ -1411,8 +1411,8 @@ Result PELinker::collectArchiveMembers(std::vector<LinkArchiveMember>& outMember
     outMembers.resize(count);
 
     const auto fillMember = [&](TaskContext&, uint32_t i) {
-        const NativeObjDescription& description = builder_->objectDescriptions[i];
-        outMembers[i]                           = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
+        NativeObjDescription& description = builder_->objectDescriptions[i];
+        outMembers[i]                     = {.name = Utf8(description.objPath.filename()), .bytes = std::move(description.objBytes)};
     };
 
     if (!canPrepareLinkInParallel())
@@ -1422,8 +1422,7 @@ Result PELinker::collectArchiveMembers(std::vector<LinkArchiveMember>& outMember
         return Result::Continue;
     }
 
-    // One member per object, each a small copy: workers claim indices rather than the driver
-    // enqueuing a job per member.
+    // Each archive member takes ownership of its object's bytes. Workers claim distinct indices.
     JobManager& jobMgr = builder_->ctx().global().jobMgr();
     jobMgr.parallelForIndexed(builder_->ctx(), count, JobKind::NativeLinkPrepare, jobMgr.newClientId(), fillMember);
     return Result::Continue;

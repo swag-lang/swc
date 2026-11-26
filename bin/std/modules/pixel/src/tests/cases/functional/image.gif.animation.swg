@@ -42,53 +42,53 @@ func sameColors(decoded: Image, source: Image)->bool
     return true
 }
 
+func localPaletteFlags(bytes: const [..] u8)->Array'bool
+{
+    var result: #returntype
+    let packed = bytes[10]
+    var offset = 13'u64
+    if packed & 0x80 do
+        offset += 3'u64 * (1'u64 << ((packed & 7) + 1))
+
+    while offset < bytes.count
+    {
+        let marker = bytes[offset]
+        offset += 1
+        if marker == 0x3B do
+            return result
+        if marker == 0x21
+        {
+            offset += 1     // Extension label.
+        }
+        else
+        {
+            Swag.require(marker == 0x2C)
+            let flags = bytes[offset + 8]
+            result.add((flags & 0x80) != 0)
+            offset += 9
+            if flags & 0x80 do
+                offset += 3'u64 * (1'u64 << ((flags & 7) + 1))
+            offset += 1     // LZW minimum code size.
+        }
+
+        for
+        {
+            let size = bytes[offset]
+            offset += 1
+            if not size do
+                break
+            offset += size
+        }
+    }
+
+    Swag.require(false)
+    return result
+}
+
 // An animation written frame by frame decodes back with its frames, its timing and its looping;
 // an unchanged frame lengthens the one before it.
 #test
 {
-    func localPaletteFlags(bytes: const [..] u8)->Array'bool
-    {
-        var result: #returntype
-        let packed = bytes[10]
-        var offset = 13'u64
-        if packed & 0x80 do
-            offset += 3'u64 * (1'u64 << ((packed & 7) + 1))
-
-        while offset < bytes.count
-        {
-            let marker = bytes[offset]
-            offset += 1
-            if marker == 0x3B do
-                return result
-            if marker == 0x21
-            {
-                offset += 1     // Extension label.
-            }
-            else
-            {
-                Swag.require(marker == 0x2C)
-                let flags = bytes[offset + 8]
-                result.add((flags & 0x80) != 0)
-                offset += 9
-                if flags & 0x80 do
-                    offset += 3'u64 * (1'u64 << ((flags & 7) + 1))
-                offset += 1     // LZW minimum code size.
-            }
-
-            for
-            {
-                let size = bytes[offset]
-                offset += 1
-                if not size do
-                    break
-                offset += size
-            }
-        }
-
-        Swag.require(false)
-        return result
-    }
-
     let folder = Path.combine(Env.getSpecialDirectory(.Temp).toString(), "swag-tests")
     if not Directory.exists(folder) do
         expect Directory.create(folder)
@@ -346,4 +346,45 @@ func sameColors(decoded: Image, source: Image)->bool
     Swag.require(sameColors(expect reader.read(0), rgb))
     Swag.require(sameColors(expect reader.read(1), rgba))
     Swag.require(sameColors(expect reader.read(2), bgr))
+}
+
+// Colors in the padded part of a reused global table remain available to later frames.
+#test
+{
+    let name = Format.toString("gif-padded-colors-%.gif", Guid64.random())
+    let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), name)
+    defer discard catch File.delete(path)
+
+    const Width  = 61
+    const Height = 29
+    var frames: [2] Image
+    for frame in 2
+    {
+        frames[frame] = Image.create(Width, Height, .RGB8)
+        var pixels = frames[frame].pixels.storage()
+        for y in Height
+        {
+            for x in Width
+            {
+                let color = 1 + (x + y * 11 + frame * 7) % (37 + frame)
+                pixels[0] = color == 38 ? 0 : cast #wrap(u8, color * 101)
+                pixels[1] = color == 38 ? 0 : cast #wrap(u8, color * 181 + 11)
+                pixels[2] = color == 38 ? 0 : cast #wrap(u8, color * 251 + 17)
+                pixels    += 3
+            }
+        }
+    }
+
+    var writer = expect Gif.AnimationWriter.create(path, Width, Height)
+    for frame in frames do
+        expect writer.addFrame(frame, 100_000)
+    expect writer.end()
+
+    let bytes  = expect File.readAllBytes(path)
+    let tables = localPaletteFlags(bytes.toSlice())
+    Swag.require(tables.count == 2 and not tables[0] and not tables[1])
+    var reader = expect ImageReader.load(path)
+    Swag.require(reader.info.frames.count == 2)
+    for frame in frames.count do
+        Swag.require(sameColors(expect reader.read(cast(u32, frame)), frames[frame]))
 }

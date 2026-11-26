@@ -38,6 +38,7 @@ public struct AnimationWriter
     pendingDuration: u64     // Time `pending` is shown so far, in microseconds.
     writtenTime:     u64     // Time covered by the frames written, in microseconds.
     globalTable:     Array'u8
+    globalColorMap:  Array'u64
     globalBits:      u8
     loopCount:       u16
     dither:          bool
@@ -203,21 +204,23 @@ private impl AnimationWriter
         let delay   = Math.max((endTime + 5_000) / 10_000 - (.writtenTime + 5_000) / 10_000, 2'u64)
         .writtenTime = endTime
 
-        var palette = Encoder.buildPalette(.pending, .dither)
-        var block:      ConcatBuffer
-        var colorTable: ConcatBuffer
-        Encoder.writeColorTable(&colorTable, palette)
-        colorTable.makeLinear()
-        let colors = unwrap colorTable.toSlice()
-
-        var useGlobal = not .globalTable.isEmpty() and
-                        Encoder.remapToColorTable(&palette, .globalTable.toSlice())
+        var palette   = Encoder.buildPalette(.pending, .dither)
+        var block: ConcatBuffer
+        var useGlobal = true
         if .globalTable.isEmpty()
         {
-            .globalTable.add(colors)
+            var colorTable: ConcatBuffer
+            Encoder.writeColorTable(&colorTable, palette)
+            colorTable.makeLinear()
+            .globalTable.add(unwrap colorTable.toSlice())
             .globalBits = palette.tableBits
             try .writeHeader()
-            useGlobal = true
+        }
+        else
+        {
+            if .globalBits >= 6 and .globalColorMap.isEmpty() do
+                .globalColorMap = Encoder.buildColorIndexMap(.globalTable.toSlice())
+            useGlobal = Encoder.remapToColorTable(&palette, .globalTable.toSlice(), .globalColorMap.toSlice())
         }
 
         // Image descriptor, with a local colour table only when the global one lacks a colour.
@@ -228,7 +231,7 @@ private impl AnimationWriter
         Encoder.writeU16(&block, cast(u16, .pending.height))
         block.addNative(useGlobal ? 0'u8 : 0x80'u8 | (palette.tableBits - 1))
         if not useGlobal do
-            block.addBytes(colors)
+            Encoder.writeColorTable(&block, palette)
         let codeSize = useGlobal ? Math.max(.globalBits, 2'u8) : palette.lzwMinCodeSize
         block.addNative(codeSize)
 

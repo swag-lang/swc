@@ -83,42 +83,93 @@ internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: co
     store(&state[][0], aesGcmReverseBytes(cast #bit (U8x16, product)))
 }
 
+#[Swag.Inline]
+private func aesGcmPolynomialMultiply32(x, y: u32)->u64
+{
+    const NibbleLow = 0x1111_1111_1111_1111'u64
+    let x0 = cast(u64, x) & NibbleLow
+    let x1 = cast(u64, x) & (NibbleLow << 1)
+    let x2 = cast(u64, x) & (NibbleLow << 2)
+    let x3 = cast(u64, x) & (NibbleLow << 3)
+    let y0 = cast(u64, y) & NibbleLow
+    let y1 = cast(u64, y) & (NibbleLow << 1)
+    let y2 = cast(u64, y) & (NibbleLow << 2)
+    let y3 = cast(u64, y) & (NibbleLow << 3)
+
+    // A product combines at most eight bits per coefficient. The four-bit spacing
+    // keeps carries from changing the parity of the next coefficient.
+    let p0 = (x0 * y0 ^ x1 * y3 ^ x2 * y2 ^ x3 * y1) & NibbleLow
+    let p1 = (x0 * y1 ^ x1 * y0 ^ x2 * y3 ^ x3 * y2) & (NibbleLow << 1)
+    let p2 = (x0 * y2 ^ x1 * y1 ^ x2 * y0 ^ x3 * y3) & (NibbleLow << 2)
+    let p3 = (x0 * y3 ^ x1 * y2 ^ x2 * y1 ^ x3 * y0) & (NibbleLow << 3)
+    return p0 | p1 | p2 | p3
+}
+
+#[Swag.Inline]
+private func aesGcmPolynomialMultiply64(x, y: u64)->{low: u64, high: u64}
+{
+    let x0    = cast(u32, x)
+    let x1    = cast(u32, x >> 32)
+    let y0    = cast(u32, y)
+    let y1    = cast(u32, y >> 32)
+    let low   = aesGcmPolynomialMultiply32(x0, y0)
+    let high  = aesGcmPolynomialMultiply32(x1, y1)
+    let cross = aesGcmPolynomialMultiply32(x0 ^ x1, y0 ^ y1) ^ low ^ high
+    return {low ^ (cross << 32), high ^ (cross >> 32)}
+}
+
+#[Swag.Inline]
+private func aesGcmPolynomialFold(low, high: u64)->{low: u64, high: u64}
+{
+    let carryLow  = (low >> 63) ^ (low >> 62) ^ (low >> 57)
+    let carryHigh = (high >> 63) ^ (high >> 62) ^ (high >> 57)
+    let combined  = low ^ carryHigh
+    return {combined ^ (combined << 1) ^ (combined << 2) ^ (combined << 7),
+            high ^ (high << 1) ^ (high << 2) ^ (high << 7) ^ carryLow}
+}
+
+#[Swag.Inline]
+private func aesGcmPolynomialWords(bytes: U8x16)->U64x2
+{
+    let words = cast #bit (U64x2, Math.reverse(bytes))
+    #static if BIG_ENDIAN do
+        return Swag.byteSwap(words)
+    else do
+        return words
+}
+
+#[Swag.Inline]
+private func aesGcmPolynomialBytes(words: U64x2)->U8x16
+{
+    #static if BIG_ENDIAN do
+        return Math.reverse(cast #bit (U8x16, Swag.byteSwap(words)))
+    else do
+        return Math.reverse(cast #bit (U8x16, words))
+}
+
+private func aesGcmGhashMultiplyScalar(value, key: U64x2)->U64x2
+{
+    let low       = aesGcmPolynomialMultiply64(value[0], key[0])
+    let high      = aesGcmPolynomialMultiply64(value[1], key[1])
+    let middle    = aesGcmPolynomialMultiply64(value[0] ^ value[1], key[0] ^ key[1])
+    let crossLow  = middle.low ^ low.low ^ high.low
+    let crossHigh = middle.high ^ low.high ^ high.high
+
+    // The high half folds through x^128 = x^7 + x^2 + x + 1.
+    let folded = aesGcmPolynomialFold(high.low ^ crossHigh, high.high)
+    var product: U64x2
+    product[0] = low.low ^ folded.low
+    product[1] = low.high ^ crossLow ^ folded.high
+    return product
+}
+
 internal func aesGcmGhashBlockScalar(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
 {
-    var value:   [2] u64
-    var factor:  [2] u64
-    var product: [2] u64
-    var input:   [2] u64
-    Swag.memcpy(&value[0], &state[][0], 16)
-    Swag.memcpy(&input[0], block, 16)
-    Swag.memcpy(&factor[0], &hashKey[0], 16)
-    for index in 2
-    {
-        value[index]  = Math.bigEndianToNative(value[index] ^ input[index])
-        factor[index] = Math.bigEndianToNative(factor[index])
-    }
-
-    for word in 2
-    {
-        for bit in 64
-        {
-            let selected = 0'u64 - ((value[word] >> (63 - bit)) & 1)
-            product[0] ^= factor[0] & selected
-            product[1] ^= factor[1] & selected
-
-            let lowBit = factor[1] & 1
-            factor[1] = (factor[1] >> 1) | (factor[0] << 63)
-            factor[0] = (factor[0] >> 1) ^ (0xE100000000000000'u64 & (0'u64 - lowBit))
-        }
-    }
-
-    for index in 2 do
-        value[index] = Math.nativeToBigEndian(product[index])
-    Swag.memcpy(&state[][0], &value[0], 16)
-    Crypto.secureClear(product)
-    Crypto.secureClear(factor)
-    Crypto.secureClear(input)
-    Crypto.secureClear(value)
+    var value = aesGcmPolynomialWords(load(&state[][0]) ^ load(block))
+    var key   = aesGcmPolynomialWords(load(&hashKey[0]))
+    store(&state[][0], aesGcmPolynomialBytes(aesGcmGhashMultiplyScalar(value, key)))
+    Crypto.secureClear(Swag.makeSlice(&key, 1))
+    Crypto.secureClear(Swag.makeSlice(&value, 1))
 }
 
 private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
@@ -189,10 +240,23 @@ private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..]
         }
     }
 
-    for block in fullBlockBytes / 16 do
-        aesGcmGhashBlockScalar(state, hashKey, source + block * 16)
-    if tailBytes != 0 do
-        aesGcmGhashBlockScalar(state, hashKey, &tail[0])
+    var polynomialKey     = aesGcmPolynomialWords(load(&hashKey[0]))
+    var scalarAccumulator = aesGcmPolynomialWords(load(&state[][0]))
+    for block in fullBlockBytes / 16
+    {
+        let value = aesGcmPolynomialWords(load(source + block * 16))
+        scalarAccumulator = aesGcmGhashMultiplyScalar(scalarAccumulator ^ value, polynomialKey)
+    }
+
+    if tailBytes != 0
+    {
+        let value = aesGcmPolynomialWords(load(&tail[0]))
+        scalarAccumulator = aesGcmGhashMultiplyScalar(scalarAccumulator ^ value, polynomialKey)
+    }
+
+    store(&state[][0], aesGcmPolynomialBytes(scalarAccumulator))
+    Crypto.secureClear(Swag.makeSlice(&polynomialKey, 1))
+    Crypto.secureClear(Swag.makeSlice(&scalarAccumulator, 1))
 }
 
 private func aesGcmWriteU64(destination: [*] u8, value: u64)

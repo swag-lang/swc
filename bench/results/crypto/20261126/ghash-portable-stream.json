@@ -1,0 +1,1252 @@
+{
+  "utc": "2026-11-26T12:50:40.925242+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 2,
+  "affinity": [
+    2
+  ],
+  "workers": {
+    "bitwise": 1,
+    "scalar-stream": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "dee64c74fe4097a71b7455e9df1a67d2c69721ae3fdf60239166590a885125f4",
+  "swag_builds": {
+    "bitwise": "cbde505e9a1a4368818200703457909747cb4f5546374ec5854990e8b5a69115",
+    "scalar-stream": "dbcd553016c2000bbd6dfdf692df69fc8ddd0392e6743a6fdb157f004a268363"
+  },
+  "rounds": 11,
+  "target_ms": 25,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "aes-256-gcm-aad",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "e57c034c8bd6853470842107fe8214e93c4d57b326ab87bfc46dae92140f620e",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 53197,
+          "wall": [
+            0.155047005,
+            0.158157767,
+            0.084661092,
+            0.161035367,
+            0.159547934,
+            0.174076857,
+            0.167061286,
+            0.163442308,
+            0.141949182,
+            0.088461724,
+            0.203031675
+          ],
+          "cpu": [
+            0.024916497,
+            0.025234799,
+            0.02651121,
+            0.034161973,
+            0.026340786,
+            0.025588786,
+            0.024916496,
+            0.025599195,
+            0.026462178,
+            0.024927151,
+            0.026966507
+          ]
+        },
+        "bitwise": {
+          "iterations": 17604,
+          "wall": [
+            0.129323311,
+            0.147959532,
+            0.073060997,
+            0.083459201,
+            0.155970059,
+            0.164753736,
+            0.166353588,
+            0.202966246,
+            0.099974848,
+            0.075015586,
+            0.182827654
+          ],
+          "cpu": [
+            0.025078847,
+            0.030756973,
+            0.026877694,
+            0.025487727,
+            0.026686763,
+            0.028729144,
+            0.025538462,
+            0.025785611,
+            0.027637932,
+            0.025433176,
+            0.02906179
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 35454,
+          "wall": [
+            0.137496557,
+            0.140569381,
+            0.132530458,
+            0.052065754,
+            0.075233084,
+            0.14202004,
+            0.141703191,
+            0.222411913,
+            0.123933712,
+            0.071290918,
+            0.234902441
+          ],
+          "cpu": [
+            0.026019448,
+            0.025481216,
+            0.026047862,
+            0.026097955,
+            0.025944909,
+            0.025972348,
+            0.025638371,
+            0.029401986,
+            0.027339044,
+            0.026709897,
+            0.0306066
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm-aad",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "dd119ff2857c2d977c2454b50a92805503bd6e896cc2542ce1d1dcce7318873a",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3178,
+          "wall": [
+            0.053408509,
+            0.058791547,
+            0.023363015,
+            0.023402314,
+            0.023968088,
+            0.024405717,
+            0.025000706,
+            0.03843074,
+            0.067879535,
+            0.024875787,
+            0.0541512
+          ],
+          "cpu": [
+            0.02330756,
+            0.02478455,
+            0.02336069,
+            0.023384564,
+            0.023847374,
+            0.024282101,
+            0.024998489,
+            0.023449011,
+            0.023237986,
+            0.023193841,
+            0.023137988
+          ]
+        },
+        "bitwise": {
+          "iterations": 444,
+          "wall": [
+            0.128382271,
+            0.028574756,
+            0.086997121,
+            0.063827342,
+            0.04060558,
+            0.062148931,
+            0.027166001,
+            0.07022751,
+            0.068087657,
+            0.06096086,
+            0.071380282
+          ],
+          "cpu": [
+            0.026162052,
+            0.028572371,
+            0.03187214,
+            0.025723897,
+            0.025673175,
+            0.043196691,
+            0.027163833,
+            0.024953763,
+            0.025100751,
+            0.025333218,
+            0.037004627
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 1341,
+          "wall": [
+            0.026053723,
+            0.025825009,
+            0.0321391,
+            0.058553879,
+            0.025884207,
+            0.02548097,
+            0.040503135,
+            0.025317283,
+            0.054235296,
+            0.053441869,
+            0.025272505
+          ],
+          "cpu": [
+            0.026047791,
+            0.025823137,
+            0.025871129,
+            0.026533023,
+            0.025881954,
+            0.025478133,
+            0.025515929,
+            0.025226378,
+            0.025467065,
+            0.025383151,
+            0.025270363
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm-aad",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "2bbd4f2ed2778b3fef88f74d194c7235768889d1df6b947b36479288d12a0c01",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 222,
+          "wall": [
+            0.039664722,
+            0.048051936,
+            0.024851481,
+            0.05180048,
+            0.024697839,
+            0.02475162,
+            0.024752971,
+            0.024793974,
+            0.068808285,
+            0.053624605,
+            0.049422658
+          ],
+          "cpu": [
+            0.024715367,
+            0.025116394,
+            0.024790017,
+            0.032834667,
+            0.024695538,
+            0.024749618,
+            0.024751,
+            0.024768766,
+            0.025842785,
+            0.025574386,
+            0.025389012
+          ]
+        },
+        "bitwise": {
+          "iterations": 28,
+          "wall": [
+            0.050890131,
+            0.02613842,
+            0.047707801,
+            0.024715925,
+            0.02473197,
+            0.047820922,
+            0.050139259,
+            0.028815258,
+            0.045166339,
+            0.067656328,
+            0.071162555
+          ],
+          "cpu": [
+            0.025610491,
+            0.02608707,
+            0.024765802,
+            0.024714025,
+            0.0247304,
+            0.024880522,
+            0.026836144,
+            0.02510612,
+            0.02475191,
+            0.025291856,
+            0.025582839
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 85,
+          "wall": [
+            0.025374038,
+            0.025206997,
+            0.025094136,
+            0.025177131,
+            0.044067452,
+            0.025014296,
+            0.048130569,
+            0.030630576,
+            0.025480078,
+            0.064186744,
+            0.053686819
+          ],
+          "cpu": [
+            0.025372085,
+            0.025204866,
+            0.025092398,
+            0.025175252,
+            0.025121361,
+            0.025012339,
+            0.0251947,
+            0.028898216,
+            0.025092688,
+            0.025235922,
+            0.025729499
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm-aad",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "f0bc6465927f0426fb997bb7368d00f8c709fb2e1b4ca2d7cab9b42d19248552",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 11,
+          "wall": [
+            0.064100705,
+            0.059865918,
+            0.039920777,
+            0.059945949,
+            0.07630462,
+            0.039867528,
+            0.040390355,
+            0.059149038,
+            0.039877903,
+            0.059564484,
+            0.060156476
+          ],
+          "cpu": [
+            0.020098081,
+            0.019726868,
+            0.019918974,
+            0.019771314,
+            0.028725098,
+            0.019640217,
+            0.019907336,
+            0.019784534,
+            0.019778075,
+            0.019583214,
+            0.019764904
+          ]
+        },
+        "bitwise": {
+          "iterations": 2,
+          "wall": [
+            0.057151013,
+            0.078174101,
+            0.061498831,
+            0.079488142,
+            0.082672795,
+            0.08109783,
+            0.079363904,
+            0.073607302,
+            0.091055317,
+            0.089013848,
+            0.101676516
+          ],
+          "cpu": [
+            0.029151993,
+            0.028799199,
+            0.029064805,
+            0.028589996,
+            0.029399541,
+            0.028801515,
+            0.029146867,
+            0.028853842,
+            0.033906093,
+            0.034067094,
+            0.038157647
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 5,
+          "wall": [
+            0.071078388,
+            0.053065482,
+            0.07310134,
+            0.047882354,
+            0.068896588,
+            0.071446883,
+            0.053009097,
+            0.077169415,
+            0.073069651,
+            0.047857327,
+            0.071818835
+          ],
+          "cpu": [
+            0.024186368,
+            0.023811821,
+            0.023733814,
+            0.023796549,
+            0.023789189,
+            0.024438036,
+            0.024190516,
+            0.023970299,
+            0.023631594,
+            0.023547267,
+            0.023848195
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "142b56eb233b8b0e92bac4d814537439a4e30528bd59e96eec0ea8b623085612",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 46280,
+          "wall": [
+            0.048678516,
+            0.072653764,
+            0.072065347,
+            0.051214741,
+            0.067385168,
+            0.073794665,
+            0.066606434,
+            0.053706609,
+            0.077375575,
+            0.048903756,
+            0.048810585
+          ],
+          "cpu": [
+            0.025965048,
+            0.025138035,
+            0.025428549,
+            0.02482607,
+            0.025697572,
+            0.025328091,
+            0.026231195,
+            0.024913874,
+            0.024832591,
+            0.024860844,
+            0.024810879
+          ]
+        },
+        "bitwise": {
+          "iterations": 15313,
+          "wall": [
+            0.095960205,
+            0.074270703,
+            0.049230447,
+            0.069347869,
+            0.053867561,
+            0.071880909,
+            0.055512542,
+            0.068759481,
+            0.053099483,
+            0.089187541,
+            0.074858539
+          ],
+          "cpu": [
+            0.041416258,
+            0.025654876,
+            0.025277224,
+            0.025370543,
+            0.025662876,
+            0.026004153,
+            0.027511189,
+            0.025606845,
+            0.025257345,
+            0.033946514,
+            0.02653569
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 30467,
+          "wall": [
+            0.070288467,
+            0.054806798,
+            0.051449725,
+            0.069277101,
+            0.076857425,
+            0.052744878,
+            0.078195397,
+            0.067561564,
+            0.072190456,
+            0.044706364,
+            0.067949349
+          ],
+          "cpu": [
+            0.033220622,
+            0.025249173,
+            0.024865861,
+            0.025271725,
+            0.02550973,
+            0.024843008,
+            0.025420825,
+            0.02547662,
+            0.025221101,
+            0.024699103,
+            0.025539454
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "4fdcd42881eef7df191040c0152fb84867acd9105dfe7fa1740b5629ac791669",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3130,
+          "wall": [
+            0.074943077,
+            0.073788545,
+            0.056948607,
+            0.07208081,
+            0.053327326,
+            0.072332299,
+            0.053671255,
+            0.069533658,
+            0.068045544,
+            0.068757478,
+            0.073485808
+          ],
+          "cpu": [
+            0.028749706,
+            0.024916819,
+            0.025139529,
+            0.024706041,
+            0.025243231,
+            0.024733034,
+            0.024599443,
+            0.024779622,
+            0.024886899,
+            0.025795827,
+            0.025261578
+          ]
+        },
+        "bitwise": {
+          "iterations": 411,
+          "wall": [
+            0.047881403,
+            0.07035062,
+            0.051073317,
+            0.066819575,
+            0.047977537,
+            0.047747141,
+            0.065319212,
+            0.06364009,
+            0.068700542,
+            0.072749609,
+            0.067250985
+          ],
+          "cpu": [
+            0.02352816,
+            0.02576568,
+            0.024343463,
+            0.023928846,
+            0.023969465,
+            0.023758681,
+            0.023748507,
+            0.031662603,
+            0.023700176,
+            0.024049484,
+            0.024332417
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 1230,
+          "wall": [
+            0.068183772,
+            0.048652526,
+            0.069299695,
+            0.053163489,
+            0.068684678,
+            0.07203445,
+            0.075003257,
+            0.07309502,
+            0.074358455,
+            0.050250536,
+            0.052641812
+          ],
+          "cpu": [
+            0.025270893,
+            0.024624362,
+            0.025033653,
+            0.024887862,
+            0.024777608,
+            0.02407363,
+            0.02391714,
+            0.025417201,
+            0.026767262,
+            0.024196164,
+            0.024695077
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 65536,
+      "offset": 0,
+      "input_sha256": "f9554b39b3292980513df4bc441c226ae0d9eefe56846162d0e9ff6792ffe656",
+      "output_sha256": "01194b081806e8b41d242af6a2c891de04f4685e1890e9bc53fbc8d676275118",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 190,
+          "wall": [
+            0.047990197,
+            0.044843171,
+            0.068949838,
+            0.063470174,
+            0.043851755,
+            0.070334697,
+            0.071287944,
+            0.049653886,
+            0.132128942,
+            0.047317062,
+            0.048008485
+          ],
+          "cpu": [
+            0.022757943,
+            0.022719793,
+            0.023670672,
+            0.023190975,
+            0.023866262,
+            0.023593879,
+            0.023618144,
+            0.022628207,
+            0.058276308,
+            0.022910388,
+            0.024015464
+          ]
+        },
+        "bitwise": {
+          "iterations": 28,
+          "wall": [
+            0.076806417,
+            0.072490668,
+            0.074621843,
+            0.052424925,
+            0.070106692,
+            0.088708277,
+            0.050856781,
+            0.052011522,
+            0.049759465,
+            0.090586449,
+            0.073585669
+          ],
+          "cpu": [
+            0.026089794,
+            0.02559746,
+            0.027409128,
+            0.025608638,
+            0.026117896,
+            0.031107847,
+            0.025827934,
+            0.025636749,
+            0.025025708,
+            0.034685635,
+            0.025822756
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 64,
+          "wall": [
+            0.062886974,
+            0.047261212,
+            0.043691634,
+            0.060631923,
+            0.055438841,
+            0.039501215,
+            0.039834037,
+            0.060004036,
+            0.067258437,
+            0.065505183,
+            0.037916494
+          ],
+          "cpu": [
+            0.019967106,
+            0.021501124,
+            0.02248741,
+            0.020242777,
+            0.019849269,
+            0.01950123,
+            0.019743084,
+            0.020016349,
+            0.019412269,
+            0.020601841,
+            0.019403729
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "bitwise",
+          "scalar-stream",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "aes-256-gcm",
+      "bytes": 1048576,
+      "offset": 0,
+      "input_sha256": "1e8e8f15703ff175699f1e1588b5a85d378c7c1aa34a320c37dffae28c916b32",
+      "output_sha256": "5aba9fa773dec8c62b29404f76c05d9ee00f53663a29146aa6a8d8619bb536ca",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 12,
+          "wall": [
+            0.049069505,
+            0.050101471,
+            0.07486554,
+            0.045735877,
+            0.067583106,
+            0.067895268,
+            0.070404481,
+            0.071100842,
+            0.071577121,
+            0.050732242,
+            0.065780858
+          ],
+          "cpu": [
+            0.023131888,
+            0.023539836,
+            0.023517254,
+            0.023171297,
+            0.023331146,
+            0.02335485,
+            0.023756409,
+            0.023077768,
+            0.023642769,
+            0.02313364,
+            0.02331439
+          ]
+        },
+        "bitwise": {
+          "iterations": 2,
+          "wall": [
+            0.056672562,
+            0.061596017,
+            0.098856182,
+            0.121653584,
+            0.098104267,
+            0.075927552,
+            0.073523756,
+            0.081433025,
+            0.07889032,
+            0.058981133,
+            0.082751553
+          ],
+          "cpu": [
+            0.029196172,
+            0.029229361,
+            0.038155784,
+            0.049967043,
+            0.038606394,
+            0.028900961,
+            0.029424629,
+            0.028773339,
+            0.028872296,
+            0.028864256,
+            0.029111815
+          ]
+        },
+        "scalar-stream": {
+          "iterations": 5,
+          "wall": [
+            0.050005446,
+            0.055669458,
+            0.049263357,
+            0.071558593,
+            0.076718064,
+            0.063473809,
+            0.093208213,
+            0.067243835,
+            0.074007887,
+            0.075345244,
+            0.047921443
+          ],
+          "cpu": [
+            0.024482661,
+            0.024733735,
+            0.024304537,
+            0.024633054,
+            0.02495961,
+            0.024482643,
+            0.024291555,
+            0.024546388,
+            0.024617681,
+            0.027655226,
+            0.024634697
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "bitwise",
+          "OpenSSL",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "scalar-stream",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "bitwise",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "OpenSSL",
+          "bitwise",
+          "scalar-stream"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ],
+        [
+          "scalar-stream",
+          "OpenSSL",
+          "bitwise"
+        ]
+      ]
+    }
+  ]
+}

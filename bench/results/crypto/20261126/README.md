@@ -144,3 +144,4 @@ optimizations moved each result.
 - [Paired 256-bit carry-less multiplication](wide-carryless-instruction.md)
 - [Adler-32 one-shot short buffers](adler32-short-compute.md)
 - [Constant-time byte equality](constant-time-equal.md)
+- [BLAKE3 C++ leaf SIMD width comparison](blake3-leaf-width.md)

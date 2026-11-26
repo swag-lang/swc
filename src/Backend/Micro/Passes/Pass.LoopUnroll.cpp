@@ -657,19 +657,88 @@ namespace
 
     MicroInstrRef partiallyUnrollIndexedLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const RelocationsBySlot& relocsBySlot, uint32_t headerOrdinal, uint32_t jumpOrdinal, uint64_t headerId);
 
+    struct SignedByteIndex
+    {
+        MicroReg origin         = MicroReg::invalid();
+        MicroReg wrapped        = MicroReg::invalid();
+        MicroReg extended       = MicroReg::invalid();
+        uint32_t invariantCount = 0;
+    };
+
+    // The scalar access uses sign_extend(s32(origin + counter)). Recognize
+    // both the arithmetic and the LEA forms of the wrapping low-lane sum.
+    std::optional<SignedByteIndex> matchSignedByteIndex(std::span<const MicroInstrOpcode> op, std::span<const MicroInstrOperand* const> ops, MicroReg counter, MicroReg index)
+    {
+        if (op.size() < 2 || op.back() != MicroInstrOpcode::LoadSignedExtRegReg)
+            return std::nullopt;
+        const auto* extend = ops.back();
+        if (extend[0].reg != index || extend[2].opBits != MicroOpBits::B64 || extend[3].opBits != MicroOpBits::B32)
+            return std::nullopt;
+
+        const MicroReg wrapped  = extend[1].reg;
+        const size_t   addIndex = op.size() - 2;
+        const auto*    add      = ops[addIndex];
+        if (add[0].reg != wrapped)
+            return std::nullopt;
+        if (op[addIndex] == MicroInstrOpcode::LoadAddrAmcRegMem && add[3].opBits == MicroOpBits::B32 &&
+            add[5].valueU64 == 1 && add[6].isImmediateZero())
+        {
+            if (add[2].reg == counter)
+                return SignedByteIndex{add[1].reg, wrapped, index, static_cast<uint32_t>(addIndex)};
+            if (add[1].reg == counter)
+                return SignedByteIndex{add[2].reg, wrapped, index, static_cast<uint32_t>(addIndex)};
+        }
+        if (addIndex && op[addIndex] == MicroInstrOpcode::OpBinaryRegReg && op[addIndex - 1] == MicroInstrOpcode::LoadRegReg &&
+            add[1].reg == counter && add[2].opBits == MicroOpBits::B32 && add[3].microOp == MicroOp::Add)
+        {
+            const auto* copy = ops[addIndex - 1];
+            if (copy[0].reg == wrapped && (copy[2].opBits == MicroOpBits::B32 || copy[2].opBits == MicroOpBits::B64))
+                return SignedByteIndex{copy[1].reg, wrapped, index, static_cast<uint32_t>(addIndex - 1)};
+        }
+        return std::nullopt;
+    }
+
+    bool invariantByteAddressPrefix(std::span<const MicroInstrOpcode> op, std::span<const MicroInstrOperand* const> ops, std::span<const MicroReg> bodyRegs, MicroReg base)
+    {
+        SmallVector<MicroReg, 3> definitions;
+        for (uint32_t i = 0; i < op.size(); ++i)
+        {
+            if (op[i] != MicroInstrOpcode::LoadAddrRegMem && op[i] != MicroInstrOpcode::LoadAddrAmcRegMem)
+                return false;
+            const MicroReg reg = ops[i][0].reg;
+            if (!reg.isVirtualInt() || std::ranges::contains(definitions, reg) || (reg != base && std::ranges::contains(bodyRegs, reg)))
+                return false;
+            definitions.push_back(reg);
+        }
+
+        for (uint32_t i = 0; i < op.size(); ++i)
+        {
+            const uint32_t inputs = op[i] == MicroInstrOpcode::LoadAddrAmcRegMem ? 2 : 1;
+            for (uint32_t operand = 1; operand <= inputs; ++operand)
+            {
+                const MicroReg reg = ops[i][operand].reg;
+                if ((reg != base && std::ranges::contains(bodyRegs, reg)) || std::ranges::contains(definitions.span().subspan(i), reg))
+                    return false;
+            }
+        }
+        return true;
+    }
+
     // Packed sums preserve the scalar recurrence modulo the accumulator's width.
     // Keep the original counted loop for small bounds and incomplete groups.
     bool vectorizeIndexedSum(MicroPassContext& context, const std::vector<MicroInstrRef>& order, const RelocationsBySlot& relocsBySlot, uint32_t header, uint32_t jump)
     {
-        const uint32_t length = jump - header;
-        if (!context.builder->backendBuildCfg().vectorize || (length != 5 && length != 6 && length != 8) || jump + 1 >= order.size())
+        constexpr uint32_t maxInvariantAddresses = 3;
+        constexpr uint32_t maxLength             = 8 + maxInvariantAddresses;
+        const uint32_t     length                = jump - header;
+        if (!context.builder->backendBuildCfg().vectorize || length < 5 || length > maxLength || jump + 1 >= order.size())
             return false;
 
-        auto&                    storage  = *context.instructions;
-        auto&                    operands = *context.operands;
-        auto&                    builder  = *context.builder;
-        MicroInstrOpcode         op[8]    = {};
-        const MicroInstrOperand* ops[8]   = {};
+        auto&                    storage        = *context.instructions;
+        auto&                    operands       = *context.operands;
+        auto&                    builder        = *context.builder;
+        MicroInstrOpcode         op[maxLength]  = {};
+        const MicroInstrOperand* ops[maxLength] = {};
         for (uint32_t i = 0; i < length; ++i)
         {
             const MicroInstrRef ref  = order[header + 1 + i];
@@ -682,25 +751,32 @@ namespace
                 return false;
         }
 
-        const bool     filtered = length == 8;
-        const bool     copied   = length == 6;
-        const bool     bytes    = op[0] == MicroInstrOpcode::LoadZeroExtAmcRegMem;
-        const uint64_t lanes    = bytes ? 16 : 4;
-        if ((!bytes && op[0] != MicroInstrOpcode::LoadAmcRegMem) ||
-            ((filtered || copied) && op[1] != MicroInstrOpcode::LoadRegReg) ||
-            (filtered && (bytes || op[3] != MicroInstrOpcode::CmpRegReg || op[4] != MicroInstrOpcode::LoadCondRegReg)) ||
-            op[length - 3] != MicroInstrOpcode::OpBinaryRegImm || op[length - 2] != MicroInstrOpcode::CmpRegReg || op[length - 1] != MicroInstrOpcode::JumpCond)
+        if (op[length - 3] != MicroInstrOpcode::OpBinaryRegImm || op[length - 2] != MicroInstrOpcode::CmpRegReg || op[length - 1] != MicroInstrOpcode::JumpCond)
+            return false;
+        const auto*     step          = ops[length - 3];
+        const auto*     latch         = ops[length - 2];
+        const auto*     backEdge      = ops[length - 1];
+        const MicroCond backCondition = backEdge[0].cpuCond;
+        const bool      signedAddress = backCondition == MicroCond::Less;
+        if (signedAddress ? length < 7 : ((length != 5 && length != 6 && length != 8) || backCondition != MicroCond::Below))
             return false;
 
-        const uint32_t addIndex = filtered || copied ? 2 : 1;
-        if (op[addIndex] != MicroInstrOpcode::OpBinaryRegReg)
+        const bool     filtered  = !signedAddress && length == 8;
+        const bool     copied    = !signedAddress && length == 6;
+        const uint32_t addIndex  = signedAddress ? length - 4 : filtered || copied ? 2
+                                                                                   : 1;
+        const uint32_t loadIndex = signedAddress ? addIndex - 1 : 0;
+        const bool     bytes     = op[loadIndex] == MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        const uint64_t lanes     = bytes ? 16 : 4;
+        if ((!bytes && (signedAddress || op[loadIndex] != MicroInstrOpcode::LoadAmcRegMem)) ||
+            ((filtered || copied) && op[1] != MicroInstrOpcode::LoadRegReg) ||
+            (filtered && (bytes || op[3] != MicroInstrOpcode::CmpRegReg || op[4] != MicroInstrOpcode::LoadCondRegReg)) ||
+            op[addIndex] != MicroInstrOpcode::OpBinaryRegReg)
             return false;
-        const auto*       load     = ops[0];
-        const auto*       add      = ops[addIndex];
-        const auto*       step     = ops[length - 3];
-        const auto*       latch    = ops[length - 2];
-        const auto*       backEdge = ops[length - 1];
-        const MicroOpBits sumBits  = add[2].opBits;
+
+        const auto*       load    = ops[loadIndex];
+        const auto*       add     = ops[addIndex];
+        const MicroOpBits sumBits = add[2].opBits;
         if (add[3].microOp != MicroOp::Add || (sumBits != MicroOpBits::B64 && (!bytes || sumBits != MicroOpBits::B32)) ||
             (bytes ? load[3].opBits != sumBits || load[4].opBits != MicroOpBits::B8 || load[5].valueU64 != 1
                    : load[3].opBits != MicroOpBits::B32 || load[4].opBits != MicroOpBits::B64 || load[5].valueU64 != sizeof(uint32_t)) ||
@@ -709,17 +785,17 @@ namespace
 
         const MicroReg value   = load[0].reg;
         const MicroReg base    = load[1].reg;
-        const MicroReg counter = load[2].reg;
+        const MicroReg counter = step[0].reg;
         const MicroReg bound   = latch[1].reg;
-        if (step[0].reg != counter || step[1].opBits != MicroOpBits::B64 || step[2].microOp != MicroOp::Add ||
+        if ((!signedAddress && load[2].reg != counter) || step[1].opBits != MicroOpBits::B64 || step[2].microOp != MicroOp::Add ||
             step[3].hasWideImmediateValue() || step[3].valueU64 != 1 ||
-            latch[0].reg != counter || latch[2].opBits != MicroOpBits::B64 || backEdge[0].cpuCond != MicroCond::Below)
+            latch[0].reg != counter || latch[2].opBits != MicroOpBits::B64)
             return false;
 
         MicroReg                 sum       = add[0].reg;
         MicroReg                 threshold = MicroReg::invalid();
         MicroCond                predicate = MicroCond::Unconditional;
-        SmallVector<MicroReg, 2> temporaries{value};
+        SmallVector<MicroReg, 3> temporaries{value};
         if (filtered)
         {
             const auto* copy         = ops[1];
@@ -747,10 +823,29 @@ namespace
             return false;
         }
 
+        std::optional<SignedByteIndex> signedIndex;
+        if (signedAddress)
+        {
+            signedIndex = matchSignedByteIndex(std::span(op).first(loadIndex), std::span(ops).first(loadIndex), counter, load[2].reg);
+            if (!signedIndex || signedIndex->invariantCount > maxInvariantAddresses)
+                return false;
+            temporaries.push_back(signedIndex->wrapped);
+            temporaries.push_back(signedIndex->extended);
+        }
+
         SmallVector<MicroReg, 8> registers{base, counter, bound, sum};
         registers.append(temporaries.data(), temporaries.size());
         if (filtered)
             registers.push_back(threshold);
+        if (signedIndex)
+        {
+            for (uint32_t i = 0; i < signedIndex->invariantCount; ++i)
+                if (ops[i][0].reg == signedIndex->origin)
+                    return false;
+            if (!invariantByteAddressPrefix(std::span(op).first(signedIndex->invariantCount), std::span(ops).first(signedIndex->invariantCount), registers.span(), base))
+                return false;
+            registers.push_back(signedIndex->origin);
+        }
         for (size_t i = 0; i < registers.size(); ++i)
         {
             if (!registers[i].isVirtualInt() || std::ranges::contains(registers.span().first(i), registers[i]))
@@ -799,25 +894,28 @@ namespace
         MicroPassHelpers::computeNextVirtualRegIndices(context, nextInt, nextFloat);
         if (nextInt > MicroReg::K_MAX_INDEX - (bytes ? 2 : 1) || nextFloat > MicroReg::K_MAX_INDEX - 7)
             return false;
-        // Leave one counter-limit register for the grouped scalar path.
-        if (bytes)
+        // The grouped scalar path can claim the first available index.
+        if (bytes && !signedAddress)
             ++nextInt;
 
-        const MicroReg vectorEnd = MicroReg::virtualIntReg(nextInt++);
-        const MicroReg pointer   = MicroReg::virtualIntReg(nextInt);
-        const MicroReg limitsVec = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg sign      = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg zero      = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg data      = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg mask      = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg upper     = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg sumLo     = MicroReg::virtualFloatReg(nextFloat++);
-        const MicroReg sumHi     = MicroReg::virtualFloatReg(nextFloat);
+        const MicroReg vectorEnd  = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg pointer    = MicroReg::virtualIntReg(nextInt++);
+        const MicroReg vectorBase = signedAddress ? MicroReg::virtualIntReg(nextInt) : base;
+        const MicroReg limitsVec  = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg sign       = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg zero       = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg data       = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg mask       = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg upper      = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg sumLo      = MicroReg::virtualFloatReg(nextFloat++);
+        const MicroReg sumHi      = MicroReg::virtualFloatReg(nextFloat);
 
         const uint64_t    scalarId   = backEdge[2].valueU64;
         MicroInstrOperand address[8] = {};
         std::copy_n(load, 7, address);
         address[0].reg                  = pointer;
+        address[1].reg                  = vectorBase;
+        address[2].reg                  = counter;
         address[3].opBits               = MicroOpBits::B64;
         address[4].opBits               = MicroOpBits::B64;
         MicroInstrOperand vectorStep[4] = {step[0], step[1], step[2], step[3]};
@@ -829,11 +927,29 @@ namespace
         addSum[0].reg                          = sum;
         addSum[1].reg                          = pointer;
 
+        struct InvariantAddress
+        {
+            MicroInstrOpcode  opcode;
+            MicroInstrOperand operands[8];
+            uint8_t           count;
+        };
+        SmallVector<InvariantAddress, maxInvariantAddresses> invariantAddresses;
+        if (signedIndex)
+        {
+            for (uint32_t i = 0; i < signedIndex->invariantCount; ++i)
+            {
+                auto& instruction  = invariantAddresses.emplace_back();
+                instruction.opcode = op[i];
+                instruction.count  = storage.ptr(order[header + 1 + i])->numOperands;
+                std::copy_n(ops[i], instruction.count, instruction.operands);
+            }
+        }
+
         const MicroInstrRef headerRef = order[header];
         const MicroInstrRef afterRef  = order[jump + 1];
         MicroInstrRef       entryRef  = headerRef;
         uint64_t            shortId   = scalarId;
-        if (bytes)
+        if (bytes && !signedAddress)
         {
             // Keep the established scalar-group fast path on short inputs.
             // Its small-count check comes first. Once the vector path advances
@@ -848,9 +964,11 @@ namespace
             }
         }
 
-        const uint64_t mainId = builder.createLabel().get();
-        const uint64_t doneId = builder.createLabel().get();
-        const auto     emit   = [&](MicroInstrOpcode opcode, std::span<const MicroInstrOperand> args) {
+        const uint64_t mainId   = builder.createLabel().get();
+        const uint64_t doneId   = builder.createLabel().get();
+        const uint64_t narrowId = signedAddress ? builder.createLabel().get() : 0;
+        const uint64_t reduceId = signedAddress ? builder.createLabel().get() : 0;
+        const auto     emit     = [&](MicroInstrOpcode opcode, std::span<const MicroInstrOperand> args) {
             storage.insertDerivedBefore(operands, entryRef, opcode, args);
         };
         const auto emitCopy = [&](MicroReg dst, MicroReg src, MicroOpBits bits) {
@@ -885,13 +1003,62 @@ namespace
             emit(MicroInstrOpcode::JumpCond, args);
         };
 
-        MicroInstrOperand check[3] = {};
-        check[0].reg               = bound;
-        check[1].opBits            = MicroOpBits::B64;
-        const auto minElements     = filtered || bytes ? MicroOptimizationLimits::LoopUnroll::K_MIN_VECTOR_SUM_ELEMENTS : MicroOptimizationLimits::LoopUnroll::K_MIN_UNFILTERED_DWORD_SUM_ELEMENTS;
-        check[2].setImmediateValue(ApInt(minElements, 64));
-        emit(MicroInstrOpcode::CmpRegImm, check);
-        emitJump(MicroCond::Below, shortId);
+        const auto emitLabel = [&](uint64_t id) {
+            MicroInstrOperand args[1] = {};
+            args[0].valueU64          = id;
+            emit(MicroInstrOpcode::Label, args);
+        };
+        const auto emitLengthCheck = [&](MicroReg reg, uint64_t minimum) {
+            MicroInstrOperand compare[3] = {};
+            compare[0].reg               = reg;
+            compare[1].opBits            = MicroOpBits::B64;
+            compare[2].setImmediateValue(ApInt(minimum, 64));
+            emit(MicroInstrOpcode::CmpRegImm, compare);
+        };
+
+        const uint64_t narrowLanes = lanes / 2;
+        auto           minElements = filtered || bytes ? MicroOptimizationLimits::LoopUnroll::K_MIN_VECTOR_SUM_ELEMENTS : MicroOptimizationLimits::LoopUnroll::K_MIN_UNFILTERED_DWORD_SUM_ELEMENTS;
+        if (signedAddress)
+            minElements = narrowLanes;
+        emitLengthCheck(bound, minElements);
+        emitJump(backCondition, shortId);
+
+        if (signedIndex)
+        {
+            // A B32 offset can wrap even though the loop counter is B64.
+            // Check count <= 2^31 - origin before using a linear address.
+            MicroInstrOperand extend[4] = {};
+            extend[0].reg               = pointer;
+            extend[1].reg               = signedIndex->origin;
+            extend[2].opBits            = MicroOpBits::B64;
+            extend[3].opBits            = MicroOpBits::B32;
+            emit(MicroInstrOpcode::LoadSignedExtRegReg, extend);
+            MicroInstrOperand limit[3] = {};
+            limit[0].reg               = vectorEnd;
+            limit[1].opBits            = MicroOpBits::B64;
+            limit[2].setImmediateValue(ApInt(uint64_t{1} << 31, 64));
+            emit(MicroInstrOpcode::LoadRegImm, limit);
+            MicroInstrOperand subtract[4] = {};
+            subtract[0].reg               = vectorEnd;
+            subtract[1].reg               = pointer;
+            subtract[2].opBits            = MicroOpBits::B64;
+            subtract[3].microOp           = MicroOp::Subtract;
+            emit(MicroInstrOpcode::OpBinaryRegReg, subtract);
+            const MicroInstrOperand upperBound[3] = {scalarLatch[1], vectorLatch[1], scalarLatch[2]};
+            emit(MicroInstrOpcode::CmpRegReg, upperBound);
+            emitJump(MicroCond::Greater, scalarId);
+
+            for (const auto& instruction : invariantAddresses)
+                emit(instruction.opcode, std::span(instruction.operands).first(instruction.count));
+            MicroInstrOperand rebase[8] = {};
+            rebase[0].reg               = vectorBase;
+            rebase[1].reg               = base;
+            rebase[2].reg               = pointer;
+            rebase[3].opBits            = MicroOpBits::B64;
+            rebase[4].opBits            = MicroOpBits::B64;
+            rebase[5].valueU64          = 1;
+            emit(MicroInstrOpcode::LoadAddrAmcRegMem, rebase);
+        }
 
         emitCopy(vectorEnd, bound, MicroOpBits::B64);
         MicroInstrOperand endMask[4] = {};
@@ -928,9 +1095,12 @@ namespace
             emit(MicroInstrOpcode::ClearReg, clear);
         }
 
-        MicroInstrOperand mainLabel[1] = {};
-        mainLabel[0].valueU64          = mainId;
-        emit(MicroInstrOpcode::Label, mainLabel);
+        if (signedAddress)
+        {
+            emitLengthCheck(vectorEnd, lanes);
+            emitJump(MicroCond::Below, narrowId);
+        }
+        emitLabel(mainId);
 
         emit(MicroInstrOpcode::LoadAddrAmcRegMem, address);
         MicroInstrOperand vectorLoad[4] = {};
@@ -965,8 +1135,37 @@ namespace
 
         emit(MicroInstrOpcode::OpBinaryRegImm, vectorStep);
         emit(MicroInstrOpcode::CmpRegReg, vectorLatch);
-        emitJump(MicroCond::Below, mainId);
+        emitJump(backCondition, mainId);
 
+        if (signedAddress)
+        {
+            // The full vector path leaves fewer than sixteen bytes. A single
+            // qword load also covers short rows and any remaining wide tail.
+            emitLabel(narrowId);
+            emitCopy(vectorEnd, bound, MicroOpBits::B64);
+            MicroInstrOperand remaining[4] = {};
+            remaining[0].reg               = vectorEnd;
+            remaining[1].reg               = counter;
+            remaining[2].opBits            = MicroOpBits::B64;
+            remaining[3].microOp           = MicroOp::Subtract;
+            emit(MicroInstrOpcode::OpBinaryRegReg, remaining);
+            emitLengthCheck(vectorEnd, narrowLanes);
+            emitJump(MicroCond::Below, reduceId);
+
+            emit(MicroInstrOpcode::LoadAddrAmcRegMem, address);
+            MicroInstrOperand loadQword[4] = {};
+            loadQword[0].reg               = vectorEnd;
+            loadQword[1].reg               = pointer;
+            loadQword[2].opBits            = MicroOpBits::B64;
+            emit(MicroInstrOpcode::LoadRegMem, loadQword);
+            // VMOVQ from a GP register clears the rest of the SIMD register.
+            emitCopy(data, vectorEnd, MicroOpBits::B64);
+            emitBinary(data, data, zero, MicroOp::VecSadU8);
+            emitBinary(sumLo, sumLo, data, MicroOp::VecAdd64);
+            vectorStep[3].setImmediateValue(ApInt(narrowLanes, 64));
+            emit(MicroInstrOpcode::OpBinaryRegImm, vectorStep);
+            emitLabel(reduceId);
+        }
         if (!bytes)
             emitBinary(sumLo, sumLo, sumHi, MicroOp::VecAdd64);
         emitShuffle(sumHi, sumLo, 0x4E);
@@ -974,7 +1173,7 @@ namespace
         emitCopy(pointer, sumLo, sumBits);
         emit(MicroInstrOpcode::OpBinaryRegReg, addSum);
         emit(MicroInstrOpcode::CmpRegReg, scalarLatch);
-        emitJump(MicroCond::AboveOrEqual, doneId);
+        emitJump(signedAddress ? MicroCond::GreaterOrEqual : MicroCond::AboveOrEqual, doneId);
         if (shortId != scalarId)
             emitJump(MicroCond::Unconditional, scalarId);
 

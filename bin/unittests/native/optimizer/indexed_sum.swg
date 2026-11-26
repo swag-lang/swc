@@ -19,6 +19,15 @@ func sumWords(values: const [*] u32, count: u64, total: u64)->u64
     return result
 }
 
+#[Swag.NoInline]
+func sumSignedBytes(values: const [*] u8, origin, count: s32, total: u32)->u32
+{
+    var result = total
+    for index in count do
+        result += values[origin + index]
+    return result
+}
+
 #test
 {
     var bytes: [66] u8
@@ -41,6 +50,26 @@ func sumWords(values: const [*] u32, count: u64, total: u64)->u64
         {
             byteSum += bytes[count + 1]
             wordSum += words[count]
+        }
+    }
+}
+
+#test
+{
+    var bytes: [129] u8
+    for &value, index in bytes do
+        value[] = cast(u8, index * 29 + 17)
+
+    const Seed = 0xFFFF_FFF0'u32
+    let center = &bytes[48]
+    for origin in -16's32 until 17
+    {
+        Swag.require(sumSignedBytes(center, origin, -2, Seed) == Seed)
+        var expected = Seed
+        for count in 65's32
+        {
+            Swag.require(sumSignedBytes(center, origin, count, Seed) == expected)
+            expected += bytes[48 + origin + count]
         }
     }
 }

@@ -659,8 +659,9 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 - Evidence: `Pass.SlpVectorize` works within a basic block. `Pass.LoopUnroll` handles
   fixed-bound 32-bit XOR, unsigned-byte sums, and conditional or unconditional unsigned
   32-bit sums into a 64-bit accumulator. The sums accept dynamic bounds and retain scalar
-  tails. Other reduction forms need a general analysis. Loops that write memory also need
-  alias proofs or runtime checks.
+  tails. Byte sums can rebase a signed index after a wrap check and hoist pure invariant
+  address calculations, as in WebP row prediction. More reduction forms need a general
+  analysis. Loops that write memory also need alias proofs or runtime checks.
 - Next: add loop vectorization that recognizes associative reductions, versions
   alias/alignment checks, and generates masked or peeled tails using the explicit SIMD
   operation set.

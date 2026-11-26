@@ -47,7 +47,7 @@ func assertBlake3(input: const [..] u8, expected: string)
 
 func assertBlake3Output(output: const [..] u8, expected: const [..] string)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     for hex in expected
     {
         let block = blake3HexBytes(hex)
@@ -165,7 +165,7 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
     expect Hash.Blake3.computeKeyed(key, input.toSlice(), digest)
     assertBlake3Output(digest, keyed)
 
-    for split in [1025'u64, 4096, 4097, 8193]
+    for split in [1025_u64, 4096, 4097, 8193]
     {
         var hash = expect Hash.Blake3.createKeyed(key)
         hash.update(input.toSlice()[until split])

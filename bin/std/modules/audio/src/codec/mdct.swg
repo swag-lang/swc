@@ -54,7 +54,7 @@ impl Mdct
             result.fftSin[finalStage + j] = cast(f32, Math.sin(angle))
         }
 
-        var halfLength = 1'u32
+        var halfLength = 1_u32
         while halfLength < m / 2
         {
             let stride = (m / 2) / halfLength
@@ -105,7 +105,7 @@ impl Mdct
         let cos   = .twiddleCos.storage()
         let sin   = .twiddleSin.storage()
         let order = .reverse.storage()
-        const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+        const Reverse = cast(Simd.U32x4, [3_u32, 2, 1, 0])
 
         #[Swag.Inline]
         func rotate(spectrum, cos, sin: const [*] f32, half, k: u32)->{re, im: Simd.F32x4}
@@ -123,7 +123,7 @@ impl Mdct
             return {first * c + second * s, second * c - first * s}
         }
 
-        var k = 0'u32
+        var k = 0_u32
         let fuseFirstStages = m >= 16
         if fuseFirstStages
         {
@@ -150,7 +150,7 @@ impl Mdct
             let span       = m / 4
             let quarterCos = .fftCos[2]
             let quarterSin = -.fftSin[2]
-            let zero       = Simd.splat(0'f32)
+            let zero       = Simd.splat(0_f32)
             while k < span
             {
                 let a        = rotate(spectrum, cos, sin, half, k)
@@ -320,7 +320,7 @@ impl Mdct
 
         if m >= 8
         {
-            const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+            const Reverse = cast(Simd.U32x4, [3_u32, 2, 1, 0])
 
             #[Swag.Inline]
             func expand(output: [*] f32, even, odd: Simd.F32x4)
@@ -331,7 +331,7 @@ impl Mdct
                 Simd.store(output + 4, cast #bit(Simd.F32x4, Simd.interleaveHigh(first, second)))
             }
 
-            var point = 0'u32
+            var point = 0_u32
             while point < quarter
             {
                 let mirror   = m - 4 - point
@@ -373,7 +373,7 @@ impl Mdct
             var start      = 0_u32
             while start < m
             {
-                var j = 0'u32
+                var j = 0_u32
                 while j < halfLength
                 {
                     let wr = Simd.load(cos + offset + j)

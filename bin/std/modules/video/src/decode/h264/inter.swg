@@ -1049,7 +1049,7 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     func(const Width: s32) weightRows(dst: [*] u8, src: const [*] u8, dstStride, srcStride: u64, height, logDenom, weight, offset: s32)
     {
         let shift    = cast(u32, logDenom)
-        let rounding = logDenom > 0 ? 1's16 << (shift - 1) : 0's16
+        let rounding = logDenom > 0 ? 1_s16 << (shift - 1) : 0_s16
         let weights  = Simd.splat(cast(s16, weight))
         let bias     = Simd.splat(rounding)
         let offsets  = Simd.splat(cast(s16, offset))
@@ -1060,8 +1060,11 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
             let pixels = Simd.load(line)
             let low    = ((cast #bit(Simd.S16x8, Simd.widenLow(pixels)) * weights + bias) >> shift) + offsets
             var high   = low
-            if Width == 16 do
+            if Width == 16
+            {
                 high = ((cast #bit(Simd.S16x8, Simd.widenHigh(pixels)) * weights + bias) >> shift) + offsets
+            }
+
             storeWeightedRow(out, Width, Simd.packUnsigned(low, high))
             out  += dstStride
             line += srcStride
@@ -1072,10 +1075,10 @@ func weightUni(dst: [*] u8, dstStride: u64, src: [*] u8, srcStride: u64, width, 
     {
         switch width
         {
-        case 2:  weightRows'2(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
-        case 4:  weightRows'4(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
-        case 8:  weightRows'8(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
-        case 16: weightRows'16(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 2:  weightRows!{2}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 4:  weightRows!{4}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 8:  weightRows!{8}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
+        case 16: weightRows!{16}(dst, src, dstStride, srcStride, height, logDenom, weight, offset)
         }
 
         return

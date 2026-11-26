@@ -27,8 +27,10 @@ using Core
         Swag.require(tiled.pixelColor(1, 3).argb == 0xBF24_4769)
         Swag.require(tiled.pixelColor(30, 13).argb == 0xFF24_4769)
         Swag.require(tiled.pixelColor(10, 10).a == (rule == "evenodd" ? 0 : 255))
-        for value, index in tiled.pixels do
+        for value, index in tiled.pixels
+        {
             Swag.require(value == whole.pixels[index])
+        }
     }
 }
 
@@ -73,8 +75,10 @@ using Core
     Swag.require(tiled.pixelColor(4, 3).a == 0)
     Swag.require(tiled.pixelColor(38, 25).a == 0)
     Swag.require(tiled.pixelColor(16, 26).a == 255)
-    for value, index in tiled.pixels do
+    for value, index in tiled.pixels
+    {
         Swag.require(value == whole.pixels[index])
+    }
 }
 
 // A referenced clip restricts one fill while the second color remains visible.
@@ -96,9 +100,13 @@ using Core
 
     let reference = expect Svg.Drawing.parse(Source)
     let previous  = reference.rasterize(40, 24, 1)
-    for y in 24 do
-        for x in 13 do
+    for y in 24
+    {
+        for x in 13
+        {
             Swag.require(image.pixelColor(x, y) == previous.pixelColor(x, y))
+        }
+    }
 }
 
 // A fractional stencil clips the translucent stroke on both opaque mattes.
@@ -189,14 +197,17 @@ using Core
 #test
 {
     var source = String.from("<svg width='42' height='4'><path d='")
-    for stripe in 20 do
+    for stripe in 20
+    {
         source.appendFormat("M% 0h.75l.5 .25h-.75z ", 1 + 2 * ((stripe * 7) % 20))
+    }
+
     source += "'/><path d='M3 1h.75l2.5 1.25h-.75z'/><path d='M10 3h.75l.5 .25h-.75z'/></svg>"
 
     let drawing = expect Svg.Drawing.parse(source.toString(), {preferScanFills: true})
     let image   = drawing.rasterize(42, 4, 1)
     Swag.require(image.isValid())
-    const MiddleAlpha = [64'u8, 96, 32]
+    const MiddleAlpha = [64_u8, 96, 32]
     for column in 42
     {
         let x = cast(s32, column)
@@ -241,9 +252,14 @@ using Core
 {
     var source: String
     source.append("<svg width='73' height='61'><path fill-rule='evenodd' d='M1 1H72V60H1Z ")
-    for row in 8 do
-        for column in 17 do
+    for row in 8
+    {
+        for column in 17
+        {
             source.append(Format.toString("M% %h2v2h-2z ", 4 + column * 4, 4 + row * 6).toString())
+        }
+    }
+
     source.append("'/><path fill-opacity='.5' d='M0 0H38V61H0Z'/></svg>")
 
     let drawing = expect Svg.Drawing.parse(source.toString(), {preferScanFills: true})
@@ -263,8 +279,10 @@ using Core
         Swag.require(whole.pixelColor(12, 12).a == 255)
         Swag.require(whole.pixelColor(16, 16).a == 127)
         Swag.require(whole.pixelColor(272, 184).a == 0)
-        for value, index in tiled.pixels do
+        for value, index in tiled.pixels
+        {
             Swag.require(value == whole.pixels[index])
+        }
     }
 }
 
@@ -299,7 +317,7 @@ using Core
     let options   = Svg.ParseOptions{preferScanFills: true}
     let drawing   = expect Svg.Drawing.parse(compound.toString(), options)
     let reference = expect Svg.Drawing.parse(rows.toString(), options)
-    var cpu: RenderCpu
+    var cpu:      RenderCpu
     let renderer: IRenderer = &cpu
     renderer.init()
     defer renderer.end()
@@ -324,10 +342,16 @@ using Core
     func compound(source: *String, visible: bool)
     {
         source.append("<path fill-opacity='.37' fill-rule='evenodd' d='")
-        for 1024 do
+        for 1024
+        {
             source.append("M180 150h2v2h-2z ")
-        if visible do
+        }
+
+        if visible
+        {
             source.append("M9.125 32.375h117.5v36.75h-117.5z")
+        }
+
         source.append("'/>")
     }
 
@@ -338,15 +362,20 @@ using Core
     {
         for index in 640
         {
-            let x = 4 + (index * 31 + phase * 11) % 117
-            let y = 3 + (index * 19 + phase * 3) % 92
+            let x    = 4 + (index * 31 + phase * 11) % 117
+            let y    = 3 + (index * 19 + phase * 3) % 92
             let path = Format.toString("<path fill-opacity='.0%' d='M%.125 %.375h19.5v16.5h-19.5z'/>",
-                                       (index % 7) + 2, x, y)
+                                       (index % 7) + 2,
+                                       x,
+                                       y)
             grouped.append(path.toString())
             serial.append(path.toString())
-            if index == 319 do
+            if index == 319
+            {
                 compound(&serial, false)
+            }
         }
+
         if not phase
         {
             compound(&grouped, true)
@@ -356,11 +385,11 @@ using Core
 
     grouped.append("</svg>")
     serial.append("</svg>")
-    let options = Svg.ParseOptions{preferScanFills: true}
-    let drawing = expect Svg.Drawing.parse(grouped.toString(), options)
+    let options   = Svg.ParseOptions{preferScanFills: true}
+    let drawing   = expect Svg.Drawing.parse(grouped.toString(), options)
     let reference = expect Svg.Drawing.parse(serial.toString(), options)
-    let actual = drawing.rasterize(144, 112, 1)
-    let expected = reference.rasterize(144, 112, 1)
+    let actual    = drawing.rasterize(144, 112, 1)
+    let expected  = reference.rasterize(144, 112, 1)
     Swag.require(actual.isValid() and expected.isValid())
     Swag.require(actual.pixelColor(64, 56).a > 0)
     Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)

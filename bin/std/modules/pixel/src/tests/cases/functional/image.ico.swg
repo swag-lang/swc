@@ -240,17 +240,17 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 {
     const Width  = 13
     const Height = 3
-    for bitCount in [1'u16, 4, 8, 24, 32]
+    for bitCount in [1_u16, 4, 8, 24, 32]
     {
         let rowBytes     = ((Width * bitCount + 31) / 32) * 4
-        let paletteCount = bitCount <= 8 ? 1'u32 << bitCount : 0'u32
+        let paletteCount = bitCount <= 8 ? 1_u32 << bitCount : 0_u32
         var body: ConcatBuffer
         for index in paletteCount
         {
             body.addNative(cast(u8, index))
             body.addNative(cast(u8, ((index ^ 0x65) & 0xFF)))
             body.addNative(cast(u8, ((index ^ 0x91) & 0xFF)))
-            body.addNative(0xFA'u8)
+            body.addNative(0xFA_u8)
         }
 
         for y in Height
@@ -282,8 +282,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
             var mask: [4] u8
             for x in Width
             {
-                if (x + y) % 3 == 0 do
+                if (x + y) % 3 == 0
+                {
                     mask[x / 8] |= cast(u8, (128 >> (x & 7)))
+                }
             }
 
             body.addBytes(mask)
@@ -312,7 +314,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 #test
 {
     const Width = 13
-    for bitCount in [4'u16, 8]
+    for bitCount in [4_u16, 8]
     {
         let rowBytes = ((Width * bitCount + 31) / 32) * 4
         for badPixel in [7, 12]
@@ -712,10 +714,10 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 // Mixed layouts and odd rows keep their exact DIB bytes in a multi-image icon.
 #test
 {
-    const DirectorySize = 6'u64
-    const EntrySize     = 16'u64
-    const HeaderSize    = 40'u64
-    var images: Array'Image
+    const DirectorySize = 6_u64
+    const EntrySize     = 16_u64
+    const HeaderSize    = 40_u64
+    var images: Array!{Image}
     for height in [1, 3]
     {
         for width in [1, 5, 6, 7, 8, 9, 31, 33]
@@ -723,8 +725,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
             for format in [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
             {
                 var image = Image.create(width, height, format)
-                for i in image.pixels.count do
+                for i in image.pixels.count
+                {
                     image.pixels[i] = cast(u8, ((i * 59 + cast(u64, width) * 41) & 255))
+                }
+
                 images.add(#move image)
             }
         }
@@ -758,8 +763,11 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
             Swag.require(dst[3] == (image.bytesPerPixel == 4 ? src[3] : 255))
         }
 
-        for padding in andSize do
+        for padding in andSize
+        {
             Swag.require(xor[xorSize + padding] == 0)
+        }
+
         offset += entrySize
     }
 

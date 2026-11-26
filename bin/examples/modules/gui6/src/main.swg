@@ -719,8 +719,9 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
             previousPage()
 
         default:
-            if not processMenuCommand(cmd.id) do
+            if not processMenuCommand(cmd.id) {
                 return false
+            }
         }
 
         cmd.accepted = true

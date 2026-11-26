@@ -107,7 +107,7 @@ struct LocalMinimum
 
 impl LocalMinimum
 {
-    mtd const opCompare(other: LocalMinimum)->s32 => other.y <=> .y
+    mtd const opCompare(other: LocalMinimum)->s32 => other.y!{=}.y
 }
 
 struct Edge

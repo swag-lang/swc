@@ -940,7 +940,7 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
     if item.transform.m12 == 0 and item.transform.m21 == 0
     {
         // The image's horizontal samples are shared by every row.
-        var columns: Array'u32
+        var columns: Array!{u32}
         columns.resize(width)
         for column in width
         {
@@ -958,21 +958,23 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
             let alpha  = mask + cast(u64, maskLast - y) * stride
             let words  = cast(const [*] s32, alpha)
             let pixels = image.pixels.storage() + row * cast(u64, image.rowStride)
-            var column = 0'u64
+            var column = 0_u64
             while width - column >= 4
             {
-                let dst = pixels + column * 4
-                let colors = cast #bit(Math.Simd.U32x4, Math.Simd.load(dst))
+                let dst     = pixels + column * 4
+                let colors  = cast #bit(Math.Simd.U32x4, Math.Simd.load(dst))
                 let weights = cast #bit(Math.Simd.U32x4, Math.Simd.gather(words, Math.Simd.load(source + column))) >> 24
-                let product = (colors >> 24) * weights + 1'u32
+                let product = (colors >> 24) * weights + 1_u32
                 let covered = (product + (product >> 8)) >> 8
-                let rgba = (colors & 0x00FF_FFFF'u32) | (covered << 24)
+                let rgba    = (colors & 0x00FF_FFFF_u32) | (covered << 24)
                 Math.Simd.store(dst, cast #bit(Math.Simd.U8x16, rgba))
                 column += 4
             }
 
-            for i in column until width do
+            for i in column until width
+            {
                 pixels[i * 4 + 3] = cast(u8, (cast(u32, pixels[i * 4 + 3]) * alpha[cast(u64, source[i]) * 4 + 3]) / 255)
+            }
         }
 
         return
@@ -991,7 +993,7 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
             let y     = maskCoordinate(point.y, region.y, region.height, coverage.height)
             let alpha = mask[cast(u64, maskLast - y) * stride + cast(u64, x) * 4 + 3]
             pixels[3] = cast(u8, ((cast(u32, pixels[3]) * alpha) / 255))
-            pixels   += 4
+            pixels    += 4
         }
     }
 }
@@ -1031,7 +1033,7 @@ private func maskItem(parser: *PdfParser, page: *Page, mask: const *SoftMaskRef,
         maskImagePixels(item, &coverage, region.rect)
         if parser.softMaskCache.count <= SoftMaskCoverageCacheGroupLimit and coverage.byteCount <= SoftMaskCoverageCacheByteLimit
         {
-            group.cachedRegion = local
+            group.cachedRegion   = local
             group.cachedCoverage = #move coverage
         }
 

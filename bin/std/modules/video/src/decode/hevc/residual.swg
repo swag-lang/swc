@@ -184,10 +184,14 @@ impl Decoder
             {
                 let context = mapped ? cast(u32, SigCtxMap4x4[0]) + dcContext :
                               dcBlock ? dcContext : cast(u32, SigCtxPattern[pattern, 0]) + base
-                if inferDcSignificant and not significant do
+                if inferDcSignificant and not significant
+                {
                     significant = 1
-                else do
+                }
+                else
+                {
                     significant |= .cabac.decision(CtxSigCoeffFlag + context)
+                }
             }
 
             if not significant
@@ -228,12 +232,14 @@ impl Decoder
             while position >= 0
             {
                 let scanPos = 31 - Swag.leadingZeros(pending)
-                let bit     = 1'u32 << scanPos
+                let bit     = 1_u32 << scanPos
                 pending ^= bit
-                if order and greater1Ctx > 0 do
+                if order and greater1Ctx > 0
+                {
                     greater1Ctx = greater1Flag ? 0 : greater1Ctx + 1
+                }
 
-                greater1Flag = .cabac.decision(contextBase + Math.min(3'u32, greater1Ctx)) != 0
+                greater1Flag = .cabac.decision(contextBase + Math.min(3_u32, greater1Ctx)) != 0
                 if greater1Flag
                 {
                     if greater1Count < 8
@@ -311,7 +317,7 @@ impl Decoder
             while pending
             {
                 let scanPos = 31 - Swag.leadingZeros(pending)
-                let bit     = 1'u32 << scanPos
+                let bit     = 1_u32 << scanPos
                 pending ^= bit
 
                 var baseLevel = 1_u32
@@ -349,8 +355,11 @@ impl Decoder
                     firstRemaining = false
                 }
 
-                if signHidden do
+                if signHidden
+                {
                     sumAbsLevel += level
+                }
+
                 var sign = false
                 if signHidden and not pending
                 {

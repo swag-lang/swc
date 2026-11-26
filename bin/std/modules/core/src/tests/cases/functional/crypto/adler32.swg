@@ -90,10 +90,13 @@ func fillAdlerPattern(buffer: [..] u8)
     split.update(data[5552 until 11121])
     Swag.require(split.value() == Hash.Adler32.compute(data))
 
-    for index in data.count do
+    for index in data.count
+    {
         data[index] = 0xFF
 
-    // Worst-case weighted sums around the one-shot reduction threshold.
+        // Worst-case weighted sums around the one-shot reduction threshold.
+    }
+
     assertAdler32(data[1 until 23])
     assertAdler32(data[1 until 24])
     assertAdler32(data[1 until])

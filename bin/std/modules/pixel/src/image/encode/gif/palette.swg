@@ -11,7 +11,7 @@ using Swag, Core, Core.Errors
 // Each offset moves a color by at most one five-bit histogram bin per channel.
 private const Dither: [16] s32 = [-8, 0, -6, 2, 4, -4, 6, -2, -5, 3, -7, 1, 7, -1, 5, -3]
 
-private const PaletteMapSize = 512'u32
+private const PaletteMapSize = 512_u32
 
 // A top-down rectangle in the image's bottom-up pixel buffer.
 private struct PalettePixels
@@ -58,7 +58,7 @@ impl Encoder
         // Alpha is the last byte of each two- or four-byte pixel. Its sign bit
         // is set exactly when that pixel is opaque in GIF.
         let step = image.bytesPerPixel
-        let mask = step == 2 ? 0xAAAA'u32 : 0x8888'u32
+        let mask = step == 2 ? 0xAAAA_u32 : 0x8888_u32
         let end  = image.pixels.storage() + image.byteCount
         var pix  = image.pixels.storage()
         while end - pix >= 16
@@ -175,20 +175,23 @@ impl Encoder
         for x in image.width
         {
             let gray = first[x]
-            if seen[gray] do
+            if seen[gray] {
                 continue
 
+            }
             seen[gray]         = true
             order[][gray]      = cast(u8, count)
             data.colors[count] = {gray, gray, gray}
             count              += 1
-            if count == MaxPaletteColors do
+            if count == MaxPaletteColors {
                 break
+            }
         }
 
-        if count != MaxPaletteColors do
+        if count != MaxPaletteColors {
             return false
 
+        }
         data.count = count
         data.indexes.grow(image.byteCount)
         data.indexes.count = image.byteCount
@@ -515,20 +518,23 @@ impl Encoder
                     let lighter = own | occupied[red, green + 1] | occupied[red + 1, green] | occupied[red, green]
                     let darker  = own | occupied[red + 2, green + 1] | occupied[red + 1, green + 2] | occupied[red + 2, green + 2]
                     needed = lighter | (lighter << 1) | darker | (darker >> 1)
-                    if not needed do
+                    if not needed {
                         continue
+                    }
                 }
 
                 var rgCosts: [Groups] Math.Simd.S32x4
-                for group in groups do
+                for group in groups {
                     rgCosts[group] = redCosts[red, group] + greenCosts[green, group]
 
+                }
                 for blue in 32
                 {
                     let index = (red << 10) | (green << 5) | blue
-                    if dither ? not (needed & (1'u32 << blue)) : not histogram[index].count do
+                    if dither ? not (needed & (1_u32 << blue)) : not histogram[index].count {
                         continue
 
+                    }
                     var best = Math.Simd.splat(Swag.S32.Max)
                     for group in groups
                     {

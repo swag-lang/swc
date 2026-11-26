@@ -6,14 +6,17 @@ using Swag, Core
 #[Swag.TestTag("stress")]
 #test
 {
-    const BlockSize = 64'u64 * 1024
-    const Blocks    = 145'u64
-    const Start     = 37'u64
-    var original: Array'u8
+    const BlockSize = 64_u64 * 1024
+    const Blocks    = 145_u64
+    const Start     = 37_u64
+    var original: Array!{u8}
     original.resize(Blocks * BlockSize + 13)
     let originalBytes = unwrap original.buffer
-    for block in Blocks do
+    for block in Blocks
+    {
         Memory.set(originalBytes + block * BlockSize, cast(u8, block), BlockSize)
+    }
+
     Memory.set(originalBytes + Blocks * BlockSize, 237, 13)
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("swag-font-range-%.bin", Guid128.random().toString()))
@@ -22,7 +25,7 @@ using Swag, Core
     var stream = expect File.openRead(path)
     expect stream.seek(.Begin, 11)
 
-    var destination: Array'u8
+    var destination: Array!{u8}
     destination.resize(original.count)
     let complete = expect readParallelFontRange(&stream, 0, destination.toSlice(), 4)
     Swag.require(complete.ok and complete.count == original.count)

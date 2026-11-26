@@ -44,20 +44,25 @@ func sameColors(decoded: Image, source: Image)->bool
     return true
 }
 
-func localPaletteFlags(bytes: const [..] u8)->Array'bool
+func localPaletteFlags(bytes: const [..] u8)->Array!{bool}
 {
     var result: #returntype
     let packed = bytes[10]
-    var offset = 13'u64
-    if packed & 0x80 do
-        offset += 3'u64 * (1'u64 << ((packed & 7) + 1))
+    var offset = 13_u64
+    if packed & 0x80
+    {
+        offset += 3_u64 * (1_u64 << ((packed & 7) + 1))
+    }
 
     while offset < bytes.count
     {
         let marker = bytes[offset]
         offset += 1
-        if marker == 0x3B do
+        if marker == 0x3B
+        {
             return result
+        }
+
         if marker == 0x21
         {
             offset += 1     // Extension label.
@@ -68,8 +73,11 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
             let flags = bytes[offset + 8]
             result.add((flags & 0x80) != 0)
             offset += 9
-            if flags & 0x80 do
-                offset += 3'u64 * (1'u64 << ((flags & 7) + 1))
+            if flags & 0x80
+            {
+                offset += 3_u64 * (1_u64 << ((flags & 7) + 1))
+            }
+
             offset += 1     // LZW minimum code size.
         }
 
@@ -77,8 +85,11 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
         {
             let size = bytes[offset]
             offset += 1
-            if not size do
+            if not size
+            {
                 break
+            }
+
             offset += size
         }
     }
@@ -368,7 +379,7 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
     Swag.require(plainBytes.count != ditherBytes.count or
                  Memory.compare(plainBytes.storage(), ditherBytes.storage(), plainBytes.count) != 0)
     let decoded = expect Image.decode("dithered.gif", ditherBytes.toSlice())
-    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 148715985'u32)
+    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 148715985_u32)
 }
 
 // A change of channel layout alone still extends the previous frame's delay.
@@ -440,8 +451,11 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
     }
 
     var writer = expect Gif.AnimationWriter.create(path, Width, Height)
-    for frame in frames do
+    for frame in frames
+    {
         expect writer.addFrame(frame, 100_000)
+    }
+
     expect writer.end()
 
     let bytes  = expect File.readAllBytes(path)
@@ -449,8 +463,10 @@ func localPaletteFlags(bytes: const [..] u8)->Array'bool
     Swag.require(tables.count == 2 and not tables[0] and not tables[1])
     var reader = expect ImageReader.load(path)
     Swag.require(reader.info.frames.count == 2)
-    for frame in frames.count do
+    for frame in frames.count
+    {
         Swag.require(sameColors(expect reader.read(cast(u32, frame)), frames[frame]))
+    }
 }
 
 // A caller can reuse its image after adding each frame, including a cropped change.

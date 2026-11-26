@@ -115,8 +115,9 @@ impl Encoder
         {
             // Signature, 13-byte IHDR, and the framing of IHDR, IDAT, and IEND.
             const PngOverhead = #sizeof(PngSignature) + 13 + 3 * 12
-            if cmp.count <= MaxPngChunkLength do
+            if cmp.count <= MaxPngChunkLength {
                 .stream!.grow(cmp.count + PngOverhead)
+            }
             try .writeChunksBeforeIDat()
         }
 
@@ -180,8 +181,9 @@ impl Encoder
             {
                 let input  = cast(const [*] u16, src)
                 let output = cast([*] u16, dst)
-                for sample in .pixelSize / 2 do
+                for sample in .pixelSize / 2 {
                     output[sample] = Swag.byteSwap(input[sample])
+                }
             }
             else if .swapRB
             {

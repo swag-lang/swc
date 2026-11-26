@@ -403,16 +403,22 @@ func onPaint(_: *Env.Window)
 
 func onPointer(_: *Env.Window, event: Env.WindowPointerEvent)
 {
-    if event.kind != .ButtonUp or event.button != .Left do
+    if event.kind != .ButtonUp or event.button != .Left
+    {
         return
+    }
 
     let scale = g_Painter.contentScale()
     let x     = event.x / scale
     let y     = event.y / scale
-    if navigationRect(0).contains(x, y) do
+    if navigationRect(0).contains(x, y)
+    {
         changePage(-1)
-    elif navigationRect(1).contains(x, y) do
+    }
+    else if navigationRect(1).contains(x, y)
+    {
         changePage(1)
+    }
 }
 
 func updateShortcuts()
@@ -487,9 +493,13 @@ func updateTestMode()
             g_NeedsPaint = false
         }
 
-        if smoke and g_Page + 1 < MaxPages do
+        if smoke and g_Page + 1 < MaxPages
+        {
             changePage(1)
-        elif not smoke do
+        }
+        else if not smoke
+        {
             Threading.Thread.sleep(Time.Duration.fromMilliseconds(8))
+        }
     }
 }

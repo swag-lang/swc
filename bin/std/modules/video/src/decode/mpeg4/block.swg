@@ -81,8 +81,10 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
             block[][index] = Math.clamp(level < 0 ? -magnitude : magnitude, CoefficientFloor, CoefficientCeil)
         }
 
-        if intra do
+        if intra
+        {
             block[][0] = dc
+        }
 
         return
     }
@@ -141,19 +143,19 @@ private func dequantiseWeighted(block: *[64] s32, layer: const *Layer, quant: u3
     let weights: const [..] u8 = intra ? layer.intraMatrix : layer.interMatrix
     let dc    = block[][0]
     let step  = Simd.splat(cast(s32, quant))
-    let bias  = Simd.splat(intra ? 0's32 : 1's32)
-    let zero  = Simd.splat(0's32)
+    let bias  = Simd.splat(intra ? 0_s32 : 1_s32)
+    let zero  = Simd.splat(0_s32)
     let lower = Simd.splat(CoefficientFloor)
     let upper = Simd.splat(CoefficientCeil)
     var parity:  Simd.U32x4
-    for index in 16'u64
+    for index in 16_u64
     {
         let offset  = index * 4
         let bytes   = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u32, weights.buffer + offset)[0]))
         let weight  = cast #bit(Simd.S32x4, Simd.widenLow(Simd.widenLow(bytes)))
         let levels  = Simd.load(&block[][offset])
-        let sign    = levels >> 31'u32
-        let product = ((Math.abs(levels) * 2 + bias) * weight * step) >> 4'u32
+        let sign    = levels >> 31_u32
+        let product = ((Math.abs(levels) * 2 + bias) * weight * step) >> 4_u32
         let scaled  = ((product ^ sign) - sign) & cast #bit(Simd.S32x4, levels != zero)
         let result  = Math.clamp(scaled, lower, upper)
 
@@ -162,10 +164,14 @@ private func dequantiseWeighted(block: *[64] s32, layer: const *Layer, quant: u3
         Simd.store(&block[][offset], result)
     }
 
-    if intra do
+    if intra
+    {
         block[][0] = Math.clamp(dc, CoefficientFloor, CoefficientCeil)
-    elif not (Simd.bitwiseXor(parity) & 1) do
+    }
+    else if not (Simd.bitwiseXor(parity) & 1)
+    {
         block[][63] ^= 1
+    }
 }
 
 // The cosines of the eight-point transform, `cos((2 * x + 1) * u * pi / 16) * (u ? 1 : 1/sqrt 2)`.
@@ -229,8 +235,10 @@ func inverseTransform(block: const *[64] s32, output: *[64] s16)
         let low  = Simd.bitmask(Simd.load(row) != zero)
         let high = Simd.bitmask(Simd.load(row + 4) != zero)
         var mask = low | (high << 4)
-        if not mask do
+        if not mask
+        {
             continue
+        }
 
         var lo, hi: Simd.F32x4
         var active = false

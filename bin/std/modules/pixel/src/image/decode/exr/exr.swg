@@ -187,9 +187,9 @@ func canonicalHalf(value: u16)->u16 => (value & 0x7FFF) > 0x7C00 ? (value & 0x80
 #[Swag.Inline]
 func canonicalHalves(values: Simd.U16x8)->Simd.U16x8
 {
-    const Infinity = Simd.splat(0x7C00's16)
-    let magnitude = cast #bit(Simd.S16x8, values & 0x7FFF'u16)
-    return Simd.select(magnitude > Infinity, (values & 0x8000'u16) | 0x7E00'u16, values)
+    const Infinity = Simd.splat(0x7C00_s16)
+    let magnitude = cast #bit(Simd.S16x8, values & 0x7FFF_u16)
+    return Simd.select(magnitude > Infinity, (values & 0x8000_u16) | 0x7E00_u16, values)
 }
 
 #[Swag.Inline]
@@ -198,19 +198,23 @@ func loadCanonicalHalves(source: const [*] u8)->Simd.U16x8 => canonicalHalves(ca
 #[Swag.Inline]
 func(T) loadColorSamples(source: const [*] u8)->Simd.U8x16
 {
-    #static if T == u16 do
+    #static if T == u16 {
         return cast #bit(Simd.U8x16, loadCanonicalHalves(source))
-    else do
+    }
+    else {
         return Simd.load(source)
+    }
 }
 
 #[Swag.Inline]
 func(T) readColorSample(source: const [*] u8)->T
 {
-    #static if T == u16 do
+    #static if T == u16 {
         return canonicalHalf(readU16(source))
-    else do
+    }
+    else {
         return readU32(source)
+    }
 }
 
 func(T, ALPHA: bool) writePackedColorRow(source: const [*] u8, offsets: [4] u64, target: [*] u8, width: u64)
@@ -227,20 +231,23 @@ func(T, ALPHA: bool) writePackedColorRow(source: const [*] u8, offsets: [4] u64,
     {
         let dst    = target + x * Stride
         let offset = x * SampleBytes
-        let r      = loadColorSamples'T(red + offset)
-        let g      = loadColorSamples'T(green + offset)
-        let b      = loadColorSamples'T(blue + offset)
+        let r      = loadColorSamples!{T}(red + offset)
+        let g      = loadColorSamples!{T}(green + offset)
+        let b      = loadColorSamples!{T}(blue + offset)
         #static if ALPHA
         {
-            let a = loadColorSamples'T(source + offsets[3] + offset)
-            #static if T == u16 do
-                PackedPixel.storeQuads'(Simd.U16x8, Simd.U32x4)(dst, r, g, b, a)
-            else do
-                PackedPixel.storeQuads'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
+            let a = loadColorSamples!{T}(source + offsets[3] + offset)
+            #static if T == u16 {
+                PackedPixel.storeQuads!{Simd.U16x8, Simd.U32x4}(dst, r, g, b, a)
+            }
+            else {
+                PackedPixel.storeQuads!{Simd.U32x4, Simd.U64x2}(dst, r, g, b, a)
+            }
         }
-        else do
-            PackedPixel.storeTriplets'SampleBytes(dst, r, g, b)
+        else {
+            PackedPixel.storeTriplets!{SampleBytes}(dst, r, g, b)
 
+        }
         x += BlockPixels
     }
 
@@ -248,11 +255,12 @@ func(T, ALPHA: bool) writePackedColorRow(source: const [*] u8, offsets: [4] u64,
     {
         let dst    = cast([*] T, target + x * Stride)
         let offset = x * SampleBytes
-        dst[0] = readColorSample'T(red + offset)
-        dst[1] = readColorSample'T(green + offset)
-        dst[2] = readColorSample'T(blue + offset)
-        #static if ALPHA do
-            dst[3] = readColorSample'T(source + offsets[3] + offset)
+        dst[0] = readColorSample!{T}(red + offset)
+        dst[1] = readColorSample!{T}(green + offset)
+        dst[2] = readColorSample!{T}(blue + offset)
+        #static if ALPHA {
+            dst[3] = readColorSample!{T}(source + offsets[3] + offset)
+        }
         x += 1
     }
 }
@@ -267,10 +275,12 @@ func(T) writePackedColorChunk(image: *Image, offsets: [4] u64, source: const [..
         let targetY = image.height - firstRow - row - 1
         let target  = image.pixels.storage() + cast(u64, targetY) * rowBytes
         let input   = source.buffer + cast(u64, row) * rowBytes
-        if hasAlpha do
-            writePackedColorRow'(T, true)(input, offsets, target, width)
-        else do
-            writePackedColorRow'(T, false)(input, offsets, target, width)
+        if hasAlpha {
+            writePackedColorRow!{T, true}(input, offsets, target, width)
+        }
+        else {
+            writePackedColorRow!{T, false}(input, offsets, target, width)
+        }
     }
 }
 
@@ -280,38 +290,40 @@ func widenHalfSamples(source: const [*] u8)->Simd.U8x16
     var values: u64
     Memory.copy(&values, source, 8)
     let half      = Simd.widenLow(cast #bit(Simd.U16x8, Simd.splat(values)))
-    let exponent  = half & 0x7C00'u32
-    let mantissa  = (half & 0x03FF'u32) << 13
-    let normal    = ((exponent << 13) + 0x3800_0000'u32) | mantissa
-    let nonfinite = 0x7F80_0000'u32 | mantissa
+    let exponent  = half & 0x7C00_u32
+    let mantissa  = (half & 0x03FF_u32) << 13
+    let normal    = ((exponent << 13) + 0x3800_0000_u32) | mantissa
+    let nonfinite = 0x7F80_0000_u32 | mantissa
 
     // Subtract 2^-14 from the biased significand to reconstruct subnormals exactly.
-    let biased    = cast #bit(Simd.F32x4, 0x3880_0000'u32 | mantissa)
-    let subnormal = cast #bit(Simd.U32x4, biased - Simd.splat(1'f32 / 16384.0))
-    let finite    = Simd.select(exponent == Simd.splat(0'u32), subnormal, normal)
-    let bits      = Simd.select(exponent == Simd.splat(0x7C00'u32), nonfinite, finite)
-    return cast #bit(Simd.U8x16, bits | ((half & 0x8000'u32) << 16))
+    let biased    = cast #bit(Simd.F32x4, 0x3880_0000_u32 | mantissa)
+    let subnormal = cast #bit(Simd.U32x4, biased - Simd.splat(1_f32 / 16384.0))
+    let finite    = Simd.select(exponent == Simd.splat(0_u32), subnormal, normal)
+    let bits      = Simd.select(exponent == Simd.splat(0x7C00_u32), nonfinite, finite)
+    return cast #bit(Simd.U8x16, bits | ((half & 0x8000_u32) << 16))
 }
 
 #[Swag.Inline]
 func loadMixedColorSamples(source: const [*] u8, sampleBytes: u64)->Simd.U8x16
 {
-    if sampleBytes == 2 do
+    if sampleBytes == 2 {
         return widenHalfSamples(source)
+    }
     return Simd.load(source)
 }
 
 #[Swag.Inline]
 func readMixedColorSample(source: const [*] u8, sampleBytes: u64)->u32
 {
-    if sampleBytes == 2 do
+    if sampleBytes == 2 {
         return cast #bit(u32, halfToFloat(readU16(source)))
+    }
     return readU32(source)
 }
 
 func(ALPHA: bool) writeMixedColorRow(source: const [*] u8, offsets, sampleBytes: [4] u64, target: [*] u8, width: u64)
 {
-    const Stride = ALPHA ? 16'u64 : 12'u64
+    const Stride = ALPHA ? 16_u64 : 12_u64
     let redBytes   = sampleBytes[0]
     let greenBytes = sampleBytes[1]
     let blueBytes  = sampleBytes[2]
@@ -335,11 +347,12 @@ func(ALPHA: bool) writeMixedColorRow(source: const [*] u8, offsets, sampleBytes:
         #static if ALPHA
         {
             let a = loadMixedColorSamples(alphaInput, alphaBytes)
-            PackedPixel.storeQuads'(Simd.U32x4, Simd.U64x2)(dst, r, g, b, a)
+            PackedPixel.storeQuads!{Simd.U32x4, Simd.U64x2}(dst, r, g, b, a)
             alphaInput += alphaStep
         }
-        else do
-            PackedPixel.storeTriplets'4(dst, r, g, b)
+        else {
+            PackedPixel.storeTriplets!{4}(dst, r, g, b)
+        }
         redInput   += redStep
         greenInput += greenStep
         blueInput  += blueStep
@@ -372,29 +385,33 @@ func writeMixedColorChunk(image: *Image, offsets: [4] u64, halfChannels: u8, sou
     let width    = cast(u64, image.width)
     let hasAlpha = image.bytesPerPixel == 16
     var sampleBytes: [4] u64
-    for component in 4'u64 do
-        sampleBytes[component] = halfChannels & (1'u8 << component) ? 2 : 4
+    for component in 4_u64 {
+        sampleBytes[component] = halfChannels & (1_u8 << component) ? 2 : 4
 
+    }
     for row in rowCount
     {
         let targetY = image.height - firstRow - row - 1
         let target  = image.pixels.storage() + cast(u64, targetY) * image.rowStride
         let input   = source.buffer + cast(u64, row) * rowBytes
-        if hasAlpha do
+        if hasAlpha {
             writeMixedColorRow'true(input, offsets, sampleBytes, target, width)
-        else do
-            writeMixedColorRow'false(input, offsets, sampleBytes, target, width)
+        }
+        else {
+            writeMixedColorRow!{false}(input, offsets, sampleBytes, target, width)
+        }
     }
 }
 
 func(ALPHA: bool) writeGrayHalfRow(source: const [*] u8, target: [*] u8, width: u64, alphaFirst: bool)
 {
-    const PixelBytes = ALPHA ? 4'u64 : 2'u64
+    const PixelBytes = ALPHA ? 4_u64 : 2_u64
     let planeBytes = width * 2
     let gray       = alphaFirst ? source + planeBytes : source
     let alpha      = alphaFirst ? source : source + planeBytes
-    #static if not ALPHA do
+    #static if not ALPHA {
         discard alpha
+    }
     var x: u64
     while width - x >= 8
     {
@@ -406,8 +423,9 @@ func(ALPHA: bool) writeGrayHalfRow(source: const [*] u8, target: [*] u8, width: 
             Simd.store(destination, Simd.interleaveLow(luminance, opacity))
             Simd.store(destination + 8, Simd.interleaveHigh(luminance, opacity))
         }
-        else do
+        else {
             Simd.store(destination, luminance)
+        }
         x += 8
     }
 
@@ -415,8 +433,9 @@ func(ALPHA: bool) writeGrayHalfRow(source: const [*] u8, target: [*] u8, width: 
     {
         let destination = cast([*] u16, target + x * PixelBytes)
         destination[0] = canonicalHalf(readU16(gray + x * 2))
-        #static if ALPHA do
+        #static if ALPHA {
             destination[1] = canonicalHalf(readU16(alpha + x * 2))
+        }
         x += 1
     }
 }
@@ -464,10 +483,12 @@ func writeGrayHalfChunk(image: *Image, source: const [..] u8, firstRow, rows: s3
         let targetY = image.height - firstRow - row - 1
         let target  = image.pixels.storage() + cast(u64, targetY) * rowBytes
         let input   = source.buffer + cast(u64, row) * rowBytes
-        if hasAlpha do
-            writeGrayHalfRow'true(input, target, width, alphaFirst)
-        else do
-            writeGrayHalfRow'false(input, target, width, false)
+        if hasAlpha {
+            writeGrayHalfRow!{true}(input, target, width, alphaFirst)
+        }
+        else {
+            writeGrayHalfRow!{false}(input, target, width, false)
+        }
     }
 }
 
@@ -794,8 +815,9 @@ impl Part
 
     mtd readChunkTable(fileSize, offset: u64)->u64 fail
     {
-        if .chunkCount > (fileSize - offset) / 8 do
+        if .chunkCount > (fileSize - offset) / 8 {
             fail InvalidFormatError{"OpenEXR chunk offset table is truncated"}
+        }
         .tableOffset = offset
         return offset + .chunkCount * 8
     }
@@ -804,31 +826,37 @@ impl Part
     mtd const readScanlineChunk(buffer: const [..] u8, chunkIndex: u64, index: u32, multipart: bool, linesPerChunk: u64, seenRows: [..] bool, maxDecodedBytes: u64)->ScanlineChunk fail
     {
         var chunkOffset = readU64(buffer.buffer + .tableOffset + chunkIndex * 8)
-        let headerSize  = multipart ? 12'u64 : 8'u64
-        if chunkOffset > buffer.count or headerSize > buffer.count - chunkOffset do
+        let headerSize  = multipart ? 12_u64 : 8_u64
+        if chunkOffset > buffer.count or headerSize > buffer.count - chunkOffset {
             fail InvalidFormatError{"OpenEXR chunk offset points outside the file"}
+        }
         if multipart
         {
-            if readU32(buffer.buffer + chunkOffset) != index do
+            if readU32(buffer.buffer + chunkOffset) != index {
                 fail InvalidFormatError{"OpenEXR chunk belongs to another part"}
+            }
             chunkOffset += 4
         }
 
         let firstY     = cast #bit(s32, readU32(buffer.buffer + chunkOffset))
         let packedSize = cast(u64, readU32(buffer.buffer + chunkOffset + 4))
-        if packedSize > buffer.count - chunkOffset - 8 do
+        if packedSize > buffer.count - chunkOffset - 8 {
             fail InvalidFormatError{"OpenEXR chunk is truncated"}
+        }
         let relativeY = cast(s64, firstY) - .yMin
-        if relativeY < 0 or relativeY >= .info.height or cast(u64, relativeY) & (linesPerChunk - 1) do
+        if relativeY < 0 or relativeY >= .info.height or cast(u64, relativeY) & (linesPerChunk - 1) {
             fail InvalidFormatError{"OpenEXR chunk starts outside its scanline block"}
+        }
         let start = cast(u64, relativeY)
-        if seenRows[start] do
+        if seenRows[start] {
             fail InvalidFormatError{"OpenEXR scanline occurs more than once"}
+        }
         seenRows[start] = true
         let rows     = Math.min(cast(s32, linesPerChunk), .info.height - cast(s32, relativeY))
         let expected = .rowBytes * cast(u64, rows)
-        if maxDecodedBytes and expected > maxDecodedBytes do
+        if maxDecodedBytes and expected > maxDecodedBytes {
             fail UnsupportedFormatError{"OpenEXR chunk exceeds the decoded byte limit"}
+        }
         return {pixels: buffer[chunkOffset + 8 until chunkOffset + 8 + packedSize], firstY, relativeY: cast(s32, relativeY), rows, expected}
     }
 
@@ -842,8 +870,9 @@ impl Part
         {
             scratch.unpacked.clear()
             try scratch.zlib.decompress(&scratch.unpacked, pixels, chunk.expected, maxOutputSize: chunk.expected)
-            if scratch.unpacked.count != chunk.expected do
+            if scratch.unpacked.count != chunk.expected {
                 fail InvalidFormatError{"OpenEXR ZIP chunk has an invalid decoded size"}
+            }
             if layout.grayHalf and image.pixelFormat == .GrayF16
             {
                 writeGrayZipHalfChunk(image, scratch.unpacked.toSlice(), chunk.relativeY, chunk.rows)
@@ -854,26 +883,29 @@ impl Part
             pixels = scratch.reordered.toSlice()
         }
 
-        if pixels.count != chunk.expected do
+        if pixels.count != chunk.expected {
             fail InvalidFormatError{"OpenEXR scanline chunk has an invalid size"}
+        }
         if layout.grayHalf
         {
             writeGrayHalfChunk(image, pixels, chunk.relativeY, chunk.rows, layout.alphaFirst)
         }
-        elif layout.grayscale
+        else if layout.grayscale
         {
-            if layout.grayBytes do
+            if layout.grayBytes {
                 writeGrayFloatChunk(image, pixels, chunk.relativeY, chunk.rows, layout.grayBytes, layout.alphaBytes, layout.alphaFirst)
-            else do
+            }
+            else {
                 try writeGrayscaleChunk(image, .channels.toSlice(), pixels, chunk.firstY, chunk.rows, .yMin)
+            }
         }
-        elif layout.halfColor
+        else if layout.halfColor
         {
-            writePackedColorChunk'u16(image, layout.channelOffsets, pixels, chunk.relativeY, chunk.rows)
+            writePackedColorChunk!{u16}(image, layout.channelOffsets, pixels, chunk.relativeY, chunk.rows)
         }
-        elif layout.floatColor
+        else if layout.floatColor
         {
-            writePackedColorChunk'u32(image, layout.channelOffsets, pixels, chunk.relativeY, chunk.rows)
+            writePackedColorChunk!{u32}(image, layout.channelOffsets, pixels, chunk.relativeY, chunk.rows)
         }
         else
         {
@@ -921,8 +953,9 @@ impl Part
     mtd const parallelCompressedBytes()->u64
     {
         // ZIPS invests in a separate Deflate stream and Huffman tables for every row.
-        if .compression == 2 and .chunkCount >= 128 do
+        if .compression == 2 and .chunkCount >= 128 {
             return 192 * 1024
+        }
         return ParallelZipBytes
     }
 
@@ -938,13 +971,14 @@ impl Part
     {
         var lightest = Swag.U64.Max
         var heaviest: u64
-        for quarter in 4'u64
+        for quarter in 4_u64
         {
             var weight: u64
             let first = quarter * work.count / 4
             let end   = (quarter + 1) * work.count / 4
-            for chunkIndex in first until end do
+            for chunkIndex in first until end {
                 weight += scanlineWork(work[chunkIndex])
+            }
             lightest = Math.min(lightest, weight)
             heaviest = Math.max(heaviest, weight)
         }
@@ -959,8 +993,9 @@ impl Part
         ends[batches] = work.count
         if not compressedBytes or work.count < batches * 4 or not unequalScanlineWork(work)
         {
-            for batch in 1 until batches do
+            for batch in 1 until batches {
                 ends[batch] = batch * work.count / batches
+            }
             return
         }
 
@@ -985,7 +1020,7 @@ impl Part
     #[Swag.NoInline]
     mtd const decodeScanlineBatches(buffer: const [..] u8, index: u32, multipart: bool, linesPerChunk: u64, largePacking: bool, options: DecodeOptions, image: *Image, layout: const *ScanlineLayout, seenRows: [..] bool) fail
     {
-        var chunks: Array'ScanlineChunk
+        var chunks: Array!{ScanlineChunk}
         chunks.reserve(.chunkCount)
         var indexError:      Swag.Error
         var compressedBytes: u64
@@ -994,27 +1029,30 @@ impl Part
             catch
             {
                 let chunk = try .readScanlineChunk(buffer, chunkIndex, index, multipart, linesPerChunk, seenRows, options.maxDecodedBytes)
-                if chunk.pixels.count < chunk.expected do
+                if chunk.pixels.count < chunk.expected {
                     compressedBytes += chunk.pixels.count
+                }
                 chunks.add(chunk)
             } as indexError
-            if not indexError.isEmpty() do
+            if not indexError.isEmpty() {
                 break
+            }
         }
 
         let workers = chunks.count >= 2 and (largePacking or compressedBytes >= .parallelCompressedBytes()) ? Swag.workerCount() : 0
         if workers <= 1
         {
             var scratch: ScanlineScratch = {}
-            for chunk in chunks do
+            for chunk in chunks {
                 try .decodeScanlineChunk(image, chunk[], layout[], &scratch)
+            }
             try indexError.raise()
             return
         }
 
         // Aligned and unique block starts make worker output rows disjoint. Each batch owns
         // its scratch and records its first error, so failures are reported in file order.
-        const MaxBatches = 8'u64
+        const MaxBatches = 8_u64
         let batches = Math.min(chunks.count, Math.min(cast(u64, workers) * 2, MaxBatches))
         let part    = me
         let work:   const [..] ScanlineChunk = chunks.toSlice()
@@ -1036,8 +1074,9 @@ impl Part
             }
         }
 
-        for batch in batches do
+        for batch in batches {
             try errors[batch].raise()
+        }
         try indexError.raise()
     }
 
@@ -1058,7 +1097,7 @@ impl Part
         var layout: ScanlineLayout = {channelOffsets, grayBytes, alphaBytes, halfChannels, grayscale, grayHalf, halfColor, floatColor, alphaFirst}
 
         // Wide images can spend enough time packing stored samples to benefit from workers.
-        const LargeImageBytes = 64'u64 * 1024 * 1024
+        const LargeImageBytes = 64_u64 * 1024 * 1024
         let largePacking = .rowBytes >= 8 * 1024 and
                            buffer.count >= LargeImageBytes and
                            result.byteCount >= LargeImageBytes
@@ -1156,13 +1195,16 @@ impl Part
 
 func readVersion(buffer: const [..] u8)->u32 fail
 {
-    if buffer.count < 9 or readU32(buffer.buffer) != Magic do
+    if buffer.count < 9 or readU32(buffer.buffer) != Magic {
         fail InvalidFormatError{"OpenEXR signature or header is truncated"}
+    }
     let version = readU32(buffer.buffer + 4)
-    if (version & 0xFF) != 2 do
+    if (version & 0xFF) != 2 {
         fail UnsupportedFormatError{"OpenEXR file version is not 2"}
-    if version & 0xA00 do
+    }
+    if version & 0xA00 {
         fail UnsupportedFormatError{"tiled and deep OpenEXR images are not supported"}
+    }
     return version
 }
 
@@ -1254,7 +1296,7 @@ impl IImageDecoder for Decoder
         }
 
         try options.checkFrameCount(1)
-        var offset = 8'u64
+        var offset = 8_u64
         var part   = try Part.parse(buffer, &offset, false, options)
         discard try part.readChunkTable(buffer.count, offset)
         return try part.decode(buffer, 0, false, options)

@@ -87,7 +87,7 @@ private
 
     // Standard prefixes use up to 16 bits and DC amplitudes up to 11 bits.
     const PackedLengthShift = 27
-    const PackedBitsMask    = (1'u32 << PackedLengthShift) - 1
+    const PackedBitsMask    = (1_u32 << PackedLengthShift) - 1
 
     const ZigZag: [?] u8 = [
         0, 1, 5, 6, 14, 15, 27, 28, 2, 4, 7, 13, 16, 26, 29, 42, 3, 8, 12, 17, 25, 30,
@@ -303,7 +303,7 @@ impl Encoder
             for var xpos = 0_u16; xpos < .imageX; xpos += 8
             {
                 let source  = line + cast(u64, xpos) * .pixelSize
-                let columns = Math.min(8'u32, cast(u32, .imageX) - xpos)
+                let columns = Math.min(8_u32, cast(u32, .imageX) - xpos)
                 if flatColorBlock(source, .stride, .pixelSize, columns, rows)
                 {
                     let red   = cast(s32, source[.redOffset])

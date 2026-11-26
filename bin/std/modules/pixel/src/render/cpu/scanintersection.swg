@@ -3,21 +3,23 @@ using Core, Core.Math
 // Each sample line holds sorted pairs of crossings for its surviving intervals.
 internal struct ScanIntersection
 {
-    rows:   Array'ScanSample
-    merged: Array'Crossing
+    rows:   Array!{ScanSample}
+    merged: Array!{Crossing}
 }
 
 internal impl ScanIntersection
 {
     mtd startBand(count: u64)
     {
-        if .rows.count < count do
+        if .rows.count < count
+        {
             .rows.resize(count)
+        }
     }
 
     mtd intersect(scratch: *ScanScratch, crossings: [..] ScanSample, evenOdd, first: bool)->bool
     {
-        func appendInterval(row: *Array'Crossing, left, right: f32)
+        func appendInterval(row: *Array!{Crossing}, left, right: f32)
         {
             // Adjacent spans are one interval, even when the input winding changed between them.
             if row.count and row[row.count - 1].x == left
@@ -41,8 +43,10 @@ internal impl ScanIntersection
                 continue
             }
 
-            if not first and existing.isEmpty() do
+            if not first and existing.isEmpty()
+            {
                 continue
+            }
 
             scratch.sortLine(line)
             .merged.clear()
@@ -64,10 +68,16 @@ internal impl ScanIntersection
                         {
                             let end  = existing[cursor + 1].x
                             let left = Math.max(previous, existing[cursor].x)
-                            if left < end do
+                            if left < end
+                            {
                                 appendInterval(&.merged, left, Math.min(end, right))
-                            if end > right do
+                            }
+
+                            if end > right
+                            {
                                 break
+                            }
+
                             cursor += 2
                         }
                     }

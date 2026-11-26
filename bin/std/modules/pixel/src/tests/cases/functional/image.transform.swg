@@ -129,8 +129,10 @@ func sameImage(a, b: Image)->bool
     {
         var source = Image.create(Width, Height, sourceFormat)
         let input  = cast([*] u16, source.pixels.storage())
-        for i in 3 * Count do
+        for i in 3 * Count
+        {
             input[i] = cast #wrap(u16, i)
+        }
 
         let half   = sourceFormat == .RGBF16
         let result = source.convertedTo(half ? .RGBAF16 : .RGBA16)
@@ -143,7 +145,7 @@ func sameImage(a, b: Image)->bool
                 Swag.require(output[4 * i + channel] == (half ? floatToHalf(halfToFloat(value)) : value))
             }
 
-            Swag.require(output[4 * i + 3] == (half ? 0x3C00'u16 : 0xFFFF'u16))
+            Swag.require(output[4 * i + 3] == (half ? 0x3C00_u16 : 0xFFFF_u16))
         }
     }
 
@@ -154,8 +156,11 @@ func sameImage(a, b: Image)->bool
     let output = cast(const [*] u32, result.pixels.storage())
     for i in 3
     {
-        for channel in 3 do
+        for channel in 3
+        {
             Swag.require(output[4 * i + channel] == Words[3 * i + channel])
+        }
+
         Swag.require(output[4 * i + 3] == 0x3F80_0000)
     }
 }

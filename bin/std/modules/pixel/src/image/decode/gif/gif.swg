@@ -272,11 +272,14 @@ impl IImageDecoder for SetDecoder
     {
         let background = try .openCanvas(buffer, options)
         var first: IndexedFrame
-        if not (try .decoder.getFrame(&first)) do
+        if not (try .decoder.getFrame(&first))
+        {
             fail InvalidFormatError{"image container has no representative image"}
 
-        // Later frame descriptors still participate in container validation and limits.
-        var count = 1'u64
+            // Later frame descriptors still participate in container validation and limits.
+        }
+
+        var count = 1_u64
         try options.checkFrameCount(count)
         var skipped: IndexedFrame
         while try .decoder.getFrame(&skipped)
@@ -289,18 +292,24 @@ impl IImageDecoder for SetDecoder
         let format: PixelFormat = options.decodePixels and not indexed.control.transparency ? .RGB8 : .RGBA8
         var result: #returntype
         result.init(.decoder.width, .decoder.height, format)
-        if not options.decodePixels do
+        if not options.decodePixels
+        {
             return result
+        }
 
         try .decoder.decodeIndices(indexed)
         result.allocPixels()
         if indexed.width != .decoder.width or indexed.height != .decoder.height
         {
             // The first transparent frame starts on a transparent black canvas.
-            if result.pixelFormat == .RGBA8 do
+            if result.pixelFormat == .RGBA8
+            {
                 clearTransparentMargins(&result, indexed)
-            else do
+            }
+            else
+            {
                 result.fill(background)
+            }
         }
 
         // The decoded rectangle can be expanded directly into the final, bottom-up canvas.
@@ -432,10 +441,14 @@ impl SetDecoder
 private func(HAS_ALPHA: bool) writeGatheredColors(target: [*] u8, table: const [*] s32, keys: Math.Simd.U32x4)
 {
     let pixels = cast #bit(Math.Simd.U8x16, Math.Simd.gather(table, keys))
-    #static if HAS_ALPHA do
+    #static if HAS_ALPHA
+    {
         Math.Simd.store(target, pixels)
-    else do
+    }
+    else
+    {
         Image.storeLow12(target, Math.Simd.shuffle(pixels, PackedPixel.PaletteDropAlpha))
+    }
 }
 
 impl Decoder
@@ -444,7 +457,7 @@ impl Decoder
     {
         let palette   = &indexed.palette
         let colors    = cast(const [*] u8, unwrap palette.colors)
-        let alphaMask = hasAlpha ? 0xFF000000'u32 : 0
+        let alphaMask = hasAlpha ? 0xFF000000_u32 : 0
         var packed: [256] u32
         for paletteIndex in palette.size
         {
@@ -453,8 +466,10 @@ impl Decoder
                                    (cast(u32, color[2]) << 16) | alphaMask
         }
 
-        if hasAlpha do
+        if hasAlpha
+        {
             packed[indexed.control.tindex] &= clearTransparent ? 0 : 0xFFFFFF
+        }
 
         let width  = cast(s32, indexed.width)
         let height = cast(s32, indexed.height)
@@ -468,15 +483,20 @@ impl Decoder
         if palette.size == 256 and width >= 64
         {
             let table = cast(const [*] u32, &packed[0])
-            if hasAlpha do
-                .writeFullPalettePixels'(true)(indexed, pixels, stride, table)
-            else do
-                .writeFullPalettePixels'(false)(indexed, pixels, stride, table)
+            if hasAlpha
+            {
+                .writeFullPalettePixels!{true}(indexed, pixels, stride, table)
+            }
+            else
+            {
+                .writeFullPalettePixels!{false}(indexed, pixels, stride, table)
+            }
+
             return
         }
 
         let indices         = .frame.storage()
-        var combinedIndices = 0'u8
+        var combinedIndices = 0_u8
         for y in height
         {
             let source = indices + cast(u64, y) * width
@@ -513,8 +533,10 @@ impl Decoder
         }
 
         // GIF palette sizes are powers of two, so any index with a high bit is out of range.
-        if combinedIndices >= palette.size do
+        if combinedIndices >= palette.size
+        {
             fail InvalidFormatError{"GIF palette index is out of range"}
+        }
     }
 
     #[Swag.NoInline]
@@ -528,15 +550,15 @@ impl Decoder
 
         var tables          = PackedPixel.smallPaletteTables(packed, cast(u64, paletteSize))
         let tableData       = cast(const [*] Math.Simd.U8x16, &tables[0])
-        var combinedIndices = 0'u8
-        var combinedVectors = Math.Simd.splat(0'u8)
+        var combinedIndices = 0_u8
+        var combinedVectors = Math.Simd.splat(0_u8)
         for y in height
         {
             let source = indices + cast(u64, y) * width
             let row    = indexed.interlaced ? Decoder.interlacedLineIndex(height, y) : y
             let target = pixels + cast(u64, (height - row - 1)) * stride
-            let start  = hasAlpha ? PackedPixel.writeSmallPaletteRow'(true)(source, target, width, tableData, &combinedVectors) :
-                         PackedPixel.writeSmallPaletteRow'(false)(source, target, width, tableData, &combinedVectors)
+            let start  = hasAlpha ? PackedPixel.writeSmallPaletteRow!{true}(source, target, width, tableData, &combinedVectors) :
+                         PackedPixel.writeSmallPaletteRow!{false}(source, target, width, tableData, &combinedVectors)
             for x in start until width
             {
                 let paletteIndex = source[x]
@@ -557,8 +579,10 @@ impl Decoder
         }
 
         let invalidBits = ~cast(u8, (paletteSize - 1))
-        if combinedIndices >= paletteSize or Math.Simd.anyTrue((combinedVectors & invalidBits) != Math.Simd.splat(0'u8)) do
+        if combinedIndices >= paletteSize or Math.Simd.anyTrue((combinedVectors & invalidBits) != Math.Simd.splat(0_u8))
+        {
             fail InvalidFormatError{"GIF palette index is out of range"}
+        }
     }
 
     #[Swag.NoInline]
@@ -581,10 +605,10 @@ impl Decoder
                 let lo          = Math.Simd.widenLow(keys)
                 let hi          = Math.Simd.widenHigh(keys)
                 let destination = target + x * Step
-                writeGatheredColors'(HAS_ALPHA)(destination, table, Math.Simd.widenLow(lo))
-                writeGatheredColors'(HAS_ALPHA)(destination + 4 * Step, table, Math.Simd.widenHigh(lo))
-                writeGatheredColors'(HAS_ALPHA)(destination + 8 * Step, table, Math.Simd.widenLow(hi))
-                writeGatheredColors'(HAS_ALPHA)(destination + 12 * Step, table, Math.Simd.widenHigh(hi))
+                writeGatheredColors!{HAS_ALPHA}(destination, table, Math.Simd.widenLow(lo))
+                writeGatheredColors!{HAS_ALPHA}(destination + 4 * Step, table, Math.Simd.widenHigh(lo))
+                writeGatheredColors!{HAS_ALPHA}(destination + 8 * Step, table, Math.Simd.widenLow(hi))
+                writeGatheredColors!{HAS_ALPHA}(destination + 12 * Step, table, Math.Simd.widenHigh(hi))
                 x += 16
             }
 

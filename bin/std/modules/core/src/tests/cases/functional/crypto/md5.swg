@@ -91,7 +91,6 @@ func fillMd5Pattern(buffer: [..] u8)
     assertMd5Split(data[until 130], 7, 73, "8A2682A4B1A920CCCC7C09422B233D76")
 }
 
-
 // A split update completes its pending block before consuming unaligned full blocks.
 #test
 {

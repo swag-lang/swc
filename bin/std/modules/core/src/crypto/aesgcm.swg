@@ -15,9 +15,73 @@ private const AesGcmParallelThreshold = 64 * 1024
 #[Swag.Inline]
 private func aesGcmReverseBytes(value: U8x16)->U8x16
 {
-    let word = position / 64
-    let bit  = position % 64
-    product[][word] ^= (1_u64 << bit) & mask
+    const Order = cast(U8x16, [15_u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    return shuffle(value, Order)
+}
+
+#[Swag.Inline]
+private func aesGcmGhashPrepareKey(hashKey: [16] u8)->U64x2
+{
+    const Reciprocal = cast(U64x2, [1_u64, 0xC200_0000_0000_0000])
+    const Zero       = cast(U64x2, [0_u64, 0])
+    const HighLanes  = cast(U64x2, [1_u64, 1])
+
+    // Reversing bytes maps GHASH bit numbering to the reciprocal polynomial.
+    // Multiply by x in that field to account for the normalization in reduction.
+    let reversed = cast #bit (U64x2, aesGcmReverseBytes(load(&hashKey[0])))
+    let carry    = reversed >> 63
+    let mask     = Zero - permute(carry, HighLanes)
+    return ((reversed << 1) | align(Zero, carry, 8)) ^ (mask & Reciprocal)
+}
+
+#[Swag.Inline]
+private func aesGcmGhashReduce(low, high: U64x2)->U64x2
+{
+    const Polynomial = cast(U64x2, [0xC200_0000_0000_0000_u64, 0])
+    const Zero       = cast(U64x2, [0_u64, 0])
+
+    // The reciprocal polynomial is x^128 + x^127 + x^126 + x^121 + 1.
+    // Cancel the low words in succession to divide by x^128. The prepared key
+    // includes an extra x so the result is still in the reflected representation.
+    let correction = clmulLowLow(low, Polynomial)
+    let quotient   = low ^ align(Zero, correction, 8)
+    let second     = clmulHighLow(quotient, Polynomial)
+    return high ^ low ^ align(correction, correction, 8) ^ second
+}
+
+#[Swag.Inline]
+private func aesGcmGhashReduceProducts(low, high, cross: U64x2)->U64x2
+{
+    const Zero = cast(U64x2, [0_u64, 0])
+    return aesGcmGhashReduce(low ^ align(Zero, cross, 8), high ^ align(cross, Zero, 8))
+}
+
+#[Swag.Inline]
+private func aesGcmGhashAddProduct(low, high, cross: *U64x2, value, key: U64x2)
+{
+    low[]   ^= clmulLowLow(value, key)
+    high[]  ^= clmulHighHigh(value, key)
+    cross[] ^= clmulLowHigh(value, key) ^ clmulHighLow(value, key)
+}
+
+#[Swag.Inline]
+private func aesGcmGhashMultiply(value, key: U64x2)->U64x2
+{
+    var low, high, cross: U64x2
+    aesGcmGhashAddProduct(&low, &high, &cross, value, key)
+    return aesGcmGhashReduceProducts(low, high, cross)
+}
+
+#[Swag.Inline]
+private func aesGcmGhashWords(value: U8x16)->U64x2
+{
+    return cast #bit (U64x2, aesGcmReverseBytes(value))
+}
+
+#[Swag.Inline]
+private func aesGcmGhashLoad(source: const [*] u8)->U64x2
+{
+    return aesGcmGhashWords(load(source))
 }
 
 internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
@@ -30,21 +94,22 @@ internal func aesGcmGhashBlockClmul(state: *[16] u8, hashKey: [16] u8, block: co
 #[Swag.Inline]
 private func aesGcmPolynomialMultiply64(x, y: u64)->{low: u64, high: u64}
 {
-    const Mask = 0x1111_1111_1111_1111'u64
+    const Mask = 0x1111_1111_1111_1111_u64
+
     // Dropping one coefficient from each residue leaves at most fifteen terms
     // in a column, so each ordinary product preserves parity across four-bit slots.
-    let upper = x & ~15'u64
-    let x0 = upper & (Mask << 0)
-    let y0 = y & (Mask << 0)
-    let x1 = upper & (Mask << 1)
-    let y1 = y & (Mask << 1)
-    let x2 = upper & (Mask << 2)
-    let y2 = y & (Mask << 2)
-    let x3 = upper & (Mask << 3)
-    let y3 = y & (Mask << 3)
+    let upper = x & ~15_u64
+    let x0    = upper & (Mask << 0)
+    let y0    = y & (Mask << 0)
+    let x1    = upper & (Mask << 1)
+    let y1    = y & (Mask << 1)
+    let x2    = upper & (Mask << 2)
+    let y2    = y & (Mask << 2)
+    let x3    = upper & (Mask << 3)
+    let y3    = y & (Mask << 3)
 
-    var low  = 0'u64
-    var high = 0'u64
+    var low  = 0_u64
+    var high = 0_u64
     scope {
         let p0 = Math.mulU64(x0, y0)
         let p1 = Math.mulU64(x1, y3)
@@ -54,33 +119,13 @@ private func aesGcmPolynomialMultiply64(x, y: u64)->{low: u64, high: u64}
         high |= (p0.hi ^ p1.hi ^ p2.hi ^ p3.hi) & (Mask << 0)
     }
 
-    let left  = cast(Math.Simd.U64x2, value)
-    let right = cast(Math.Simd.U64x2, key)
-    var lowLow:   [2] u64
-    var lowHigh:  [2] u64
-    var highLow:  [2] u64
-    var highHigh: [2] u64
-    Math.Simd.store(&lowLow[0], Math.Simd.clmulLowLow(left, right))
-    Math.Simd.store(&lowHigh[0], Math.Simd.clmulLowHigh(left, right))
-    Math.Simd.store(&highLow[0], Math.Simd.clmulHighLow(left, right))
-    Math.Simd.store(&highHigh[0], Math.Simd.clmulHighHigh(left, right))
-
-    var product: [4] u64
-    product[0] = lowLow[0]
-    product[1] = lowLow[1] ^ lowHigh[0] ^ highLow[0]
-    product[2] = highHigh[0] ^ lowHigh[1] ^ highLow[1]
-    product[3] = highHigh[1]
-
-    // Reduce x^255..x^128 by x^128 + x^7 + x^2 + x + 1 in a fixed bit schedule.
-    for bit in 128
-    {
-        let position = 128_u32 + (127 - bit)
-        let selected = 0_u64 - ((product[position / 64] >> (position % 64)) & 1)
-        aesGcmTogglePolynomialBit(&product, position, selected)
-        aesGcmTogglePolynomialBit(&product, position - 128, selected)
-        aesGcmTogglePolynomialBit(&product, position - 127, selected)
-        aesGcmTogglePolynomialBit(&product, position - 126, selected)
-        aesGcmTogglePolynomialBit(&product, position - 121, selected)
+    scope {
+        let p0 = Math.mulU64(x0, y1)
+        let p1 = Math.mulU64(x1, y0)
+        let p2 = Math.mulU64(x2, y3)
+        let p3 = Math.mulU64(x3, y2)
+        low  |= (p0.lo ^ p1.lo ^ p2.lo ^ p3.lo) & (Mask << 1)
+        high |= (p0.hi ^ p1.hi ^ p2.hi ^ p3.hi) & (Mask << 1)
     }
 
     scope {
@@ -102,13 +147,14 @@ private func aesGcmPolynomialMultiply64(x, y: u64)->{low: u64, high: u64}
     }
 
     // Restore the dropped low nibble with four fixed carry-less products.
-    low ^= y & (0'u64 - (x & 1))
+    low ^= y & (0_u64 - (x & 1))
     for shift in 1 until 4
     {
-        let selected = 0'u64 - ((x >> shift) & 1)
+        let selected = 0_u64 - ((x >> shift) & 1)
         low  ^= (y << shift) & selected
         high ^= (y >> (64 - shift)) & selected
     }
+
     return {low, high}
 }
 
@@ -126,19 +172,27 @@ private func aesGcmPolynomialFold(low, high: u64)->{low: u64, high: u64}
 private func aesGcmPolynomialWords(bytes: U8x16)->U64x2
 {
     let words = cast #bit (U64x2, Math.reverse(bytes))
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return Swag.byteSwap(words)
-    else do
+    }
+    else
+    {
         return words
+    }
 }
 
 #[Swag.Inline]
 private func aesGcmPolynomialBytes(words: U64x2)->U8x16
 {
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return Math.reverse(cast #bit (U8x16, Swag.byteSwap(words)))
-    else do
+    }
+    else
+    {
         return Math.reverse(cast #bit (U8x16, words))
+    }
 }
 
 private func aesGcmGhashMultiplyScalar(value, key: U64x2)->U64x2
@@ -159,43 +213,11 @@ private func aesGcmGhashMultiplyScalar(value, key: U64x2)->U64x2
 
 internal func aesGcmGhashBlockScalar(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
 {
-    var value:   [2] u64
-    var factor:  [2] u64
-    var product: [2] u64
-    var input:   [2] u64
-    Swag.memcpy(&value[0], &state[][0], 16)
-    Swag.memcpy(&input[0], block, 16)
-    Swag.memcpy(&factor[0], &hashKey[0], 16)
-    for index in 2
-    {
-        value[index]  = Math.bigEndianToNative(value[index] ^ input[index])
-        factor[index] = Math.bigEndianToNative(factor[index])
-    }
-
-    for word in 2
-    {
-        for bit in 64
-        {
-            let selected = 0_u64 - ((value[word] >> (63 - bit)) & 1)
-            product[0] ^= factor[0] & selected
-            product[1] ^= factor[1] & selected
-
-            let lowBit = factor[1] & 1
-            factor[1] = (factor[1] >> 1) | (factor[0] << 63)
-            factor[0] = (factor[0] >> 1) ^ (0xE100000000000000_u64 & (0_u64 - lowBit))
-        }
-    }
-
-    for index in 2
-    {
-        value[index] = Math.nativeToBigEndian(product[index])
-    }
-
-    Swag.memcpy(&state[][0], &value[0], 16)
-    Crypto.secureClear(product)
-    Crypto.secureClear(factor)
-    Crypto.secureClear(input)
-    Crypto.secureClear(value)
+    var value = aesGcmPolynomialWords(load(&state[][0]) ^ load(block))
+    var key   = aesGcmPolynomialWords(load(&hashKey[0]))
+    store(&state[][0], aesGcmPolynomialBytes(aesGcmGhashMultiplyScalar(value, key)))
+    Crypto.secureClear(Swag.makeSlice(&key, 1))
+    Crypto.secureClear(Swag.makeSlice(&value, 1))
 }
 
 private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*] u8)
@@ -214,14 +236,27 @@ private func aesGcmGhashBlock(state: *[16] u8, hashKey: [16] u8, block: const [*
 
 private func aesGcmGhashData(state: *[16] u8, hashKey: [16] u8, data: const [..] u8)
 {
-    var offset = 0_u64
-    while offset < data.count
+    if data.count == 0
+    {
+        return
+    }
+
+    let fullBlockBytes = data.count & ~15_u64
+    let tailBytes      = data.count - fullBlockBytes
+    let source         = data.buffer
+    var tail: [16] u8
+    if tailBytes != 0
+    {
+        Swag.memcpy(&tail[0], source + fullBlockBytes, tailBytes)
+    }
+
+    #static if not BIG_ENDIAN
     {
         if Swag.hasCpuFeature(.CarrylessMultiply)
         {
             let key         = aesGcmGhashPrepareKey(hashKey)
             var accumulator = aesGcmGhashLoad(&state[][0])
-            var offset      = 0'u64
+            var offset      = 0_u64
             if fullBlockBytes >= 128
             {
                 // Expand four steps of the recurrence so the products share one reduction.
@@ -334,10 +369,9 @@ private func aesGcmFinishTag(aes: *Aes, nonce: const [..] u8, associatedSize, ci
     var tag: #returntype
     for index in AesGcmTagSize
     {
-        tag[index] = state[index] ^ encryptedCounter[index]
+        tag[index] = state[][index] ^ encryptedCounter[index]
     }
 
-    Crypto.secureClear(state)
     Crypto.secureClear(lengths)
     Crypto.secureClear(initialCounter)
     Crypto.secureClear(encryptedCounter)
@@ -348,15 +382,15 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
 {
     var counter: [16] u8
     Swag.memcpy(&counter[0], nonce.buffer, AesGcmNonceSize)
-    let prefix = cast #bit (U64x2, load(&counter[0]))
-    let key    = aesGcmGhashPrepareKey(hashKey)
-    let key2   = aesGcmGhashMultiply(key, key)
-    let key3   = aesGcmGhashMultiply(key2, key)
-    let key4   = aesGcmGhashMultiply(key2, key2)
+    let prefix        = cast #bit (U64x2, load(&counter[0]))
+    let key           = aesGcmGhashPrepareKey(hashKey)
+    let key2          = aesGcmGhashMultiply(key, key)
+    let key3          = aesGcmGhashMultiply(key2, key)
+    let key4          = aesGcmGhashMultiply(key2, key2)
     var authenticator = aesGcmGhashLoad(&state[][0])
-    let numRounds = aes[].hardwareRoundCount()
-    let initial   = aes[].roundKey(0)
-    let final     = aes[].roundKey(numRounds)
+    let numRounds     = aes[].hardwareRoundCount()
+    let initial       = aes[].roundKey(0)
+    let final         = aes[].roundKey(numRounds)
 
     var first  = aesGcmCounterBlock(prefix, 0) ^ initial
     var second = aesGcmCounterBlock(prefix, 1) ^ initial
@@ -394,10 +428,13 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
         }
     }
 
-    for round in 1 until numRounds do
+    for round in 1 until numRounds
+    {
         applyRound(round)
+    }
+
     writeCiphertext(0)
-    let fullBatchBytes = source.count & ~63'u64
+    let fullBatchBytes = source.count & ~63_u64
     for batch in 1 until fullBatchBytes / 64
     {
         let offset         = batch * 64
@@ -411,6 +448,7 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
         third  = aesGcmCounterBlock(prefix, block + 2) ^ initial
         fourth = aesGcmCounterBlock(prefix, block + 3) ^ initial
         var low, high, cross: U64x2
+
         // Carry-less products for the previous ciphertext can issue between the next AES rounds.
         applyRound(1)
         aesGcmGhashAddProduct(&low, &high, &cross, authenticator ^ aesGcmGhashWords(previousFirst), key4)
@@ -423,8 +461,11 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
         applyRound(6)
         applyRound(7)
         aesGcmGhashAddProduct(&low, &high, &cross, aesGcmGhashWords(previousFourth), key)
-        for round in 8 until numRounds do
+        for round in 8 until numRounds
+        {
             applyRound(round)
+        }
+
         authenticator = aesGcmGhashReduceProducts(low, high, cross)
         writeCiphertext(offset)
     }
@@ -439,7 +480,7 @@ private func aesGcmCryptAndHashHardware(aes: *Aes, nonce: const [..] u8, source:
     let tailBytes = source.count - fullBatchBytes
     if tailBytes
     {
-        aesXorCounterBlocksHardware'32(aes, prefix, source, destination, fullBatchBytes / 16, (tailBytes + 15) / 16)
+        aesXorCounterBlocksHardware!{32}(aes, prefix, source, destination, fullBatchBytes / 16, (tailBytes + 15) / 16)
         aesGcmGhashData(state, hashKey, destination[fullBatchBytes until])
     }
 }
@@ -534,7 +575,9 @@ func aesGcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
     var initialHash = try aesGcmInitialHash(hashKey, associatedData)
     defer Crypto.secureClear(initialHash)
     var computedTag: [AesGcmTagSize] u8
-    if plaintext.count >= 128 and aes.usesHardwareRounds() and Swag.hasCpuFeature(.CarrylessMultiply) and
+    if plaintext.count >= 128 and
+       aes.usesHardwareRounds() and
+       Swag.hasCpuFeature(.CarrylessMultiply) and
        (plaintext.count < AesGcmParallelThreshold or Swag.workerCount() <= 1)
     {
         aesGcmCryptAndHashHardware(&aes, nonceCopy, plaintext, ciphertext, hashKey, &initialHash)
@@ -545,6 +588,7 @@ func aesGcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
         try aesGcmCrypt(&aes, nonceCopy, plaintext, ciphertext)
         computedTag = try aesGcmTag(&aes, nonceCopy, associatedData, hashKey, initialHash, ciphertext)
     }
+
     Swag.memcpy(tag.buffer, &computedTag[0], AesGcmTagSize)
     Crypto.secureClear(computedTag)
 }

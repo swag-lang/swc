@@ -7,11 +7,11 @@ using Swag, Core
 #[Swag.TestTag("stress")]
 #test
 {
-    const HeaderSize = 60'u64
-    const LargeSize  = 2'u64 * 1024 * 1024 + 1
+    const HeaderSize = 60_u64
+    const LargeSize  = 2_u64 * 1024 * 1024 + 1
     const LargeSpan  = LargeSize + 3
-    const RandomSize = 1024'u64 * 1024 + 32 * 1024
-    var original: Array'u8
+    const RandomSize = 1024_u64 * 1024 + 32 * 1024
+    var original: Array!{u8}
     original.resize(HeaderSize + 4 + LargeSpan * 2)
     writeBigU32(&original, 0, TAG_SFNT)
     writeBigU16(&original, 4, 3)
@@ -30,8 +30,10 @@ using Swag, Core
         writeBigU32(&original, base + 8, cast(u32, offset))
         writeBigU32(&original, base + 12, cast(u32, length))
         let seededBytes = index ? RandomSize : 3
-        for position in seededBytes do
+        for position in seededBytes
+        {
             original[offset + position] = cast(u8, generator.nextU32() & 0xFF)
+        }
     }
 
     var woff      = expect buildWoffFont(original.toSlice(), reverseBlocks: true)

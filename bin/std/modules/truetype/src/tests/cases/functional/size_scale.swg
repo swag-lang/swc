@@ -55,8 +55,10 @@ using Swag, Core
                 catch { direct = try scale26_6(coordinate, size, units) } as directError
                 catch { reciprocal = try scale.apply(coordinate, factor) } as reciprocalError
                 Swag.require(directError.isEmpty() == reciprocalError.isEmpty())
-                if directError.isEmpty() do
+                if directError.isEmpty()
+                {
                     Swag.require(direct == reciprocal)
+                }
             }
         }
     }

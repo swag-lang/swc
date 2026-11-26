@@ -13,7 +13,7 @@ using Core, Core.Errors
 
 // A leaf packs the consumed bit count and the zero-based symbol plus one.
 // A marked primary entry instead packs the suffix width and its table offset.
-private const VlcSubtable = 0x8000'u16
+private const VlcSubtable = 0x8000_u16
 
 private struct CoeffTokenLookup
 {
@@ -26,8 +26,8 @@ private const CoeffTokens = #run buildCoeffTokens()
 private func buildCoeffTokens()->CoeffTokenLookup
 {
     var result: CoeffTokenLookup
-    var nextTail = 0'u32
-    for table in 4'u64
+    var nextTail = 0_u32
+    for table in 4_u64
     {
         let length = cast(u32, lengths[index])
         if length == 0
@@ -48,32 +48,38 @@ private func buildCoeffTokens()->CoeffTokenLookup
         for width, prefix in widths where width
         {
             result.primary[first + prefix] = VlcSubtable | cast(u16, ((width << 9) | nextTail))
-            nextTail += 1'u32 << width
+            nextTail += 1_u32 << width
         }
 
-        for symbol in 68'u64
+        for symbol in 68_u64
         {
             let length = cast(u32, CoeffTokenLen[codes + symbol])
-            if not length do
+            if not length
+            {
                 continue
+            }
 
             let code = cast(u32, CoeffTokenBits[codes + symbol])
             let leaf = cast(u16, ((length << 8) | cast(u32, symbol + 1)))
             if length <= 8
             {
-                let size = 1'u32 << (8 - length)
-                for suffix in size do
+                let size = 1_u32 << (8 - length)
+                for suffix in size
+                {
                     result.primary[first + code * size + suffix] = leaf
+                }
             }
             else
             {
                 let prefix = code >> (length - 8)
                 let width  = widths[prefix]
-                let tail   = code & ((1'u32 << (length - 8)) - 1)
+                let tail   = code & ((1_u32 << (length - 8)) - 1)
                 let offset = cast(u32, (result.primary[first + prefix] & 0x1FF))
-                let size   = 1'u32 << (8 + width - length)
-                for suffix in size do
+                let size   = 1_u32 << (8 + width - length)
+                for suffix in size
+                {
                     result.tails[offset + tail * size + suffix] = leaf
+                }
             }
         }
     }
@@ -118,18 +124,21 @@ private func(const Rows: u64, const Width: u64) buildVlcLookup(lengths, codes: c
     return result
 }
 
-private const ChromaTokens     = #run buildVlcLookup'(1, 8)(ChromaDcCoeffTokenLen, ChromaDcCoeffTokenBits)
-private const FirstTotalZeros  = #run buildVlcLookup'(1, 9)(TotalZerosLen[0 until 16], TotalZerosBits[0 until 16])
-private const OtherTotalZeros  = #run buildVlcLookup'(14, 6)(TotalZerosLen[16 until 240], TotalZerosBits[16 until 240])
-private const ChromaTotalZeros = #run buildVlcLookup'(3, 3)(ChromaDcTotalZerosLen, ChromaDcTotalZerosBits)
-private const ShortRuns        = #run buildVlcLookup'(6, 3)(RunBeforeLen[0 until 96], RunBeforeBits[0 until 96])
-private const LongRuns         = #run buildVlcLookup'(1, 11)(RunBeforeLen[96 until 112], RunBeforeBits[96 until 112])
+private const ChromaTokens     = #run buildVlcLookup!{1, 8}(ChromaDcCoeffTokenLen, ChromaDcCoeffTokenBits)
+private const FirstTotalZeros  = #run buildVlcLookup!{1, 9}(TotalZerosLen[0 until 16], TotalZerosBits[0 until 16])
+private const OtherTotalZeros  = #run buildVlcLookup!{14, 6}(TotalZerosLen[16 until 240], TotalZerosBits[16 until 240])
+private const ChromaTotalZeros = #run buildVlcLookup!{3, 3}(ChromaDcTotalZerosLen, ChromaDcTotalZerosBits)
+private const ShortRuns        = #run buildVlcLookup!{6, 3}(RunBeforeLen[0 until 96], RunBeforeBits[0 until 96])
+private const LongRuns         = #run buildVlcLookup!{1, 11}(RunBeforeLen[96 until 112], RunBeforeBits[96 until 112])
 
 #[Swag.Inline]
 private func readVlcLeaf(bits: *BitReader, leaf: u16, missing: u64)->u64
 {
-    if not leaf do
+    if not leaf
+    {
         return missing
+    }
+
     bits.skip(cast(u32, (leaf >> 8)))
     return cast(u64, ((leaf & 255) - 1))
 }

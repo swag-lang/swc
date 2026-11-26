@@ -175,7 +175,7 @@ impl LossyCoder
             let lineU   = targetU + row * chromaStride
             let lineV   = targetV + row * chromaStride
             let groups  = chromaWidth / 16
-            let lowByte = Simd.splat(255'u16)
+            let lowByte = Simd.splat(255_u16)
             for group in groups
             {
                 let column = group * 16
@@ -449,16 +449,19 @@ func lossyQuantize4x4(coefficients: const [*] s32, acOnly: bool, qp: u32, roundi
     }
 
     var firstRow = Simd.load(coefficients)
-    if acOnly do
-        firstRow &= cast(Simd.S32x4, [0's32, -1, -1, -1])
+    if acOnly
+    {
+        firstRow &= cast(Simd.S32x4, [0_s32, -1, -1, -1])
+    }
+
     let q0 = quantize(firstRow, evenFactors, offset, bits)
     let q1 = quantize(Simd.load(coefficients + 4), oddFactors, offset, bits)
     let q2 = quantize(Simd.load(coefficients + 8), evenFactors, offset, bits)
     let q3 = quantize(Simd.load(coefficients + 12), oddFactors, offset, bits)
 
     // The first and second halves of Zigzag4.
-    const ScanLow  = cast(Simd.U16x8, [0'u16, 1, 4, 8, 5, 2, 3, 6])
-    const ScanHigh = cast(Simd.U16x8, [9'u16, 12, 13, 10, 7, 11, 14, 15])
+    const ScanLow  = cast(Simd.U16x8, [0_u16, 1, 4, 8, 5, 2, 3, 6])
+    const ScanHigh = cast(Simd.U16x8, [9_u16, 12, 13, 10, 7, 11, 14, 15])
     let low  = Simd.packSigned(q0, q1)
     let high = Simd.packSigned(q2, q3)
     Simd.store(levels, Simd.permute2(low, high, ScanLow))
@@ -478,7 +481,7 @@ func lossyQuantize4x4(coefficients: const [*] s32, acOnly: bool, qp: u32, roundi
     Simd.transpose4x4(&rows)
     Simd.store(scaled, Simd.packSigned(cast #bit(Simd.S32x4, rows[0]), cast #bit(Simd.S32x4, rows[1])))
     Simd.store(scaled + 8, Simd.packSigned(cast #bit(Simd.S32x4, rows[2]), cast #bit(Simd.S32x4, rows[3])))
-    let zero = Simd.splat(0's16)
+    let zero = Simd.splat(0_s16)
     return Simd.countTrue(low != zero) + Simd.countTrue(high != zero)
 }
 
@@ -1159,8 +1162,11 @@ func lossySad16Below(a: const [*] u8, aStride: u64, b: const [*] u8, bStride: u6
         }
     }
 
-    if rows % 2 == 0 do
+    if rows % 2 == 0
+    {
         sum += Simd.sumAbsoluteDifferences(Simd.load(a + (rows - 1) * aStride), Simd.load(b + (rows - 1) * bStride))
+    }
+
     return Math.min(sum, bound)
 }
 
@@ -1908,7 +1914,7 @@ impl LossyCoder
 
         var bestX = 0_s64
         bestScore = Swag.S64.Max
-        let mask = Simd.splat(0xFFFF'u32)
+        let mask = Simd.splat(0xFFFF_u32)
         for shift in -range to range
         {
             var score = 0_s64

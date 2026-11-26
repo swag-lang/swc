@@ -46,8 +46,8 @@ private func sha512ExtendPair(schedule: [*] u64, index: u64)->Math.Simd.U64x2
 
     let x        = Simd.load(schedule + index - 15)
     let y        = Simd.load(schedule + index - 2)
-    let sigma0   = Swag.ror(x, 1'u8) ^ Swag.ror(x, 8'u8) ^ (x >> 7)
-    let sigma1   = Swag.ror(y, 19'u8) ^ Swag.ror(y, 61'u8) ^ (y >> 6)
+    let sigma0   = Swag.ror(x, 1_u8) ^ Swag.ror(x, 8_u8) ^ (x >> 7)
+    let sigma1   = Swag.ror(y, 19_u8) ^ Swag.ror(y, 61_u8) ^ (y >> 6)
     let expanded = Simd.load(schedule + index - 16) + sigma0 + Simd.load(schedule + index - 7) + sigma1
     Simd.store(schedule + index, expanded)
     return expanded
@@ -59,19 +59,23 @@ private func(Extend: bool) sha512SchedulePair(index: u64, schedule: [*] u64)->Ma
     using Math
 
     let constants = Simd.load(Sha512Constants.buffer + index)
-    #static if Extend do
+    #static if Extend
+    {
         return constants + sha512ExtendPair(schedule, index)
-    else do
+    }
+    else
+    {
         return constants + Simd.load(schedule + index)
+    }
 }
 
 #[Swag.Inline]
 private func sha512Round(a, b, c: u64, d: *u64, e, f, g: u64, h: *u64, scheduled: u64)
 {
-    let sum1     = Swag.ror(e, 14'u8) ^ Swag.ror(e, 18'u8) ^ Swag.ror(e, 41'u8)
+    let sum1     = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
     let choice   = (e & f) ^ (~e & g)
     let temp1    = h[] + sum1 + choice + scheduled
-    let sum0     = Swag.ror(a, 28'u8) ^ Swag.ror(a, 34'u8) ^ Swag.ror(a, 39'u8)
+    let sum0     = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
     let majority = (a & b) ^ (a & c) ^ (b & c)
     d[] += temp1
     h[] = temp1 + sum0 + majority
@@ -121,17 +125,43 @@ impl Sha512Core
 
     mtd update(data: const [..] u8)
     {
-        var offset = 0_u64
-        while offset < data.count
+        var remaining = data.count
+        if remaining == 0
         {
-            let count = Math.min(data.count - offset, Sha512BlockSize - .dataLength)
-            Swag.memcpy(&.data[.dataLength], data.buffer + offset, count)
-            .dataLength += count
-            offset      += count
-            if .dataLength == Sha512BlockSize
+            return
+        }
+
+        var input = data.buffer
+
+        if .dataLength
+        {
+            let copied = Math.min(remaining, Sha512BlockSize - .dataLength)
+            Swag.memcpy(.data.buffer + .dataLength, input, copied)
+            .dataLength += copied
+            if .dataLength < Sha512BlockSize
             {
-                .transformBlock()
+                return
             }
+
+            .transformBlocks(.data)
+            .dataLength = 0
+            input       += copied
+            remaining   -= copied
+        }
+
+        let blocks = remaining / Sha512BlockSize
+        if blocks
+        {
+            .transformBlocks(input, blocks)
+            let consumed = blocks * Sha512BlockSize
+            input     += consumed
+            remaining -= consumed
+        }
+
+        if remaining
+        {
+            Swag.memcpy(.data.buffer, input, remaining)
+            .dataLength = remaining
         }
     }
 
@@ -197,70 +227,77 @@ impl Sha512Core
         return .state.buffer
     }
 
-    private mtd transformBlocks(buf: const [*] u8, blockCount = 1'u64)
+    private mtd transformBlocks(buf: const [*] u8, blockCount = 1_u64)
     {
         using Math
         var words: [80] u64
         let schedule = words.buffer
         for block in blockCount
         {
-            var word = 0_u64
-            for byte in 8
+            let input = cast(const [*] u64, buf + block * Sha512BlockSize)
+            for pair in 8
             {
-                word = (word << 8) | cast(u64, .data[index * 8 + byte])
+                let index = pair * 2
+                Simd.store(schedule + index, Math.bigEndianToNative(Simd.load(input + index)))
             }
 
-            words[index] = word
-        }
+            var a = .state[0]
+            var b = .state[1]
+            var c = .state[2]
+            var d = .state[3]
+            var e = .state[4]
+            var f = .state[5]
+            var g = .state[6]
+            var h = .state[7]
 
-        for index in 16 until 80
-        {
-            let x      = words[index - 15]
-            let y      = words[index - 2]
-            let sigma0 = Swag.ror(x, 1_u8) ^ Swag.ror(x, 8_u8) ^ (x >> 7)
-            let sigma1 = Swag.ror(y, 19_u8) ^ Swag.ror(y, 61_u8) ^ (y >> 6)
-            words[index] = words[index - 16] + sigma0 + words[index - 7] + sigma1
-        }
+            // Rotate the roles of the local variables through all eight positions.
+            #[Swag.Inline]
+            func(Extend: bool) compressGroup(index: u64, schedule: [*] u64, a, b, c, d, e, f, g, h: *u64)
+            {
+                let pair0 = sha512SchedulePair!{Extend}(index, schedule)
 
-        var a = .state[0]
-        var b = .state[1]
-        var c = .state[2]
-        var d = .state[3]
-        var e = .state[4]
-        var f = .state[5]
-        var g = .state[6]
-        var h = .state[7]
-        for index in 80
-        {
-            let sum1     = Swag.ror(e, 14_u8) ^ Swag.ror(e, 18_u8) ^ Swag.ror(e, 41_u8)
-            let choice   = (e & f) ^ (~e & g)
-            let temp1    = h + sum1 + choice + Sha512Constants[index] + words[index]
-            let sum0     = Swag.ror(a, 28_u8) ^ Swag.ror(a, 34_u8) ^ Swag.ror(a, 39_u8)
-            let majority = (a & b) ^ (a & c) ^ (b & c)
-            let temp2    = sum0 + majority
-            h = g
-            g = f
-            f = e
-            e = d + temp1
-            d = c
-            c = b
-            b = a
-            a = temp1 + temp2
-        }
+                sha512Round(a[], b[], c[], d, e[], f[], g[], h, pair0[0])
+                sha512Round(h[], a[], b[], c, d[], e[], f[], g, pair0[1])
 
-        .state[0]     += a
-        .state[1]     += b
-        .state[2]     += c
-        .state[3]     += d
-        .state[4]     += e
-        .state[5]     += f
-        .state[6]     += g
-        .state[7]     += h
-        .dataLength   = 0
-        .bitLengthLow += Sha512BlockSize * 8
-        if .bitLengthLow < Sha512BlockSize * 8
-        {
-            .bitLengthHigh += 1
+                let pair1 = sha512SchedulePair!{Extend}(index + 2, schedule)
+                sha512Round(g[], h[], a[], b, c[], d[], e[], f, pair1[0])
+                sha512Round(f[], g[], h[], a, b[], c[], d[], e, pair1[1])
+
+                let pair2 = sha512SchedulePair!{Extend}(index + 4, schedule)
+                sha512Round(e[], f[], g[], h, a[], b[], c[], d, pair2[0])
+                sha512Round(d[], e[], f[], g, h[], a[], b[], c, pair2[1])
+
+                let pair3 = sha512SchedulePair!{Extend}(index + 6, schedule)
+                sha512Round(c[], d[], e[], f, g[], h[], a[], b, pair3[0])
+                sha512Round(b[], c[], d[], e, f[], g[], h[], a, pair3[1])
+            }
+
+            // The first two groups consume the original sixteen words. Each later
+            // group extends the schedule just before consuming its words.
+            compressGroup!{false}(0, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{false}(8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(16, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(24, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(32, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(40, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(48, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(56, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(64, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+            compressGroup!{true}(72, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+
+            .state[0]     += a
+            .state[1]     += b
+            .state[2]     += c
+            .state[3]     += d
+            .state[4]     += e
+            .state[5]     += f
+            .state[6]     += g
+            .state[7]     += h
+            .bitLengthLow += Sha512BlockSize * 8
+            if .bitLengthLow < Sha512BlockSize * 8
+            {
+                .bitLengthHigh += 1
+            }
         }
     }
 }

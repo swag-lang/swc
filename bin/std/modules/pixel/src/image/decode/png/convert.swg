@@ -33,18 +33,24 @@ func hasInvalidPaletteIndex(indices: const [*] u8, count: u64, paletteCount: u8)
 {
     using Math.Simd
 
-    var offset   = 0'u64
-    var maxIndex = splat(0'u8)
+    var offset   = 0_u64
+    var maxIndex = splat(0_u8)
     while count - offset >= 16
     {
         maxIndex = Math.max(maxIndex, load(indices + offset))
         offset   += 16
     }
 
-    if anyTrue(maxIndex >= splat(paletteCount)) do
+    if anyTrue(maxIndex >= splat(paletteCount))
+    {
         return true
-    for index in offset until count where indices[index] >= paletteCount do
+    }
+
+    for index in offset until count where indices[index] >= paletteCount
+    {
         return true
+    }
+
     return false
 }
 
@@ -170,9 +176,10 @@ func reduce16Samples(source: const [*] u8, destination: [*] u8, sampleCount: u64
 private func(HAS_ALPHA: bool) convertSmallPalette(source: const [*] u8, destination: [*] u8, count: u64, palette: const [*] u32, paletteSize: s32)->u64
 {
     var tables   = PackedPixel.smallPaletteTables(palette, cast(u64, paletteSize))
-    var combined = Math.Simd.splat(0'u8)
+    var combined = Math.Simd.splat(0_u8)
+
     // The 2 GiB output limit keeps the signed pixel and byte offsets in range.
-    return cast(u64, PackedPixel.writeSmallPaletteRow'(HAS_ALPHA)(source, destination, cast(s32, count), &tables[0], &combined))
+    return cast(u64, PackedPixel.writeSmallPaletteRow!{HAS_ALPHA}(source, destination, cast(s32, count), &tables[0], &combined))
 }
 
 impl Decoder
@@ -214,12 +221,14 @@ impl Decoder
 
         if .paletteCount <= 16
         {
-            let written = convertSmallPalette'(false)(src, dst, remaining, &packedPalette[0], .paletteCount)
+            let written = convertSmallPalette!{false}(src, dst, remaining, &packedPalette[0], .paletteCount)
             src       += written
             dst       += written * 3
             remaining -= written
-            if not remaining do
+            if not remaining
+            {
                 return
+            }
         }
 
         // The fourth byte lands on the next pixel and is overwritten there; four
@@ -286,7 +295,7 @@ impl Decoder
         var remaining = pixelCount
         if .paletteCount <= 16
         {
-            let written = convertSmallPalette'(true)(src, cast([*] u8, dst), remaining, &packedPalette[0], .paletteCount)
+            let written = convertSmallPalette!{true}(src, cast([*] u8, dst), remaining, &packedPalette[0], .paletteCount)
             src       += written
             dst       += written
             remaining -= written

@@ -181,16 +181,21 @@ impl Painter
             signedArea += a.x * b.y - a.y * b.x
         }
 
-        if signedArea == 0 or not Math.isFinite(signedArea) do
+        if signedArea == 0 or not Math.isFinite(signedArea)
+        {
             return
+        }
+
         if signedArea > 0
         {
             .scanPoints.add(points)
         }
         else
         {
-            for index in reversed(points.count) do
+            for index in reversed(points.count)
+            {
                 .scanPoints.add(points[index])
+            }
         }
 
         .scanContourEnds.add(.scanPoints.count)
@@ -482,8 +487,11 @@ impl Painter
         {
             .scanStrokeArc.clear()
             .scanStrokeArc.add(center)
-            for sample in .sharedRoundTmp do
+            for sample in .sharedRoundTmp
+            {
                 .scanStrokeArc.add(sample.pos)
+            }
+
             .recordStrokeContour(.scanStrokeArc.toSlice())
             return
         }
@@ -731,7 +739,7 @@ impl Painter
         {
             .recordStrokeContour([v0, v1, v2, v3])
         }
-        elif antialiased and .curState.paintParams & .DistanceStrokes
+        else if antialiased and .curState.paintParams & .DistanceStrokes
         {
             // One quad reaching past the contour by the antialiasing margin, carrying the signed
             // distance to the centre line. Two triangles replace the quad and the two bands.
@@ -772,7 +780,8 @@ impl Painter
         // If we are starting a line, and the line does not have a cap before, then
         // we must AA the corresponding edge. The measured quad carries no distance along the
         // segment, so its butt end needs the band just as the banded one does.
-        if not .scanStroke and antialiased and
+        if not .scanStroke and
+           antialiased and
            flatBegin and
            cxt.beginLine and
            (not cxt.firstLine or cxt.pen.begCapStyle == .None or cxt.path.isClosed)
@@ -1325,33 +1334,51 @@ public impl Painter
 
         if pen.size * deviceScale >= 1
         {
-            if not .recordScanLine(path, &pen) do
+            if not .recordScanLine(path, &pen)
+            {
                 .strokePath(path, pen)
+            }
+
             return
         }
 
         let promoted = promoteHairline(pen, deviceScale)
-        if not .recordScanLine(path, &promoted) do
+        if not .recordScanLine(path, &promoted)
+        {
             .strokePath(path, promoted)
+        }
     }
 
     // A flat-ended line is one four-edge outline with no join or dash state.
     private mtd recordScanLine(path: const *LinePath, pen: const *Pen)->bool
     {
-        if not .canRecordScanPath() or path.isClosed or path.elements.count != 1 or
-           path.elements[0].type != .Line or pen.brush.type != .SolidColor or
-           pen.dashStyle != .None or pen.begCapStyle != .None or pen.endCapStyle != .None or
-           pen.plotOffset != 0 or strokeHasOutline(pen[]) do
+        if not .canRecordScanPath() or
+           path.isClosed or
+           path.elements.count != 1 or
+           path.elements[0].type != .Line or
+           pen.brush.type != .SolidColor or
+           pen.dashStyle != .None or
+           pen.begCapStyle != .None or
+           pen.endCapStyle != .None or
+           pen.plotOffset != 0 or
+           strokeHasOutline(pen[])
+        {
             return false
+        }
 
         let color = pen.brush.color
-        if not color.a or .isEmptyClippingRect() do
+        if not color.a or .isEmptyClippingRect()
+        {
             return true
-        let a = path.startPoint
-        let b = path.endPoint
+        }
+
+        let a         = path.startPoint
+        let b         = path.endPoint
         let direction = b - a
-        if direction.isZeroEpsilon() do
+        if direction.isZeroEpsilon()
+        {
             return false
+        }
 
         let normal = strokeUnitVector(direction).cross(1) * (pen.size * 0.5)
         let points = [a - normal, b - normal, b + normal, a + normal]
@@ -1412,11 +1439,16 @@ public impl Painter
             preparePattern(&cxt)
         }
 
-        if outline == 0 and not strokeHasOutline(pen) and pen.plotOffset == 0 and
-           pen.brush.type == .SolidColor and .canRecordScanPath()
+        if outline == 0 and
+           not strokeHasOutline(pen) and
+           pen.plotOffset == 0 and
+           pen.brush.type == .SolidColor and
+           .canRecordScanPath()
         {
-            if not pen.brush.color.a or .isEmptyClippingRect() do
+            if not pen.brush.color.a or .isEmptyClippingRect()
+            {
                 return
+            }
 
             let first = .scanContourEnds.count
             .scanStroke     = true
@@ -1446,20 +1478,30 @@ public impl Painter
         if pen.dashStyle == .None
         {
             path.flattenPoints(.curState.paintQuality, .curFlattenScale)
-            if path.hasPolygonMetrics do
+            if path.hasPolygonMetrics
+            {
                 return not Math.isZeroEpsilon(path.polygon.perimeter)
+            }
 
             let points = path.polygon.points.toSlice()
-            if points.count < 2 do
+            if points.count < 2
+            {
                 return false
 
-            // Measure short two-point contours the same way as Polygon.recompute.
-            if points.count == 2 and points[0].distanceSquaredTo(points[1]) < 0.5 * 0.5 do
+                // Measure short two-point contours the same way as Polygon.recompute.
+            }
+
+            if points.count == 2 and points[0].distanceSquaredTo(points[1]) < 0.5 * 0.5
+            {
                 return false
 
-            // One nonzero segment is enough when the caller only needs to reject empty ink.
-            if not Math.isZeroEpsilon(points[0].distanceTo(points[1])) do
+                // One nonzero segment is enough when the caller only needs to reject empty ink.
+            }
+
+            if not Math.isZeroEpsilon(points[0].distanceTo(points[1]))
+            {
                 return true
+            }
         }
 
         path.flatten(.curState.paintQuality, .curFlattenScale)

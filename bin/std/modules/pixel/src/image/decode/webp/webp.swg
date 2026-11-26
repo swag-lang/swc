@@ -316,8 +316,10 @@ func flipRgbaRows(pixels: *Array!{u8}, width, height: s32)
             x += 4
         }
 
-        for column in x until width do
+        for column in x until width
+        {
             swap(&upper[column], &lower[column])
+        }
     }
 }
 
@@ -460,8 +462,10 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array!{u8}
             }
         }
 
-        for j in i until pixelCount do
+        for j in i until pixelCount
+        {
             data[j] += #wrap data[j - width]
+        }
     }
     else
     {
@@ -495,19 +499,19 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array!{u8}, result: *Image)
     #[Swag.Inline]
     func convertBlock(destination: [*] u8, y, cb, cr: const [*] u8, alpha: U8x16)
     {
-        let zero = splat(0'u8)
+        let zero = splat(0_u8)
         let luma = load(y)
         let cb8  = cast #bit(U8x16, splat(cast(const [*] u64, cb)[0]))
         let cr8  = cast #bit(U8x16, splat(cast(const [*] u64, cr)[0]))
 
         // Shifting the samples left by eight lets the high product round exactly as (sample * coefficient) >> 8.
-        let yLo   = cast #bit(S16x8, mulHigh(cast #bit(U16x8, interleaveLow(zero, luma)), splat(19077'u16)))
-        let yHi   = cast #bit(S16x8, mulHigh(cast #bit(U16x8, interleaveHigh(zero, luma)), splat(19077'u16)))
+        let yLo   = cast #bit(S16x8, mulHigh(cast #bit(U16x8, interleaveLow(zero, luma)), splat(19077_u16)))
+        let yHi   = cast #bit(S16x8, mulHigh(cast #bit(U16x8, interleaveHigh(zero, luma)), splat(19077_u16)))
         let cb16  = cast #bit(U16x8, interleaveLow(zero, cb8))
         let cr16  = cast #bit(U16x8, interleaveLow(zero, cr8))
-        let rBias = mulHigh(cr16, splat(26149'u16)) - 14234'u16
-        let gBias = 8708'u16 - mulHigh(cb16, splat(6419'u16)) - mulHigh(cr16, splat(13320'u16))
-        let bBias = mulHigh(cb16, splat(33050'u16)) - 17685'u16
+        let rBias = mulHigh(cr16, splat(26149_u16)) - 14234_u16
+        let gBias = 8708_u16 - mulHigh(cb16, splat(6419_u16)) - mulHigh(cr16, splat(13320_u16))
+        let bBias = mulHigh(cb16, splat(33050_u16)) - 17685_u16
 
         let rLo = yLo + cast #bit(S16x8, interleaveLow(rBias, rBias))
         let rHi = yHi + cast #bit(S16x8, interleaveHigh(rBias, rBias))
@@ -553,7 +557,7 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array!{u8}, result: *Image)
         var x = 0
         while x + 16 <= width
         {
-            let opacity = aData ? load(aData + aOffset + x) : splat(0xFF'u8)
+            let opacity = aData ? load(aData + aOffset + x) : splat(0xFF_u8)
             convertBlock(destination, luma + x, cb + (x >> 1), cr + (x >> 1), opacity)
             destination += 64
             x += 16
@@ -595,7 +599,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
     }
 
     try vp8ParseHeaders(&decoder)
-    var alphaPixels: Array'u8
+    var alphaPixels: Array!{u8}
     let alpha = try vp8DecodeAlpha(container, decoder.header.width, decoder.header.height, &alphaPixels)
     result.allocPixels()
 
@@ -628,10 +632,16 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
             decoder.perMbFilterParams[decoder.mbWidth * storageY + mbX] = parameter
         }
 
-        if mbY >= 1 do
+        if mbY >= 1
+        {
             vp8ApplyFilter(&decoder, storageY - 1)
-        if mbY >= 2 do
+        }
+
+        if mbY >= 2
+        {
             vp8WriteRgbaRow(&decoder, alpha, &result, mbY - 2, storageY - 2)
+        }
+
         storageY += 1
     }
 

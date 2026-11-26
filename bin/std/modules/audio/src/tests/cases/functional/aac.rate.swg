@@ -5,26 +5,26 @@ using Swag, Core, Core.Errors
 
 struct RateOutput
 {
-    encoded: Array'u8
-    packets: Array'SoundPacket
+    encoded: Array!{u8}
+    packets: Array!{SoundPacket}
 }
 
 func encodeRateLimited(samples: const [..] s16, chunk: u64)->RateOutput fail
 {
-    const Budget = 256'u64
+    const Budget = 256_u64
     var encoder = try Aac.StreamEncoder.createRateLimited(48_000, 2, 96_000)
     Swag.require(encoder.encoderDelayFrames() == 1_024)
-    var packet: Array'u8
+    var packet: Array!{u8}
     var result: RateOutput
     let frames     = samples.count / 2
-    var consumed   = 0'u64
-    var credit     = 0'u64
+    var consumed   = 0_u64
+    var credit     = 0_u64
     var usedCredit = false
 
     let publish = func|&encoder, &packet, &result, &credit, &usedCredit, frames|()
     {
         let start = result.packets.count * 1_024
-        let valid = Math.min(1_024'u64, frames - Math.min(start, frames))
+        let valid = Math.min(1_024_u64, frames - Math.min(start, frames))
         Swag.require(encoder.lastPacketStartSample() == start and encoder.lastPacketValidFrames() == valid)
         let available = Budget + credit
         Swag.require(packet.count > 0 and packet.count <= available)
@@ -41,12 +41,17 @@ func encodeRateLimited(samples: const [..] s16, chunk: u64)->RateOutput fail
         let count   = try encoder.push(samples[2 * consumed until 2 * (consumed + offered)], &packet)
         Swag.require(count > 0 and count <= offered)
         consumed += count
-        if packet.count do
+        if packet.count
+        {
             publish()
+        }
     }
 
-    while try encoder.finish(&packet) do
+    while try encoder.finish(&packet)
+    {
         publish()
+    }
+
     Swag.require(usedCredit and encoder.inputFrameCount() == frames)
     Swag.require(encoder.packetCount() == (frames + 1_023) / 1_024 + 1)
     Swag.require(not (try encoder.finish(&packet)) and packet.isEmpty())
@@ -58,7 +63,7 @@ func encodeRateLimited(samples: const [..] s16, chunk: u64)->RateOutput fail
     const Loud   = 3 * 1_024
     const Frames = 9 * 1_024 + 193
     var samples: [2 * Frames] s16
-    var state = 0x1234_5678'u32
+    var state = 0x1234_5678_u32
     for index in 2 * Loud until samples.count
     {
         state ^= state << 13
@@ -84,13 +89,16 @@ func encodeRateLimited(samples: const [..] s16, chunk: u64)->RateOutput fail
                                                    whole.packets.count * 1_024,
                                                    whole.packets.toSlice(),
                                                    config.decoderConfig())
-    var decodedFrames = 0'u64
+    var decodedFrames = 0_u64
     var hasSignal     = false
     expect sound.decodePcm16(func|&decodedFrames, &hasSignal|(part: const [..] s16)->bool
     {
         decodedFrames += part.count / 2
-        for sample in part where sample != 0 do
+        for sample in part where sample != 0
+        {
             hasSignal = true
+        }
+
         return true
     })
     Swag.require(decodedFrames == whole.packets.count * 1_024 and hasSignal)
@@ -105,9 +113,9 @@ func encodeRateLimited(samples: const [..] s16, chunk: u64)->RateOutput fail
     Swag.require(rejected.value() is BadParameterError)
 
     var encoder = expect Aac.StreamEncoder.createRateLimited(48_000, 2, 4_125)
-    var packet: Array'u8
-    packet.add(61'u8)
-    const Odd = [17's16]
+    var packet: Array!{u8}
+    packet.add(61_u8)
+    const Odd = [17_s16]
     discard catch encoder.push(Swag.makeSlice(&Odd[0], Odd.count), &packet) as rejected
     Swag.require(rejected.value() is BadParameterError and encoder.inputFrameCount() == 0)
     Swag.require(packet.count == 1 and packet[0] == 61)
@@ -118,10 +126,12 @@ func encodeRateLimited(samples: const [..] s16, chunk: u64)->RateOutput fail
 {
     var encoder = expect Aac.StreamEncoder.createRateLimited(48_000, 2, 4_125)
     var samples: [2 * 1_024] s16
-    for index in samples.count do
+    for index in samples.count
+    {
         samples[index] = index & 2 ? 32_767 : -32_768
+    }
 
-    var packet: Array'u8
+    var packet: Array!{u8}
     Swag.require((expect encoder.push(samples, &packet)) == 1_024)
     Swag.require(packet.count > 0 and packet.count <= 11)
     Swag.require(expect encoder.finish(&packet))

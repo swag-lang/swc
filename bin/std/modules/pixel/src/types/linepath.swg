@@ -413,6 +413,7 @@ public impl LinePath
             high.x = Math.max(high.x, last.x)
             high.y = Math.max(high.y, last.y)
         }
+
         var min = .startPoint
         var max = .startPoint
 

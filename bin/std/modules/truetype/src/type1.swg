@@ -23,12 +23,16 @@ struct Type1Code
 // the order the dictionary was read in.
 struct Type1Font
 {
-    charstrings: Array!{Array!{u8}}
-    subrs:       Array!{Array!{u8}}
-    glyphNames:  Array!{String}
-    nameToGid:   HashTable!{String, u32}
-    codeToGid:   HashTable!{u32, u32}
-    unitsPerEm:  u16 = 1000
+    charstrings: Array!{Type1Code}
+    subrs:       Array!{Type1Code}
+    codeBytes:   Array!{u8}
+
+    // Names point into this immutable decrypted dictionary.
+    privateSection: Array!{u8}
+    glyphNames:     Array!{string}
+    nameToGid:      HashTable!{string, u32}
+    codeToGid:      HashTable!{u32, u32}
+    unitsPerEm:     u16 = 1000
 
     // Identity and metrics the cleartext header declares, standing in for the sfnt tables
     // a Type 1 program has none of.
@@ -46,25 +50,35 @@ impl Type1Font
     #[Swag.Inline]
     mtd const codeOf(code: Type1Code)->const [..] u8
     {
-        if not code.length do
+        if not code.length
+        {
             return ""
+        }
+
         return Swag.makeSlice(.codeBytes.storage() + code.offset, code.length)
     }
 
     mtd storeCode(data: const [..] u8, lenIV: s32)->Type1Code
     {
         let skip = lenIV >= 0 ? cast(u64, lenIV) : 0
-        if data.count <= skip do
+        if data.count <= skip
+        {
             return {}
+        }
 
         let length = data.count - skip
         let offset = .codeBytes.count
         .codeBytes.reserve(offset + length)
         let target = unwrap .codeBytes.buffer + offset
-        if lenIV < 0 do
+        if lenIV < 0
+        {
             Memory.copy(target, data.buffer, length)
-        else do
+        }
+        else
+        {
             eexecDecryptInto(target, data, EexecCharstringKey, skip)
+        }
+
         .codeBytes.count = offset + length
         return {offset, length}
     }
@@ -107,33 +121,13 @@ private func eexecDecryptInto(output: [*] u8, data: const [..] u8, key: u16, ski
 
 func findBytes(data: const [..] u8, from: u64, needle: string)->u64
 {
-    let size  = needle.count
-    let total = data.count
-    if not size or size > total
+    if from >= data.count or not needle.count
     {
-        return total
+        return data.count
     }
 
-    let bytes = data
-    var start = from
-    while start + size <= total
-    {
-        var found = true
-        for k in size where bytes[start + k] != needle[k]
-        {
-            found = false
-            break
-        }
-
-        if found
-        {
-            return start
-        }
-
-        start += 1
-    }
-
-    return total
+    let relative = Slice.findSubslice(data[from to], needle)
+    return relative == Swag.U64.Max ? data.count : from + relative
 }
 
 #[Swag.Inline]
@@ -401,17 +395,19 @@ private func decryptHexPrivateSection(data: const [..] u8)->{hex: bool, bytes: A
 }
 
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
-func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Array!{u8}, next: u64 } fail
+func readCharstringData(data: const [..] u8, from: u64)->{ bytes: const [..] u8, next: u64 } fail
 {
     var result: #returntype = {bytes: "", next: data.count}
     let length = readPostScriptNumber(data, from)
     let size   = cast(u64, length.value)
     let token  = readPostScriptToken(data, length.next)
     if not token.text.count
-        do
+    {
         return result
 
-    // CRLF is one PostScript line separator; preserve any following binary whitespace.
+        // CRLF is one PostScript line separator; preserve any following binary whitespace.
+    }
+
     var start = token.next + 1
     if token.next < data.count and
        data[token.next] == '\r' and
@@ -421,22 +417,13 @@ func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Ar
         start += 1
     }
 
-    if start + size > data.count
+    if start > data.count or size > data.count - start
     {
-        result.next = data.count
         return result
-
-    let encrypted = try getSlice(data, start, size)
-    if lenIV < 0
-    {
-        result.bytes.add(encrypted)
-    }
-    else
-    {
-        result.bytes = eexecDecrypt(encrypted, EexecCharstringKey, cast(u64, lenIV))
     }
 
-    result.next = start + size
+    result.bytes = try getSlice(data, start, size)
+    result.next  = start + size
     return result
 }
 
@@ -470,7 +457,7 @@ private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: s32) 
         let slot  = cast(u64, index.value)
         if slot < font.subrs.count
         {
-            font.subrs[slot] = entry.bytes
+            font.subrs[slot] = font.storeCode(entry.bytes, lenIV)
         }
 
         pos = entry.next
@@ -493,9 +480,9 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
     // A Type 1 dictionary is unordered, so the first glyph it happens to spell out would
     // otherwise take index zero — the index every caller reads as "no such glyph". Holding
     // that index for `.notdef` is what makes an index answer mean what it says.
-    font.glyphNames.add(String.from(NotDefName))
-    font.charstrings.add(Array!{u8}{})
-    font.nameToGid.add(String.from(NotDefName), 0)
+    font.glyphNames.add(NotDefName)
+    font.charstrings.add(Type1Code{})
+    font.nameToGid.add(NotDefName, 0)
 
     // The dictionary body is a run of `/name <length> RD <bytes> ND` entries; `end` closes
     // it. Names are read in file order, which is the order glyph indices follow.
@@ -532,8 +519,9 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
             continue
         }
 
-        let entry = try readCharstringData(data, name.next, lenIV)
-        if entry.bytes.isEmpty() and entry.next >= data.count
+        let entry = try readCharstringData(data, name.next)
+        let code  = font.storeCode(entry.bytes, lenIV)
+        if not code.length and entry.next >= data.count
         {
             break
         }
@@ -545,13 +533,9 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
             continue
         }
 
-        if not font.nameToGid.contains(owned)
-        {
-            font.nameToGid.add(owned, cast(u32, font.charstrings.count))
-        }
-
-        font.glyphNames.add(owned)
-        font.charstrings.add(entry.bytes)
+        font.nameToGid.add(name.text, cast(u32, font.charstrings.count), updateValue: false)
+        font.glyphNames.add(name.text)
+        font.charstrings.add(code)
         pos = entry.next
     }
 
@@ -580,7 +564,7 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
                 continue
             }
 
-            let found = font.nameToGid.tryFind(String.from(name))
+            let found = font.nameToGid.tryFind(name)
             if found
             {
                 font.codeToGid[code] = found.value
@@ -616,7 +600,7 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
         }
 
         let name  = readPostScriptToken(clear, namePos + 1)
-        let found = font.nameToGid.tryFind(String.from(name.text))
+        let found = font.nameToGid.tryFind(name.text)
         if found
         {
             font.codeToGid[cast(u32, code.value)] = found.value
@@ -699,9 +683,15 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
 {
     var result: #returntype
 
-    let program = try unwrapPfb(bytes)
-    let flat    = program.toSlice()
-    let marker  = findBytes(flat, 0, "eexec")
+    var program: Array!{u8}
+    var flat = bytes
+    if bytes.count and bytes[0] == 0x80
+    {
+        program = try unwrapPfb(bytes)
+        flat    = program.toSlice()
+    }
+
+    let marker = findBytes(flat, 0, "eexec")
     if marker >= flat.count
     {
         try fault(0x02)

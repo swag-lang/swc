@@ -183,9 +183,9 @@ private func sampleDocument()->Document
 {
     const Pixels: [8] u8 = [11, 33, 211, 31, 64, 92, 8, 255]
     const Opaque: [8] u8 = [11, 33, 211, 255, 64, 92, 8, 255]
-    let rgba   = Image.create(2, 1, .RGBA8, Pixels)
-    let bgra   = Image.create(2, 1, .BGRA8, Pixels)
-    let opaque = Image.create(2, 1, .BGRA8, Opaque)
+    let rgba     = Image.create(2, 1, .RGBA8, Pixels)
+    let bgra     = Image.create(2, 1, .BGRA8, Pixels)
+    let opaque   = Image.create(2, 1, .BGRA8, Opaque)
     var document = Document.create()
     for index in 2
     {
@@ -202,14 +202,18 @@ private func sampleDocument()->Document
 
     let bytes = expect document.encode()
     let text  = String.from(cast(string, bytes.toSlice()))
+
     func occurrences(text: const *String, term: string)->u64
     {
         var count, start: u64
         while true
         {
             let next = text.indexOf(term, start)
-            if next == Swag.U64.Max do
+            if next == Swag.U64.Max
+            {
                 return count
+            }
+
             count += 1
             start = next + term.count
         }
@@ -243,9 +247,9 @@ private func sampleDocument()->Document
         {
             let index = y * Width + x
             let white = cast(u8, (x + y * 2) % 3 == 0 ? 255 : 0)
-            gray.pixels[index]               = white
-            grayAlpha.pixels[index * 2 + 0]  = white
-            grayAlpha.pixels[index * 2 + 1]  = cast(u8, (index * 17) & 255)
+            gray.pixels[index] = white
+            grayAlpha.pixels[index * 2 + 0] = white
+            grayAlpha.pixels[index * 2 + 1] = cast(u8, (index * 17) & 255)
         }
     }
 
@@ -258,9 +262,9 @@ private func sampleDocument()->Document
     let text  = String.from(cast(string, bytes.toSlice()))
     Swag.require(text.indexOf("/BitsPerComponent 1 /Filter") != Swag.U64.Max)
 
-    let decoded      = expect Document.decode(bytes.toSlice())
-    let image        = unwrap decoded.pages[0].items[0].imageValue()
-    let imageMasked  = unwrap decoded.pages[0].items[1].imageValue()
+    let decoded     = expect Document.decode(bytes.toSlice())
+    let image       = unwrap decoded.pages[0].items[0].imageValue()
+    let imageMasked = unwrap decoded.pages[0].items[1].imageValue()
     for y in Height
     {
         for x in Width

@@ -222,8 +222,11 @@ private impl AnimationWriter
         }
         else
         {
-            if .globalBits >= 6 and .globalColorMap.isEmpty() do
+            if .globalBits >= 6 and .globalColorMap.isEmpty()
+            {
                 .globalColorMap = Encoder.buildColorIndexMap(.globalTable.toSlice())
+            }
+
             useGlobal = Encoder.remapToColorTable(&palette, .globalTable.toSlice(), .globalColorMap.toSlice())
         }
 
@@ -276,7 +279,7 @@ private impl AnimationWriter
     // Finds the first and last byte of a changed RGB channel in one packed row.
     func changedPackedRow(first, second: const [*] u8, rowBytes: s32, alpha: bool)->{ left, right: s32 }
     {
-        let channels  = alpha ? 0x7777'u32 : 0xFFFF'u32
+        let channels  = alpha ? 0x7777_u32 : 0xFFFF_u32
         let vectorEnd = rowBytes & ~15
         var start     = 0
         var mask: u32
@@ -292,10 +295,13 @@ private impl AnimationWriter
         var right = -1
         for offset in vectorEnd until rowBytes
         {
-            if (alpha and (offset & 3) == 3) or first[offset] == second[offset] do
+            if (alpha and (offset & 3) == 3) or first[offset] == second[offset]
+            {
                 continue
             if left == rowBytes do
                 left = offset
+            }
+
             right = offset
         }
 

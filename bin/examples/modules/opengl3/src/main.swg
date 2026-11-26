@@ -195,8 +195,10 @@ func display() fail
 {
     g_Angle += g_Frame.deltaSeconds
 
-    if g_Width <= 0 or g_Height <= 0 do
+    if g_Width <= 0 or g_Height <= 0
+    {
         return
+    }
 
     glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)

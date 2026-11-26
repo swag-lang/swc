@@ -70,18 +70,24 @@ func characterPage(face: *Face, start: u32, pageSize = CharacterPageSize)->{char
 }
 
 // Builds the page starts and the first mapped character of each glyph in a single visit.
-func buildCharacterIndex(face: *Face, pages: *Array'u32, glyphCharacters: *Array'rune)
+func buildCharacterIndex(face: *Face, pages: *Array!{u32}, glyphCharacters: *Array!{rune})
 {
     pages.clear()
     glyphCharacters.clear()
     glyphCharacters.resize(face.glyphCount)
-    var count = 0'u64
+    var count = 0_u64
     face.visitCharacters(FirstCharacter, func|pages, glyphCharacters, &count|(character: rune, glyphIndex: u32)->bool
     {
-        if count % CharacterPageSize == 0 do
+        if count % CharacterPageSize == 0
+        {
             pages.add(cast(u32, character))
-        if not glyphCharacters[glyphIndex] do
+        }
+
+        if not glyphCharacters[glyphIndex]
+        {
             glyphCharacters[glyphIndex] = character
+        }
+
         count += 1
         return true
     })

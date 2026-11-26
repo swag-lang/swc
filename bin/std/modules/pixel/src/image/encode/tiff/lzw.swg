@@ -69,7 +69,7 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
     {
         let value = cast(u32, src[i + 1])
         let key   = (prefix << 8) | value
-        var slot  = (key * #wrap 0x9E37_79B1'u32) >> 19
+        var slot  = (key * #wrap 0x9E37_79B1_u32) >> 19
         var entry = slots[slot]
         while entry and entry >> 12 != key
         {
@@ -90,7 +90,10 @@ func packLzw(result: *Array!{u8}, src: const [*] u8, count: u64)
             slots[slot] = (key << 12) | nextCode
             nextCode    += 1
 
-            if width < 12 and nextCode > (1_u32 << width) - 1
+            if width!
+            {
+                12 and nextCode
+            }(1_u32 << width) - 1
             {
                 width += 1
             }

@@ -425,10 +425,11 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array!{MsdfSeg})
     if edges.isEmpty()
     {
         return
+
+        // Guarantee every channel is carried by at least one edge, otherwise that
+        // channel's distance would be undefined and the median would be meaningless.
     }
 
-    // Guarantee every channel is carried by at least one edge, otherwise that
-    // channel's distance would be undefined and the median would be meaningless.
     let ebuf       = edges.storage()
     var unionColor = 0_u8
     for i in edges.count
@@ -550,10 +551,11 @@ func msdfCutPair(a, b: const *MsdfSeg, ia, ib: u32, cuts: *Array!{MsdfCut})
     if ta < -MsdfCutMargin or ta > 1 + MsdfCutMargin or tb < -MsdfCutMargin or tb > 1 + MsdfCutMargin
     {
         return
+
+        // A crossing at the end of one segment is that end, exactly: the piece cut from the other
+        // segment must start where the first one does.
     }
 
-    // A crossing at the end of one segment is that end, exactly: the piece cut from the other
-    // segment must start where the first one does.
     let insideA = ta > MsdfCutMargin and ta < 1 - MsdfCutMargin
     let insideB = tb > MsdfCutMargin and tb < 1 - MsdfCutMargin
     var x       = a.x0 + ta * a.abx
@@ -897,13 +899,14 @@ impl MsdfBest
             if not (s.color & cast(u8, (1 << ch)))
             {
                 continue
+
+                // An exact tie goes to the more perpendicular contact, which is what keeps a
+                // corner from picking whichever of its two edges happens to come first. Two
+                // contacts as perpendicular as each other go to the earlier segment, so that
+                // the field does not depend on the order the search happened to visit them —
+                // the search starts from the previous sample's winners, not from the top.
             }
 
-            // An exact tie goes to the more perpendicular contact, which is what keeps a
-            // corner from picking whichever of its two edges happens to come first. Two
-            // contacts as perpendicular as each other go to the earlier segment, so that
-            // the field does not depend on the order the search happened to visit them —
-            // the search starts from the previous sample's winners, not from the top.
             if a < .abs[ch] or (a == .abs[ch] and (dt < .dot[ch] or (dt == .dot[ch] and index < .idx[ch])))
             {
                 .abs[ch]    = a

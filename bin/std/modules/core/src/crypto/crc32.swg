@@ -14,8 +14,11 @@ private impl Crc32
     func updateValue(data: const [..] u8?, previous: u32)->u32
     {
         var length = data.count
-        if not length do
+        if not length
+        {
             return previous
+        }
+
         var current = unwrap data.buffer
         var cur     = ~previous
 
@@ -25,8 +28,11 @@ private impl Crc32
         {
             if length >= 36 and Swag.hasCpuFeature(.CarrylessMultiply)
             {
-                if length < 80 do
+                if length < 80
+                {
                     return ~foldShort(cur, current, length)
+                }
+
                 return ~foldClmul(cur, current, length)
             }
         }
@@ -47,8 +53,10 @@ private impl Crc32
             length  -= 8
         }
 
-        if length == 0 do
+        if length == 0
+        {
             return ~cur
+        }
 
         if length & 4
         {
@@ -65,25 +73,30 @@ private impl Crc32
         {
             let word  = Math.littleEndianToNative(cast(const [*] u16, current)[0])
             let mixed = cur ^ cast(u32, word)
-            cur = (cur >> 16) ^ LookupTable[1, mixed & 0xFF] ^ LookupTable[0, (mixed >> 8) & 0xFF]
+            cur     = (cur >> 16) ^ LookupTable[1, mixed & 0xFF] ^ LookupTable[0, (mixed >> 8) & 0xFF]
             current += 2
         }
 
-        if length & 1 do
+        if length & 1
+        {
             cur = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ current[0]]
+        }
 
         return ~cur
     }
 
     func buildLookupTable()->[8, 256] u32
     {
-        const Polynomial = 0xEDB8_8320'u32
+        const Polynomial = 0xEDB8_8320_u32
         var table: #returntype
         for index in 256
         {
             var value = cast(u32, index)
-            for 8 do
+            for 8
+            {
                 value = value & 1 ? (value >> 1) ^ Polynomial : value >> 1
+            }
+
             table[0, index] = value
         }
 
@@ -109,12 +122,10 @@ private
     // @ORIGIN: Chromium zlib, https://github.com/chromium/chromium/blob/main/third_party/zlib/crc32_simd.c
     // @MODIFIED: Ported to Swag vector intrinsics.
     // @NOTICE: /bin/THIRDPARTY.md#zlib
-    const FoldK1K2 = cast(Math.Simd.U64x2, [0x0154442BD4_u64, 0x01C6E41596])
-    const FoldK3K4 = cast(Math.Simd.U64x2, [0x01751997D0_u64, 0x00CCAA009E])
-    const FoldK5   = cast(Math.Simd.U64x2, [0x0163CD6124_u64, 0x0000000000])
-    const FoldPoly = cast(Math.Simd.U64x2, [0x01DB710641_u64, 0x01F7011641])
-    const FoldZero = cast(Math.Simd.U64x2, [0_u64, 0])
-    const FoldMask = cast(Math.Simd.U64x2, [0x0000_0000_FFFF_FFFF_u64, 0x0000_0000_FFFF_FFFF])
+    const FoldK1K2      = cast(Math.Simd.U64x2, [0x0154442BD4_u64, 0x01C6E41596])
+    const FoldK3K4      = cast(Math.Simd.U64x2, [0x01751997D0_u64, 0x00CCAA009E])
+    const FoldZero      = cast(Math.Simd.U64x2, [0_u64, 0])
+    const CrcPolynomial = 0x04C1_1DB7_u32
 
     // The full-width Barrett reduction and fractional fold follow libdeflate's technique.
     // @LICENCE: MIT
@@ -127,12 +138,12 @@ private
     func reflectedBarrettQuotient()->u64
     {
         // Divide x^95 by the degree-32 polynomial and reflect the 64-bit quotient.
-        var remainder = 1'u32
-        var quotient  = 0'u64
+        var remainder = 1_u32
+        var quotient  = 0_u64
         for 95
         {
             let top = remainder >> 31
-            remainder = (remainder << 1) ^ (top != 0 ? CrcPolynomial : 0'u32)
+            remainder = (remainder << 1) ^ (top != 0 ? CrcPolynomial : 0_u32)
             quotient  = (quotient << 1) | cast(u64, top)
         }
 
@@ -152,9 +163,12 @@ private
 
     func reflectedFoldPower(bits: u64)->u64
     {
-        var value = 1'u32
-        for bits do
+        var value = 1_u32
+        for bits
+        {
             value = value >> 31 ? (value << 1) ^ CrcPolynomial : value << 1
+        }
+
         return Math.reverse(cast(u64, value))
     }
 
@@ -184,41 +198,50 @@ private
     #[Swag.Inline]
     func finishFold(value: Math.Simd.U64x2, end: const [*] u8, tail: u64)->u32
     {
-        if tail == 0 do
+        if tail == 0
+        {
             return reduceFolded(value)
 
-        // The last 16 bytes are already in bounds because at least one full
-        // block preceded the tail. Keep only the still-unprocessed bytes.
+            // The last 16 bytes are already in bounds because at least one full
+            // block preceded the tail. Keep only the still-unprocessed bytes.
+        }
+
         let leftMask  = Math.Simd.load(ShiftMasks.buffer + tail)
         let rightMask = Math.Simd.load(ShiftMasks.buffer + tail + 16)
         let bytes     = cast #bit(Math.Simd.U8x16, value)
         let left      = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(bytes, leftMask))
         let right     = Math.Simd.shuffle(bytes, rightMask)
         let newBytes  = Math.Simd.load(end - 16)
-        let selectNew = rightMask == Math.Simd.splat(128'u8)
+        let selectNew = rightMask == Math.Simd.splat(128_u8)
         let block     = cast #bit(Math.Simd.U64x2, Math.Simd.select(selectNew, newBytes, right))
-        return reduceFolded(advanceBlock'128(left) ^ block)
+        return reduceFolded(advanceBlock!{128}(left) ^ block)
     }
 
     #[Swag.Inline]
     func collapseFourBlocks(first, second, third, fourth: Math.Simd.U64x2)->Math.Simd.U64x2
     {
-        let earlier = advanceBlock'384(first) ^ advanceBlock'256(second)
-        let later   = advanceBlock'128(third) ^ fourth
+        let earlier = advanceBlock!{384}(first) ^ advanceBlock!{256}(second)
+        let later   = advanceBlock!{128}(third) ^ fourth
         return earlier ^ later
     }
 
     #[Swag.NoInline]
     func foldShort(crcReg: u32, buffer: const [*] u8, length: u64)->u32
     {
-        let seed   = cast(Math.Simd.U64x2, [cast(u64, crcReg), 0'u64])
+        let seed   = cast(Math.Simd.U64x2, [cast(u64, crcReg), 0_u64])
         let first  = Math.Simd.load(cast(const [*] u64, buffer)) ^ seed
         let second = Math.Simd.load(cast(const [*] u64, buffer + 16))
-        if length < 48 do
-            return finishFold(advanceBlock'128(first) ^ second, buffer + length, length & 15)
-        let third  = Math.Simd.load(cast(const [*] u64, buffer + 32))
-        if length < 64 do
-            return finishFold(advanceBlock'256(first) ^ advanceBlock'128(second) ^ third, buffer + length, length & 15)
+        if length < 48
+        {
+            return finishFold(advanceBlock!{128}(first) ^ second, buffer + length, length & 15)
+        }
+
+        let third = Math.Simd.load(cast(const [*] u64, buffer + 32))
+        if length < 64
+        {
+            return finishFold(advanceBlock!{256}(first) ^ advanceBlock!{128}(second) ^ third, buffer + length, length & 15)
+        }
+
         let fourth = Math.Simd.load(cast(const [*] u64, buffer + 48))
         let value  = collapseFourBlocks(first, second, third, fourth)
         return finishFold(value, buffer + length, length & 15)
@@ -229,10 +252,10 @@ private
         => Math.Simd.clmulLowLow(value, powers) ^ Math.Simd.clmulHighHigh(value, powers) ^ next
 
     // Reflect x^(8 * distance + 32) and x^(8 * distance - 32) into 33-bit factors.
-    const PairLow  = (#run reflectedFoldPower(288)) >> 31
-    const PairHigh = (#run reflectedFoldPower(224)) >> 31
-    const WideLow  = (#run reflectedFoldPower(1056)) >> 31
-    const WideHigh = (#run reflectedFoldPower(992)) >> 31
+    const PairLow      = (#run reflectedFoldPower(288)) >> 31
+    const PairHigh     = (#run reflectedFoldPower(224)) >> 31
+    const WideLow      = (#run reflectedFoldPower(1056)) >> 31
+    const WideHigh     = (#run reflectedFoldPower(992)) >> 31
     const FoldNextPair = cast(Math.Simd.U64x2, [PairLow, PairHigh])
     const FoldNextWide = [WideLow, WideHigh, WideLow, WideHigh]
 
@@ -256,7 +279,7 @@ private
         Memory.copy(cast([*] void, &lanes), cast(const [*] void, bytes), #sizeof(lanes))
         lanes[0, 0] ^= cast(u64, crcReg)
 
-        var offset = 128'u64
+        var offset = 128_u64
         while length - offset >= 128
         {
             let next = bytes + offset
@@ -292,7 +315,7 @@ private
         var fourth = Math.Simd.load(input + 4)
         input += 6
 
-        var offset = 48'u64
+        var offset = 48_u64
         while offset < length
         {
             first  = foldBlock(first, FoldK1K2, Math.Simd.load(input))
@@ -310,6 +333,7 @@ private
     {
         const LowPower  = (#run reflectedFoldPower(2080)) >> 31
         const HighPower = (#run reflectedFoldPower(2016)) >> 31
+
         // Use an aligned range for the folding state in an ordinary stack allocation.
         const Alignment   = #alignof(FoldQuadState)
         const ScratchSize = #sizeof(FoldQuadState) + Alignment - 1
@@ -320,7 +344,7 @@ private
         Memory.copy(cast([*] void, &state.lanes), cast(const [*] void, bytes), #sizeof(state.lanes))
         state.lanes[0, 0] ^= cast(u64, crcReg)
 
-        var offset = length & ~255'u64
+        var offset = length & ~255_u64
         let end    = bytes + offset
         var next   = bytes + 256
         while next != end
@@ -333,16 +357,16 @@ private
         }
 
         const NextEight = cast(Math.Simd.U64x2, [WideLow, WideHigh])
-        let words       = cast(const [*] u64, &state.lanes)
-        let low         = collapseEightLanes(words)
-        let high        = collapseEightLanes(words + 16)
-        var value       = foldBlock(low, NextEight, high)
+        let words = cast(const [*] u64, &state.lanes)
+        let low   = collapseEightLanes(words)
+        let high  = collapseEightLanes(words + 16)
+        var value = foldBlock(low, NextEight, high)
         if length - offset >= 48
         {
             // The first group already has the preceding 16-byte state.
-            let grouped = ((length - offset + 16) & ~63'u64) - 16
-            value       = foldTailGroups(value, bytes + offset, grouped)
-            offset     += grouped
+            let grouped = ((length - offset + 16) & ~63_u64) - 16
+            value  = foldTailGroups(value, bytes + offset, grouped)
+            offset += grouped
         }
 
         return finishClmul(value, bytes + offset, length - offset)
@@ -421,10 +445,15 @@ private
 
         if length >= 1024
         {
-            if Swag.hasCpuFeature(.CarrylessMultiply512) do
+            if Swag.hasCpuFeature(.CarrylessMultiply512)
+            {
                 return foldQuadClmul(crcReg, buffer, length)
-            if Swag.hasCpuFeature(.WideCarrylessMultiply) do
+            }
+
+            if Swag.hasCpuFeature(.WideCarrylessMultiply)
+            {
                 return foldWideClmul(crcReg, buffer, length)
+            }
         }
 
         var seed: [2] u64 = [cast(u64, crcReg), 0]
@@ -472,10 +501,10 @@ private
     func finishClmul(block: Math.Simd.U64x2, buffer: const [*] u8, length: u64)->u32
     {
         var value  = block
-        var offset = 0'u64
+        var offset = 0_u64
         while length - offset >= 16
         {
-            value   = foldBlock(value, FoldK3K4, Math.Simd.load(cast(const [*] u64, buffer + offset)))
+            value  = foldBlock(value, FoldK3K4, Math.Simd.load(cast(const [*] u64, buffer + offset)))
             offset += 16
         }
 
@@ -496,85 +525,7 @@ public impl Crc32
     // Includes `data` in the running checksum.
     mtd update(data: const [..] u8?)
     {
-        var length = data.count
-        if not length
-        {
-            return
-        }
-
-        var current = cast(const [*] u32, unwrap data.buffer)
-
-        var cur = ~.currentValue
-
-        // The carry-less folding path wants at least sixty-four bytes and works in
-        // sixteen-byte steps; the table path finishes whatever remains.
-        #static if not BIG_ENDIAN
-        {
-            if length >= 64
-            {
-                let folded = length & ~15_u64
-                cur     = foldClmul(cur, cast(const [*] u8, current), folded)
-                current = cast(const [*] u32, (cast(const [*] u8, current) + folded))
-                length  -= folded
-            }
-        }
-
-        const unroll      = 4
-        const bytesAtOnce = 16 * unroll
-        while length >= bytesAtOnce
-        {
-            for unroll
-            {
-                #static if BIG_ENDIAN
-                {
-                    let one   = current[0] ^ Swag.byteSwap(cur)
-                    let two   = current[1]
-                    let three = current[2]
-                    let four  = current[3]
-                    current += 4
-
-                    #[Swag.Safety(.Overflow, false)]
-                    cur = LookupTable[0, four & 0xFF] ^ LookupTable[1, (four >> 8) & 0xFF] ^
-                          LookupTable[2, (four >> 16) & 0xFF] ^ LookupTable[3, (four >> 24) & 0xFF] ^
-                          LookupTable[4, three & 0xFF] ^ LookupTable[5, (three >> 8) & 0xFF] ^
-                          LookupTable[6, (three >> 16) & 0xFF] ^ LookupTable[7, (three >> 24) & 0xFF] ^
-                          LookupTable[8, two & 0xFF] ^ LookupTable[9, (two >> 8) & 0xFF] ^
-                          LookupTable[10, (two >> 16) & 0xFF] ^ LookupTable[11, (two >> 24) & 0xFF] ^
-                          LookupTable[12, one & 0xFF] ^ LookupTable[13, (one >> 8) & 0xFF] ^
-                          LookupTable[14, (one >> 16) & 0xFF] ^ LookupTable[15, (one >> 24) & 0xFF]
-                }
-                else
-                {
-                    let one   = current[0] ^ cur
-                    let two   = current[1]
-                    let three = current[2]
-                    let four  = current[3]
-                    current += 4
-
-                    #[Swag.Safety(.Overflow, false)]
-                    cur = LookupTable[0, (four >> 24) & 0xFF] ^ LookupTable[1, (four >> 16) & 0xFF] ^
-                          LookupTable[2, (four >> 8) & 0xFF] ^ LookupTable[3, four & 0xFF] ^
-                          LookupTable[4, (three >> 24) & 0xFF] ^ LookupTable[5, (three >> 16) & 0xFF] ^
-                          LookupTable[6, (three >> 8) & 0xFF] ^ LookupTable[7, three & 0xFF] ^
-                          LookupTable[8, (two >> 24) & 0xFF] ^ LookupTable[9, (two >> 16) & 0xFF] ^
-                          LookupTable[10, (two >> 8) & 0xFF] ^ LookupTable[11, two & 0xFF] ^
-                          LookupTable[12, (one >> 24) & 0xFF] ^ LookupTable[13, (one >> 16) & 0xFF] ^
-                          LookupTable[14, (one >> 8) & 0xFF] ^ LookupTable[15, one & 0xFF]
-                }
-            }
-
-            length -= bytesAtOnce
-        }
-
-        var currentChar = cast(const [*] u8, current)
-        while length
-        {
-            cur         = (cur >> 8) ^ LookupTable[0, (cur & 0xFF) ^ currentChar[0]]
-            currentChar += 1
-            length      -= 1
-        }
-
-        .currentValue = ~cur
+        .currentValue = updateValue(data, .currentValue)
     }
 
     // Returns the checksum accumulated since construction or the latest [[reset]].

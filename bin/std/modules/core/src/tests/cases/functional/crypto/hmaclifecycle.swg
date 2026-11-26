@@ -45,7 +45,7 @@ using Swag
 func(Hmac) verifySha2HmacLifecycle()
 {
     var longKey: [131] u8
-    Memory.set(longKey.buffer, 0xAA'u8, longKey.count)
+    Memory.set(longKey.buffer, 0xAA_u8, longKey.count)
     let message  = cast(const [..] u8, "Test Using Larger Than Block-Size Key - Hash Key First")
     let shortKey = cast(const [..] u8, "Jefe")
 
@@ -58,14 +58,18 @@ func(Hmac) verifySha2HmacLifecycle()
     Swag.require(Crypto.constantTimeEqual(hmac.finalize(), Hmac.compute(shortKey, message)))
 
     let storage = Swag.makeSlice(cast(const [*] u8, &hmac), #sizeof(Hmac))
-    for byte in storage do
+    for byte in storage
+    {
         Swag.require(byte == 0)
+    }
 
     hmac.reset(longKey)
     hmac.update(message)
     hmac.clear()
-    for byte in storage do
+    for byte in storage
+    {
         Swag.require(byte == 0)
+    }
 
     hmac.reset(longKey)
     hmac.update(message)

@@ -110,40 +110,50 @@ func packedIndex(src: const [*] u8, bitCount: u16, x: s32)->u32
 
 func maskBit(andRow: const [*] u8, x: s32)->u32 => cast(u32, ((andRow[x / 8] >> cast(u32, (7 - (x & 7)))) & 1))
 
-private const DibAlpha  = 0xFF000000'u32
-private const DibColors = 0x00FFFFFF'u32
-private const AndFirst  = cast(Math.Simd.U32x4, [128'u32, 64, 32, 16])
-private const AndLast   = cast(Math.Simd.U32x4, [8'u32, 4, 2, 1])
-private const BgrToBgra = cast(Math.Simd.U8x16, [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
+private const DibAlpha  = 0xFF000000_u32
+private const DibColors = 0x00FFFFFF_u32
+private const AndFirst  = cast(Math.Simd.U32x4, [128_u32, 64, 32, 16])
+private const AndLast   = cast(Math.Simd.U32x4, [8_u32, 4, 2, 1])
+private const BgrToBgra = cast(Math.Simd.U8x16, [0_u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
 
 func hasDibAlpha(pixels: const [*] u32, count: u64)->bool
 {
-    if count and (pixels[0] & DibAlpha) do
+    if count and (pixels[0] & DibAlpha)
+    {
         return true
+    }
 
     let alpha = Math.Simd.splat(DibAlpha)
-    let zero  = Math.Simd.splat(0'u32)
-    var x     = 0'u64
+    let zero  = Math.Simd.splat(0_u32)
+    var x     = 0_u64
     while count - x >= 16
     {
         let first  = Math.Simd.load(pixels + x) | Math.Simd.load(pixels + x + 4)
         let second = Math.Simd.load(pixels + x + 8) | Math.Simd.load(pixels + x + 12)
-        if Math.Simd.anyTrue(((first | second) & alpha) != zero) do
+        if Math.Simd.anyTrue(((first | second) & alpha) != zero)
+        {
             return true
+        }
+
         x += 16
     }
 
     while count - x >= 4
     {
-        if Math.Simd.anyTrue((Math.Simd.load(pixels + x) & alpha) != zero) do
+        if Math.Simd.anyTrue((Math.Simd.load(pixels + x) & alpha) != zero)
+        {
             return true
+        }
+
         x += 4
     }
 
     for i in x until count
     {
-        if pixels[i] & DibAlpha do
+        if pixels[i] & DibAlpha
+        {
             return true
+        }
     }
 
     return false
@@ -152,10 +162,14 @@ func hasDibAlpha(pixels: const [*] u32, count: u64)->bool
 #[Swag.Inline]
 func(BIT_COUNT: u16) loadDibColors(source: const [*] u8)->Math.Simd.U32x4
 {
-    #static if BIT_COUNT == 32 do
+    #static if BIT_COUNT == 32
+    {
         return Math.Simd.load(cast(const [*] u32, source))
-    else do
+    }
+    else
+    {
         return cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(Math.Simd.load(source), BgrToBgra))
+    }
 }
 
 func(BIT_COUNT: u16, MASKED: bool) decodeTrueColorDib(result: *Image, xorData, andData: const [*] u8, xorStride, andStride: u64)
@@ -165,7 +179,7 @@ func(BIT_COUNT: u16, MASKED: bool) decodeTrueColorDib(result: *Image, xorData, a
     // A 24-bit row needs two more pixels for the second 16-byte load.
     const MinimumWidth = BIT_COUNT == 24 ? 10 : 8
     let alpha  = Math.Simd.splat(DibAlpha)
-    let zero   = Math.Simd.splat(0'u32)
+    let zero   = Math.Simd.splat(0_u32)
     let output = cast([*] u32, result.pixels.storage())
     let width  = result.width
     for y in result.height
@@ -176,11 +190,11 @@ func(BIT_COUNT: u16, MASKED: bool) decodeTrueColorDib(result: *Image, xorData, a
         var x      = 0
         while width - x >= MinimumWidth
         {
-            let bits       = Math.Simd.splat(MASKED ? cast(u32, mask[x / 8]) : 0'u32)
+            let bits       = Math.Simd.splat(MASKED ? cast(u32, mask[x / 8]) : 0_u32)
             let firstAlpha = ((bits & AndFirst) == zero) & alpha
             let lastAlpha  = ((bits & AndLast) == zero) & alpha
-            Math.Simd.store(target + x, loadDibColors'(BIT_COUNT)(source + x * Step) | firstAlpha)
-            Math.Simd.store(target + x + 4, loadDibColors'(BIT_COUNT)(source + (x + 4) * Step) | lastAlpha)
+            Math.Simd.store(target + x, loadDibColors!{BIT_COUNT}(source + x * Step) | firstAlpha)
+            Math.Simd.store(target + x + 4, loadDibColors!{BIT_COUNT}(source + (x + 4) * Step) | lastAlpha)
             x += 8
         }
 
@@ -188,7 +202,7 @@ func(BIT_COUNT: u16, MASKED: bool) decodeTrueColorDib(result: *Image, xorData, a
         {
             let pixel  = source + i * Step
             let colors = cast(u32, pixel[0]) | (cast(u32, pixel[1]) << 8) | (cast(u32, pixel[2]) << 16)
-            target[i] = colors | (MASKED and maskBit(mask, i) ? 0'u32 : DibAlpha)
+            target[i] = colors | (MASKED and maskBit(mask, i) ? 0_u32 : DibAlpha)
         }
     }
 }
@@ -198,7 +212,7 @@ func(BIT_COUNT: u16) loadDibIndices(source: const [*] u8)->Math.Simd.U16x8
 {
     #static if BIT_COUNT == 4
     {
-        let nibble = Math.Simd.splat(15'u8)
+        let nibble = Math.Simd.splat(15_u8)
         let pairs  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, source)[0]))
         let upper  = cast #bit(Math.Simd.U8x16, (cast #bit(Math.Simd.U16x8, pairs) >> 4)) & nibble
         return Math.Simd.widenLow(Math.Simd.interleaveLow(upper, pairs & nibble))
@@ -214,12 +228,12 @@ func(BIT_COUNT: u16, CHECK_INDEX: bool) decodeIndexedDib(result: *Image, palette
 {
     let colors     = Math.Simd.splat(DibColors)
     let alpha      = Math.Simd.splat(DibAlpha)
-    let zero       = Math.Simd.splat(0'u32)
+    let zero       = Math.Simd.splat(0_u32)
     let entries    = cast(const [*] s32, palette)
     let words      = cast(const [*] u32, palette)
-    let first      = Math.Simd.splat(BIT_COUNT == 1 ? words[0] & DibColors : 0'u32)
-    let difference = Math.Simd.splat(BIT_COUNT == 1 ? (words[0] ^ words[1]) & DibColors : 0'u32)
-    let limit      = Math.Simd.splat(CHECK_INDEX ? cast(u16, paletteCount) : 0'u16)
+    let first      = Math.Simd.splat(BIT_COUNT == 1 ? words[0] & DibColors : 0_u32)
+    let difference = Math.Simd.splat(BIT_COUNT == 1 ? (words[0] ^ words[1]) & DibColors : 0_u32)
+    let limit      = Math.Simd.splat(CHECK_INDEX ? cast(u16, paletteCount) : 0_u16)
     let width      = result.width
     let output     = cast([*] u32, result.pixels.storage())
     for y in result.height
@@ -230,7 +244,7 @@ func(BIT_COUNT: u16, CHECK_INDEX: bool) decodeIndexedDib(result: *Image, palette
         var x      = 0
         while width - x >= 8
         {
-            let bits       = Math.Simd.splat(hasAndMask ? cast(u32, mask[x / 8]) : 0'u32)
+            let bits       = Math.Simd.splat(hasAndMask ? cast(u32, mask[x / 8]) : 0_u32)
             let firstAlpha = ((bits & AndFirst) == zero) & alpha
             let lastAlpha  = ((bits & AndLast) == zero) & alpha
             #static if BIT_COUNT == 1
@@ -243,11 +257,13 @@ func(BIT_COUNT: u16, CHECK_INDEX: bool) decodeIndexedDib(result: *Image, palette
             }
             else
             {
-                let indexes = loadDibIndices'(BIT_COUNT)(source + x * BIT_COUNT / 8)
+                let indexes = loadDibIndices!{BIT_COUNT}(source + x * BIT_COUNT / 8)
                 #static if CHECK_INDEX
                 {
-                    if Math.Simd.anyTrue(indexes >= limit) do
+                    if Math.Simd.anyTrue(indexes >= limit)
+                    {
                         fail InvalidFormatError{"invalid palette index"}
+                    }
                 }
 
                 let firstColors = cast #bit(Math.Simd.U32x4, Math.Simd.gather(entries, Math.Simd.widenLow(indexes))) & colors
@@ -262,9 +278,12 @@ func(BIT_COUNT: u16, CHECK_INDEX: bool) decodeIndexedDib(result: *Image, palette
         for i in x until width
         {
             let index = packedIndex(source, BIT_COUNT, i)
-            if CHECK_INDEX and index >= paletteCount do
+            if CHECK_INDEX and index >= paletteCount
+            {
                 fail InvalidFormatError{"invalid palette index"}
-            target[i] = (words[index] & DibColors) | (hasAndMask and maskBit(mask, i) ? 0'u32 : DibAlpha)
+            }
+
+            target[i] = (words[index] & DibColors) | (hasAndMask and maskBit(mask, i) ? 0_u32 : DibAlpha)
         }
     }
 }
@@ -325,7 +344,7 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
         }
         else
         {
-            decodeTrueColorDib'(32, true)(result, xorData, andData, xorStride, andStride)
+            decodeTrueColorDib!{32, true}(result, xorData, andData, xorStride, andStride)
         }
 
         return
@@ -333,22 +352,27 @@ func decodeDib(result: *Image, dib: DibHeader, src, last: const [*] u8) fail
 
     if dib.bitCount == 24
     {
-        if hasAndMask do
-            decodeTrueColorDib'(24, true)(result, xorData, andData, xorStride, andStride)
-        else do
-            decodeTrueColorDib'(24, false)(result, xorData, andData, xorStride, andStride)
+        if hasAndMask
+        {
+            decodeTrueColorDib!{24, true}(result, xorData, andData, xorStride, andStride)
+        }
+        else
+        {
+            decodeTrueColorDib!{24, false}(result, xorData, andData, xorStride, andStride)
+        }
+
         return
     }
 
     if width >= 8
     {
-        let fullPalette = paletteCount >= 1'u32 << dib.bitCount
+        let fullPalette = paletteCount >= 1_u32 << dib.bitCount
         switch dib.bitCount
         {
         case 1:
             if fullPalette
             {
-                try decodeIndexedDib'(1, false)(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
+                try decodeIndexedDib!{1, false}(result, palette, xorData, andData, xorStride, andStride, hasAndMask, paletteCount)
                 return
             }
 
@@ -422,14 +446,21 @@ func directoryEntries(buffer: const [..] u8)->const [*] IconDirEntry => cast(con
 func readDirectory(buffer: const [..] u8)->const [..] IconDirEntry fail
 {
     let base = buffer.buffer
-    if buffer.count < #sizeof(IconDir) do
+    if buffer.count < #sizeof(IconDir)
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 
     let dir = cast(const *IconDir, base)[]
-    if dir.type != 1 and dir.type != 2 do
+    if dir.type != 1 and dir.type != 2
+    {
         fail InvalidFormatError{"not an icon"}
-    if dir.count == 0 do
+    }
+
+    if dir.count == 0
+    {
         fail InvalidFormatError{"empty icon"}
+    }
 
     try checkBuffer(base, base + buffer.count, cast(u64, #sizeof(IconDir)) + cast(u64, dir.count) * #sizeof(IconDirEntry))
     return Swag.makeSlice(directoryEntries(buffer), dir.count)
@@ -559,22 +590,31 @@ func checkPngEntryGeometry(entry: IconDirEntry, image: const [*] u8, size: u64) 
 {
     // PNG validates the full IHDR and its checksum before decoding. Check the
     // directory geometry as soon as its fixed-size PNG header is available.
-    if size < 33 do
+    if size < 33
+    {
         return
+    }
+
     let header = cast(const [*] u32, image + 8)
-    if Math.bigEndianToNative(header[0]) != 13 or Math.bigEndianToNative(header[1]) != 0x49484452 do
+    if Math.bigEndianToNative(header[0]) != 13 or Math.bigEndianToNative(header[1]) != 0x49484452
+    {
         return
+    }
 
     let width  = Math.bigEndianToNative(header[2])
     let height = Math.bigEndianToNative(header[3])
-    if width != cast(u32, dimFromByte(entry.width)) or height != cast(u32, dimFromByte(entry.height)) do
+    if width != cast(u32, dimFromByte(entry.width)) or height != cast(u32, dimFromByte(entry.height))
+    {
         fail InvalidFormatError{"icon entry dimensions do not match its directory"}
+    }
 }
 
 func decodeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEntry)->Image fail
 {
-    if cast(u64, entry.imageOffset) + entry.bytesInRes > buffer.count do
+    if cast(u64, entry.imageOffset) + entry.bytesInRes > buffer.count
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 
     let imgPtr = buffer.buffer + entry.imageOffset
     let imgLen = cast(u64, entry.bytesInRes)
@@ -582,8 +622,11 @@ func decodeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEn
     // PNG-compressed entry: delegate to the PNG decoder
     if isPngSignature(imgPtr, imgLen)
     {
-        if options.decodePixels do
+        if options.decodePixels
+        {
             try checkPngEntryGeometry(entry, imgPtr, imgLen)
+        }
+
         var pngDec: Png.Decoder
         let itf    = Swag.makeInterface(&pngDec, #typeof(Png.Decoder), IImageDecoder)
         var result = #move try itf.decode(Swag.makeSlice(imgPtr, imgLen), options)
@@ -592,28 +635,44 @@ func decodeEntry(buffer: const [..] u8, options: DecodeOptions, entry: IconDirEn
     }
 
     // BMP/DIB-encoded entry
-    if imgLen < #sizeof(DibHeader) do
+    if imgLen < #sizeof(DibHeader)
+    {
         fail InvalidFormatError{"invalid source buffer"}
+    }
 
     let dib = cast(const *DibHeader, imgPtr)[]
-    if dib.size < #sizeof(DibHeader) do
+    if dib.size < #sizeof(DibHeader)
+    {
         fail UnsupportedFormatError{"unsupported icon header"}
-    if dib.planes != 1 do
+    }
+
+    if dib.planes != 1
+    {
         fail UnsupportedFormatError{"icon DIB must have one color plane"}
-    if dib.width <= 0 or dib.height <= 0 or (dib.height & 1) do
+    }
+
+    if dib.width <= 0 or dib.height <= 0 or (dib.height & 1)
+    {
         fail InvalidFormatError{"invalid dimensions"}
+    }
+
     try checkEntryDimensions(entry, dib.width, dib.height / 2)
 
     var result: #returntype
     result.init(dib.width, dib.height / 2, PixelFormat.BGRA8)
     try options.checkImage(result.width, result.height, result.pixelFormat)
 
-    if not options.decodePixels do
+    if not options.decodePixels
+    {
         return result
+    }
 
     result.allocPixels()
-    if dib.size > imgLen do
+    if dib.size > imgLen
+    {
         fail InvalidFormatError{"icon DIB header is truncated"}
+    }
+
     try decodeDib(&result, dib, imgPtr + dib.size, imgPtr + imgLen)
     return result
 }
@@ -652,10 +711,14 @@ impl IImageSetDecoder for Decoder
         result.frames.reserve(entries.count)
         for i in entries.count
         {
-            if i == selected do
+            if i == selected
+            {
                 result.frames.add(representative)
-            else do
+            }
+            else
+            {
                 result.frames.add(try describeEntry(buffer, probeOptions, entries[i]))
+            }
         }
 
         .bytes      = buffer

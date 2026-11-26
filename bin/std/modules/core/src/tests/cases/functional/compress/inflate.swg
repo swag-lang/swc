@@ -456,7 +456,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 {
     const MatchWithoutHistory: [3] u8 = [0x03, 0x02, 0x00]
     const Prefix: [4] u8 = [1, 2, 3, 4]
-    var output: Array'u8
+    var output: Array!{u8}
     output.add(Prefix)
 
     var decoder: Compress.Inflate

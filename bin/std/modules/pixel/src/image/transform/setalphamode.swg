@@ -57,14 +57,17 @@ impl Image
                 let batches = (count + length - 1) / length
                 parallel for |pixels, length, count| batch in batches
                 {
-                    let start = batch * length
-                    let range = Math.min(count - start, length)
+                    let start  = batch * length
+                    let range  = Math.min(count - start, length)
                     let target = pixels + start * 4
                     PackedPixel.writeStraightAlpha8(target, target, range, false)
                 }
             }
-            else do
+            else
+            {
                 PackedPixel.writeStraightAlpha8(pixels, pixels, count, false)
+            }
+
             .alphaMode = newMode
             return
         }

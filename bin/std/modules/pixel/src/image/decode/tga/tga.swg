@@ -270,18 +270,21 @@ private func writeOpaqueSpan(destination: [*] u8, source: const [*] u8, count: u
 {
     using Math.Simd
 
-    const Reverse = cast(U8x16, [12'u8, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3])
-    const Opaque  = 0xFF00_0000'u32
-    let mask      = splat(Opaque)
-    let samples   = cast(const [*] u32, source)
-    let pixels    = cast([*] u32, destination)
-    var offset    = 0'u64
+    const Reverse = cast(U8x16, [12_u8, 13, 14, 15, 8, 9, 10, 11, 4, 5, 6, 7, 0, 1, 2, 3])
+    const Opaque  = 0xFF00_0000_u32
+    let mask    = splat(Opaque)
+    let samples = cast(const [*] u32, source)
+    let pixels  = cast([*] u32, destination)
+    var offset  = 0_u64
     while count - offset >= 4
     {
-        let start = rightOrigin ? count - offset - 4 : offset
+        let start  = rightOrigin ? count - offset - 4 : offset
         var values = load(samples + start) | mask
-        if rightOrigin do
+        if rightOrigin
+        {
             values = cast #bit(U32x4, shuffle(cast #bit(U8x16, values), Reverse))
+        }
+
         store(pixels + offset, values)
         offset += 4
     }
@@ -290,7 +293,7 @@ private func writeOpaqueSpan(destination: [*] u8, source: const [*] u8, count: u
     {
         let index = rightOrigin ? count - offset - 1 : offset
         pixels[offset] = samples[index] | Opaque
-        offset += 1
+        offset         += 1
     }
 }
 
@@ -301,8 +304,10 @@ private func(Index) writePaletteSpan(destination: [*] u8, source: const [*] Inde
     {
         let index = cast(u32, source[rightOrigin ? count - x - 1 : x])
         let key   = index - #wrap palette.first
-        if key >= palette.count do
+        if key >= palette.count
+        {
             fail InvalidFormatError{"invalid palette index"}
+        }
 
         let color = colors[key]
         let pixel = destination + x * destinationBytes
@@ -322,24 +327,24 @@ private func(HAS_ALPHA: bool) writeGraySpan(destination: [*] u8, source: const [
 {
     using Math.Simd
 
-    const Reverse = cast(U8x16, [15'u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
-    const Triplets0 = cast(U8x16, [0'u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5])
-    const Triplets1 = cast(U8x16, [5'u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10])
-    const Triplets2 = cast(U8x16, [10'u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
-    const Quadruplets0 = cast(U8x16, [0'u8, 0, 0, 1, 2, 2, 2, 3, 4, 4, 4, 5, 6, 6, 6, 7])
-    const Quadruplets1 = cast(U8x16, [8'u8, 8, 8, 9, 10, 10, 10, 11, 12, 12, 12, 13, 14, 14, 14, 15])
-    const ReverseQuadruplets0 = cast(U8x16, [14'u8, 14, 14, 15, 12, 12, 12, 13, 10, 10, 10, 11, 8, 8, 8, 9])
-    const ReverseQuadruplets1 = cast(U8x16, [6'u8, 6, 6, 7, 4, 4, 4, 5, 2, 2, 2, 3, 0, 0, 0, 1])
-    const Pixels = HAS_ALPHA ? 8 : 16
-    const InputBytes = HAS_ALPHA ? 2 : 1
-    const OutputBytes = HAS_ALPHA ? 4 : 3
+    const Reverse             = cast(U8x16, [15_u8, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0])
+    const Triplets0           = cast(U8x16, [0_u8, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5])
+    const Triplets1           = cast(U8x16, [5_u8, 5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10])
+    const Triplets2           = cast(U8x16, [10_u8, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14, 14, 14, 15, 15, 15])
+    const Quadruplets0        = cast(U8x16, [0_u8, 0, 0, 1, 2, 2, 2, 3, 4, 4, 4, 5, 6, 6, 6, 7])
+    const Quadruplets1        = cast(U8x16, [8_u8, 8, 8, 9, 10, 10, 10, 11, 12, 12, 12, 13, 14, 14, 14, 15])
+    const ReverseQuadruplets0 = cast(U8x16, [14_u8, 14, 14, 15, 12, 12, 12, 13, 10, 10, 10, 11, 8, 8, 8, 9])
+    const ReverseQuadruplets1 = cast(U8x16, [6_u8, 6, 6, 7, 4, 4, 4, 5, 2, 2, 2, 3, 0, 0, 0, 1])
+    const Pixels              = HAS_ALPHA ? 8 : 16
+    const InputBytes          = HAS_ALPHA ? 2 : 1
+    const OutputBytes         = HAS_ALPHA ? 4 : 3
 
-    var offset = 0'u64
+    var offset = 0_u64
     while count - offset >= Pixels
     {
-        let index = rightOrigin ? count - offset - Pixels : offset
+        let index  = rightOrigin ? count - offset - Pixels : offset
         let target = destination + offset * OutputBytes
-        var luma = load(source + index * InputBytes)
+        var luma   = load(source + index * InputBytes)
         #static if HAS_ALPHA
         {
             store(target, shuffle(luma, rightOrigin ? ReverseQuadruplets0 : Quadruplets0))
@@ -347,8 +352,11 @@ private func(HAS_ALPHA: bool) writeGraySpan(destination: [*] u8, source: const [
         }
         else
         {
-            if rightOrigin do
+            if rightOrigin
+            {
                 luma = shuffle(luma, Reverse)
+            }
+
             store(target, shuffle(luma, Triplets0))
             store(target + 16, shuffle(luma, Triplets1))
             store(target + 32, shuffle(luma, Triplets2))
@@ -359,14 +367,18 @@ private func(HAS_ALPHA: bool) writeGraySpan(destination: [*] u8, source: const [
 
     for x in offset until count
     {
-        let index = rightOrigin ? count - x - 1 : x
-        let pixel = source + index * InputBytes
+        let index  = rightOrigin ? count - x - 1 : x
+        let pixel  = source + index * InputBytes
         let target = destination + x * OutputBytes
-        let luma = pixel[0]
-        #static if HAS_ALPHA do
+        let luma   = pixel[0]
+        #static if HAS_ALPHA
+        {
             writeBgraPixel(target, luma, luma, luma, pixel[1])
-        else do
+        }
+        else
+        {
             writeBgrPixel(target, luma, luma, luma)
+        }
     }
 }
 
@@ -374,19 +386,29 @@ private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u
 {
     if isMonoType(header.imageTypeCode)
     {
-        if sourceBytes == 2 do
-            writeGraySpan'true(destination, source, count, rightOrigin)
-        else do
-            writeGraySpan'false(destination, source, count, rightOrigin)
+        if sourceBytes == 2
+        {
+            writeGraySpan!{true}(destination, source, count, rightOrigin)
+        }
+        else
+        {
+            writeGraySpan!{false}(destination, source, count, rightOrigin)
+        }
+
         return
     }
 
     if palette.colors
     {
-        if sourceBytes == 1 do
-            try writePaletteSpan'u8(destination, source, count, palette, destinationBytes, rightOrigin)
-        else do
-            try writePaletteSpan'u16(destination, cast(const [*] u16, source), count, palette, destinationBytes, rightOrigin)
+        if sourceBytes == 1
+        {
+            try writePaletteSpan!{u8}(destination, source, count, palette, destinationBytes, rightOrigin)
+        }
+        else
+        {
+            try writePaletteSpan!{u16}(destination, cast(const [*] u16, source), count, palette, destinationBytes, rightOrigin)
+        }
+
         return
     }
 
@@ -400,28 +422,40 @@ private func writeSourceSpan(destination: [*] u8, source: const [*] u8, count: u
     {
         if header.bitsPerPixel == 15
         {
-            if rightOrigin do
+            if rightOrigin
+            {
                 decodeTga15RowReversed(source, destination, count)
-            else do
+            }
+            else
+            {
                 decodeTga15Row(source, destination, count)
+            }
+
             return
         }
 
         if header.bitsPerPixel == 16
         {
             let alpha = hasAttributeBits(header)
-            if rightOrigin do
+            if rightOrigin
+            {
                 decodeTga16RowReversed(source, destination, count, alpha)
-            else do
+            }
+            else
+            {
                 decodeTga16Row(source, destination, count, alpha)
+            }
+
             return
         }
     }
 
     let step  = rightOrigin ? -destinationBytes : destinationBytes
     let first = destination + (rightOrigin ? (count - 1) * destinationBytes : 0)
-    for x in count do
+    for x in count
+    {
         try writeSourcePixel(first + cast(s64, x) * step, header, palette, source + x * sourceBytes)
+    }
 }
 
 func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: const [*] u8, pixelBytes: u8, pixelCount: u64) fail
@@ -496,13 +530,13 @@ func decodeRaw(result: *Image, header: Header, palette: Palette, src, last: cons
         return
     }
 
-    let rightOrigin = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
+    let rightOrigin  = (header.descriptorByte & DESC_ORIGIN_RIGHT) != 0
     let sourceStride = cast(u64, header.width) * pixelBytes
-    let output = result.pixels.storage()
+    let output       = result.pixels.storage()
     for y in result.height
     {
         let dstY = header.descriptorByte & DESC_ORIGIN_TOP ? result.height - y - 1 : y
-        let dst = output + cast(u64, dstY) * result.rowStride
+        let dst  = output + cast(u64, dstY) * result.rowStride
         try writeSourceSpan(dst, p, header.width, header, palette, pixelBytes, result.bytesPerPixel, rightOrigin)
         p += sourceStride
     }
@@ -522,7 +556,7 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
     var rowLeft     = width
     var decoded: [4] u8
     var index:   u64
-    var p = src
+    var p           = src
 
     if header.imageTypeCode == TYPE_RLE_RGB and
        (header.bitsPerPixel == 24 or (header.bitsPerPixel == 32 and hasAttributeBits(header)))
@@ -606,41 +640,60 @@ func decodeRle(result: *Image, header: Header, palette: Palette, src, last: cons
 
         let repeated = (packet & 0x80) != 0
         try checkBuffer(p, last, repeated ? pixelBytes : count * pixelBytes)
-        if repeated and not plain do
+        if repeated and not plain
+        {
             try writeSourcePixel(&decoded[0], header, palette, p)
+        }
 
         var remaining = count
         var source    = p
         while remaining
         {
             let segmentCount = Math.min(remaining, rowLeft)
-            let x             = rightOrigin ? rowLeft - segmentCount : width - rowLeft
-            let dst           = row + x * outputBytes
+            let x   = rightOrigin ? rowLeft - segmentCount : width - rowLeft
+            let dst = row + x * outputBytes
             if repeated
             {
                 let color = plain ? p : cast(const [*] u8, &decoded[0])
                 if outputBytes == 3
                 {
-                    if segmentCount == 1 do
+                    if segmentCount == 1
+                    {
                         writeBgrPixel(dst, color[0], color[1], color[2])
-                    else do
+                    }
+                    else
+                    {
                         PackedPixel.fillBgr24Row(color, dst, segmentCount)
+                    }
                 }
-                elif segmentCount == 1 do
+                else if segmentCount == 1
+                {
                     cast([*] u32, dst)[0] = cast(const [*] u32, color)[0]
-                else do
+                }
+                else
+                {
                     PackedPixel.fillBgra32Row(color, dst, segmentCount)
+                }
             }
             else
             {
-                if not plain do
+                if not plain
+                {
                     try writeSourceSpan(dst, source, segmentCount, header, palette, pixelBytes, outputBytes, rightOrigin)
-                elif not rightOrigin do
+                }
+                else if not rightOrigin
+                {
                     Memory.copy(dst, source, segmentCount * pixelBytes)
-                elif outputBytes == 3 do
+                }
+                else if outputBytes == 3
+                {
                     PackedPixel.reverseBgr24Row(source, dst, segmentCount)
-                else do
+                }
+                else
+                {
                     PackedPixel.reverseBgra32Row(source, dst, segmentCount)
+                }
+
                 source += segmentCount * pixelBytes
             }
 

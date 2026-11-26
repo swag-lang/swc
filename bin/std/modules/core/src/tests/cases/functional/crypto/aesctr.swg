@@ -109,8 +109,11 @@ func aesCtrHexBytes(text: string)->Array!{u8}
     let ciphertext = aesCtrHexBytes("f11deed95baa9faad6acb5a54a4339506299088f48335bde7ee00a45bd165fcaddc39226a2145f86b71bfcd0dc2c0ecf3b65dbcf1f8b25a90f7c607e35f7ea5368ca7d5652336a3c75d0bd36dcb9b5c6b973c0fbdaaba896dadfdb6bcc6303af4b")
     var buffer: [99] u8
     let data       = buffer[1 until 98]
-    for index in data.count do
+    for index in data.count
+    {
         data[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
     let plaintext = buffer
 
     expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
@@ -129,10 +132,13 @@ func aesCtrHexBytes(text: string)->Array!{u8}
     let ciphertext = aesCtrHexBytes("c2d8ba702d886b39d7549174d2b9c6a742bea5aeb3bb8110de26a25e2c646db730103019019acbe934e721430322bb0934eed27a4209fd8f5bf8734e98d4bdde124842332491687449a296b659f2a51f033ba741b29dc44246c5062a69a4d1463b729effcdfe8c9adab015cac7b11589eaa1cba263b3ef0b8abd93cd634046c87d1c16164f6a8108439791cea73d563d70")
     var buffer: [147] u8
     let data       = buffer[1 until 146]
-    buffer[0]      = 0xA5
-    buffer[146]    = 0x5A
-    for index in data.count do
+    buffer[0]   = 0xA5
+    buffer[146] = 0x5A
+    for index in data.count
+    {
         data[index] = cast(u8, (index * 29 + 7) & 0xFF)
+    }
+
     let plaintext = buffer
 
     expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
@@ -150,9 +156,11 @@ func aesCtrHexBytes(text: string)->Array!{u8}
     let counter    = aesCtrHexBytes("00000000000000feffffffffffffffff")
     let ciphertext = aesCtrHexBytes("53cbfe43e5402f013d9e5168140b332cba9f265eb86c7f36bedc5f191e98acd0b2")
     var buffer: [35] u8
-    let data = buffer[1 until 34]
-    for index in data.count do
+    let data       = buffer[1 until 34]
+    for index in data.count
+    {
         data[index] = cast(u8, (index * 17 + 5) & 0xFF)
+    }
 
     expect Crypto.aesCtrCrypt(key.toSlice(), counter.toSlice(), data, data)
     Swag.require(Crypto.constantTimeEqual(data, ciphertext.toSlice()))

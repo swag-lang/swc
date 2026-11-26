@@ -8,12 +8,12 @@
 using Core, Core.Errors, Core.Math, Pixel
 
 // Unpack one channel from four RGB24 or RGB32 pixels into the low lanes.
-private const First24  = cast(Simd.U8x16, [0'u8, 3, 6, 9, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const Second24 = cast(Simd.U8x16, [1'u8, 4, 7, 10, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const Third24  = cast(Simd.U8x16, [2'u8, 5, 8, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const First32  = cast(Simd.U8x16, [0'u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const Second32 = cast(Simd.U8x16, [1'u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-private const Third32  = cast(Simd.U8x16, [2'u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const First24  = cast(Simd.U8x16, [0_u8, 3, 6, 9, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Second24 = cast(Simd.U8x16, [1_u8, 4, 7, 10, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Third24  = cast(Simd.U8x16, [2_u8, 5, 8, 11, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const First32  = cast(Simd.U8x16, [0_u8, 4, 8, 12, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Second32 = cast(Simd.U8x16, [1_u8, 5, 9, 13, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+private const Third32  = cast(Simd.U8x16, [2_u8, 6, 10, 14, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128])
 
 #[Swag.Inline]
 private func convertPixels4(source: const [*] u8, target: [*] u8, redMask, greenMask, blueMask: Simd.U8x16)->{cb: Simd.S16x8, cr: Simd.S16x8}
@@ -42,7 +42,7 @@ private func(StepX: u64, StepY: u64) storeChroma4(target: [*] u8, samples: Simd.
     }
     else
     {
-        let pairs = Simd.mulAddPairs(samples, Simd.splat(1's16))
+        let pairs = Simd.mulAddPairs(samples, Simd.splat(1_s16))
         #static if StepX == 4
         {
             target[0] = cast(u8, (pairs[0] + pairs[1] + 2) >> 2)
@@ -58,7 +58,7 @@ private func(StepX: u64, StepY: u64) storeChroma4(target: [*] u8, samples: Simd.
 
 private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, height, chromaWidth, chromaHeight: u64, luma, cb, cr: [*] u8)
 {
-    let red       = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 ? 0'u64 : 2'u64
+    let red       = image.pixelFormat == .RGB8 or image.pixelFormat == .RGBA8 ? 0_u64 : 2_u64
     let blue      = 2 - red
     let pixelSize = image.bytesPerPixel
     let stride    = cast(u64, image.rowStride)
@@ -71,7 +71,7 @@ private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, h
 
     // RGB24 needs at least 16 readable bytes for a packed load. The scalar tail handles
     // any complete chroma footprints left at the end of that row.
-    let groups = (pixelSize == 4 ? width : Math.max(width, 2'u64) - 2) / 4
+    let groups = (pixelSize == 4 ? width : Math.max(width, 2_u64) - 2) / 4
 
     for cy in chromaHeight
     {
@@ -93,8 +93,8 @@ private func(StepX: u64, StepY: u64) convertPlanes(image: const *Image, width, h
                 chroma.cr += next.cr
             }
 
-            storeChroma4'(StepX, StepY)(cbRow + x / StepX, chroma.cb)
-            storeChroma4'(StepX, StepY)(crRow + x / StepX, chroma.cr)
+            storeChroma4!{StepX, StepY}(cbRow + x / StepX, chroma.cb)
+            storeChroma4!{StepX, StepY}(crRow + x / StepX, chroma.cr)
         }
 
         for cx in groups * 4 / StepX until chromaWidth

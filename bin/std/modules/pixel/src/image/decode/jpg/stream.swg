@@ -65,8 +65,9 @@ impl Decoder
     {
         .entropyBits  <<= count
         .entropyCount -= count
-        if .entropyCount < 16 do
+        if .entropyCount < 16 {
             .refillEntropyBits()
+        }
     }
 
     #[Swag.Inline]
@@ -105,8 +106,8 @@ impl Decoder
 
             // Adding one to each low seven-bit field identifies bytes whose low bits are all
             // set. A set high bit then identifies 0xFF, which must go through the marker reader.
-            let lowBits = word & 0x7F7F7F7F'u32
-            if ((lowBits + 0x01010101'u32) & word & 0x80808080'u32) == 0
+            let lowBits = word & 0x7F7F7F7F_u32
+            if ((lowBits + 0x01010101_u32) & word & 0x80808080_u32) == 0
             {
                 .inBufOfs  += 4
                 .inBufLeft -= 4

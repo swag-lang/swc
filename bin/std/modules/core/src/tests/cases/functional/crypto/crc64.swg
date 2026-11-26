@@ -89,7 +89,7 @@ func assertCrc64Kind(buffer: const [..] u8, kind: Hash.Crc64Kind)
     Swag.require(crc.value() == expected)
 
     crc.reset(kind)
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < buffer.count
     {
         let end = Math.min(offset + 37, buffer.count)
@@ -146,8 +146,10 @@ func fillCrc64Pattern(buffer: [..] u8)
     assertCrc64(data[until 255])
     assertCrc64(data[until 256])
     assertCrc64(data[until 257])
-    for offset in 8 do
+    for offset in 8
+    {
         assertCrc64(data[offset until offset + 1025])
+    }
 
     var split: Hash.Crc64
     split.reset(Hash.Crc64Kind.IsoXz)
@@ -170,14 +172,18 @@ func fillCrc64Pattern(buffer: [..] u8)
     #assert(Hash.Crc64.compute(message, .IsoXz) == #run crc64Reference(message, .IsoXz))
     #assert(Hash.Crc64.compute(message, .Ecma182) == #run crc64Reference(message, .Ecma182))
 
-    for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279, 4095, 4096, 4097, 4351, 4352] do
+    for size in [1023, 1024, 1025, 1151, 1152, 1153, 1279, 4095, 4096, 4097, 4351, 4352]
+    {
         assertCrc64(message[1 until 1 + size])
+    }
 }
 
 #test
 {
     var data: [8450] u8
     fillCrc64Pattern(data)
-    for size in [2047, 2048, 2049, 2095, 2175, 2303, 2304, 8192, 8447] do
+    for size in [2047, 2048, 2049, 2095, 2175, 2303, 2304, 8192, 8447]
+    {
         assertCrc64Kind(data[1 until 1 + size], .Ecma182)
+    }
 }

@@ -190,7 +190,7 @@ var c = #move a     // the transfer is accepted
 
 Declaring 'opPostCopy' beside it opts the copy back in, because it is where the type says
 what a duplicate owns. The rule reaches through members: a struct holding a value that owns
-a release owns one too, and states no copy either, unless the member's type declares its
+a release owns one too, and states no copy either, unless the member!{s} type declares its
 own 'opPostCopy'.. '#[Swag.NoCopy]' remains the way to refuse a copy for any other reason.
 
 A generic type decides per instantiation, by declaring the operation inside a '#static if'. That

@@ -57,7 +57,7 @@ public impl Md5
         length[1] = Math.nativeToLittleEndian(.count[1])
         transform(.state, bytes)
 
-        addInputLength(&.count, (needsExtra ? 128'u64 : 64'u64) - index)
+        addInputLength(&.count, (needsExtra ? 128_u64 : 64_u64) - index)
         return encodeDigest(.state)
     }
 
@@ -174,7 +174,7 @@ impl Md5
     #[Swag.Inline]
     func loadWord(words: const [*] u32, index: u32)->u32 => Math.littleEndianToNative(words[index])
 
-    func transform(state: [4] u32, blocks: const [*] u8, count = 1'u64)
+    func transform(state: [4] u32, blocks: const [*] u8, count = 1_u64)
     {
         var a = state[0]
         var b = state[1]

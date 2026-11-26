@@ -81,9 +81,10 @@ func coverageIndex(table: const [..] u8, offset: u64, glyph: u16)->s32
     if format != 2
     {
         return -1
+
+        // Ranges, each naming the coverage index its first glyph carries.
     }
 
-    // Ranges, each naming the coverage index its first glyph carries.
     while left < right
     {
         let mid        = left + (right - left) / 2
@@ -211,7 +212,7 @@ func parseGpos(faceData: *FaceImpl) fail
     }
 
     let r     = rec
-    let table = try getSlice(faceData.fontData.toSlice(), r.offset, r.length)
+    let table = try getSlice(faceData.fontBytes(), r.offset, r.length)
     if table.count < 10
     {
         return

@@ -17,8 +17,8 @@ public struct ClippingPath
 {
     public
     {
-        late path: *LinePathList   // Contours in the painter's current path space.
-        rule:      PathFillRule    // Rule used to determine the inside of those contours.
+        late path: *LinePathList     // Contours in the painter's current path space.
+        rule:      PathFillRule      // Rule used to determine the inside of those contours.
     }
 }
 
@@ -101,13 +101,20 @@ private func buildTriangleOffsets(directions: *HashTable!{u64, Vector2}, p: *Lin
 
     // A large compound region can be followed by thousands of small ones.
     // Release an oversized scratch table before its sparse clears dominate them.
-    var pointCount = 0'u64
-    for index in contours do
+    var pointCount = 0_u64
+    for index in contours
+    {
         pointCount += paths[index].polygon.points.count
-    if directions.capacity > 256 and directions.capacity / 8 > pointCount do
+    }
+
+    if directions.capacity > 256 and directions.capacity / 8 > pointCount
+    {
         directions.free()
-    else do
+    }
+    else
+    {
         directions.clear()
+    }
 
     for index in contours
     {
@@ -590,8 +597,10 @@ public impl Painter
     // ```
     mtd fillPath(pathList: *LinePathList, brush: Brush, rule: PathFillRule)
     {
-        if brush.type == .SolidColor and .recordScanFill(pathList, brush.color, rule) do
+        if brush.type == .SolidColor and .recordScanFill(pathList, brush.color, rule)
+        {
             return
+        }
 
         pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
@@ -611,17 +620,26 @@ public impl Painter
     private mtd const canRecordScanPath()->bool
     {
         let mask = .curState.colorMask
-        return .useScanlineFills and (not .curRT or (not .curPaintAlpha and .curRT.colorBuffer.pixelFormat == .BGRA8)) and
-               not .overlapMode and .usesDefaultShader and .canSetTexture0 and
-               (.curState.paintParams & .Antialiased) and .curState.blendingMode == .Alpha and
-               mask.r and mask.g and mask.b and not mask.a
+        return .useScanlineFills and
+               (not .curRT or (not .curPaintAlpha and .curRT.colorBuffer.pixelFormat == .BGRA8)) and
+               not .overlapMode and
+               .usesDefaultShader and
+               .canSetTexture0 and
+               (.curState.paintParams & .Antialiased) and
+               .curState.blendingMode == .Alpha and
+               mask.r and
+               mask.g and
+               mask.b and
+               not mask.a
     }
 
     private mtd emitScanFill(start: u64, lowest, highest: Vector2, color: Color, rule: PathFillRule)
     {
         let end = .scanContourEnds.count
-        if start < end do
+        if start < end
+        {
             .newCommand(.DrawScanFill).op = .DrawScanFill{first: start, end: end, low: lowest, high: highest, color: color, rule: rule}
+        }
     }
 
     // Replaces the active clipping region with the intersection of several paths.
@@ -632,14 +650,21 @@ public impl Painter
     // state needs a polygon fallback.
     mtd trySetClippingPathIntersection(paths: const [..] ClippingPath)->bool
     {
-        if not paths.count or not .useScanlineFills or .curRT or .overlapMode or
-           not (.curState.paintParams & .Antialiased) do
+        if not paths.count or
+           not .useScanlineFills or
+           .curRT or
+           .overlapMode or
+           not (.curState.paintParams & .Antialiased)
+        {
             return false
+        }
 
         let first = .scanClipShapes.count
         let white = Color.fromArgb(Argb.White)
-        for shape in paths do
+        for shape in paths
+        {
             .scanClipShapes.add(.recordScanContours(shape.path, white, shape.rule))
+        }
 
         .startClippingRegion(.Set)
         .newCommand(.DrawScanClip).op = .DrawScanClip{first: first, end: .scanClipShapes.count}
@@ -656,8 +681,10 @@ public impl Painter
         for path in pathList.paths
         {
             path.flattenPoints(.curState.paintQuality, .curFlattenScale)
-            if path.polygon.points.count < 3 do
+            if path.polygon.points.count < 3
+            {
                 continue
+            }
 
             .scanPoints.add(path.polygon.points.toSlice())
             .scanContourEnds.add(.scanPoints.count)
@@ -670,14 +697,22 @@ public impl Painter
 
     internal mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
     {
-        if not .canRecordScanPath() do
+        if not .canRecordScanPath()
+        {
             return false
-        if not color.a or .isEmptyClippingRect() do
+        }
+
+        if not color.a or .isEmptyClippingRect()
+        {
             return true
+        }
 
         let batch = .recordScanContours(pathList, color, rule)
-        if batch.first != batch.end do
+        if batch.first != batch.end
+        {
             .newCommand(.DrawScanFill).op = .DrawScanFill{batch}
+        }
+
         return true
     }
 

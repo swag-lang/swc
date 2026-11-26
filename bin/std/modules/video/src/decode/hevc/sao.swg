@@ -185,7 +185,7 @@ impl Decoder
 
         let frame   = unwrap .current
         let columns = cast(u64, sps.widthInCtbs)
-        for component in 3'u32
+        for component in 3_u32
         {
             // A plane without offsets already holds its final samples.
             var hasOffsets = false

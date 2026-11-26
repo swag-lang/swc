@@ -74,8 +74,11 @@ impl SheetView
         }
 
         var height = 2 * SheetPadding
-        for &row in .rows do
+        for &row in .rows
+        {
             height += row.group ? GroupHeight : RowHeight
+        }
+
         .host.setScrollSize(0, height)
         .invalidate()
     }
@@ -293,14 +296,18 @@ impl IWnd for SheetView
         var y = client.y + SheetPadding
         for &row in .rows
         {
-            if y >= bottom do
+            if y >= bottom
+            {
                 break
+            }
 
             let height = row.group ? GroupHeight : RowHeight
             let rect   = Math.Rectangle{client.x + SheetPadding, y, width, height}
             y += height
-            if y <= top do
+            if y <= top
+            {
                 continue
+            }
 
             if row.group
             {

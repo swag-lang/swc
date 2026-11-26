@@ -530,7 +530,7 @@ impl Decoder
             let baseY     = .blockAt / .current.columns * size * 2
             let plane     = &.current.planes[channel]
             let reference = .pictureKind == 2 ? &.future.planes[channel] : &.past.planes[channel]
-            for part in 4's32
+            for part in 4_s32
             {
                 let x   = baseX + (part & 1) * size
                 let y   = baseY + (part >> 1) * size
@@ -814,7 +814,7 @@ impl Decoder
                 end = following.start
             }
 
-            if end <= next or end > .current.columns * .current.rows
+            if end!{= next or end}.current.columns * .current.rows
             {
                 fail InvalidFormatError{"RealVideo slice has no macroblocks or exceeds the picture"}
             }

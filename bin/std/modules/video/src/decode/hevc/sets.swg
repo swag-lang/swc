@@ -358,7 +358,11 @@ impl Sps
             fail InvalidFormatError{"HEVC coding block sizes are out of range"}
         }
 
-        if .maxTbLog2Size > 5 or .minTbLog2Size < 2 or .minTbLog2Size > .maxTbLog2Size
+        if .maxTbLog2Size > 5 or
+           .minTbLog2Size!
+        {
+            2 or .minTbLog2Size
+        }.maxTbLog2Size
         {
             fail InvalidFormatError{"HEVC transform block sizes are out of range"}
         }

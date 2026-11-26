@@ -68,6 +68,12 @@ impl AesCmac
     mtd update(data: const [..] u8) fail
     {
         Swag.assert(.initialized, "AES-CMAC needs an initialized sequence")
+        if .aes.usesHardwareRounds() and data.count > AesBlockSize - .bufferCount
+        {
+            .updateHardware(data)
+            return
+        }
+
         var offset = 0_u64
         while offset < data.count
         {
@@ -169,21 +175,27 @@ impl AesCmac
 
     private mtd updateHardware(data: const [..] u8)
     {
-        var offset = 0'u64
+        var offset = 0_u64
         var chained: [1] U8x16 = [load(&.state[0])]
         if .bufferCount
         {
             offset = AesBlockSize - .bufferCount
-            if offset do
+            if offset
+            {
                 Swag.memcpy(&.buffer[.bufferCount], data.buffer, offset)
+            }
+
             chained[0] = .aes.encryptBlockHardware(chained[0] ^ load(&.buffer[0]))
             Crypto.secureClear(.buffer)
         }
 
         // CMAC needs the last block for its final complete-or-padded distinction.
-        let fullBlockBytes = (data.count - offset - 1) & ~15'u64
-        for block in fullBlockBytes / AesBlockSize do
+        let fullBlockBytes = (data.count - offset - 1) & ~15_u64
+        for block in fullBlockBytes / AesBlockSize
+        {
             chained[0] = .aes.encryptBlockHardware(chained[0] ^ load(data.buffer + offset + block * AesBlockSize))
+        }
+
         offset += fullBlockBytes
         store(&.state[0], chained[0])
         Crypto.secureClear(chained)

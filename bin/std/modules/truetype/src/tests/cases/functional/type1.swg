@@ -154,8 +154,10 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     const Division: [8] u8 = [139, 247, 92, 141, 12, 12, 13, 14]
     const Vector:   [7] u8 = [139, 139, 246, 139, 12, 7, 14]
     var font: Type1Font
-    for code in [cast(const [..] u8, Direct), cast(const [..] u8, Division), cast(const [..] u8, Vector)] do
+    for code in [cast(const [..] u8, Direct), cast(const [..] u8, Division), cast(const [..] u8, Vector)]
+    {
         font.charstrings.add(font.storeCode(code, -1))
+    }
 
     let expected = [500.0, 100.0, 107.0]
     for width, gid in expected

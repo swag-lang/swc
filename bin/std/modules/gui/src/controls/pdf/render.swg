@@ -356,21 +356,30 @@ private func drawEmbeddedOutlines(painter: *Painter, fonts: *RenderFontCache, it
     for code in item.textCodes
     {
         let mapped = resource.glyphFor(font, code)
-        if not mapped.found do
+        if not mapped.found
+        {
             return false
+        }
+
         let key = prefix | mapped.index
         if not fonts.glyphOutlines.tryFind(key)
         {
-            if fonts.glyphOutlines.count >= MaxOutlines do
+            if fonts.glyphOutlines.count >= MaxOutlines
+            {
                 return false
+            }
+
             var result:  {outline: LinePathList, advance: f32}
             var outcome: Swag.Error
             catch
             {
                 result = try face.buildGlyphOutline(mapped.index, ReferenceSize)
             } as outcome
-            if not outcome.isEmpty() do
+            if not outcome.isEmpty()
+            {
                 return false
+            }
+
             discard fonts.glyphOutlines.add(key, #move result.outline)
         }
 
@@ -379,7 +388,7 @@ private func drawEmbeddedOutlines(painter: *Painter, fonts: *RenderFontCache, it
 
     let scale         = cast(f32, font.size) / ReferenceSize
     let previousScale = painter.flattenScale()
-    painter.setFlattenScale(Math.max(painter.textTransformScale() * scale, 1.0'f32 / 64))
+    painter.setFlattenScale(Math.max(painter.textTransformScale() * scale, 1.0_f32 / 64))
     defer
     {
         painter.setFlattenScale(previousScale)
@@ -506,7 +515,7 @@ internal func unitSquareScale(transform: Transform2)->f32
 //
 // The region carries coverage, so the shape is filled the way any shape is: its antialiased
 // edge becomes the edge of every mark cut by it.
-private func writeClipRegion(painter: *Painter, page: *Page, index: u32, pageToSurface: Transform2, scanClips: bool, paths: *Array'ClippingPath)
+private func writeClipRegion(painter: *Painter, page: *Page, index: u32, pageToSurface: Transform2, scanClips: bool, paths: *Array!{ClippingPath})
 {
     if painter.transform() != pageToSurface
     {
@@ -525,8 +534,10 @@ private func writeClipRegion(painter: *Painter, page: *Page, index: u32, pageToS
             next = clip.parent
         }
 
-        if painter.trySetClippingPathIntersection(paths.toSlice()) do
+        if painter.trySetClippingPathIntersection(paths.toSlice())
+        {
             return
+        }
     }
 
     let clip = page.resolveClipPath(index)
@@ -881,8 +892,11 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     painter.setContentScale(options.scale)
     painter.begin()
 
-    if paintAlpha do
+    if paintAlpha
+    {
         painter.bindRenderTarget(&target, true)
+    }
+
     painter.setColorMaskFull()
     painter.clear(options.background)
     painter.setColorMaskColor()
@@ -910,8 +924,11 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
         painter.setBlendingMode(.Alpha)
     }
 
-    if paintAlpha do
+    if paintAlpha
+    {
         painter.unbindRenderTarget()
+    }
+
     painter.end()
 
     renderer.begin(context)

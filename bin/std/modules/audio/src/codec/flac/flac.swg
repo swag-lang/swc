@@ -118,35 +118,43 @@ private impl BitReader
         let limit    = (.size - Math.min(.size, 7)) * 8
         let shift    = 64 - width
         var position = .bitPos
-        var index    = 0'u32
+        var index    = 0_u32
         while count - index >= Group and position < limit
         {
             let offset = cast(u32, position & 7)
             let packed = cast(const [*] u64, source + (position >> 3))[0]
             let word   = Math.bigEndianToNative(packed) << offset
             destination[index] = cast #bit(s64, word) >> shift
-            #static if Group == 2 do
+            #static if Group == 2
+            {
                 destination[index + 1] = cast #bit(s64, word << width) >> shift
+            }
+
             position += Group * width
             index    += Group
         }
 
         .bitPos = position
-        for tail in index until count do
+        for tail in index until count
+        {
             destination[tail] = .readSigned(width)
+        }
     }
 
     // Aligned native-depth runs can unpack complete vectors of big-endian samples.
     mtd(Width: u32) readSignedAligned(destination: [*] s64, count: u32)->u32
     {
-        const Samples = Width == 16 ? 8'u32 : 4'u32
-        const Stride  = Width == 24 ? 12'u32 : 16'u32
-        const Swap16  = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
-        const Swap24  = cast(Math.Simd.U8x16, [0'u8, 2, 1, 0, 0, 5, 4, 3, 0, 8, 7, 6, 0, 11, 10, 9])
-        const Swap32  = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+        const Samples = Width == 16 ? 8_u32 : 4_u32
+        const Stride  = Width == 24 ? 12_u32 : 16_u32
+        const Swap16  = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+        const Swap24  = cast(Math.Simd.U8x16, [0_u8, 2, 1, 0, 0, 5, 4, 3, 0, 8, 7, 6, 0, 11, 10, 9])
+        const Swap32  = cast(Math.Simd.U8x16, [3_u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
         let bytes = .bitsLeft() >> 3
-        if bytes < 16 do
+        if bytes < 16
+        {
             return 0
+        }
+
         let groups = cast(u32, Math.min(cast(u64, count / Samples), (bytes - 16) / Stride + 1))
         let source = unwrap .data + (.bitPos >> 3)
         for index in groups
@@ -166,7 +174,7 @@ private impl BitReader
             else
             {
                 const Swap  = Width == 24 ? Swap24 : Swap32
-                const Shift = Width == 24 ? 8'u32 : 0
+                const Shift = Width == 24 ? 8_u32 : 0
                 let signed = cast #bit(Math.Simd.S32x4, Math.Simd.permute(input, Swap)) >> Shift
                 Math.Simd.store(output, Math.Simd.widenLow(signed))
                 Math.Simd.store(output + 2, Math.Simd.widenHigh(signed))
@@ -179,24 +187,28 @@ private impl BitReader
 
     mtd readSignedSamples(destination: [*] s64, count, width: u32)
     {
-        var start = 0'u32
+        var start = 0_u32
         #static if not Core.BIG_ENDIAN
         {
             if not (.bitPos & 7)
             {
                 switch width
                 {
-                case 16: start = .readSignedAligned'16(destination, count)
-                case 24: start = .readSignedAligned'24(destination, count)
-                case 32: start = .readSignedAligned'32(destination, count)
+                case 16: start = .readSignedAligned!{16}(destination, count)
+                case 24: start = .readSignedAligned!{24}(destination, count)
+                case 32: start = .readSignedAligned!{32}(destination, count)
                 }
             }
         }
 
-        if width <= 28 do
-            .readSignedRun'2(destination + start, count - start, width)
-        else do
-            .readSignedRun'1(destination + start, count - start, width)
+        if width <= 28
+        {
+            .readSignedRun!{2}(destination + start, count - start, width)
+        }
+        else
+        {
+            .readSignedRun!{1}(destination + start, count - start, width)
+        }
     }
 
     // Counts the zero bits before the next set bit, and consumes that set bit.
@@ -258,12 +270,12 @@ private impl BitReader
     {
         let source    = unwrap .data
         let wideLimit = (.size - Math.min(.size, 7)) * 8
-        let mask      = (1'u64 << parameter) - 1
+        let mask      = (1_u64 << parameter) - 1
 
         // At most thirteen remainder bits leave room for four codes even across byte boundaries.
-        let bulkCount = parameter <= 13 ? count & ~3'u32 : 0
+        let bulkCount = parameter <= 13 ? count & ~3_u32 : 0
         var position  = .bitPos
-        var index     = 0'u32
+        var index     = 0_u32
         while index < bulkCount and position < wideLimit
         {
             let bitOffset = cast(u32, position & 7)
@@ -298,8 +310,11 @@ private impl BitReader
             else
             {
                 .bitPos = position
-                for lane in 4 do
+                for lane in 4
+                {
                     destination[index + lane] = signedResidual(.readRice(parameter, mask))
+                }
+
                 position = .bitPos
             }
 
@@ -307,8 +322,10 @@ private impl BitReader
         }
 
         .bitPos = position
-        for tail in index until count do
+        for tail in index until count
+        {
             destination[tail] = signedResidual(.readRice(parameter, mask))
+        }
     }
 
     // Read pairs when the wider remainder makes four codes impractical.
@@ -323,9 +340,9 @@ private impl BitReader
 
         let source    = unwrap .data
         let wideLimit = (.size - Math.min(.size, 7)) * 8
-        let mask      = (1'u64 << parameter) - 1
+        let mask      = (1_u64 << parameter) - 1
         var position  = .bitPos
-        var index     = 0'u32
+        var index     = 0_u32
         while count - index >= 2 and position < wideLimit
         {
             let bitOffset = cast(u32, position & 7)
@@ -357,8 +374,10 @@ private impl BitReader
         }
 
         .bitPos = position
-        for tail in index until count do
+        for tail in index until count
+        {
             destination[tail] = signedResidual(.readRice(parameter, mask))
+        }
     }
 
     // Advances to the next byte boundary.
@@ -669,18 +688,25 @@ private impl Codec
                 }
                 else
                 {
-                    for sample in index until end do
+                    for sample in index until end
+                    {
                         output[sample] = 0
+                    }
                 }
 
                 index = end
             }
             else
             {
-                if param >= 14 and param <= 27 do
+                if param >= 14 and param <= 27
+                {
                     reader.readRicePairs(output + index, end - index, param)
-                else do
+                }
+                else
+                {
                     reader.readRiceRun(output + index, end - index, param)
+                }
+
                 index = end
             }
         }
@@ -838,18 +864,24 @@ private impl Codec
     #[Swag.Safety(.Overflow, false)]
     mtd(Wide: bool) predictLinearPacked(target, residual: [*] s64, coefficients: const [*] s64, order, blockSize, shift: u32)->u32
     {
-        const Limit   = Wide ? 1's64 << 30 : 1's64 << 15
-        const LowBias = 32768's64
+        const Limit   = Wide ? 1_s64 << 30 : 1_s64 << 15
+        const LowBias = 32768_s64
         var norm, bias: s64
         var weights:    [4, 8] s16
         var warmup, upperWarmup: [8] s16
-        #static if not Wide do
+        #static if not Wide
+        {
             discard bias, upperWarmup
+        }
+
         for tap in order
         {
             let sample = residual[tap]
-            if sample < -Limit or sample >= Limit do
+            if sample < -Limit or sample >= Limit
+            {
                 return order
+            }
+
             #static if Wide
             {
                 // A wide sample equals (high << 16) + biasedLow + 32768.
@@ -865,15 +897,20 @@ private impl Codec
             norm += Math.abs(coefficients[tap])
         }
 
-        if norm > 65535 do
+        if norm > 65535
+        {
             return order
+        }
+
         for pair in 4
         {
             for lane in 8
             {
                 let tap = 7 - 2 * pair - (lane & 1) + (lane >> 1)
-                if tap < order do
+                if tap < order
+                {
                     weights[pair, lane] = cast(s16, coefficients[tap])
+                }
             }
         }
 
@@ -885,10 +922,10 @@ private impl Codec
         let tap0    = coefficients[0]
         let tap1    = coefficients[1]
         let tap2    = coefficients[2]
-        const Pair0 = cast(Math.Simd.U16x8, [0'u16, 1, 0, 1, 0, 1, 0, 1])
-        const Pair1 = cast(Math.Simd.U16x8, [2'u16, 3, 2, 3, 2, 3, 2, 3])
-        const Pair2 = cast(Math.Simd.U16x8, [4'u16, 5, 4, 5, 4, 5, 4, 5])
-        const Pair3 = cast(Math.Simd.U16x8, [6'u16, 7, 6, 7, 6, 7, 6, 7])
+        const Pair0 = cast(Math.Simd.U16x8, [0_u16, 1, 0, 1, 0, 1, 0, 1])
+        const Pair1 = cast(Math.Simd.U16x8, [2_u16, 3, 2, 3, 2, 3, 2, 3])
+        const Pair2 = cast(Math.Simd.U16x8, [4_u16, 5, 4, 5, 4, 5, 4, 5])
+        const Pair3 = cast(Math.Simd.U16x8, [6_u16, 7, 6, 7, 6, 7, 6, 7])
 
         var upperHistory:        Math.Simd.S16x8
         var bias1, bias2, bias3: s64
@@ -901,8 +938,10 @@ private impl Codec
             bias2 = bias1 - tap1 * LowBias
             bias3 = bias2 - tap2 * LowBias
         }
-        else do
+        else
+        {
             discard upperHistory, bias1, bias2, bias3
+        }
 
         var index = order
         while blockSize - index >= 4
@@ -936,8 +975,11 @@ private impl Codec
             // If it exists, discard the entire group and let the wide predictor redo it.
             let outside = cast #bit (u64, (sample0 + Limit)) | cast #bit (u64, (sample1 + Limit)) |
                           cast #bit (u64, (sample2 + Limit)) | cast #bit (u64, (sample3 + Limit))
-            if outside >= cast(u64, Limit * 2) do
+            if outside >= cast(u64, Limit * 2)
+            {
                 return index
+            }
+
             target[index]     = sample0
             target[index + 1] = sample1
             target[index + 2] = sample2
@@ -981,9 +1023,11 @@ private impl Codec
             let tapCount    = cast(u32, order)
             let sampleCount = cast(u32, blockSize)
             let rightShift  = cast(u32, shift)
-            start = .predictLinearPacked'false(target, source, coefficients, tapCount, sampleCount, rightShift)
-            if start == tapCount and depth > 16 do
-                start = .predictLinearPacked'true(target, source, coefficients, tapCount, sampleCount, rightShift)
+            start = .predictLinearPacked!{false}(target, source, coefficients, tapCount, sampleCount, rightShift)
+            if start == tapCount and depth > 16
+            {
+                start = .predictLinearPacked!{true}(target, source, coefficients, tapCount, sampleCount, rightShift)
+            }
         }
 
         let groups      = order / 4
@@ -1107,11 +1151,14 @@ private impl Codec
     // Apply stereo decorrelation while interleaving, so the wide scratch is read once.
     mtd(Assignment: u32, ScaleDown: bool, FullWidth: bool) interleaveStereoPcm16(destination: [*] s16, blockSize, shift: u32)
     {
-        #static if not ScaleDown do
+        #static if not ScaleDown
+        {
             discard shift
+        }
+
         let firstPlane  = .channels[0].storage()
         let secondPlane = .channels[1].storage()
-        var done        = 0'u32
+        var done        = 0_u32
         #static if not Core.BIG_ENDIAN
         {
             while blockSize - done >= 4
@@ -1126,9 +1173,9 @@ private impl Codec
                 }
                 else
                 {
-                    const Bias = cast(Math.Simd.U64x2, [0x2000_0000'u64, 0x2000_0000])
-                    const High = cast(Math.Simd.U64x2, [0xFFFF_FFFF_C000_0000'u64, 0xFFFF_FFFF_C000_0000])
-                    const Zero = cast(Math.Simd.U64x2, [0'u64, 0])
+                    const Bias = cast(Math.Simd.U64x2, [0x2000_0000_u64, 0x2000_0000])
+                    const High = cast(Math.Simd.U64x2, [0xFFFF_FFFF_C000_0000_u64, 0xFFFF_FFFF_C000_0000])
+                    const Zero = cast(Math.Simd.U64x2, [0_u64, 0])
                     let a0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(firstPlane + done))
                     let a1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(firstPlane + done + 2))
                     let b0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(secondPlane + done))
@@ -1137,8 +1184,10 @@ private impl Codec
                     // Inputs in [-2^29, 2^29) keep decorrelation in signed 32 bits.
                     // The bias maps that interval to the unsigned low thirty bits.
                     let large = ((a0 + Bias) | (a1 + Bias) | (b0 + Bias) | (b1 + Bias)) & High
-                    if Math.Simd.bitmask(large == Zero) != 0b11 do
+                    if Math.Simd.bitmask(large == Zero) != 0b11
+                    {
                         break
+                    }
 
                     left  = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, a0), cast #bit(Math.Simd.U32x4, a1)))
                     right = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, b0), cast #bit(Math.Simd.U32x4, b1)))
@@ -1148,11 +1197,11 @@ private impl Codec
                 {
                     right = left - right
                 }
-                elif Assignment == 9
+                else if Assignment == 9
                 {
                     left += right
                 }
-                elif Assignment == 10
+                else if Assignment == 10
                 {
                     // The arithmetic shift floors half the side value, including odd negative values.
                     let restoredRight = left - (right >> 1)
@@ -1183,11 +1232,11 @@ private impl Codec
             {
                 right = left - right
             }
-            elif Assignment == 9
+            else if Assignment == 9
             {
                 left += right
             }
-            elif Assignment == 10
+            else if Assignment == 10
             {
                 let mid = (left << 1) | (right & 1)
                 left  = (mid + right) >> 1
@@ -1200,8 +1249,8 @@ private impl Codec
                 right >>= shift
             }
 
-            destination[2 * sample]     = cast(s16, Math.clamp(left, -32768's64, 32767's64))
-            destination[2 * sample + 1] = cast(s16, Math.clamp(right, -32768's64, 32767's64))
+            destination[2 * sample]     = cast(s16, Math.clamp(left, -32768_s64, 32767_s64))
+            destination[2 * sample + 1] = cast(s16, Math.clamp(right, -32768_s64, 32767_s64))
         }
     }
 
@@ -1209,10 +1258,10 @@ private impl Codec
     {
         switch header.channelAssignment
         {
-        case 8:  .interleaveStereoPcm16'(8'u32, ScaleDown, false)(destination, header.blockSize, shift)
-        case 9:  .interleaveStereoPcm16'(9'u32, ScaleDown, false)(destination, header.blockSize, shift)
-        case 10: .interleaveStereoPcm16'(10'u32, ScaleDown, false)(destination, header.blockSize, shift)
-        default: .interleaveStereoPcm16'(1'u32, ScaleDown, false)(destination, header.blockSize, shift)
+        case 8:  .interleaveStereoPcm16!{8_u32, ScaleDown, false}(destination, header.blockSize, shift)
+        case 9:  .interleaveStereoPcm16!{9_u32, ScaleDown, false}(destination, header.blockSize, shift)
+        case 10: .interleaveStereoPcm16!{10_u32, ScaleDown, false}(destination, header.blockSize, shift)
+        default: .interleaveStereoPcm16!{1_u32, ScaleDown, false}(destination, header.blockSize, shift)
         }
     }
 
@@ -1233,30 +1282,30 @@ private impl Codec
     // Keep the six source-plane addresses in the output loop.
     mtd writeSixChannelPcm16(destination: [*] s16, blockSize: u32)
     {
-        const MinSample = -32768's64
-        const MaxSample = 32767's64
+        const MinSample = -32768_s64
+        const MaxSample = 32767_s64
         let plane0 = .channels[0].storage()
         let plane1 = .channels[1].storage()
         let plane2 = .channels[2].storage()
         let plane3 = .channels[3].storage()
         let plane4 = .channels[4].storage()
         let plane5 = .channels[5].storage()
-        var done   = 0'u32
+        var done   = 0_u32
         #static if not Core.BIG_ENDIAN
         {
             #[Swag.Inline]
             func packPairs(first, second: Math.Simd.S32x4)->Math.Simd.U32x4
             {
-                const Interleaved = cast(Math.Simd.U16x8, [0'u16, 4, 1, 5, 2, 6, 3, 7])
+                const Interleaved = cast(Math.Simd.U16x8, [0_u16, 4, 1, 5, 2, 6, 3, 7])
                 let packed = Math.Simd.packSigned(first, second)
                 return cast #bit(Math.Simd.U32x4, Math.Simd.permute(packed, Interleaved))
             }
 
             // A 32-bit lane holds one adjacent channel pair. Four frames fill three vectors.
-            const RowsFirst = cast(Math.Simd.U32x4, [0'u32, 1, 4, 2])
-            const RowsMid   = cast(Math.Simd.U32x4, [3'u32, 5, 0, 0])
-            const RowsNext  = cast(Math.Simd.U32x4, [0'u32, 1, 4, 5])
-            const RowsLast  = cast(Math.Simd.U32x4, [6'u32, 2, 3, 7])
+            const RowsFirst = cast(Math.Simd.U32x4, [0_u32, 1, 4, 2])
+            const RowsMid   = cast(Math.Simd.U32x4, [3_u32, 5, 0, 0])
+            const RowsNext  = cast(Math.Simd.U32x4, [0_u32, 1, 4, 5])
+            const RowsLast  = cast(Math.Simd.U32x4, [6_u32, 2, 3, 7])
             while blockSize - done >= 4
             {
                 let ab     = packPairs(pcmWords(plane0 + done), pcmWords(plane1 + done))
@@ -1291,7 +1340,7 @@ private impl Codec
     mtd writeMonoPcm16(destination: [*] s16, blockSize: u32)
     {
         let source = .channels[0].storage()
-        var done   = 0'u32
+        var done   = 0_u32
         #static if not Core.BIG_ENDIAN
         {
             while blockSize - done >= 8
@@ -1303,8 +1352,10 @@ private impl Codec
             }
         }
 
-        for sample in done until blockSize do
-            destination[sample] = cast(s16, Math.clamp(source[sample], -32768's64, 32767's64))
+        for sample in done until blockSize
+        {
+            destination[sample] = cast(s16, Math.clamp(source[sample], -32768_s64, 32767_s64))
+        }
     }
 
     // Writes the decoded block as interleaved 16-bit PCM.
@@ -1347,8 +1398,11 @@ private impl Codec
     mtd appendOggFrame(part: const [..] u8) fail
     {
         // STREAMINFO represents native frame sizes with 24 bits.
-        if .oggFrame.count + part.count > 0xFF_FFFF do
+        if .oggFrame.count + part.count > 0xFF_FFFF
+        {
             fail InvalidFormatError{"Ogg FLAC frame exceeds the FLAC frame-size limit"}
+        }
+
         .oggFrame.add(part)
     }
 
@@ -1376,8 +1430,10 @@ private impl Codec
             for index in page.segments
             {
                 at += size
-                if size == 255 do
+                if size == 255
+                {
                     continue
+                }
 
                 if skip
                 {
@@ -1408,8 +1464,10 @@ private impl Codec
                 start = at
             }
 
-            if start < at and not skip do
+            if start < at and not skip
+            {
                 try .appendOggFrame(pages[start until at])
+            }
         }
 
         if not .oggFrame.isEmpty()

@@ -250,7 +250,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     for band in 32
     {
         bands[band * Stride]       = 1.0
-        pairedBands[band * Stride] = cast(Math.Simd.F64x2, [1.0'f64, -2.0])
+        pairedBands[band * Stride] = cast(Math.Simd.F64x2, [1.0_f64, -2.0])
         Dts.synthesisDct(cast(const [*] f64, &bands[0]), Stride, &transformed)
         Dts.synthesisDct(cast(const [*] Math.Simd.F64x2, &pairedBands[0]), Stride, &pairedOutput)
         for output in 32
@@ -263,7 +263,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         }
 
         bands[band * Stride]       = 0.0
-        pairedBands[band * Stride] = Math.Simd.splat(0.0'f64)
+        pairedBands[band * Stride] = Math.Simd.splat(0.0_f64)
     }
 }
 
@@ -467,7 +467,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
             -13_000_000.0, 25_700_000.0, 2_100_000.0, -37_000_000.0,
             -36_000_000.0, 30_000_000.0, 21_000_000.0]
         var result: [Factor * SampleCount * Stride] s16
-        Dts.synthesisLfe'(Factor, Taps)(&result[1], Stride, &history[0], SampleCount)
+        Dts.synthesisLfe!{Factor, Taps}(&result[1], Stride, &history[0], SampleCount)
         for sample in SampleCount
         {
             for phase in Factor / 2
@@ -489,6 +489,6 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
         }
     }
 
-    compareLfe'(64, 8)(Dts.LfeFir64)
-    compareLfe'(128, 4)(Dts.LfeFir128)
+    compareLfe!{64, 8}(Dts.LfeFir64)
+    compareLfe!{128, 4}(Dts.LfeFir128)
 }

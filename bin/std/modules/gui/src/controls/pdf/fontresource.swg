@@ -236,8 +236,10 @@ impl FontResource
             else
             {
                 let value = .runeOf(code)
-                if value do
+                if value
+                {
                     item.text.append(value)
+                }
             }
 
             let value = .runeOf(code)

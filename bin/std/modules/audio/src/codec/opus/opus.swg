@@ -147,13 +147,13 @@ private func smoothFade(first, second: const [*] f32, out: [*] f32, channels: u3
 #[Swag.Inline]
 internal func roundOpusPcm16(samples: Simd.F32x4)->Simd.S32x4
 {
-    let bounded = Math.max(Simd.splat(-32768.0'f32), Math.min(Simd.splat(32767.0'f32), samples))
+    let bounded = Math.max(Simd.splat(-32768.0_f32), Math.min(Simd.splat(32767.0_f32), samples))
     let whole   = Math.trunc(bounded)
 
     // Compare the fractional part so even values immediately below a half stay exact.
     let fraction     = bounded - whole
-    let positiveHalf = cast #bit(Simd.S32x4, fraction >= Simd.splat(0.5'f32))
-    let negativeHalf = cast #bit(Simd.S32x4, fraction <= Simd.splat(-0.5'f32))
+    let positiveHalf = cast #bit(Simd.S32x4, fraction >= Simd.splat(0.5_f32))
+    let negativeHalf = cast #bit(Simd.S32x4, fraction <= Simd.splat(-0.5_f32))
     return Simd.truncateToS32(whole) - positiveHalf + negativeHalf
 }
 
@@ -346,8 +346,10 @@ private impl Decoder
         }
 
         let pcm = .pcm.storage()
-        if mode == ModeSilk do
+        if mode == ModeSilk
+        {
             Memory.clear(pcm, cast(u64, frameSize) * CC * #sizeof(f32))
+        }
 
         var dec = RangeDecoder.create(data)
         var len = cast(s32, data.count)
@@ -663,8 +665,10 @@ private impl Decoder
                 for index in page.segments
                 {
                     at += size
-                    if size == 255 do
+                    if size == 255
+                    {
                         continue
+                    }
 
                     let payload = body[start until at]
                     if headersToSkip
@@ -680,12 +684,12 @@ private impl Decoder
 
                         .packet.clear()
                     }
-                    elif .packet.count
+                    else if .packet.count
                     {
                         .packet.add(payload)
                         produced += try .decodePacketFrames(.packet.toSlice())
                     }
-                    elif payload.count
+                    else if payload.count
                     {
                         produced += try .decodePacketFrames(payload)
                     }
@@ -695,8 +699,10 @@ private impl Decoder
                 }
 
                 // Only a packet that crosses pages needs a contiguous copy.
-                if start < at do
+                if start < at
+                {
                     .packet.add(body[start until at])
+                }
             }
 
             offset += pageBytes

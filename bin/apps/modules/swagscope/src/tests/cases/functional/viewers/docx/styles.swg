@@ -160,7 +160,7 @@ func readWordParagraph(source: string)->Docx.ParagraphFormat
     Swag.require(Utf8.contains(document.html, "and a quieter ending."))
 }
 
-// The final section's authored paper and margin box drive the reading body's width and padding.
+// The final section's authored paper and margin box drive the reading body<s> width and padding.
 #test
 {
     let document = expect Docx.Document.load(scopeTestDataPath("viewer.styles.docx"))

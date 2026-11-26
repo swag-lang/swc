@@ -207,7 +207,12 @@ impl Reader
             return
         }
 
-        if area.x < 0 or area.y < 0 or area.x + area.w > .width or area.y + area.h > .height
+        if area.x < 0 or
+           area.y!
+        {
+            0 or area.x + area.w
+        }.width or
+           area.y + area.h > .height
         {
             fail Errors.InvalidFormatError{}
         }

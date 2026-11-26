@@ -87,8 +87,11 @@ func tgaRunLength(src: const [*] u8, index, rowEnd, bytesPerPixel: u64)->u64
         result += 1
     }
 
-    if result < limit do
+    if result < limit
+    {
         result += PackedPixel.countSame24(first, first + result * 3, limit - result)
+    }
+
     return result
 }
 
@@ -97,8 +100,10 @@ private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, rowEnd, bytes
     using Math.Simd
 
     let end = Math.min(packetEnd, rowEnd - 1)
-    if first >= end do
+    if first >= end
+    {
         return packetEnd
+    }
 
     var x = first
     if bytesPerPixel == 4
@@ -107,8 +112,11 @@ private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, rowEnd, bytes
         while end - x >= 4
         {
             let matches = bitmask(load(pixels + x) == load(pixels + x + 1))
-            if matches do
+            if matches
+            {
                 return x + Math.trailingZeros(matches)
+            }
+
             x += 4
         }
     }
@@ -120,8 +128,11 @@ private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, rowEnd, bytes
             let at      = source + x * 3
             let matches = bitmask(load(at) == load(at + 3))
             let pairs   = matches & (matches >> 1) & (matches >> 2) & 0x249
-            if pairs do
+            if pairs
+            {
                 return x + Math.trailingZeros(pairs) / 3
+            }
+
             x += 4
         }
     }
@@ -129,8 +140,10 @@ private func nextTgaRawEnd(source: const [*] u8, first, packetEnd, rowEnd, bytes
     for i in x until end
     {
         let pixel = source + i * bytesPerPixel
-        if sameTgaPixel(pixel, pixel + bytesPerPixel, bytesPerPixel) do
+        if sameTgaPixel(pixel, pixel + bytesPerPixel, bytesPerPixel)
+        {
             return i
+        }
     }
 
     return packetEnd
@@ -162,17 +175,17 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
                 continue
             }
 
-        let rawStart = index
-        index += 1
-        while index < pixelCount and index - rawStart < 128
-        {
-            if tgaRunLength(src, index, pixelCount, bytesPerPixel) >= 2
-            {
-                break
-            }
-
+            let rawStart = index
             index += 1
-        }
+            while index < pixelCount and index - rawStart < 128
+            {
+                if tgaRunLength(src, index, pixelCount, bytesPerPixel) >= 2
+                {
+                    break
+                }
+
+                index += 1
+            }
 
             let rawCount  = index - rawStart
             let rawSize   = rawCount * bytesPerPixel
@@ -240,8 +253,11 @@ internal impl IImageEncoder for Encoder
             .descriptorByte = image.pixelFormat.hasAlpha() ? 8_u8 : 0_u8
         }
 
-        if not userOptions.rle do
+        if not userOptions.rle
+        {
             result.grow(#sizeof(Header) + image.byteCount)
+        }
+
         result.addStruct(header)
 
         if userOptions.rle

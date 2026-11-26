@@ -207,11 +207,7 @@ impl Deflate
             compFlags |= GreedyParsing
         }
 
-        if level == .NoCompression
-        {
-            compFlags |= ForceAllRawBlocks
-        }
-        else if strategy == .Filtered
+        if strategy == .Filtered
         {
             compFlags |= FilterMatches
         }
@@ -593,9 +589,10 @@ impl Deflate
         for var next = n - 3; cast(s32, next) >= 0; next -= 1
         {
             symFreq[next].key = cast(u16, (symFreq[symFreq[next].key].key + 1))
+
+            // Assign the available leaves at each depth their final code length.
         }
 
-        // Assign the available leaves at each depth their final code length.
         var available = 1
         var used      = 0
         var depth     = 0
@@ -966,7 +963,39 @@ impl Deflate
 
     mtd compressLzCodes()->bool
     {
-        let d     = unwrap .state
+        let d           = unwrap .state
+        var output      = unwrap d.outputBufAddr
+        let limit       = unwrap d.outputBufEndAddr
+        var pending     = cast(u64, d.bitBuffer)
+        var pendingBits = d.bitsIn
+
+        #[Swag.Mixin]
+        func drainBytes()
+        {
+            let count = pendingBits >> 3
+            if count and output < limit
+            {
+                // The block buffer has sixteen bytes past this logical limit.
+                cast([*] u64, output)[0] = Math.littleEndianToNative(pending)
+                output += Math.min(cast(u64, limit - output), cast(u64, count))
+            }
+
+            pending     >>= count * 8
+            pendingBits &= 7
+        }
+
+        #[Swag.Mixin]
+        func append(bits: u64, count: u32)
+        {
+            if pendingBits + count >= 64
+            {
+                drainBytes()
+            }
+
+            pending     |= bits << pendingBits
+            pendingBits += count
+        }
+
         var flags = 1_u32
         for var lzCodes = cast([*] u8, &d.lzCodeBuf[0]); lzCodes < d.lzCodeBufAddr; flags >>= 1
         {
@@ -1065,10 +1094,7 @@ impl Deflate
         let savedBitBuf    = d.bitBuffer
         let savedBitsIn    = d.bitsIn
 
-        if not useRawBlock
-        {
-            compBlockSucceeded = .compressBlock((d.compressFlags & ForceAllStaticBlocks) or (d.totalLzBytes < 48))
-        }
+        let compBlockSucceeded = .compressBlock((d.compressFlags & ForceAllStaticBlocks) or (d.totalLzBytes < 48))
 
         if d.totalLzBytes and
            (d.outputBufAddr - savedOutputBuf + 1) >= d.totalLzBytes and
@@ -1151,21 +1177,22 @@ impl Deflate
         if d.totalLzBytes <= 31 * 1024
         {
             return false
+
+            // Flush a large block when its records no longer promise useful compression.
         }
 
-        // Flush a large block when its records no longer promise useful compression.
         let recordBytes    = cast(u32, (d.lzCodeBufAddr - cast([*] u8, &d.lzCodeBuf[0])))
         let estimatedBytes = (recordBytes * 115) >> 7
         return estimatedBytes >= d.totalLzBytes
     }
 
-    mtd writeStoredBlocks(result: *Array'u8, source: const [..] u8)
+    mtd writeStoredBlocks(result: *Array!{u8}, source: const [..] u8)
     {
         const HeaderBytes = 5
         let blockCount = source.count / StoredBlockBytes + 1
         result.reserve(result.count + source.count + blockCount * HeaderBytes)
         var output = result.storage() + result.count
-        var offset = 0'u64
+        var offset = 0_u64
         for
         {
             let remaining = source.count - offset
@@ -1176,12 +1203,17 @@ impl Deflate
             output[2] = cast(u8, (bytes >> 8))
             output[3] = ~output[1]
             output[4] = ~output[2]
-            if bytes do
+            if bytes
+            {
                 Memory.copy(output + HeaderBytes, source.buffer + offset, bytes)
+            }
+
             output += HeaderBytes + bytes
             offset += bytes
-            if final do
+            if final
+            {
                 break
+            }
         }
 
         result.count += source.count + blockCount * HeaderBytes
@@ -1192,8 +1224,10 @@ impl Deflate
     func hasRepeatedRuns(source: const [..] u8)->bool
     {
         const SampleBytes = 4096
-        if source.count < SampleBytes do
+        if source.count < SampleBytes
+        {
             return false
+        }
 
         let sample  = source.buffer + (source.count - SampleBytes) / 2
         var matches = 0
@@ -1203,8 +1237,10 @@ impl Deflate
             if Deflate.allBytesMatch(block, MinBulkRunBytes, block[0])
             {
                 matches += 1
-                if matches == 4 do
+                if matches == 4
+                {
                     return true
+                }
             }
         }
 
@@ -1215,16 +1251,22 @@ impl Deflate
     func allBytesMatch(source: const [*] u8, count: u32, value: u8)->bool
     {
         let pattern = Simd.splat(value)
-        var offset  = 0'u32
+        var offset  = 0_u32
         while count - offset >= 16
         {
-            if Simd.anyTrue(Simd.load(source + offset) != pattern) do
+            if Simd.anyTrue(Simd.load(source + offset) != pattern)
+            {
                 return false
+            }
+
             offset += 16
         }
 
-        for index in offset until count where source[index] != value do
+        for index in offset until count where source[index] != value
+        {
             return false
+        }
+
         return true
     }
 
@@ -1235,8 +1277,11 @@ impl Deflate
         let head = Math.min(count, LzDictSize - dstPos)
         let tail = count - head
         Memory.set(&d.dict[dstPos], value, head)
-        if dstPos < MaxMatchLen - 1 do
+        if dstPos < MaxMatchLen - 1
+        {
             Memory.set(&d.dict[LzDictSize + dstPos], value, Math.min(head, MaxMatchLen - 1 - dstPos))
+        }
+
         if tail
         {
             Memory.set(&d.dict[0], value, tail)
@@ -1250,13 +1295,16 @@ impl Deflate
         let first  = insPos & LzDictSizeMask
         d.next[first]  = d.hash[hash]
         d.prev3[first] = d.hash3[hash3]
-        const Sequence = cast(Simd.U16x8, [0'u16, 1, 2, 3, 4, 5, 6, 7])
-        var index = 1'u32
+        const Sequence = cast(Simd.U16x8, [0_u16, 1, 2, 3, 4, 5, 6, 7])
+        var index = 1_u32
         while count - index >= 8
         {
             let pos = (insPos + index) & LzDictSizeMask
-            if LzDictSize - pos < 8 do
+            if LzDictSize - pos < 8
+            {
                 break
+            }
+
             let previous = Simd.splat(cast(u16, (insPos + index - 1))) + Sequence
             Simd.store(&d.next[pos], previous)
             Simd.store(&d.prev3[pos], previous)
@@ -1284,7 +1332,7 @@ impl Deflate
 
         // Consuming a match advances the position and shortens lookahead by
         // the same amount. The last appended bytes remain the hash window.
-        var window = 0'u32
+        var window = 0_u32
         while srcBufLeft or d.lookaheadSize
         {
             // Refill lookahead and update the match indexes.
@@ -1518,6 +1566,13 @@ public impl Deflate
     // `flags` selects optional work, such as the checksum a zlib trailer needs.
     mtd init(level = CompressionLevel.Default, strategy = CompressionStrategy.Default, flags = CompressionFlags.Default)
     {
+        .stored    = level == .NoCompression
+        .initFlags = flags
+        if .stored
+        {
+            return
+        }
+
         if not .state
         {
             .state = Memory.new!{Compressor}()
@@ -1542,7 +1597,7 @@ public impl Deflate
             fail UnsupportedFormatError{"source buffer too big"}
         }
 
-        Swag.assert(.state != null, "'init' not called")
+        Swag.assert(.stored or .state != null, "'init' not called")
 
         var sourceCopy: Array!{u8}
         var source = src
@@ -1568,10 +1623,15 @@ public impl Deflate
             d.srcBufLeft = source.count
             d.outBufOfs  = result.count
 
-            if Deflate.hasRepeatedRuns(source) do
-                try .compress'(true)()
-            else do
-                try .compress'(false)()
+            if Deflate.hasRepeatedRuns(source)
+            {
+                try .compress!{true}()
+            }
+            else
+            {
+                try .compress!{false}()
+            }
+
             .flushBlock(true)
             Swag.assert(not d.lookaheadSize and not d.srcBufLeft)
         }

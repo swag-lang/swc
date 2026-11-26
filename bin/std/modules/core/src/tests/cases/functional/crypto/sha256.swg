@@ -142,8 +142,10 @@ func sha224DigestBytes(digest: Hash.Sha224.Digest)->[28] u8
 
 #test
 {
-    if not Swag.hasCpuFeature(.Sha) do
+    if not Swag.hasCpuFeature(.Sha)
+    {
         return
+    }
 
     var data: [257] u8
     fillSha256Pattern(data)
@@ -154,10 +156,14 @@ func sha224DigestBytes(digest: Hash.Sha224.Digest)->[28] u8
         hardware.reset()
         software.reset()
         hardware.transformShaExtensions(data.buffer + 1, blocks)
-        for block in blocks do
+        for block in blocks
+        {
             software.transformPortable(data.buffer + 1 + block * 64)
+        }
 
-        for index in hardware.state.count do
+        for index in hardware.state.count
+        {
             Swag.require(hardware.state[index] == software.state[index])
+        }
     }
 }

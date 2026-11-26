@@ -85,6 +85,9 @@ public func chacha20Poly1305Seal(key, nonce, plaintext, associatedData: const [.
     if ciphertext.count != plaintext.count
     {
         fail Errors.BadParameterError{"ChaCha20-Poly1305 needs matching plaintext and ciphertext lengths"}
+
+        // Block zero produced the one-time authentication key, so the payload starts
+        // at block one.
     }
 
     var computed: Poly1305Tag

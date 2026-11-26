@@ -31,7 +31,7 @@ func exrAddAttribute(result: *ConcatBuffer, name, type: string, payload: const [
     result.addBytes(payload)
 }
 
-func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1'u32, blocks = 1'u32, alternate: const [..] u8? = null)->ConcatBuffer
+func exrZipFixture(width: u32, packed: const [..] u8, extraName = "", rowsPerBlock = 1_u32, blocks = 1_u32, alternate: const [..] u8? = null)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -102,7 +102,7 @@ func exrMixedRgbYFixture()->ConcatBuffer
     return result
 }
 
-func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBuffer
+func exrUnalignedFloatFixture(names: const [..] string, width = 1_u32)->ConcatBuffer
 {
     var channels: ConcatBuffer
     exrAddText(&channels, "Y")
@@ -205,17 +205,19 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         {
             var source  = Image.create(width, 2, format)
             let samples = cast([*] u16, source.pixels.storage())
-            for i in source.byteCount / 2 do
+            for i in source.byteCount / 2 {
                 samples[i] = Values[i % Values.count]
 
+            }
             let encoded = expect source.encode("memory.exr")
             let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
             assertImage(decoded, width, 2, format)
 
             // Preserve finite samples, signed zero, infinity, and each NaN's sign.
             let decodedSamples = cast(const [*] u16, decoded.pixels.storage())
-            for i in source.byteCount / 2 do
+            for i in source.byteCount / 2 {
                 Swag.require(decodedSamples[i] == Expected[i % Expected.count])
+            }
         }
     }
 }
@@ -266,8 +268,9 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         let decoded = expect Image.decode("gray-half.exr", nnBytes(encoded.toSlice()))
         assertImage(decoded, 9, 3, format)
         let restored = cast(const [*] u16, decoded.pixels.storage())
-        for index in decoded.byteCount / 2 do
+        for index in decoded.byteCount / 2 {
             Swag.require(restored[index] == Expected[index % Expected.count])
+        }
     }
 }
 
@@ -281,9 +284,10 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         {
             var source  = Image.create(width, 2, format)
             let samples = cast([*] u32, source.pixels.storage())
-            for i in source.byteCount / 4 do
+            for i in source.byteCount / 4 {
                 samples[i] = Values[i % Values.count]
 
+            }
             let encoded = expect source.encode("float.exr")
             let decoded = expect Image.decode("float.exr", nnBytes(encoded.toSlice()))
             assertImage(decoded, width, 2, format)
@@ -353,14 +357,14 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     }
 
     var previous = packed[0]
-    for i in rangeTo(1'u64, packed.count - 1)
+    for i in rangeTo(1_u64, packed.count - 1)
     {
         let current = packed[i]
         packed[i] = cast(u8, ((cast(s32, current) - previous + 128) & 0xFF))
         previous  = current
     }
 
-    var restored: Array'u8
+    var restored: Array!{u8}
     Exr.undoZipPredictor(packed, &restored)
     Swag.require(restored.count == original.count)
     Swag.require(Memory.compare(original.buffer, restored.storage(), original.count) == 0)
@@ -427,8 +431,9 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 #test
 {
     var name: [256] u8
-    for index in name.count do
+    for index in name.count {
         name[index] = 'x'
+    }
     const RawHalf: [2] u8 = [0, 0x3C]
     let largestName = cast(string, name[0 until 255])
     let accepted    = exrZipFixture(1, RawHalf, extraName: largestName)
@@ -445,17 +450,17 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 // A ZIP or ZIPS image large enough to use the worker pool preserves its scanlines and error order.
 #test
 {
-    const Width  = 1024'u32
-    const Height = 512'u32
-    for rowsPerBlock in [0'u32, 1'u32, 16'u32]
+    const Width  = 1024_u32
+    const Height = 512_u32
+    for rowsPerBlock in [0_u32, 1_u32, 16_u32]
     {
         let smallZips  = not rowsPerBlock
-        let rows       = smallZips ? 1'u32 : rowsPerBlock
+        let rows       = smallZips ? 1_u32 : rowsPerBlock
         let blocks     = Height / rows
         let planeBytes = cast(u64, Width * rows)
-        var deltas: Array'u8
+        var deltas: Array!{u8}
         deltas.resize(planeBytes * 2)
-        var state    = 0x436C_A9D5'u32
+        var state    = 0x436C_A9D5_u32
         let distinct = planeBytes * (smallZips ? 1 : 3) / 4
         for index in distinct
         {
@@ -473,7 +478,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         }
 
         var previous = deltas[0]
-        for index in rangeTo(1'u64, deltas.count - 1)
+        for index in rangeTo(1_u64, deltas.count - 1)
         {
             let current = deltas[index]
             deltas[index] = cast(u8, (cast(s32, current) - previous + 128) & 255)
@@ -484,10 +489,12 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         let packed = expect zlib.compress(deltas.toSlice())
         Swag.require(packed.count < deltas.count)
         let compressedSize = packed.count * blocks
-        if smallZips do
+        if smallZips {
             Swag.require(compressedSize >= 192 * 1024 and compressedSize < 512 * 1024)
-        else do
+        }
+        else {
             Swag.require(compressedSize >= 512 * 1024)
+        }
         var single = exrZipFixture(Width, packed.toSlice(), rowsPerBlock: rows)
         single.makeLinear()
         let reference = expect Image.decode("single-zip-block.exr", nnBytes(single.toSlice()))
@@ -537,7 +544,7 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 
 #test
 {
-    for width in [1'u32, 4, 5, 9]
+    for width in [1_u32, 4, 5, 9]
     {
         let bytes   = exrUnalignedFloatFixture(["A", "B", "G", "R"], width)
         let decoded = expect Image.decode("unaligned-mixed.exr", nnBytes(bytes.toSlice()))
@@ -556,13 +563,15 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 #test
 {
     var source: [4] u16
-    for block in 16384'u64
+    for block in 16384_u64
     {
-        for lane in 4'u64 do
+        for lane in 4_u64 {
             source[lane] = cast(u16, block * 4 + lane)
+        }
         let wide = cast #bit(Math.Simd.U32x4, Exr.widenHalfSamples(cast(const [*] u8, source.buffer)))
-        for lane in 4'u64 do
+        for lane in 4_u64 {
             Swag.require(wide[lane] == cast #bit(u32, halfToFloat(source[lane])))
+        }
     }
 }
 
@@ -592,10 +601,11 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 // Identical compressed scanlines still populate each output row independently.
 #test
 {
-    const Width = 64'u32
+    const Width = 64_u32
     var predicted: [Width * 2] u8
-    for index in rangeTo(1'u64, predicted.count - 1) do
+    for index in rangeTo(1_u64, predicted.count - 1) {
         predicted[index] = 128
+    }
     predicted[Width] = 128 + 0x3C
     var codec: Compress.ZLib
     let packed = expect codec.compress(predicted)
@@ -604,8 +614,9 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     let image = expect Image.decode("repeated-zips.exr", nnBytes(input.toSlice()))
     assertImage(image, cast(s32, Width), 3, .GrayF16)
     let pixels = cast(const [*] u16, image.pixels.storage())
-    for sample in 3 * Width do
+    for sample in 3 * Width {
         Swag.require(pixels[sample] == 0x3C00)
+    }
 }
 
 // Direct byte input has the same HALF samples and scanline layout as image conversion.
@@ -616,17 +627,20 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
         var input    = Image.create(257, 3, format)
         let samples  = input.pixels.storage()
         let channels = cast(u64, format.channels())
-        for pixel in 257'u64 * 3
+        for pixel in 257_u64 * 3
         {
-            for channel in channels do
+            for channel in channels {
                 samples[pixel * channels + channel] = cast(u8, (pixel + channel * 59) & 255)
+            }
         }
 
         var halfFormat: PixelFormat
-        if format.isGrayscale() do
+        if format.isGrayscale() {
             halfFormat = format.hasAlpha() ? .GrayAlphaF16 : .GrayF16
-        else do
+        }
+        else {
             halfFormat = format.hasAlpha() ? .RGBAF16 : .RGBF16
+        }
         let converted = input.convertedTo(halfFormat)
         let expected  = expect converted.encodeToBytes("half.exr")
         let output    = expect input.encodeToBytes("byte.exr")
@@ -683,11 +697,12 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     for row in Height
     {
         let scanline = pixels + cast(u64, row) * Width
-        let red      = 0x3000'u64 + cast(u64, row)
-        let blue     = 0x3800'u64 - cast(u64, row)
-        let value    = 0x3C00_0000_3400_0000'u64 | (blue << 32) | red
-        for column in Width do
+        let red      = 0x3000_u64 + cast(u64, row)
+        let blue     = 0x3800_u64 - cast(u64, row)
+        let value    = 0x3C00_0000_3400_0000_u64 | (blue << 32) | red
+        for column in Width {
             scanline[column] = value
+        }
     }
 
     let encoded = expect source.encodeToBytes("wide.exr")
@@ -699,11 +714,12 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
 // ZIP chunk reuse handles two alternating packed blocks without mixing their scanlines.
 #test
 {
-    const Width = 129'u32
-    const Rows  = 6'u32
+    const Width = 129_u32
+    const Rows  = 6_u32
     var predictor: [2 * Width] u8
-    for i in 1 until predictor.count do
+    for i in 1 until predictor.count {
         predictor[i] = 128
+    }
     var zlib: Compress.ZLib
     predictor[Width] = 128 + 0x3C
     let first        = expect zlib.compress(predictor)
@@ -717,9 +733,10 @@ func exrUnalignedFloatFixture(names: const [..] string, width = 1'u32)->ConcatBu
     let pixels = cast(const [*] u16, output.pixels.storage())
     for row in Rows
     {
-        let expected = (Rows - row - 1) & 1 ? 0x4000'u16 : 0x3C00'u16
-        for x in Width do
+        let expected = (Rows - row - 1) & 1 ? 0x4000_u16 : 0x3C00_u16
+        for x in Width {
             Swag.require(pixels[cast(u64, row) * Width + x] == expected)
+        }
     }
 }
 

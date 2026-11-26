@@ -37,8 +37,9 @@ impl LzwBitReader
         {
             while .available < width
             {
-                if .source == .end do
+                if .source == .end {
                     fail InvalidFormatError{"invalid source buffer"}
+                }
                 .bits      = (.bits << 8) | .source[0]
                 .available += 8
                 .source    += 1
@@ -52,7 +53,7 @@ impl LzwBitReader
 
 // TIFF LZW uses MSB-first codes and the early code-width transition used by
 // Aldus TIFF writers. Each strip owns an independent dictionary.
-private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
+private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array!{u64}) fail
 {
     var reader = LzwBitReader{src, src + srcCount, 0, 0}
 
@@ -60,7 +61,7 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
     // Each code consumes at least nine bits, so the 32-bit strip size bounds decoded
     // offsets to 44 bits and leaves room for the 12-bit word length.
     const LengthBits = 12
-    const LengthMask = (1'u64 << LengthBits) - 1
+    const LengthMask = (1_u64 << LengthBits) - 1
     dictionary.reserve(LZW_FIRST_CODE + Math.min(expected, cast(u64, LZW_MAX_CODE + 1 - LZW_FIRST_CODE)))
     let words = dictionary.storage()
 
@@ -96,7 +97,7 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
         }
 
         let target = dst + output
-        var length = 1'u64
+        var length = 1_u64
         if code < LZW_CLEAR_CODE
         {
             if code > 255
@@ -228,11 +229,13 @@ private func(LITERAL_PAIRS: bool) unpackLzwStrip(dst: [*] u8, expected: u64, src
     }
 }
 
-func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array'u64) fail
+func unpackLzw(dst: [*] u8, expected: u64, src: const [*] u8, srcCount: u32, dictionary: *Array!{u64}) fail
 {
     // Significant expansion indicates that few input bytes used dictionary phrases.
-    if expected >= 256 and srcCount > expected + expected / 8 do
-        try unpackLzwStrip'true(dst, expected, src, srcCount, dictionary)
-    else do
-        try unpackLzwStrip'false(dst, expected, src, srcCount, dictionary)
+    if expected >= 256 and srcCount > expected + expected / 8 {
+        try unpackLzwStrip!{true}(dst, expected, src, srcCount, dictionary)
+    }
+    else {
+        try unpackLzwStrip!{false}(dst, expected, src, srcCount, dictionary)
+    }
 }

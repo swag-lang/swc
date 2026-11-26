@@ -58,11 +58,12 @@ impl TypeFace
         Sync.scopedLock(&lock)
 
         let key = TypeFaceCacheKey{String.from(fullName), faceIndex}
-        if let here = g_HashTypeFace.tryFind(key) do
+        if let here = g_HashTypeFace.tryFind(key) {
             return here.value
 
+        }
         let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
-        let tf        = Memory.new'TypeFace(allocator)
+        let tf        = Memory.new!{TypeFace}(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
         tf.fullName = fullName

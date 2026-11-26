@@ -44,9 +44,9 @@ struct CabacReader
 }
 
 private const CabacDecisionTables = #run buildCabacDecisionTables()
-private const LookAheadBits       = 32'u32
+private const LookAheadBits       = 32_u32
 private const OffsetShift         = LookAheadBits + 1
-private const RefillMask          = 0xFFFFFFFF'u64
+private const RefillMask          = 0xFFFFFFFF_u64
 
 impl CabacReader
 {
@@ -108,10 +108,12 @@ impl CabacReader
         .position = 5
         .range    = 510
         let head = .lookAhead(0)
-        if head >> (LookAheadBits - 9) >= .range do
+        if head >> (LookAheadBits - 9) >= .range
+        {
             fail InvalidFormatError{"HEVC CABAC initial offset is outside the range 0 through 509"}
+        }
 
-        let tail = size > 4 ? cast(u64, data[4]) : 0'u64
+        let tail = size > 4 ? cast(u64, data[4]) : 0_u64
         .low = (cast(u64, head) << 10) | (tail << 2) | 2
     }
 
@@ -190,8 +192,10 @@ impl CabacReader
         let shift = Swag.leadingZeros(range) - 23
         range <<= shift
         low   <<= shift
-        if (low & RefillMask) == 0 do
+        if (low & RefillMask) == 0
+        {
             low = .reload(low)
+        }
 
         .range = range
         .low   = low
@@ -203,14 +207,16 @@ impl CabacReader
     mtd bypass()->u32
     {
         var low = .low << 1
-        if (low & RefillMask) == 0 do
+        if (low & RefillMask) == 0
+        {
             low = .reload(low)
+        }
 
         let range  = cast(u64, .range) << OffsetShift
         let offset = low - #wrap range
         let one    = low >= range
         .low = one ? offset : low
-        return one ? 1'u32 : 0'u32
+        return one ? 1_u32 : 0_u32
     }
 
     // Decodes `count` bypass bins as an unsigned value, most significant bin first.
@@ -242,8 +248,10 @@ impl CabacReader
         {
             .range <<= 1
             .low   <<= 1
-            if (.low & RefillMask) == 0 do
+            if (.low & RefillMask) == 0
+            {
                 .low = .reload(.low)
+            }
         }
 
         return 0

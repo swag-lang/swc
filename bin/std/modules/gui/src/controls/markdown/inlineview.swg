@@ -366,7 +366,10 @@ impl InlineView
 
         .searchStart = match
         .searchEnd   = match + text.count
-        for &atom in .atoms where atom.textStart < .searchEnd and atom.textStart + atomTextLength(atom) > .searchStart
+        for &atom in .atoms where atom.textStart!
+        {
+            .searchEnd and atom.textStart + atomTextLength(atom)
+        }.searchStart
         {
             atom.searchHit = true
         }

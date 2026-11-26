@@ -581,7 +581,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     {
         var source: ConcatBuffer
         source.setAllocator(backing)
-        source.addBytes([1'u8, 2, 3])
+        source.addBytes([1_u8, 2, 3])
         let original = unwrap source.toSlice()
 
         let copied = source.moveToArray()
@@ -591,7 +591,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
         let moved = source.moveToArray(backing)
         Swag.require(moved.storage() == original.buffer and moved.count == 3 and moved[2] == 3)
         Swag.require(source.count() == 0 and allocator.stats().countAlloc == 1)
-        source.addNative(9'u8)
+        source.addNative(9_u8)
         Swag.require(moved[0] == 1 and source.count() == 1)
     }
 

@@ -84,9 +84,11 @@ func aesCmacHexBytes(text: string)->Array!{u8}
     const Key = "0123456789abcdefghijklmnopqrstuv"
     let expected = aesCmacHexBytes("de7925c2a730525997b1ce7d4eed0831")
     var storage: [146] u8
-    let message = storage[1 until]
-    for index in message.count do
+    let message  = storage[1 until]
+    for index in message.count
+    {
         message[index] = cast(u8, (index * 13 + 7) & 0xFF)
+    }
 
     for split in message.count + 1
     {

@@ -44,8 +44,8 @@ private func contourPointCount(polygon: const *Polygon)->u64
     return count
 }
 
-private const ContourEdgeBlockSize      = 16'u64
-private const FillIntersectionTolerance = 0.01'f32
+private const ContourEdgeBlockSize      = 16_u64
+private const FillIntersectionTolerance = 0.01_f32
 
 private struct ContourEdgeBounds
 {
@@ -63,14 +63,20 @@ private func contourEdgeBounds(points: const [..] Vector2, last: Vector2)->Conto
         return point.isFinite() and Math.abs(point.x) < 32768 and Math.abs(point.y) < 32768
     }
 
-    if not bounded(last) do
+    if not bounded(last)
+    {
         return {}
+    }
+
     var min = last
     var max = last
     for point in points
     {
-        if not bounded(point) do
+        if not bounded(point)
+        {
             return {}
+        }
+
         min = Vector2.min(min, point)
         max = Vector2.max(max, point)
     }
@@ -80,7 +86,7 @@ private func contourEdgeBounds(points: const [..] Vector2, last: Vector2)->Conto
     return {min - Vector2{padding, padding}, max + Vector2{padding, padding}, true}
 }
 
-private func contoursIntersect(a, b: const *Polygon, blocks: *Array'ContourEdgeBounds)->bool
+private func contoursIntersect(a, b: const *Polygon, blocks: *Array!{ContourEdgeBounds})->bool
 {
     if a.maxBounds.x < b.minBounds.x or
        b.maxBounds.x < a.minBounds.x or
@@ -146,7 +152,7 @@ private func pathListNeedsCleaning(pathList: const *LinePathList)->bool
         return true
     }
 
-    var blocks: Array'ContourEdgeBounds
+    var blocks: Array!{ContourEdgeBounds}
     for i in pathList.paths.count
     {
         blocks.clear()

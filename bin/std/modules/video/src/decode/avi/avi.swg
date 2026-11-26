@@ -66,6 +66,7 @@ const IndexEntrySize  = 16_u64
 // the way every other caller selects it.
 
 const JpegName = ".jpg"
+
 // Highest stream ordinal a frame chunk identifier can name, since it spells it with two digits.
 private const MaxStreamIndex = 99_u32
 

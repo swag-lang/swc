@@ -238,12 +238,12 @@ struct ScanFillBatch
 {
     public
     {
-        first: u64       // First contour index.
-        end:   u64       // Exclusive end of the contour range.
-        low:   Vector2   // Minimum path-space coordinates.
-        high:  Vector2   // Maximum path-space coordinates.
-        color: Color     // Straight-alpha solid paint.
-        rule:  PathFillRule   // Winding rule used to resolve the contours.
+        first: u64              // First contour index.
+        end:   u64              // Exclusive end of the contour range.
+        low:   Vector2          // Minimum path-space coordinates.
+        high:  Vector2          // Maximum path-space coordinates.
+        color: Color            // Straight-alpha solid paint.
+        rule:  PathFillRule     // Winding rule used to resolve the contours.
     }
 }
 
@@ -346,16 +346,16 @@ struct Painter
     gradientStops: Array!{GradientStop}
 
     // Each range references its own immutable contour points through the contour end table.
-    scanPoints:       Array'Vector2
-    scanContourEnds:  Array'u64
-    scanClipShapes:   Array'ScanFillBatch
+    scanPoints:       Array!{Vector2}
+    scanContourEnds:  Array!{u64}
+    scanClipShapes:   Array!{ScanFillBatch}
     useScanlineFills: bool
 
     // The stroke walk collects consistently wound fragments before emitting one fill.
     scanStroke:     bool
     scanStrokeLow:  Vector2
     scanStrokeHigh: Vector2
-    scanStrokeArc:  Array'Vector2
+    scanStrokeArc:  Array!{Vector2}
 
     // Reusable workspaces. They only hold intermediate results of the call in progress.
 
@@ -1067,15 +1067,21 @@ impl Painter
     {
         if value.x == 0 and Math.isFinite(value.y)
         {
-            if Math.isZeroEpsilon(value.y) do
+            if Math.isZeroEpsilon(value.y)
+            {
                 return {}
+            }
+
             return {value.x, value.y < 0 ? -1.0 : 1.0}
         }
 
         if value.y == 0 and Math.isFinite(value.x)
         {
-            if Math.isZeroEpsilon(value.x) do
+            if Math.isZeroEpsilon(value.x)
+            {
                 return {}
+            }
+
             return {value.x < 0 ? -1.0 : 1.0, value.y}
         }
 

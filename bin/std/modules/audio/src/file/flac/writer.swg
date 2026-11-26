@@ -476,7 +476,7 @@ private impl Writer
         .bufferedBits = 0
 
         let stereo     = .channels == 2 ? stereoMode(.pending.storage(), count) : WriterStereoMode.Independent
-        let assignment = stereo == .Duplicated ? 10'u16 : .channels - 1
+        let assignment = stereo == .Duplicated ? 10_u16 : .channels - 1
         .writeByte(0xFF)
         .writeByte(0xF9)     // Variable-block stream, with an absolute sample number.
         .writeByte(0x70)     // Explicit 16-bit block size, sample rate from STREAMINFO.
@@ -511,19 +511,25 @@ private impl Writer
     {
         let firstSample = samples[0]
         let finalPair   = (count - 1) * 2
-        if firstSample != samples[1] or samples[finalPair] != samples[finalPair + 1] do
+        if firstSample != samples[1] or samples[finalPair] != samples[finalPair + 1]
+        {
             return .Independent
+        }
+
         let bits      = cast(u32, cast #bit(u16, firstSample))
         let reference = Math.Simd.splat(bits * 0x1_0001)
-        let low       = Math.Simd.splat(0xFFFF'u32)
+        let low       = Math.Simd.splat(0xFFFF_u32)
         let pairs     = cast(const [*] u32, samples)
-        var variation = Math.Simd.splat(0'u32)
-        var index     = 0'u32
+        var variation = Math.Simd.splat(0_u32)
+        var index     = 0_u32
         while count - index >= 4
         {
             let stereo = Math.Simd.load(pairs + index)
-            if Math.Simd.bitmask((stereo & low) == (stereo >> 16)) != 0b1111 do
+            if Math.Simd.bitmask((stereo & low) == (stereo >> 16)) != 0b1111
+            {
                 return .Independent
+            }
+
             variation |= stereo ^ reference
             index     += 4
         }
@@ -532,8 +538,11 @@ private impl Writer
         for tail in index until count
         {
             let value = samples[tail * 2]
-            if value != samples[tail * 2 + 1] do
+            if value != samples[tail * 2 + 1]
+            {
                 return .Independent
+            }
+
             varied = varied or value != firstSample
         }
 
@@ -692,8 +701,8 @@ private impl Writer
             {
                 let destination = cast([*] u32, &higherResiduals[0])
                 let higher      = Swag.makeSlice(destination, count - predictor)
-                let parts       = predictor == 3 ? fillHigherOrder'3(secondResiduals, count, availableOrder, destination) :
-                                  fillHigherOrder'4(secondResiduals, count, availableOrder, destination)
+                let parts       = predictor == 3 ? fillHigherOrder!{3}(secondResiduals, count, availableOrder, destination) :
+                                  fillHigherOrder!{4}(secondResiduals, count, availableOrder, destination)
                 if availableOrder
                 {
                     let plan = planRicePartitions(higher, &parts[0], count, predictor, availableOrder, bestBits, header + depth * predictor)
@@ -707,8 +716,9 @@ private impl Writer
                     }
                 }
 
-                var foldedSum = 0'u32
-                for part in 1'u32 << availableOrder do
+                var foldedSum = 0_u32
+                for part in 1_u32 << availableOrder
+                {
                     foldedSum += parts[part]
                 let overhead = header + 4 + depth * predictor
                 if minimumRiceCost(foldedSum, count - predictor) + overhead < bestBits
@@ -728,7 +738,7 @@ private impl Writer
 
         if availableOrder and estimatedBase < verbatimBits
         {
-            let predictor = firstEstimate <= secondEstimate ? 1'u32 : 2
+            let predictor = firstEstimate <= secondEstimate ? 1_u32 : 2
             let residuals = predictor == 1 ? firstResiduals : secondResiduals
             let sumByPart = &sums.partitionSums[predictor - 1, 0]
             if bestBits == verbatimBits or minimumPartitionCost(sumByPart, count, predictor, availableOrder, header + depth * predictor) < bestBits
@@ -813,8 +823,8 @@ private impl Writer
         }
 
         let size  = count >> plannedOrder
-        var start = 0'u32
-        for part in 1'u32 << plannedOrder
+        var start = 0_u32
+        for part in 1_u32 << plannedOrder
         {
             let end  = (part + 1) * size - order
             let code = partitionPlan.partitions[part]
@@ -853,15 +863,15 @@ private impl Writer
         let initial = cast(s32, source[inputStride]) - cast(s32, source[0])
         first[0] = foldDelta(initial)
         var result: WriterFixedStats
-        var frame         = 2'u32
+        var frame         = 2_u32
         var last          = Math.Simd.splat(source[inputStride])
         var delta         = Math.Simd.splat(initial)
         let partitionSize = count >> partitionOrder
-        for part in 1'u32 << partitionOrder
+        for part in 1_u32 << partitionOrder
         {
             let end     = (part + 1) * partitionSize
-            var totals1 = Math.Simd.splat(0'u32)
-            var totals2 = Math.Simd.splat(0'u32)
+            var totals1 = Math.Simd.splat(0_u32)
+            var totals2 = Math.Simd.splat(0_u32)
             while end - frame >= 8
             {
                 let samples = inputBase + cast(u64, frame) * inputStride
@@ -896,8 +906,11 @@ private impl Writer
 
             var sum1 = Math.Simd.sum(totals1)
             var sum2 = Math.Simd.sum(totals2)
-            if not part do
+            if not part
+            {
                 sum1 += first[0]
+            }
+
             var previous      = cast(s32, source[cast(u64, (frame - 1)) * inputStride])
             var previousDelta = previous - cast(s32, source[cast(u64, (frame - 2)) * inputStride])
             for at in frame until end
@@ -940,18 +953,24 @@ private impl Writer
         let count = cast(u32, residuals.count)
         let range = riceRange(foldedSum, count)
         var first = range.start
-        while first < range.stop and overhead + riceLowerBound(foldedSum, count, first) >= limitBits do
+        while first < range.stop and overhead + riceLowerBound(foldedSum, count, first) >= limitBits
+        {
             first += 1
-        if first == range.stop do
-            return {limitBits, 15'u32}
+        }
 
-        // The other candidate quotients are right shifts of the same first quotient.
-        var sums0 = Math.Simd.splat(0'u32)
-        var sums1 = Math.Simd.splat(0'u32)
-        var sums2 = Math.Simd.splat(0'u32)
-        let bound = count & ~3'u32
+        if first == range.stop
+        {
+            return {limitBits, 15_u32}
+
+            // The other candidate quotients are right shifts of the same first quotient.
+        }
+
+        var sums0 = Math.Simd.splat(0_u32)
+        var sums1 = Math.Simd.splat(0_u32)
+        var sums2 = Math.Simd.splat(0_u32)
+        let bound = count & ~3_u32
         let data  = residuals.buffer
-        var index = 0'u32
+        var index = 0_u32
         while index < bound
         {
             let quotient = Math.Simd.load(data + index) >> first
@@ -971,7 +990,7 @@ private impl Writer
         }
 
         var bestBits = limitBits
-        var bestRice = 15'u32
+        var bestRice = 15_u32
         for rice in first until range.stop
         {
             let bits = overhead + cast(u64, count) * (1 + rice) + sums[rice - first]
@@ -1356,7 +1375,7 @@ private impl Writer
     #[Swag.Inline]
     mtd writeBits(value: u32, count: u32)
     {
-        let bits   = cast(u64, value) & ((1'u64 << count) - 1)
+        let bits   = cast(u64, value) & ((1_u64 << count) - 1)
         let queued = (.bitBuffer << count) | bits
         var used   = .bufferedBits + count
         if used >= 32

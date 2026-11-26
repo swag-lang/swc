@@ -61,8 +61,11 @@ impl BitReader
     {
         let at = .bitPos
         .bitPos += 1
-        if at >= .bitEnd do
+        if at >= .bitEnd
+        {
             return 0
+        }
+
         let byte = .data![at >> 3]
         return (cast(u32, byte) >> (7 - cast(u32, at & 7))) & 1
     }

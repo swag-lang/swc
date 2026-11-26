@@ -1088,10 +1088,15 @@ impl Tessellate
     // Reuses coincidence cells that are still proportionate to the last border set.
     private mtd dupClear()
     {
-        if .dupCells.capacity > 256 and .dupCells.capacity / 8 > .dupCells.count do
+        if .dupCells.capacity > 256 and .dupCells.capacity / 8 > .dupCells.count
+        {
             .dupCells.free()
-        else do
+        }
+        else
+        {
             .dupCells.clear()
+        }
+
         .dupNext.clear()
         .dupPoint.clear()
     }

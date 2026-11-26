@@ -832,7 +832,7 @@ impl Decoder
         }
 
         // Validate all chunks before assembling the stream. A single payload needs no copy.
-        var joined:     Array'u8
+        var joined:     Array!{u8}
         var compressed: const [..] u8 = frameData.toSlice()
         if let first = firstIdat
         {
@@ -848,13 +848,19 @@ impl Decoder
                 var remaining = idatSize
                 for
                 {
-                    if length do
+                    if length
+                    {
                         joined.add(Swag.makeSlice(payload, length))
+                    }
+
                     remaining -= length
-                    if not remaining do
+                    if not remaining
+                    {
                         break
 
-                    // IDAT chunks are consecutive and have already been checked for size and CRC.
+                        // IDAT chunks are consecutive and have already been checked for size and CRC.
+                    }
+
                     payload += length + 12
                     length  = Decoder.read32Be(payload - 8)
                 }

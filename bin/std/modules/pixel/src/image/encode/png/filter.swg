@@ -95,12 +95,18 @@ func filterSubRow(source: const [*] u8, destination: [*] u8, count, bytesPerPixe
 // Returns false without writing if the row geometry or slice lengths are inconsistent.
 public func filterSubPredictorRows(input: const [..] u8, output: [..] u8, rowBytes, pixelBytes: u64)->bool
 {
-    if not rowBytes or rowBytes == Swag.U64.Max or not pixelBytes or pixelBytes > rowBytes do
+    if not rowBytes or rowBytes == Swag.U64.Max or not pixelBytes or pixelBytes > rowBytes
+    {
         return false
+    }
+
     let stride = rowBytes + 1
     let count  = output.count / stride
-    if output.count % stride or input.count != count * rowBytes do
+    if output.count % stride or input.count != count * rowBytes
+    {
         return false
+    }
+
     for row in count
     {
         let destination = output.buffer + row * stride

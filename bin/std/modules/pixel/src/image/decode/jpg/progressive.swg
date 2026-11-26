@@ -56,8 +56,9 @@ impl Decoder
     mtd decodeProgressiveAc(table: *HuffTables)->s32
     {
         let entry = table.lookUp[.entropyBits >> (64 - HuffLookupBits)]
-        if entry < 0 do
+        if entry < 0 {
             return .decodeLongHuffCode(table, entry, HuffLookupBits)
+        }
         if entry >= 1 << 24
         {
             .skipEntropyBits(entry >> 24)
@@ -225,7 +226,7 @@ impl Decoder
 
                 k += 1
             }
-            elif run != 15
+            else if run != 15
             {
                 .eobRun = (1 << run) + (run ? .readEntropyBits(run) : 0)
                 break
@@ -237,8 +238,9 @@ impl Decoder
             {
                 let occupied = cast(s32, Swag.trailingZeros(remaining))
                 let zeros    = occupied - k
-                if run < zeros do
+                if run < zeros {
                     break
+                }
                 run -= zeros
                 .refineCoefficient(&p[ZigzagToTransposed[occupied]], bit)
                 remaining &= remaining - 1
@@ -249,7 +251,7 @@ impl Decoder
             if coefficient and k < 64
             {
                 p[ZigzagToTransposed[k]] = coefficient
-                present[] |= 1'u64 << k
+                present[] |= 1_u64 << k
             }
 
             k += 1
@@ -310,13 +312,15 @@ impl Decoder
             var columns  = .mcusPerRow
             while columns
             {
-                if .restartInterval and .restartsLeft == 0 do
+                if .restartInterval and .restartsLeft == 0 {
                     try .restartProcess()
+                }
                 var count = 1
                 #static if REFINE
                 {
-                    if not .decodeBlockAcRefine(block, &presence[0], table, band, bit) do
+                    if not .decodeBlockAcRefine(block, &presence[0], table, band, bit) {
                         fail InvalidFormatError{"decode error"}
+                    }
                 }
                 else
                 {
@@ -325,14 +329,16 @@ impl Decoder
                         // A run in the first pass touches no coefficients. Consume it up to
                         // the next row or restart marker, whichever comes first.
                         count = Math.min(.eobRun, columns)
-                        if .restartInterval do
+                        if .restartInterval {
                             count = Math.min(count, .restartsLeft)
+                        }
                         .eobRun -= count
                     }
                     else
                     {
-                        if not .decodeBlockAcFirst(block, &presence[0], table) do
+                        if not .decodeBlockAcFirst(block, &presence[0], table) {
                             fail InvalidFormatError{"decode error"}
+                        }
                     }
                 }
 
@@ -467,18 +473,20 @@ impl Decoder
             let refinementScan = .successiveHigh != 0
             if .spectralStart == 0
             {
-                if refinementScan do
-                    try .decodeDcScan'true()
-                else do
-                    try .decodeDcScan'false()
+                if refinementScan {
+                    try .decodeDcScan!{true}()
+                }
+                else {
+                    try .decodeDcScan!{false}()
+                }
             }
-            elif refinementScan
+            else if refinementScan
             {
-                try .decodeAcScan'true()
+                try .decodeAcScan!{true}()
             }
             else
             {
-                try .decodeAcScan'false()
+                try .decodeAcScan!{false}()
             }
 
             .primeMarkerBits()
@@ -490,11 +498,12 @@ impl Decoder
         }
 
         // The masks have no further use once every scan has been decoded.
-        for &component in .coefficients do
+        for &component in .coefficients {
             component.nonzeroAc.free()
 
         // Match the transposed coefficient layout so dequantization can multiply a vector of
         // coefficients at a time.
+        }
         for &table in .quant where not table.isEmpty()
         {
             var natural: [64] s16

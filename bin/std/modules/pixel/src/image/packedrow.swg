@@ -85,8 +85,9 @@ private func buildStraightAlpha8Table()->[65536] u8
     {
         let a = cast(f32, alpha) / 255.0
         for channel in 256
-            do
+        {
             result[(alpha << 8) | channel] = normalizedToU8((cast(f32, channel) / 255.0) / a)
+        }
     }
 
     return result
@@ -196,7 +197,7 @@ func reverseBgra32Row(source: const [*] u8, destination: [*] u8, pixelCount: u64
 // Restores each byte delta against the corresponding byte of the preceding pixel.
 func restoreHorizontalDeltas(source: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
-    var offset = 0'u64
+    var offset = 0_u64
     while offset < bytesPerPixel and offset < count
     {
         destination[offset] = source[offset]
@@ -237,7 +238,7 @@ func restoreHorizontalDeltas(source: const [*] u8, destination: [*] u8, count, b
         // of each store remains inside the row and is overwritten later.
         if count >= 16
         {
-            var carry = Math.Simd.splat(0'u8)
+            var carry = Math.Simd.splat(0_u8)
             offset = 0
             while count - offset >= 16
             {
@@ -314,13 +315,15 @@ func smallPaletteTables(packed: const [*] u32, paletteSize: u64)->[4] Math.Simd.
     }
 
     var tables: [4] Math.Simd.U8x16
-    for channel in 4 do
+    for channel in 4
+    {
         tables[channel] = Math.Simd.load(&channels[channel * 16])
+    }
 
     return tables
 }
 
-const PaletteDropAlpha = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
+const PaletteDropAlpha = cast(Math.Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
 
 #[Swag.Inline]
 private func(HAS_ALPHA: bool) writeSmallPaletteHalf(target: [*] u8, redGreen, blueAlpha: Math.Simd.U8x16)
@@ -355,8 +358,8 @@ func(HAS_ALPHA: bool) writeSmallPaletteRow(source: const [*] u8, target: [*] u8,
         let b = Math.Simd.shuffle(tables[2], keys)
         let a = Math.Simd.shuffle(tables[3], keys)
         let destination = target + x * Step
-        writeSmallPaletteHalf'(HAS_ALPHA)(destination, Math.Simd.interleaveLow(r, g), Math.Simd.interleaveLow(b, a))
-        writeSmallPaletteHalf'(HAS_ALPHA)(destination + 8 * Step, Math.Simd.interleaveHigh(r, g), Math.Simd.interleaveHigh(b, a))
+        writeSmallPaletteHalf!{HAS_ALPHA}(destination, Math.Simd.interleaveLow(r, g), Math.Simd.interleaveLow(b, a))
+        writeSmallPaletteHalf!{HAS_ALPHA}(destination + 8 * Step, Math.Simd.interleaveHigh(r, g), Math.Simd.interleaveHigh(b, a))
         x += 16
     }
 

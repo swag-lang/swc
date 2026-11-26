@@ -875,7 +875,10 @@ impl ViewerWindow
         if .searchByteRange.length > 0
         {
             let byteRange = .searchByteRange
-            if .searchTotalBytes < byteRange.offset or byteRange.length > .searchTotalBytes - byteRange.offset
+            if .searchTotalBytes!
+            {
+                byteRange.offset or byteRange.length
+            }.searchTotalBytes - byteRange.offset
             {
                 .searchError = appStrings().ui_SearchRangeUnavailable
                 .finishSearch()

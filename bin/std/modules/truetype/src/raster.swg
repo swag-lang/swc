@@ -153,36 +153,6 @@ func buildEdges(outline: const *Outline)->Array!{Edge}
     return edges
 }
 
-func isInside(edges: const [..] Edge, x, y: f64)->bool
-{
-    var winding = 0
-    for edge in edges
-    {
-        if y < edge.minY or y >= edge.maxY
-        {
-            continue
-        }
-
-        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
-        if edge.y0 <= y and edge.y1 > y
-        {
-            if cross > 0
-            {
-                winding += 1
-            }
-        }
-        else if edge.y1 <= y and edge.y0 > y
-        {
-            if cross < 0
-            {
-                winding -= 1
-            }
-        }
-    }
-
-    return winding != 0
-}
-
 // Accumulate the exact coverage contribution of one edge piece, already clipped to
 // a single scanline band, into the per-column 'area' and 'cover' buffers.
 //   - cover[x] : signed vertical extent of the edge inside column x (0..1 of the band)
@@ -196,9 +166,10 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     if dyTotal <= 0.0
     {
         return
+
+        // Vertical sub-segment: a single column.
     }
 
-    // Vertical sub-segment: a single column.
     if Math.abs(xb - xa) < 1e-9
     {
         var cx = Math.floorS32(xa)
@@ -244,9 +215,10 @@ func accumulateSpan(area, cover: [*] f64, width: s32, xa, ya, xb, yb, s: f64)
     if cxEnd > width - 1
     {
         cxEnd = width - 1
+
+        // x varies linearly with y along the segment, so y at a given x is exact.
     }
 
-    // x varies linearly with y along the segment, so y at a given x is exact.
     let invDx = 1.0 / (xb - xa)
 
     for cx in cxStart until cxEnd + 1
@@ -334,8 +306,8 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
     // Retain contour order while discarding edges outside a group of rows.
     const BandRows = 8
     let rowsPerBand = rows > 2 * BandRows ? BandRows : rows
-    var bandStart   = 0's32
-    var active: Array'Edge
+    var bandStart   = 0_s32
+    var active: Array!{Edge}
     while bandStart < rows
     {
         let bandEnd   = Math.min(rows, bandStart + rowsPerBand)
@@ -344,30 +316,13 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
         var bandEdges = edges.toSlice()
         if rowsPerBand < rows
         {
-            // Horizontal edges carry no winding; skip non-overlapping ones.
-            if edge.y0 == edge.y1
+            active.clear()
+            for edge in edges where edge.maxY > bandLo and edge.minY < bandHi and edge.y0 != edge.y1
             {
-                continue
+                active.add(edge)
             }
 
-            if edge.maxY <= bandLo or edge.minY >= bandHi
-            {
-                continue
-            }
-
-            let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
-            let elo = Math.max(edge.minY, bandLo)
-            let ehi = Math.min(edge.maxY, bandHi)
-            if ehi <= elo
-            {
-                continue
-            }
-
-            let inv   = 1.0 / (edge.y1 - edge.y0)
-            let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
-            let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
-
-            accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
+            bandEdges = active.toSlice()
         }
 
         for py in bandStart until bandEnd
@@ -375,14 +330,53 @@ func renderCurrentOutline(slot: *GlyphSlot) fail
             Memory.clear(areaBuffer, area.count * #sizeof(f64))
             Memory.clear(coverBuffer, cover.count * #sizeof(f64))
 
-            var c = Math.abs(val)
-            if c > 1.0
+            // Glyph-space y band for this row (y points up; row 0 is the top).
+            let bandHi = topF - cast(f64, py)
+            let bandLo = bandHi - 1.0
+
+            for edge in bandEdges
             {
-                c = 1.0
+                // Horizontal edges carry no winding; skip non-overlapping ones.
+                if edge.y0 == edge.y1
+                {
+                    continue
+                }
+
+                if edge.maxY <= bandLo or edge.minY >= bandHi
+                {
+                    continue
+                }
+
+                let s   = edge.y1 > edge.y0 ? 1.0 : -1.0
+                let elo = Math.max(edge.minY, bandLo)
+                let ehi = Math.min(edge.maxY, bandHi)
+                if ehi <= elo
+                {
+                    continue
+                }
+
+                let inv   = 1.0 / (edge.y1 - edge.y0)
+                let xAtLo = edge.x0 + (edge.x1 - edge.x0) * (elo - edge.y0) * inv
+                let xAtHi = edge.x0 + (edge.x1 - edge.x0) * (ehi - edge.y0) * inv
+
+                accumulateSpan(areaBuffer, coverBuffer, width, xAtLo - leftF, elo, xAtHi - leftF, ehi, s)
             }
 
-            dst[] = cast(u8, (c * 255.0 + 0.5))
-            dst   += 1
+            var running: f64 = 0.0
+            for px in width
+            {
+                let val = running + coverBuffer[px] - areaBuffer[px]
+                running += coverBuffer[px]
+
+                var c = Math.abs(val)
+                if c > 1.0
+                {
+                    c = 1.0
+                }
+
+                dst[] = cast(u8, (c * 255.0 + 0.5))
+                dst   += 1
+            }
         }
 
         bandStart = bandEnd

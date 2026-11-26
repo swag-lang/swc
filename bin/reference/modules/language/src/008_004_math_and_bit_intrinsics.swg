@@ -27,8 +27,8 @@ and writes the high 64 bits through the provided pointer. An overload adds two u
 #test
 {
     var high: u64
-    let low = Swag.mulWide(0x8000000000000000'u64, 3'u64, &high)
-    Swag.require(low == 0x8000000000000000'u64)
+    let low = Swag.mulWide(0x8000000000000000_u64, 3_u64, &high)
+    Swag.require(low == 0x8000000000000000_u64)
     Swag.require(high == 1)
 
     const Max = Swag.U64.Max

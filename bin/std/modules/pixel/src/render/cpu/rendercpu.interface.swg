@@ -136,7 +136,6 @@ impl IRenderer for RenderCpu
     }
 }
 
-
 impl RenderCpu
 {
     // Registers a read-only image for CPU sampling without a pixel copy.
@@ -146,10 +145,15 @@ impl RenderCpu
     // updates to it. Premultiplied inputs use an owned conversion to straight alpha.
     mtd addBorrowedImage(image: const *Image)->Texture
     {
-        if image.alphaMode == .Premultiplied do
+        if image.alphaMode == .Premultiplied
+        {
             return .addImageImpl(image)
-        if not image.isValid() or not .ensureGeneration() do
+        }
+
+        if not image.isValid() or not .ensureGeneration()
+        {
             return {}
+        }
 
         var result: #returntype
         result.attach(cast(TextureHandle, .nextHandle), image.pixelFormat, image.width, image.height, .generation)

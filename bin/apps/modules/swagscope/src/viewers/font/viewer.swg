@@ -75,8 +75,11 @@ private func countBlockCoverage(face: *Face)->[BlockFirst.count] u32
         face.visitCharacters(BlockFirst[index], func|covered, last|(character: rune, glyphIndex: u32)->bool
         {
             discard glyphIndex
-            if cast(u32, character) > last do
+            if cast(u32, character) > last
+            {
                 return false
+            }
+
             covered[] += 1
             return true
         })
@@ -306,10 +309,15 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     }
 
     let selectedMember = result.faceIndices[result.selectedFaceIndex]
-    if collectionCount > 1 do
+    if collectionCount > 1
+    {
         result.cacheKey = Format.toString("%|scope-font|%", fileName, result.selectionIdentity)
-    else do
+    }
+    else
+    {
         result.cacheKey = Format.toString("%|scope-font|%{X08}", fileName, Hash.Crc32.compute(bytes))
+    }
+
     result.typeFace = try TypeFace.createFromSource(result.cacheKey, &result.source, selectedMember)
 
     let unreadable = collectionCount - result.faceCount

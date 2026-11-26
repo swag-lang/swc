@@ -149,7 +149,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
             rows -= r
         }
     }
-    elif stripByteCounts.count
+    else if stripByteCounts.count
     {
         stripLens.add(stripByteCounts)
     }
@@ -469,8 +469,10 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     const Width = 21
     const Palette: [6] u16 = [10 << 8, 40 << 8, 20 << 8, 50 << 8, 30 << 8, 60 << 8]
     var samples: [Width] u8
-    for x in 1 until Width do
+    for x in 1 until Width
+    {
         samples[x] = (x & 1) ? 1 : 255
+    }
 
     let valid = buildTiff(false, Width, 1, 1, 3, 1, 1, 8, samples, Palette, false, 2)
     let image = expect decodeTiff(nnBytes(valid.toSlice()))
@@ -493,7 +495,7 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
 {
     const Width = 523
     var bytes: [Width] u8
-    var random = 0xA123_78B9'u32
+    var random = 0xA123_78B9_u32
     for i in Width
     {
         random   ^= random << 13
@@ -502,13 +504,15 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         bytes[i] = cast(u8, (random & 255))
     }
 
-    var compressed: Array'u8
+    var compressed: Array!{u8}
     Tiff.packLzw(&compressed, &bytes[0], Width)
     Swag.require(compressed.count > Width + Width / 8)
     let fixture = buildTiff(false, Width, 1, 1, 1, 5, 1, 8, compressed.toSlice(), null, false)
     let image   = expect decodeTiff(nnBytes(fixture.toSlice()))
-    for i in Width do
+    for i in Width
+    {
         Swag.require(image.pixelColor(cast(s32, i), 0) == Color.fromRgb(bytes[i], bytes[i], bytes[i]))
+    }
 }
 
 // Decode an RGBA image (extra alpha sample) into RGBA8.
@@ -640,8 +644,10 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     const Packed: [7] u8 = [3, 1, 2, 3, 4, 252, 5]
     let buffer = buildTiff(true, 1, 3, 3, 2, 32773, 3, 8, Packed, null, false)
     let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
-    for color, row in [0xFF010203'u32, 0xFF040505, 0xFF050505] do
+    for color, row in [0xFF010203_u32, 0xFF040505, 0xFF050505]
+    {
         Swag.require(image.pixelColor(0, cast(s32, row)).argb == color)
+    }
 }
 
 // Contiguous PackBits writes stay inside the decoded strip, including small runs at the tail.
@@ -691,9 +697,9 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     const Width        = 523
     const Height       = 1345
     const RowsPerStrip = 338
-    var samples:    Array'u8
-    var encoded:    Array'u8
-    var stripSizes: Array'u32
+    var samples:    Array!{u8}
+    var encoded:    Array!{u8}
+    var stripSizes: Array!{u32}
     for strip in 4
     {
         let rows = Math.min(RowsPerStrip, Height - strip * RowsPerStrip)
@@ -748,16 +754,18 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
 // The dictionary restarts at each LZW strip and the predictor restarts at each row.
 #test
 {
-    var encoded = packLiteralTiffLzw([10'u8, 1, 1, 20, 2, 2])
-    let tail    = packLiteralTiffLzw([30'u8, 3, 3])
+    var encoded = packLiteralTiffLzw([10_u8, 1, 1, 20, 2, 2])
+    let tail    = packLiteralTiffLzw([30_u8, 3, 3])
     let sizes   = [cast(u32, encoded.count), cast(u32, tail.count)]
     encoded.add(tail.toSlice())
 
     let buffer = buildTiff(true, 3, 3, 1, 1, 5, 2, 8, nnBytes(encoded.toSlice()), null, false, predictor: 2, stripByteCounts: sizes)
     let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
     Swag.require(image.width == 3 and image.height == 3 and image.pixelFormat == .BGR8)
-    for value, index in [10'u8, 11, 12, 20, 22, 24, 30, 33, 36] do
+    for value, index in [10_u8, 11, 12, 20, 22, 24, 30, 33, 36]
+    {
         Swag.require(image.pixelColor(cast(s32, index % 3), cast(s32, index / 3)).r == value)
+    }
 }
 
 // A grayscale predictor carries across vector blocks and restarts for each row.
@@ -767,7 +775,7 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     const Height = 3
     for predicted in [false, true]
     {
-        var encoded: Array'u8
+        var encoded: Array!{u8}
         for y in Height
         {
             var previous: u8
@@ -779,7 +787,7 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
             }
         }
 
-        for photo in [0'u32, 1]
+        for photo in [0_u32, 1]
         {
             let buffer = buildTiff(true, Width, Height, 1, photo, 1, 2, 8, nnBytes(encoded.toSlice()), null, false, predictor: predicted ? 2 : 1)
             let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
@@ -974,15 +982,20 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     writer.bytes       = {}
     writer.pending     = 0
     writer.pendingBits = 0
-    for code in [256'u32, 65, 66, 258, 67, 260, 256, 68, 258, 257] do
+    for code in [256_u32, 65, 66, 258, 67, 260, 256, 68, 258, 257]
+    {
         writer.write(code, 9)
+    }
+
     writer.finish()
 
     let packed = nnBytes(writer.bytes.toSlice())
     let buffer = buildTiff(true, 11, 1, 1, 1, 5, 1, 8, packed, null, false)
     let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
-    for sample, index in [65'u8, 66, 65, 66, 67, 65, 66, 67, 68, 68, 68] do
+    for sample, index in [65_u8, 66, 65, 66, 67, 65, 66, 67, 68, 68, 68]
+    {
         Swag.require(image.pixelColor(cast(s32, index), 0).r == sample)
+    }
 
     let tooShort = buildTiff(true, 10, 1, 1, 1, 5, 1, 8, packed, null, false)
     Swag.require(tiffDecodeFails(nnBytes(tooShort.toSlice())))
@@ -993,19 +1006,24 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
 #test
 {
     var writer: TestTiffLzwWriter
-    for code in [256'u32, 65, 66, 67, 68, 258, 259, 257] do
+    for code in [256_u32, 65, 66, 67, 68, 258, 259, 257]
+    {
         writer.write(code, 9)
+    }
+
     writer.finish()
 
     const Expected: [8] u8 = [65, 66, 67, 68, 65, 66, 66, 67]
     var bytes: [10] u8
     bytes[0], bytes[9] = 0xA5
-    var dictionary: Array'u64
+    var dictionary: Array!{u64}
     let dst = cast([*] u8, &bytes[1])
     expect Tiff.unpackLzw(dst, Expected.count, writer.bytes.storage(), cast(u32, writer.bytes.count), &dictionary)
     Swag.require(bytes[0] == 0xA5 and bytes[9] == 0xA5)
-    for value, index in Expected do
+    for value, index in Expected
+    {
         Swag.require(dst[index] == value)
+    }
 }
 
 // Medium LZW phrases preserve the guard bytes at both ends of the strip.
@@ -1330,9 +1348,13 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
             let decoded = expect decodeTiff(nnBytes(encoded.toSlice()))
             Swag.require(decoded.width == Width and decoded.height == Height)
             Swag.require(decoded.pixelFormat == (format == .BGR8 ? .RGB8 : .RGBA8))
-            for y in Height do
-                for x in Width do
+            for y in Height
+            {
+                for x in Width
+                {
                     Swag.require(decoded.pixelColor(cast(s32, x), cast(s32, y)) == source.pixelColor(cast(s32, x), cast(s32, y)))
+                }
+            }
         }
     }
 }
@@ -1343,9 +1365,9 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
     const Pixels: [1] u8 = [17]
     let single = buildTiff(true, 1, 1, 1, 1, 1, 1, 8, Pixels, null, false)
     let first  = Tiff.rd32(single.storage() + 4, true)
-    let size   = 6'u64 + cast(u64, Tiff.rd16(single.storage() + first, true)) * 12
+    let size   = 6_u64 + cast(u64, Tiff.rd16(single.storage() + first, true)) * 12
     let entry  = Swag.makeSlice(single.storage() + first, size)
-    var pages: Array'u8
+    var pages: Array!{u8}
     pages.add(single.toSlice())
     var link = cast(u64, first) + size - 4
     for 16

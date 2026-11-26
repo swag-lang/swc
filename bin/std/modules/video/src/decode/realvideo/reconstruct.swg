@@ -256,7 +256,7 @@ private func motionTaps(source: const [*] u8)->Simd.S16x8
 private func filterMotionRow(a, b, c, d, e, f: Simd.S16x8, filter: MotionFilter)->Simd.U8x16
 {
     // The largest positive tap sum is 74 and every input is a byte.
-    let sum = a + f - (b + e) * 5's16 +
+    let sum = a + f - (b + e) * 5_s16 +
               c * cast(s16, filter.centerLeft) + d * cast(s16, filter.centerRight) + cast(s16, filter.bias)
     let samples = sum >> filter.shift
     return Simd.packUnsigned(samples, samples)
@@ -278,8 +278,9 @@ private func horizontalMotion(into: [*] u8, source: const [*] u8, x, size, width
             return
         }
 
-        for i in size do
+        for i in size {
             into[i] = cast(u8, rowSample(source, x + i, width))
+        }
         return
     }
 

@@ -100,7 +100,7 @@ public struct ImageReader
     decoderAllocator:     IAllocator?
     options:              DecodeOptions
     canvas:               Image
-    previous:             Array'u8
+    previous:             Array!{u8}
     lastIndex:            s32 = -1
 }
 
@@ -135,8 +135,9 @@ impl ImageReader
             for y in frame.height
             {
                 let row = cast([*] u32, (target + cast(u64, y) * stride))
-                for x in frame.width do
+                for x in frame.width {
                     row[x] = packed
+                }
             }
 
             return
@@ -146,8 +147,9 @@ impl ImageReader
         for y in frame.height
         {
             let row = target + cast(u64, y) * stride
-            for x in frame.width do
+            for x in frame.width {
                 writePixelValue(row + cast(u64, x) * .canvas.bytesPerPixel, .canvas.pixelFormat, value)
+            }
         }
     }
 
@@ -168,10 +170,12 @@ impl ImageReader
         let previous = .previous.storage()
         if rowBytes == stride
         {
-            #static if SAVE do
+            #static if SAVE {
                 Memory.copy(previous, canvas, bytes)
-            else do
+            }
+            else {
                 Memory.copy(canvas, previous, bytes)
+            }
             return
         }
 
@@ -179,10 +183,12 @@ impl ImageReader
         {
             let canvasRow   = canvas + y * stride
             let previousRow = previous + y * rowBytes
-            #static if SAVE do
+            #static if SAVE {
                 Memory.copy(previousRow, canvasRow, rowBytes)
-            else do
+            }
+            else {
                 Memory.copy(canvasRow, previousRow, rowBytes)
+            }
         }
     }
 
@@ -206,19 +212,19 @@ impl ImageReader
     func normalizedByteLanes(samples: Math.Simd.U32x4)->Math.Simd.F32x4
     {
         using Math.Simd
-        let integer = cast #bit(F32x4, (samples | splat(0x4B00_0000'u32))) - splat(8388608'f32)
-        return integer / splat(255'f32)
+        let integer = cast #bit(F32x4, (samples | splat(0x4B00_0000_u32))) - splat(8388608_f32)
+        return integer / splat(255_f32)
     }
 
     #[Swag.Inline]
     func normalizedLaneBytes(values: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
     {
         using Math.Simd
-        let scaled    = values * splat(255'f32)
+        let scaled    = values * splat(255_f32)
         let floor     = Math.floor(scaled)
         let fraction  = scaled - floor
-        let halfway   = splat(0.5'f32)
-        nearTie[] |= Math.abs(fraction - halfway) <= splat(0.0001220703125'f32)
+        let halfway   = splat(0.5_f32)
+        nearTie[] |= Math.abs(fraction - halfway) <= splat(0.0001220703125_f32)
         let increment = fraction >= halfway
         return cast #bit(U32x4, truncateToS32(floor)) - increment
     }
@@ -227,7 +233,7 @@ impl ImageReader
     func(SHIFT: u32) blendChannelLanes(source, behind: Math.Simd.U32x4, sourceAlpha, remainder, divisor: Math.Simd.F32x4, nearTie: *Math.Simd.U32x4)->Math.Simd.U32x4
     {
         using Math.Simd
-        let mask = splat(255'u32)
+        let mask = splat(255_u32)
         let a    = normalizedByteLanes((source >> SHIFT) & mask)
         let b    = normalizedByteLanes((behind >> SHIFT) & mask)
         return normalizedLaneBytes((a * sourceAlpha + b * remainder) / divisor, nearTie) << SHIFT
@@ -239,12 +245,12 @@ impl ImageReader
         using Math.Simd
         let sourceAlpha = normalizedByteLanes(source >> 24)
         let behindAlpha = normalizedByteLanes(behind >> 24)
-        let remainder   = behindAlpha * (splat(1'f32) - sourceAlpha)
+        let remainder   = behindAlpha * (splat(1_f32) - sourceAlpha)
         let alpha       = sourceAlpha + remainder
-        let divisor     = select(alpha == splat(0'f32), splat(1'f32), alpha)
-        return blendChannelLanes'0(source, behind, sourceAlpha, remainder, divisor, nearTie) |
-               blendChannelLanes'8(source, behind, sourceAlpha, remainder, divisor, nearTie) |
-               blendChannelLanes'16(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+        let divisor     = select(alpha == splat(0_f32), splat(1_f32), alpha)
+        return blendChannelLanes!{0}(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               blendChannelLanes!{8}(source, behind, sourceAlpha, remainder, divisor, nearTie) |
+               blendChannelLanes!{16}(source, behind, sourceAlpha, remainder, divisor, nearTie) |
                (normalizedLaneBytes(alpha, nearTie) << 24)
     }
 
@@ -252,8 +258,8 @@ impl ImageReader
     {
         let input   = cast(const [*] u32, source)
         let output  = cast([*] u32, target)
-        let zero    = Math.Simd.splat(0'u32)
-        let maximum = Math.Simd.splat(255'u32)
+        let zero    = Math.Simd.splat(0_u32)
+        let maximum = Math.Simd.splat(255_u32)
         var x       = 0
         while width - x >= 4
         {
@@ -296,14 +302,14 @@ impl ImageReader
             {
                 output[pixel] = color
             }
-            elif alpha
+            else if alpha
             {
                 let offset = cast(u64, pixel) * 4
                 let value  = readPixelValue(source + offset, .RGBA8)
                 let behind = readPixelValue(target + offset, .RGBA8)
                 writePixelValue(target + offset, .RGBA8, blendOver(value, behind))
             }
-            elif output[pixel] >> 24 == 0
+            else if output[pixel] >> 24 == 0
             {
                 output[pixel] = 0
             }
@@ -324,10 +330,12 @@ impl ImageReader
             let target = start + cast(u64, y) * stride
             if packedCanvas and image.pixelFormat == .RGBA8
             {
-                if frame.blend == .Replace do
+                if frame.blend == .Replace {
                     Memory.copy(target, source, cast(u64, image.rowStride))
-                else do
+                }
+                else {
                     blendRgba8Row(source, target, frame.width)
+                }
                 continue
             }
 
@@ -342,8 +350,9 @@ impl ImageReader
                 let input  = source + cast(u64, x) * image.bytesPerPixel
                 let output = target + cast(u64, x) * .canvas.bytesPerPixel
                 var value  = readLogicalPixelValue(input, image.pixelFormat, image.alphaMode)
-                if frame.blend == .Over and value.a < 1 do
+                if frame.blend == .Over and value.a < 1 {
                     value = blendOver(value, readPixelValue(output, .canvas.pixelFormat))
+                }
                 writePixelValue(output, .canvas.pixelFormat, value)
             }
         }

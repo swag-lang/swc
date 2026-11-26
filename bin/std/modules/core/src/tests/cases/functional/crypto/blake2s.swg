@@ -94,8 +94,10 @@ func assertBlake2s(data: const [..] u8, expected: string)
 {
     // Start at an odd byte, including when the sequence ends exactly on a block boundary.
     var input: [130] u8
-    for index in input.count do
+    for index in input.count
+    {
         input[index] = cast(u8, index)
+    }
 
     assertBlake2s(input[1 until 64], "98b4ba19442c0e35f30a23dd9821711f4c4599331b36a77ad4bd39dd1ae46002")
     assertBlake2s(input[1 until 65], "aa9932410694932a282715ae15f432f37f0ffac012d20a6019bdb008bb21fac7")

@@ -71,11 +71,11 @@ impl Vp8Partition
         {
             // Keep seven bytes so the refill fits even when the buffer has seven live bits.
             let word = cast(const [*] u64, (unwrap .data) + .offset)[0]
-            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00'u64) >> (8 + .bitCount)
+            .bits     |= (Math.byteSwap(word) & 0xFFFFFFFFFFFFFF00_u64) >> (8 + .bitCount)
             .offset   += 7
             .bitCount += 56
         }
-        elif remaining
+        else if remaining
         {
             .bits     |= cast(u64, .data![.offset]) << (48 - .bitCount)
             .offset   += 1
@@ -93,8 +93,10 @@ impl Vp8Partition
     #[Swag.Inline]
     mtd readBit(probability: u8)->bool
     {
-        if .bitCount < 0 and not .refill() do
+        if .bitCount < 0 and not .refill()
+        {
             return false
+        }
 
         var rangeM1  = .rangeM1
         var bits     = .bits
@@ -109,8 +111,10 @@ impl Vp8Partition
     #[Swag.Inline]
     mtd readCoefficientSign(value: s32)->s32
     {
-        if .bitCount < 0 and not .refill() do
+        if .bitCount < 0 and not .refill()
+        {
             return value
+        }
 
         var rangeM1     = .rangeM1
         var bits        = .bits

@@ -8,10 +8,10 @@ private const ExpandSwap = [2_u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10,
 internal func expandRgb8Alpha(source: const [*] u8, target: [*] u8, count: u64, swapColors: bool)
 {
     using Math.Simd
-    let table = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
+    let table    = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
     let channels = load(table)
-    const Opaque = splat(0xFF000000'u32)
-    let output   = cast([*] u32, target)
+    const Opaque = splat(0xFF000000_u32)
+    let output = cast([*] u32, target)
     var x: u64
     while count - x >= 6
     {
@@ -25,7 +25,7 @@ internal func expandRgb8Alpha(source: const [*] u8, target: [*] u8, count: u64, 
     for i in x until count
     {
         let pixel = source + i * 3
-        output[i] = 0xFF000000'u32 | cast(u32, pixel[first]) |
+        output[i] = 0xFF000000_u32 | cast(u32, pixel[first]) |
                     (cast(u32, pixel[1]) << 8) | (cast(u32, pixel[last]) << 16)
     }
 }
@@ -33,18 +33,18 @@ internal func expandRgb8Alpha(source: const [*] u8, target: [*] u8, count: u64, 
 internal func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8, count: u64)
 {
     using Math.Simd
-    const Alpha  = HALF ? 0x3C00'u16 : 0xFFFF'u16
-    const Expand = cast(U8x16, [0'u8, 1, 2, 3, 4, 5, 128, 128, 6, 7, 8, 9, 10, 11, 128, 128])
-    const Opaque = cast(U16x8, [0'u16, 0, 0, Alpha, 0, 0, 0, Alpha])
-    var x = 0'u64
+    const Alpha  = HALF ? 0x3C00_u16 : 0xFFFF_u16
+    const Expand = cast(U8x16, [0_u8, 1, 2, 3, 4, 5, 128, 128, 6, 7, 8, 9, 10, 11, 128, 128])
+    const Opaque = cast(U16x8, [0_u16, 0, 0, Alpha, 0, 0, 0, Alpha])
+    var x = 0_u64
     while count - x >= 3
     {
         var block = cast #bit(U16x8, shuffle(load(source + x * 6), Expand))
         #static if HALF
         {
             // The generic HALF round-trip canonicalizes NaNs and preserves their sign.
-            let nan = (block & 0x7FFF'u16) > splat(0x7C00'u16)
-            block = select(nan, (block & 0x8000'u16) | 0x7E00'u16, block)
+            let nan = (block & 0x7FFF_u16) > splat(0x7C00_u16)
+            block = select(nan, (block & 0x8000_u16) | 0x7E00_u16, block)
         }
 
         store(cast([*] u16, target + x * 8), block | Opaque)
@@ -58,8 +58,11 @@ internal func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8,
         for channel in 3
         {
             var value = input[channel]
-            #static if HALF do
+            #static if HALF
+            {
                 value = (value & 0x7FFF) > 0x7C00 ? ((value & 0x8000) | 0x7E00) : value
+            }
+
             output[channel] = value
         }
 
@@ -70,11 +73,11 @@ internal func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8,
 internal func expandRgb32Alpha(source: const [*] u8, target: [*] u8, count: u64)
 {
     using Math.Simd
-    const Color  = cast(U32x4, [0xFFFF_FFFF'u32, 0xFFFF_FFFF, 0xFFFF_FFFF, 0])
-    const Opaque = cast(U32x4, [0'u32, 0, 0, 0x3F80_0000])
+    const Color  = cast(U32x4, [0xFFFF_FFFF_u32, 0xFFFF_FFFF, 0xFFFF_FFFF, 0])
+    const Opaque = cast(U32x4, [0_u32, 0, 0, 0x3F80_0000])
     let input  = cast(const [*] u32, source)
     let output = cast([*] u32, target)
-    var x      = 0'u64
+    var x      = 0_u64
     while count - x >= 2
     {
         store(output + x * 4, (load(input + x * 3) & Color) | Opaque)
@@ -110,8 +113,8 @@ impl Image
                 let width  = cast(u64, src.width)
                 switch format
                 {
-                case .RGB16:  expandRgb16Alpha'false(input, output, width)
-                case .RGBF16: expandRgb16Alpha'true(input, output, width)
+                case .RGB16:  expandRgb16Alpha!{false}(input, output, width)
+                case .RGBF16: expandRgb16Alpha!{true}(input, output, width)
                 case .RGBF32: expandRgb32Alpha(input, output, width)
                 default:      unreachable
                 }

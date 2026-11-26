@@ -396,9 +396,12 @@ internal impl IImageEncoder for Encoder
 
         try .calculateSubImages()
 
-        var filteredBytes = 0'u64
-        for pass in .subimage do
+        var filteredBytes = 0_u64
+        for pass in .subimage
+        {
             filteredBytes += cast(u64, pass.scanlineWidth) * pass.height
+        }
+
         .bufferToCompress.reserve(filteredBytes)
 
         .bytesPerPixel = .numChannels() * (.ihdr.bitDepth / 8)

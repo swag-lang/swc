@@ -137,8 +137,10 @@ using Swag, Core.Errors
 #test
 {
     var source = Image.create(2, 3, .RGBA8)
-    for i in source.byteCount do
+    for i in source.byteCount
+    {
         source.pixels[i] = cast(u8, i * 7)
+    }
 
     for name in ["limits.dds", "limits.ktx2", "limits.qoi", "limits.tga"]
     {

@@ -332,18 +332,22 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 #test
 {
     var bytes: [256] u8
-    for index in bytes.count do
-        bytes[index] = cast(u8, (23 * index + 7) & 255)
-
-    for length in [0'u64, 21, 22, 25, 26, 89, 90, 91, 105, 106, 107, 153, 154, 155, 256]
+    for index in bytes.count
     {
-        var expected = 0'u32
+        bytes[index] = cast(u8, (23 * index + 7) & 255)
+    }
+
+    for length in [0_u64, 21, 22, 25, 26, 89, 90, 91, 105, 106, 107, 153, 154, 155, 256]
+    {
+        var expected = 0_u32
         for index in length
         {
-            let value = index >= 22 and index < 26 ? 0'u8 : bytes[index]
+            let value = index >= 22 and index < 26 ? 0_u8 : bytes[index]
             expected ^= cast(u32, value) << 24
-            for 8 do
+            for 8
+            {
                 expected = (expected << 1) ^ (expected & 0x80000000 ? 0x04C11DB7 : 0)
+            }
         }
 
         Swag.require(Ogg.pageChecksum(bytes[until length]) == expected)
@@ -372,7 +376,7 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 // A frame split across Ogg pages survives intervening pages of another logical stream.
 #test
 {
-    const FragmentBytes = 255'u64
+    const FragmentBytes = 255_u64
 
     let flac      = expect File.readAllBytes(audioGetTestDataPath("flac-stereo-44100.oga"))
     let firstFlac = expect oggTestPage(flac.toSlice(), 0)
@@ -380,17 +384,20 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
     let body      = audio.offset + audio.header.headerBytes
     Swag.require(audio.header.lacing[0] == FragmentBytes and audio.header.sequence == 2)
 
-    var firstPart: Array'u8
+    var firstPart: Array!{u8}
     firstPart.add(flac.toSlice()[audio.offset until audio.offset + Ogg.PageHeaderSize])
     firstPart[5]  = 0
     firstPart[26] = 1
-    for index in 8 do
+    for index in 8
+    {
         firstPart[6 + index] = 0xFF
+    }
+
     firstPart.add(255)
     firstPart.add(flac.toSlice()[body until body + FragmentBytes])
     oggRefreshTestChecksum(&firstPart)
 
-    var lastPart: Array'u8
+    var lastPart: Array!{u8}
     lastPart.add(flac.toSlice()[audio.offset until audio.offset + Ogg.PageHeaderSize])
     lastPart[5]  |= Ogg.ContinuedPacket
     lastPart[18] += 1
@@ -401,7 +408,7 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 
     let other      = expect File.readAllBytes(audioGetTestDataPath("vorbis-stereo-44100.ogg"))
     let firstOther = expect oggTestPage(other.toSlice(), 0)
-    var mixed: Array'u8
+    var mixed: Array!{u8}
     mixed.add(flac.toSlice()[until firstFlac.bytes])
     mixed.add(other.toSlice()[until firstOther.bytes])
     mixed.add(flac.toSlice()[firstFlac.bytes until audio.offset])
@@ -499,18 +506,22 @@ private func oggAssertMatchesPcm(decoded: const [..] s16, expected: const [..] u
 #test
 {
     var page: [129] u8
-    for index in page.count do
+    for index in page.count
+    {
         page[index] = cast(u8, (index * 167 + 11) & 255)
+    }
 
-    for size in [63'u64, 64, 65, 79, 80, 89, 90, 127, 128, 129]
+    for size in [63_u64, 64, 65, 79, 80, 89, 90, 127, 128, 129]
     {
         var expected: u32
         for index in size
         {
-            let byte = index >= 22 and index < 26 ? 0'u32 : cast(u32, page[index])
+            let byte = index >= 22 and index < 26 ? 0_u32 : cast(u32, page[index])
             expected ^= byte << 24
-            for 8 do
+            for 8
+            {
                 expected = (expected << 1) ^ (expected & 0x8000_0000 ? 0x04C1_1DB7 : 0)
+            }
         }
 
         Swag.require(Ogg.pageChecksum(page[until size]) == expected)

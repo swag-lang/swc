@@ -47,7 +47,7 @@ API reference. No special '///' prefix or '@param' tags are needed. Put the
 comment immediately before the declaration, or after a field or enum value
 on the same line.
 
-'//!' opts source-file prose into the module's **File documentation** section.
+'//!' opts source-file prose into the module<s> **File documentation** section.
 The numbered examples mode used by this reference renders '/** ... */' blocks
 as prose and the surrounding code as examples.
 

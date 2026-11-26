@@ -251,7 +251,7 @@ saving the 512-bit register state.
 {
     if Swag.hasCpuFeature(.WideCarrylessMultiply)
     {
-        var value: [4] u64 = [1, 2, 4, 8]
+        var value:  [4] u64 = [1, 2, 4, 8]
         let factor: [4] u64 = [4, 8, 16, 32]
         let addend: [4] u64 = [1, 2, 3, 4]
         Swag.vecCarrylessMul2XorPair(&value, &factor, &addend, 0x00, 0x11)
@@ -264,12 +264,14 @@ saving the 512-bit register state.
 {
     if Swag.hasCpuFeature(.CarrylessMultiply512)
     {
-        var value: [8] u64 = [1, 2, 2, 4, 4, 8, 8, 16]
+        var value:  [8] u64 = [1, 2, 2, 4, 4, 8, 8, 16]
         let factor: [8] u64 = [2, 4, 2, 4, 2, 4, 2, 4]
         let addend: [8] u64 = [0, 0, 0, 0, 0, 0, 0, 0]
         Swag.vecCarrylessMul2XorQuad(&value, &factor, &addend, 0x00, 0x11)
-        for lane in 4 do
-            Swag.require(value[lane * 2] == (10'u64 << lane) and value[lane * 2 + 1] == 0)
+        for lane in 4
+        {
+            Swag.require(value[lane * 2] == (10_u64 << lane) and value[lane * 2 + 1] == 0)
+        }
     }
 }
 
@@ -418,15 +420,19 @@ and take the corresponding untransformed round key.
 */
 #test
 {
-    if not Swag.hasCpuFeature(.Aes) do
+    if not Swag.hasCpuFeature(.Aes)
+    {
         return
+    }
 
     let state    = cast(#simd [16] u8, [0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70, 0x80, 0x90, 0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0])
     let roundKey = cast(#simd [16] u8, [0xD6, 0xAA, 0x74, 0xFD, 0xD2, 0xAF, 0x72, 0xFA, 0xDA, 0xA6, 0x78, 0xF1, 0xD6, 0xAB, 0x76, 0xFE])
     let expected: [16] u8 = [0x89, 0xD8, 0x10, 0xE8, 0x85, 0x5A, 0xCE, 0x68, 0x2D, 0x18, 0x43, 0xD8, 0xCB, 0x12, 0x8F, 0xE4]
     let round    = cast([16] u8, Swag.vecAesEncryptRound(state, roundKey))
-    for index in expected.count do
+    for index in expected.count
+    {
         Swag.require(round[index] == expected[index])
+    }
 }
 
 /**
@@ -441,8 +447,10 @@ Its two lowest lanes hold the message words with their round constants added.
 */
 #test
 {
-    if not Swag.hasCpuFeature(.Sha) do
+    if not Swag.hasCpuFeature(.Sha)
+    {
         return
+    }
 
     let abcd  = cast(#simd [4] u32, [0x10325476, 0x98BADCFE, 0xEFCDAB89, 0x67452301])
     let first = cast(#simd [4] u32, [0, 0, 0, 0xC3D2E1F0])

@@ -103,7 +103,7 @@ private impl CcittBits
         }
         else
         {
-            for i in 3'u64
+            for i in 3_u64
             {
                 let at = index + i
                 window = (window << 8) | (at < .data.count ? cast(u32, .data[at]) : 0)
@@ -336,8 +336,8 @@ private func writeCcittBlackRun(result: *Array!{u8}, base: u64, first, last: s32
 
     let left = first >> 3
     let right = (last - 1) >> 3
-    let firstMask = 0xFF'u8 >> cast(u32, first & 7)
-    let lastMask  = 0xFF'u8 << cast(u32, 7 - ((last - 1) & 7))
+    let firstMask = 0xFF_u8 >> cast(u32, first & 7)
+    let lastMask  = 0xFF_u8 << cast(u32, 7 - ((last - 1) & 7))
     if left == right
     {
         setBits(row + left, firstMask & lastMask)
@@ -346,8 +346,9 @@ private func writeCcittBlackRun(result: *Array!{u8}, base: u64, first, last: s32
 
     setBits(row + left, firstMask)
     setBits(row + right, lastMask)
-    if right - left > 1 do
+    if right - left > 1 {
         Memory.set(row + left + 1, BlackIs1 ? 0xFF : 0, cast(u64, right - left - 1))
+    }
 }
 
 // Writes one decoded line as packed samples: black runs stamped over a white line.
@@ -464,10 +465,12 @@ internal func decodeCcittFax(data: const [..] u8, params: CcittParameters)->Arra
             break
         }
 
-        if params.blackIs1 do
-            writeCcittRow'(true)(&result, current.toSlice(), columns)
-        else do
-            writeCcittRow'(false)(&result, current.toSlice(), columns)
+        if params.blackIs1 {
+            writeCcittRow!{true}(&result, current.toSlice(), columns)
+        }
+        else {
+            writeCcittRow!{false}(&result, current.toSlice(), columns)
+        }
         rows += 1
         swap(&reference, &current)
     }

@@ -1029,9 +1029,9 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 #test
 {
     const Palette: [3] u8 = [10, 20, 30]
-    for width in [1'u32, 16, 17]
+    for width in [1_u32, 16, 17]
     {
-        var row: Array'u8
+        var row: Array!{u8}
         row.resize(width + 1)
         row[width] = 3
 
@@ -1321,21 +1321,26 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     const Height   = 6
     const RowBytes = Width * 3
     var original: [Height * RowBytes] u8
-    for i in original.count do
+    for i in original.count
+    {
         original[i] = cast #bit(u8, (i * 91 + i / 7 * 39))
-    for x in RowBytes do
-        original[2 * RowBytes + x] = original[RowBytes + x]
+    }
 
-    var raw: Array'u8
+    for x in RowBytes
+    {
+        original[2 * RowBytes + x] = original[RowBytes + x]
+    }
+
+    var raw: Array!{u8}
     for y in Height
     {
         raw.add(4)
         for x in RowBytes
         {
             let i      = y * RowBytes + x
-            let left   = x >= 3 ? original[i - 3] : 0'u8
-            let up     = y ? original[i - RowBytes] : 0'u8
-            let upLeft = y and x >= 3 ? original[i - RowBytes - 3] : 0'u8
+            let left   = x >= 3 ? original[i - 3] : 0_u8
+            let up     = y ? original[i - RowBytes] : 0_u8
+            let upLeft = y and x >= 3 ? original[i - RowBytes - 3] : 0_u8
             raw.add(original[i] - #wrap Png.filterPaeth(left, up, upLeft))
         }
     }
@@ -1352,8 +1357,10 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     for y in Height
     {
         let row = (Height - y - 1) * RowBytes
-        for x in RowBytes do
+        for x in RowBytes
+        {
             Swag.require(image.pixels[row + x] == original[y * RowBytes + x])
+        }
     }
 }
 
@@ -1372,7 +1379,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     const Width  = 5
     const Height = 5
     const Rows   = [
-        0x00'u8, 0x00,                          // Pass 1
+        0x00_u8, 0x00,                          // Pass 1
         0x00, 0x00,                             // Pass 2
         0x00, 0xA0,                             // Pass 3
         0x00, 0x80, 0x00, 0x00,                 // Pass 4
@@ -1393,7 +1400,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
         for x in Width
         {
             let sample = cast(u8, (((x + 2 * y + y / 2) % 4) * 85))
-            assertPngPixelAt(image, x, Height - y - 1, sample, sample, sample, 255'u8)
+            assertPngPixelAt(image, x, Height - y - 1, sample, sample, sample, 255_u8)
         }
     }
 }

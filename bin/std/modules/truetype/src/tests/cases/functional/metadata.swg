@@ -8,8 +8,7 @@ func metadataTableRecord(bytes: *Array!{u8}, tag: u32)->u64
     for index in readBigU16(bytes, 4)
     {
         let record = 12_u64 + cast(u64, index) * 16
-        if readBigU32(bytes, record) == tag
-        {
+        if readBigU32(bytes, record) == tag {
             return record
         }
     }
@@ -91,7 +90,7 @@ func writeMetadataU16(bytes: *Array!{u8}, offset: u64, value: u16)
 {
     var bytes  = loadFontBytes("arial.ttf")
     let record = metadataTableRecord(&bytes, TAG_POST)
-    writeBigU32(&bytes, record, imageTag('x'_u32, 'o'_u32, 's'_u32, 't'_u32))
+    writeBigU32(&bytes, record, imageTag('x'u32, 'o'u32, 's'u32, 't'u32))
 
     let metadata = expect Face.metadataAt(bytes.toSlice(), 0)
     Swag.require(not metadata.isFixedPitch and metadata.italicAngle == 0)
@@ -203,12 +202,10 @@ func writeMetadataU16(bytes: *Array!{u8}, offset: u64, value: u16)
     {
         let nameId = table + 6 + cast(u64, index) * 12 + 6
         let value  = readBigU16(&bytes, nameId)
-        if value == 1
-        {
+        if value == 1 {
             writeMetadataU16(&bytes, nameId, 16)
         }
-        else if value == 2
-        {
+        else if value == 2 {
             writeMetadataU16(&bytes, nameId, 17)
         }
     }
@@ -239,8 +236,7 @@ func writeMetadataU16(bytes: *Array!{u8}, offset: u64, value: u16)
     {
         let base   = table + 6 + cast(u64, index) * 12
         let nameId = readBigU16(&bytes, base + 6)
-        if nameId == 1 or nameId == 2
-        {
+        if nameId == 1 or nameId == 2 {
             writeMetadataU16(&bytes, base + 8, 0xFFFF)
         }
     }

@@ -117,7 +117,7 @@ private func readFrameIndex(source: *ByteSource,
     var totalFrames   = 0_u64
     var hasFirstFrame = false
     var skippedJunk   = false
-    var previousKey   = 0'u32
+    var previousKey   = 0_u32
     var previous: FrameHeader
     var windowStart   = audioOffset
     try source.seek(windowStart)

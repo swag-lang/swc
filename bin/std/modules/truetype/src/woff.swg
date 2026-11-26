@@ -20,12 +20,7 @@ struct WoffTableRecord
     compLength: u32
     origLength: u32
     checksum:   u32
-}
-
-struct WoffTable
-{
-    record: WoffTableRecord
-    data:   Array!{u8}
+    sfntOffset: u64
 }
 
 // WOFF blocks are four-byte aligned with at most three zero padding bytes.
@@ -49,7 +44,7 @@ func checkWoffPadding(block: const [..] u8, start, end: u64) fail
 }
 
 // Parses the WOFF1 header and table directory without expanding compressed tables.
-func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Array!{WoffTableRecord} } fail
+func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Array!{WoffTableRecord}, largeCompressedTables: u16 } fail
 {
     var result: #returntype
     if block.count < 44
@@ -74,10 +69,11 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
        result.header.flavor != TAG_OTTO
     {
         try fault(0x08)
+
+        // The reconstructed sfnt searchRange is stored in 16 bits, so at most 4095
+        // directory entries can be represented without overflowing it.
     }
 
-    // The reconstructed sfnt searchRange is stored in 16 bits, so at most 4095
-    // directory entries can be represented without overflowing it.
     if result.header.length != block.count or
        (try readU16(block, 14)) != 0 or
        not result.header.numTables or
@@ -134,8 +130,9 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
     }
 
     result.tables.resize(result.header.numTables)
+    var physicalOrder: Array!{u64}
+    physicalOrder.reserve(result.header.numTables)
     var previousTag      = 0_u32
-    var previousDataEnd  = directoryEnd
     var expectedSfntSize = 12_u64 + cast(u64, result.header.numTables) * 16
     for index in result.header.numTables
     {
@@ -149,7 +146,7 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
 
         if (index and record.tag <= previousTag) or
            record.compLength > record.origLength or
-           record.offset < previousDataEnd or
+           record.offset < directoryEnd or
            (record.offset & 3) != 0
         {
             try fault(0x08)
@@ -157,12 +154,13 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
 
         try assertRange(block, record.offset, record.compLength)
         physicalOrder.add((cast(u64, record.offset) << 32) | record.compLength)
-        if record.compLength >= LargeWoffTableBytes and record.compLength < record.origLength do
+        if record.compLength >= LargeWoffTableBytes and record.compLength < record.origLength
+        {
             result.largeCompressedTables += 1
+        }
 
         record.sfntOffset    = expectedSfntSize
         previousTag          = record.tag
-        previousDataEnd      = cast(u64, record.offset) + record.compLength
         expectedSfntSize     += (cast(u64, record.origLength) + 3) & ~3_u64
         result.tables[index] = record
     }
@@ -170,9 +168,10 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
     if expectedSfntSize != result.header.totalSfntSize
     {
         try fault(0x08)
+
+        // Check padding and overlap in file order. At a shared offset, visit empty blocks first.
     }
 
-    // Check padding and overlap in file order. At a shared offset, visit empty blocks first.
     physicalOrder.sort()
     var previousDataEnd = directoryEnd
     for entry in physicalOrder
@@ -228,7 +227,7 @@ private func writeWoffU32(bytes: *Array!{u8}, offset: u64, value: u32)
 // The validated directory assigns every table its own destination range.
 private func inflateWoffTables(block: const [..] u8, tables: const [..] WoffTableRecord, destination: [*] u8) fail
 {
-    var errors: Array'Swag.Error
+    var errors: Array!{Swag.Error}
     errors.resize(tables.count)
     parallel for |block, tables, destination, &errors| index in tables.count
     {
@@ -239,25 +238,33 @@ private func inflateWoffTables(block: const [..] u8, tables: const [..] WoffTabl
             let bytes  = try getSlice(block, record.offset, record.compLength)
             if record.compLength == record.origLength
             {
-                if bytes.count do
+                if bytes.count
+                {
                     Memory.copy(output, bytes.buffer, bytes.count)
+                }
             }
             else
             {
                 var zlib: Compress.ZLib
                 let decoded = try zlib.decompressInto(Swag.makeSlice(output, record.origLength), bytes)
-                if decoded != record.origLength do
+                if decoded != record.origLength
+                {
                     try fault(0x08)
+                }
             }
 
             let padding = (4 - (record.origLength & 3)) & 3
-            if padding do
+            if padding
+            {
                 Memory.clear(output + record.origLength, padding)
+            }
         } as errors[index]
     }
 
-    for error in errors do
+    for error in errors
+    {
         try error.raise()
+    }
 }
 
 // Rebuilds one WOFF1 font into the sfnt representation shared by the face parser.
@@ -266,33 +273,9 @@ func inflateWoff(block: const [..] u8)->Array!{u8} fail
     let directory = try readWoffDirectory(block)
     let header    = directory.header
 
-    var tables: Array!{WoffTable}
-    tables.resize(header.numTables)
-    for record, index in directory.tables
-    {
-        tables[index].record = record
-        let compressed = try getSlice(block, record.offset, record.compLength)
-        if record.compLength == record.origLength
-        {
-            tables[index].data.add(compressed)
-        }
-        else
-        {
-            var zlib: Compress.ZLib
-            tables[index].data = try zlib.decompress(compressed,
-                                                     hintSize: record.origLength,
-                                                     maxOutputSize: record.origLength)
-        }
-
-        if tables[index].data.count != record.origLength
-        {
-            try fault(0x08)
-        }
-    }
-
     var result: #returntype
     result.reserve(header.totalSfntSize)
-    result.resize(12'u64 + cast(u64, header.numTables) * 16)
+    result.resize(12_u64 + cast(u64, header.numTables) * 16)
     writeWoffU32(&result, 0, header.flavor)
     writeWoffU16(&result, 4, header.numTables)
 
@@ -309,14 +292,14 @@ func inflateWoff(block: const [..] u8)->Array!{u8} fail
     writeWoffU16(&result, 8, entrySelector)
     writeWoffU16(&result, 10, cast(u16, cast(u32, header.numTables) * 16 - searchRange))
 
-    var tableOffset = 12_u64 + cast(u64, header.numTables) * 16
-    for table, index in tables
+    for record, index in directory.tables
     {
         let directoryOffset = 12_u64 + cast(u64, index) * 16
-        writeWoffU32(&result, directoryOffset, table.record.tag)
-        writeWoffU32(&result, directoryOffset + 4, table.record.checksum)
-        writeWoffU32(&result, directoryOffset + 8, cast(u32, tableOffset))
-        writeWoffU32(&result, directoryOffset + 12, table.record.origLength)
+        writeWoffU32(&result, directoryOffset, record.tag)
+        writeWoffU32(&result, directoryOffset + 4, record.checksum)
+        writeWoffU32(&result, directoryOffset + 8, cast(u32, record.sfntOffset))
+        writeWoffU32(&result, directoryOffset + 12, record.origLength)
+    }
 
     if directory.largeCompressedTables >= 2 and Swag.workerCount() > 1
     {
@@ -325,7 +308,25 @@ func inflateWoff(block: const [..] u8)->Array!{u8} fail
         return result
     }
 
-        tableOffset += (table.record.origLength + 3) & ~3_u64
+    var zlib: Compress.ZLib
+    for record in directory.tables
+    {
+        let bytes = try getSlice(block, record.offset, record.compLength)
+        if record.compLength == record.origLength
+        {
+            result.add(bytes)
+        }
+        else
+        {
+            try zlib.decompress(&result, bytes, maxOutputSize: record.origLength)
+        }
+
+        if result.count - record.sfntOffset != record.origLength
+        {
+            try fault(0x08)
+        }
+
+        result.resize((result.count + 3) & ~3_u64)
     }
 
     return result

@@ -89,7 +89,7 @@ func blend(first, second: Color, weight: u32)->Color
 
     func overWhite(channel, alpha: u8)->u8
     {
-        return cast(u8, (cast(u32, channel) * alpha + 255 * (255'u32 - alpha)) / 255)
+        return cast(u8, (cast(u32, channel) * alpha + 255 * (255_u32 - alpha)) / 255)
     }
 
     for y in Height
@@ -109,7 +109,7 @@ func blend(first, second: Color, weight: u32)->Color
             let upper    = blend(source.pixelColor(x0, y0), source.pixelColor(x1, y0), wx)
             let lower    = blend(source.pixelColor(x0, y1), source.pixelColor(x1, y1), wx)
             let sampled  = blend(upper, lower, wy)
-            let expected = Color.fromArgb(255'u8, overWhite(sampled.r, sampled.a), overWhite(sampled.g, sampled.a), overWhite(sampled.b, sampled.a))
+            let expected = Color.fromArgb(255_u8, overWhite(sampled.r, sampled.a), overWhite(sampled.g, sampled.a), overWhite(sampled.b, sampled.a))
             Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == expected)
         }
     }
@@ -118,19 +118,20 @@ func blend(first, second: Color, weight: u32)->Color
 // Every fixed-point vertical weight preserves the scalar interpolation of packed channels.
 #test
 {
-    const A = [0'u8, 255, 0, 255, 1, 254, 31, 224, 96, 89, 100, 71, 125, 11, 209, 37]
-    const B = [255'u8, 0, 0, 255, 254, 1, 224, 31, 89, 96, 71, 100, 142, 58, 69, 14]
+    const A = [0_u8, 255, 0, 255, 1, 254, 31, 224, 96, 89, 100, 71, 125, 11, 209, 37]
+    const B = [255_u8, 0, 0, 255, 254, 1, 224, 31, 89, 96, 71, 100, 142, 58, 69, 14]
     let a = cast(Math.Simd.U8x16, A)
     let b = cast(Math.Simd.U8x16, B)
-    for weight in 65_537'u32
+    for weight in 65_537_u32
     {
         let packed = Math.Simd.splat(cast #bit(s16, cast(u16, weight)))
         let result = RenderCpu.lerpBgra8x4(a, b, packed, weight >= 32768)
-        for channel in 16 do
+        for channel in 16
+        {
             Swag.require(result[channel] == cast(u8, (cast(u32, A[channel]) * (65536 - weight) + cast(u32, B[channel]) * weight) >> 16))
+        }
     }
 }
-
 
 // The downscale sampler gathers four neighboring pairs and leaves a scalar tail.
 #test
@@ -143,8 +144,10 @@ func blend(first, second: Color, weight: u32)->Color
     for format in Formats
     {
         var source = Image.create(SourceWidth, SourceHeight, format)
-        for i in source.pixels.count do
+        for i in source.pixels.count
+        {
             source.pixels[i] = cast(u8, (17 * i + i / 503) & 255)
+        }
 
         var cpu: RenderCpu
         cpu.begin(Width, Height)
@@ -168,7 +171,7 @@ func blend(first, second: Color, weight: u32)->Color
 
         func overWhite(channel, alpha: u8)->u8
         {
-            return cast(u8, (cast(u32, channel) * alpha + 255 * (255'u32 - alpha)) / 255)
+            return cast(u8, (cast(u32, channel) * alpha + 255 * (255_u32 - alpha)) / 255)
         }
 
         for y in Height
@@ -185,7 +188,7 @@ func blend(first, second: Color, weight: u32)->Color
                 let upper    = blend(source.pixelColor(ix, iy), source.pixelColor(ix + 1, iy), wx)
                 let lower    = blend(source.pixelColor(ix, iy + 1), source.pixelColor(ix + 1, iy + 1), wx)
                 let sampled  = blend(upper, lower, wy)
-                let expected = Color.fromArgb(255'u8, overWhite(sampled.r, sampled.a), overWhite(sampled.g, sampled.a), overWhite(sampled.b, sampled.a))
+                let expected = Color.fromArgb(255_u8, overWhite(sampled.r, sampled.a), overWhite(sampled.g, sampled.a), overWhite(sampled.b, sampled.a))
                 Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == expected)
             }
         }

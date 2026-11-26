@@ -67,7 +67,7 @@ private
     struct HuffTables
     {
         lookUp:     [HuffLookupCount] s32
-        baselineAc: Array's32
+        baselineAc: Array!{s32}
         tree:       [512] s32
         ready:      bool
     }
@@ -315,7 +315,7 @@ impl Decoder
         {
             for .imageSizeY
             {
-                let source = try .decodeScanLine'Rgb()
+                let source = try .decodeScanLine!{Rgb}()
                 expandGrayRow(destination, source, .imageSizeX)
                 destination -= stride
             }
@@ -350,16 +350,24 @@ impl Decoder
 public func decodeRgbInto(target: *Image, bytes: const [..] u8, expectedWidth: s32 = 0, expectedHeight: s32 = 0) fail
 {
     let options = DecodeOptions{decodeMetadata: false}
-    if expectedWidth < 0 or expectedHeight < 0 do
+    if expectedWidth < 0 or expectedHeight < 0
+    {
         fail BadParameterError{"expected JPEG dimensions must be nonnegative"}
-    if bytes.count > options.maxInputBytes do
+    }
+
+    if bytes.count > options.maxInputBytes
+    {
         fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
+    }
 
     var decoder: Decoder
     try decoder.init(bytes, options)
     if (expectedWidth and expectedWidth != decoder.imageSizeX) or
-       (expectedHeight and expectedHeight != decoder.imageSizeY) do
+       (expectedHeight and expectedHeight != decoder.imageSizeY)
+    {
         fail InvalidFormatError{"JPEG dimensions do not match the expected image"}
+    }
+
     try options.checkImage(decoder.imageSizeX, decoder.imageSizeY, .RGB8)
     try decoder.start()
 
@@ -373,14 +381,14 @@ public func decodeRgbInto(target: *Image, bytes: const [..] u8, expectedWidth: s
         let overlaps    = source <= destination ? destination - source < bytes.count : source - destination < target.byteCount
         if not overlaps
         {
-            try decoder.decodePixels'true(target.pixels.storage())
+            try decoder.decodePixels!{true}(target.pixels.storage())
             target.metadata.clear()
             return
         }
     }
 
     var result = Image.create(decoder.imageSizeX, decoder.imageSizeY, .RGB8)
-    try decoder.decodePixels'true(result.pixels.storage())
+    try decoder.decodePixels!{true}(result.pixels.storage())
     target[] = #move result
 }
 

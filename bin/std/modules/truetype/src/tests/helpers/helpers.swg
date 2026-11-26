@@ -38,9 +38,9 @@ func writeBigU16(buffer: *Array!{u8}, offset: u64, value: u16)
 func readBigU16(buffer: *Array!{u8}, offset: u64)->u16 => cast(u16, buffer[offset]) << 8 | buffer[offset + 1]
 
 func readBigU32(buffer: *Array!{u8}, offset: u64)->u32 => cast(u32, buffer[offset]) << 24 |
-                                                          cast(u32, buffer[offset + 1]) << 16 |
-                                                          cast(u32, buffer[offset + 2]) << 8 |
-                                                          buffer[offset + 3]
+                                                        cast(u32, buffer[offset + 1]) << 16 |
+                                                        cast(u32, buffer[offset + 2]) << 8 |
+                                                        buffer[offset + 3]
 
 // Replaces the sfnt `post` table with a small synthetic name map for parser tests.
 func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, secondGlyph, secondNameIndex: u16, customNames: const [..] string, truncate: bool = false)->Array!{u8} fail
@@ -52,12 +52,12 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, 
     {
         let record = 12_u64 + cast(u64, index) * 16
         let tag    = try readU32(sfnt, record)
-        if tag == imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32)
+        if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
         {
             let offset = try readU32(sfnt, record + 8)
             glyphCount = try readU16(sfnt, offset + 4)
         }
-        else if tag == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
+        else if tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
         {
             postRecord = record
         }
@@ -78,18 +78,15 @@ func buildPostFormat2Font(sfnt: const [..] u8, firstGlyph, firstNameIndex: u16, 
         post.add(cast(const [..] u8, name))
     }
 
-    if truncate and post.count
-    {
+    if truncate and post.count {
         post.resize(post.count - 1)
-    }
 
+    }
     var result: Array!{u8}
     result.add(sfnt)
-    while (result.count & 3) != 0
-    {
+    while (result.count & 3) != 0 {
         result.add(0)
     }
-
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -107,16 +104,13 @@ func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16, standardNameInd
     {
         let record = 12_u64 + cast(u64, index) * 16
         let tag    = try readU32(sfnt, record)
-        if tag == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
-        {
+        if tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) {
             postRecord = record
         }
-        else if tag == imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32)
-        {
+        else if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) {
             maxpOffset = try readU32(sfnt, record + 8)
         }
-        else if tag == imageTag('h'_u32, 'h'_u32, 'e'_u32, 'a'_u32)
-        {
+        else if tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) {
             hheaOffset = try readU32(sfnt, record + 8)
         }
     }
@@ -134,11 +128,9 @@ func buildPostFormat25Font(sfnt: const [..] u8, glyphIndex: u16, standardNameInd
     result.add(sfnt)
     writeBigU16(&result, maxpOffset + 4, 258)
     writeBigU16(&result, hheaOffset + 34, 258)
-    while (result.count & 3) != 0
-    {
+    while (result.count & 3) != 0 {
         result.add(0)
     }
-
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -153,8 +145,7 @@ func buildPostFormat3Font(sfnt: const [..] u8)->Array!{u8} fail
     for index in tableCount
     {
         let record = 12_u64 + cast(u64, index) * 16
-        if try readU32(sfnt, record) == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
-        {
+        if try readU32(sfnt, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) {
             postRecord = record
         }
     }
@@ -166,11 +157,9 @@ func buildPostFormat3Font(sfnt: const [..] u8)->Array!{u8} fail
     writeBigU32(&post, 0, 0x00030000)
     var result: Array!{u8}
     result.add(sfnt)
-    while (result.count & 3) != 0
-    {
+    while (result.count & 3) != 0 {
         result.add(0)
     }
-
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -183,7 +172,7 @@ func truncatePostTable(font: *Array!{u8}, length: u32)
     for index in readBigU16(font, 4)
     {
         let record = 12_u64 + cast(u64, index) * 16
-        if readBigU32(font, record) == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
+        if readBigU32(font, record) == imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
         {
             writeBigU32(font, record + 12, length)
             return
@@ -203,16 +192,13 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array!{u8} fail
     {
         let record = 12_u64 + cast(u64, index) * 16
         let tag    = try readU32(sfnt, record)
-        if tag == imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32)
-        {
+        if tag == imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32) {
             maxpOffset = try readU32(sfnt, record + 8)
         }
-        else if tag == imageTag('h'_u32, 'h'_u32, 'e'_u32, 'a'_u32)
-        {
+        else if tag == imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32) {
             hheaOffset = try readU32(sfnt, record + 8)
         }
-        else if tag == imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
-        {
+        else if tag == imageTag('p'u32, 'o'u32, 's'u32, 't'u32) {
             postRecord = record
         }
     }
@@ -227,11 +213,9 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array!{u8} fail
     var post: Array!{u8}
     post.resize(32)
     writeBigU32(&post, 0, 0x00010000)
-    while (result.count & 3) != 0
-    {
+    while (result.count & 3) != 0 {
         result.add(0)
     }
-
     let postOffset = cast(u32, result.count)
     result.add(post.toSlice())
     writeBigU32(&result, postRecord + 8, postOffset)
@@ -240,7 +224,7 @@ func buildPostFormat1Font(sfnt: const [..] u8)->Array!{u8} fail
 }
 
 // Wraps an sfnt font in WOFF1, compressing tables where zlib saves space.
-func buildWoffFont(sfnt: const [..] u8)->Array!{u8} fail
+func buildWoffFont(sfnt: const [..] u8, reverseBlocks = false)->Array!{u8} fail
 {
     let numTables = try readU16(sfnt, 4)
     var result: Array!{u8}
@@ -253,6 +237,7 @@ func buildWoffFont(sfnt: const [..] u8)->Array!{u8} fail
     var zlib: Compress.ZLib
     for position in numTables
     {
+        let index         = reverseBlocks ? numTables - 1 - position : position
         let sfntRecord    = 12_u64 + cast(u64, index) * 16
         let tag           = try readU32(sfnt, sfntRecord)
         let checksum      = try readU32(sfnt, sfntRecord + 4)
@@ -263,11 +248,9 @@ func buildWoffFont(sfnt: const [..] u8)->Array!{u8} fail
         let useCompressed = compressed.count < original.count
         let payload       = useCompressed ? compressed.toSlice() : original
 
-        while (result.count & 3) != 0
-        {
+        while (result.count & 3) != 0 {
             result.add(0)
         }
-
         let woffOffset = cast(u32, result.count)
         result.add(payload)
 
@@ -314,14 +297,13 @@ func buildFontCollection(fileNames: const [..] string)->Array!{u8}
         }
     }
 
-    writeBigU32(&result, 0, imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32))
+    writeBigU32(&result, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
     writeBigU32(&result, 4, 0x0001_0000)
     writeBigU32(&result, 8, cast(u32, fileNames.count))
-    for offset, index in fontOffsets
-    {
+    for offset, index in fontOffsets {
         writeBigU32(&result, 12 + cast(u64, index) * 4, offset)
-    }
 
+    }
     return result
 }
 
@@ -359,16 +341,14 @@ func getFaceData(face: *Face?)->*FaceImpl
 
 func countBitmapCoverage(bitmap: const *Bitmap)->u32
 {
-    if not bitmap.buffer
-    {
+    if not bitmap.buffer {
         return 0
-    }
 
+    }
     var count = 0_u32
     for index in cast(u64, bitmap.width) * bitmap.rows
     {
-        if bitmap.buffer[index] != 0
-        {
+        if bitmap.buffer[index] != 0 {
             count += 1
         }
     }
@@ -382,8 +362,7 @@ func findPointWithNonZeroY(outline: const *Outline)->u32
     let pts = unwrap outline.points
     for index in cast(u32, outline.pointCount)
     {
-        if pts[index].y != 0
-        {
+        if pts[index].y != 0 {
             return index
         }
     }
@@ -395,7 +374,7 @@ func findPointWithNonZeroY(outline: const *Outline)->u32
 const ReaderBytes:     [8] u8 = [0x12, 0x34, 0xFF, 0x80, 0x80, 0x00, 0x00, 0x01]
 const ReaderS32Bytes:  [4] u8 = [0xFF, 0xFF, 0xFF, 0x80]
 const FixedPointBytes: [2] u8 = [0x20, 0x00]
-const BrokenFontBytes: [8] u8 = ['b'_u8, 'a'_u8, 'd'_u8, 0x00, 0x01, 0x02, 0x03, 0x04]
+const BrokenFontBytes: [8] u8 = ['b'u8, 'a'u8, 'd'u8, 0x00, 0x01, 0x02, 0x03, 0x04]
 
 const Cmap4Fixture: [32] u8 = [
     0x00, 0x04, 0x00, 0x20, 0x00, 0x00, 0x00, 0x04,
@@ -467,9 +446,9 @@ const CmapVariationFixture: [101] u8 = [
 // A twelve-byte OpenType header declaring no table at all. The container is one this
 // module reads, so the failure has to come from the missing tables rather than the
 // signature.
-const OpenTypeCffBytes: [12] u8 = ['O'_u8, 'T'_u8, 'T'_u8, 'O'_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-const WoffBytes:        [12] u8 = ['w'_u8, 'O'_u8, 'F'_u8, 'F'_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
-const Woff2Bytes:       [12] u8 = ['w'_u8, 'O'_u8, 'F'_u8, '2'_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+const OpenTypeCffBytes: [12] u8 = ['O'u8, 'T'u8, 'T'u8, 'O'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+const WoffBytes:        [12] u8 = ['w'u8, 'O'u8, 'F'u8, 'F'u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+const Woff2Bytes:       [12] u8 = ['w'u8, 'O'u8, 'F'u8, '2_u8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
 
 // Rejected loads are caught by tests without weakening the successful face type.
 func checkFaceLoad(bytes: const [..] u8) fail { (try Face.load(bytes)).destroy() }
@@ -481,11 +460,9 @@ func testSourceRoot(loc: Swag.SourceCodeLocation = #callerlocation)->String
     var directory = Path.directoryName(loc.fileName)
     while directory != null
     {
-        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers"
-        {
+        if Path.fileName(directory) == "cases" or Path.fileName(directory) == "helpers" {
             return unwrap Path.directoryName(directory)
         }
-
         directory = Path.directoryName(directory)
     }
 

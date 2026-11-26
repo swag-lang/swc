@@ -553,7 +553,7 @@ private func gradientBand(source: string)->[5] Color
 // An implicit cubic run accepts signed adjacent coordinates and closes the same contour.
 #test
 {
-    let options = Svg.ParseOptions{preferScanFills: true}
+    let options  = Svg.ParseOptions{preferScanFills: true}
     let repeated = expect Svg.Drawing.parse("""
         <svg width='64' height='48'>
           <path d='M10 20c8-16 16-16 24 0 0 8-4 16-12 16-8 0-12-8-12-16z'/>
@@ -562,7 +562,7 @@ private func gradientBand(source: string)->[5] Color
         <svg width='64' height='48'>
           <path d='M10 20c8 -16 16 -16 24 0c0 8 -4 16 -12 16c-8 0 -12 -8 -12 -16z'/>
         </svg>""", options)
-    let actual = repeated.rasterize(64, 48, 1)
+    let actual   = repeated.rasterize(64, 48, 1)
     let expected = explicit.rasterize(64, 48, 1)
     Swag.require(actual.isValid() and expected.isValid())
     Swag.require(actual.pixelColor(22, 20).a == 255)

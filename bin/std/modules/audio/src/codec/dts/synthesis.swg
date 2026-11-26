@@ -54,10 +54,10 @@ func(T) synthesisDct(bands: const [*] T, stride: u64, output: *[32] T)
         imaginary[reversed] = odd * cosine - even * sine
     }
 
-    fftStage'(T, 1)(&real, &imaginary)
-    fftStage'(T, 2)(&real, &imaginary)
-    fftStage'(T, 4)(&real, &imaginary)
-    fftStage'(T, 8)(&real, &imaginary)
+    fftStage!{T, 1}(&real, &imaginary)
+    fftStage!{T, 2}(&real, &imaginary)
+    fftStage!{T, 4}(&real, &imaginary)
+    fftStage!{T, 8}(&real, &imaginary)
 
     for index in 16
     {
@@ -114,8 +114,8 @@ private const PackedNonPerfectFilter = #run buildPackedFilter(BandFirNonPerfect)
 private func pcmLanes(samples: Simd.F32x4)->Simd.S32x4
 {
     let scaled = samples * cast(f32, Pcm16Scale)
-    let biased = scaled + Math.copysign(Simd.splat(0.5'f32), scaled)
-    return Simd.truncateToS32(Math.clamp(biased, Simd.splat(-32_768.0'f32), Simd.splat(32_767.0'f32)))
+    let biased = scaled + Math.copysign(Simd.splat(0.5_f32), scaled)
+    return Simd.truncateToS32(Math.clamp(biased, Simd.splat(-32_768.0_f32), Simd.splat(32_767.0_f32)))
 }
 
 #[Swag.Inline]
@@ -199,11 +199,11 @@ func(Factor: u32, Taps: u32) synthesisLfe(destination: [*] s16, stride: u32, his
 {
     #static if Factor == 64
     {
-        const Coefficients = #run buildLfeCoefficients'(64, 8)(LfeFir64)
+        const Coefficients = #run buildLfeCoefficients!{64, 8}(LfeFir64)
     }
     else
     {
-        const Coefficients = #run buildLfeCoefficients'(128, 4)(LfeFir128)
+        const Coefficients = #run buildLfeCoefficients!{128, 4}(LfeFir128)
     }
 
     let table: const [..] f64 = Coefficients

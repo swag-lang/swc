@@ -115,9 +115,10 @@ private impl BitReader
     #[Swag.Inline]
     internal mtd read(count: u32)->u32
     {
-        if not count do
+        if not count {
             return 0
-        return cast(u32, (.readAligned'true(count) >> (32 - count)))
+        }
+        return cast(u32, (.readAligned!{true}(count) >> (32 - count)))
     }
 
     #[Swag.Inline]
@@ -135,8 +136,9 @@ private impl BitReader
             }
             else
             {
-                if .bitPos > .size * 8 do
+                if .bitPos > .size * 8 {
                     .overrun = true
+                }
                 word = .readTail(byteStart)
             }
         }
@@ -151,11 +153,13 @@ private impl BitReader
     // The wide-load guard leaves at most three physical bytes here.
     mtd readTail(byteStart: u64)->u32
     {
-        if byteStart >= .size do
+        if byteStart >= .size {
             return 0
+        }
         var word: u32
-        for byte in .size - byteStart do
+        for byte in .size - byteStart {
             word |= cast(u32, .data[byteStart + byte]) << cast(u32, (24 - 8 * byte))
+        }
         return word
     }
 
@@ -194,11 +198,11 @@ private impl BitReader
 
     #[Swag.Inline]
     mtd(Guarded: bool) readMantissa(count: u32)->u32
-        => .readAligned'Guarded(count) >> (32 - count)
+        => .readAligned!{Guarded}(count) >> (32 - count)
 
     #[Swag.Inline]
     mtd(Guarded: bool) readSignedMantissa(count: u32)->s32
-        => cast #bit(s32, .readAligned'Guarded(count)) >> (32 - count)
+        => cast #bit(s32, .readAligned!{Guarded}(count)) >> (32 - count)
 
     internal mtd skip(count: u64)
     {
@@ -324,13 +328,14 @@ private func(Size: u64, FirstStageDone: bool = false) inverseFft(real, imaginary
         }
     }
 
-    inverseFftStage'(Size, 2)(real, imaginary)
-    inverseFftStage'(Size, 4)(real, imaginary)
-    inverseFftStage'(Size, 8)(real, imaginary)
-    inverseFftStage'(Size, 16)(real, imaginary)
-    inverseFftStage'(Size, 32)(real, imaginary)
-    if Size == 128 do
-        inverseFftStage'(Size, 64)(real, imaginary)
+    inverseFftStage!{Size, 2}(real, imaginary)
+    inverseFftStage!{Size, 4}(real, imaginary)
+    inverseFftStage!{Size, 8}(real, imaginary)
+    inverseFftStage!{Size, 16}(real, imaginary)
+    inverseFftStage!{Size, 32}(real, imaginary)
+    if Size == 128 {
+        inverseFftStage!{Size, 64}(real, imaginary)
+    }
 }
 
 #[Swag.Inline]
@@ -363,7 +368,7 @@ private func imdctLong(coefficients: const [*] f64, output: [*] s16, stride: u32
         imaginary[index + 1] = i0 - i1
     }
 
-    inverseFft'(128, true)(&real, &imaginary)
+    inverseFft!{128, true}(&real, &imaginary)
 
     for index in 64
     {
@@ -406,8 +411,8 @@ private func imdctShort(coefficients: const [*] f64, output: [*] f64)
         imagB[index] = b2 * g_ShortCos[k] + a2 * g_ShortSin[k]
     }
 
-    inverseFft'64(&realA, &imagA)
-    inverseFft'64(&realB, &imagB)
+    inverseFft!{64}(&realA, &imagA)
+    inverseFft!{64}(&realB, &imagB)
     var postRealA, postImagA, postRealB, postImagB: [64] f64
     for index in 64
     {
@@ -495,9 +500,9 @@ private func prepareStereoSpectrum(fft: *StereoSpectrum, left, right: const [*] 
     }
 
     // Each vector holds one complex component for two bins in both channels.
-    const DuplicateFirst   = cast(Simd.U32x4, [0'u32, 1, 0, 1])
-    const DuplicateLast    = cast(Simd.U32x4, [2'u32, 3, 2, 3])
-    const SumAndDifference = cast(Simd.F32x4, [1.0'f32, 1, -1, -1])
+    const DuplicateFirst   = cast(Simd.U32x4, [0_u32, 1, 0, 1])
+    const DuplicateLast    = cast(Simd.U32x4, [2_u32, 3, 2, 3])
+    const SumAndDifference = cast(Simd.F32x4, [1.0_f32, 1, -1, -1])
     for group in 64
     {
         let index = 4 * group
@@ -511,12 +516,12 @@ private func prepareStereoSpectrum(fft: *StereoSpectrum, left, right: const [*] 
         Simd.store(&fft.imaginary[index], i0 + i1 * SumAndDifference)
     }
 
-    fftStereoStage'2(fft)
-    fftStereoStage'4(fft)
-    fftStereoStage'8(fft)
-    fftStereoStage'16(fft)
-    fftStereoStage'32(fft)
-    fftStereoStage'64(fft)
+    fftStereoStage!{2}(fft)
+    fftStereoStage!{4}(fft)
+    fftStereoStage!{8}(fft)
+    fftStereoStage!{16}(fft)
+    fftStereoStage!{32}(fft)
+    fftStereoStage!{64}(fft)
 
     for group in 64
     {
@@ -534,12 +539,12 @@ private func prepareStereoSpectrum(fft: *StereoSpectrum, left, right: const [*] 
 private func(Upper: bool, Stride: u32) writeStereoHalf(fft: const *StereoSpectrum, delay: [*] f32, destination: [*] s16)
 {
     // Reverse the time samples and keep the two channel lanes in order.
-    const ReverseFrames = cast(Simd.U32x4, [2'u32, 3, 0, 1])
-    const MixFirst      = cast(Simd.U32x4, [0'u32, 1, 4, 5])
-    const MixLast       = cast(Simd.U32x4, [2'u32, 3, 6, 7])
-    const Gain          = cast(Simd.F32x4, [65_534.0'f32, 65_534.0, 65_534.0, 65_534.0])
-    const High          = cast(Simd.F32x4, [32_767.0'f32, 32_767.0, 32_767.0, 32_767.0])
-    const Low           = cast(Simd.F32x4, [-32_768.0'f32, -32_768.0, -32_768.0, -32_768.0])
+    const ReverseFrames = cast(Simd.U32x4, [2_u32, 3, 0, 1])
+    const MixFirst      = cast(Simd.U32x4, [0_u32, 1, 4, 5])
+    const MixLast       = cast(Simd.U32x4, [2_u32, 3, 6, 7])
+    const Gain          = cast(Simd.F32x4, [65_534.0_f32, 65_534.0, 65_534.0, 65_534.0])
+    const High          = cast(Simd.F32x4, [32_767.0_f32, 32_767.0, 32_767.0, 32_767.0])
+    const Low           = cast(Simd.F32x4, [-32_768.0_f32, -32_768.0, -32_768.0, -32_768.0])
     for group in 32
     {
         let bin    = 4 * group
@@ -577,8 +582,9 @@ private func(Upper: bool, Stride: u32) writeStereoHalf(fft: const *StereoSpectru
         {
             let frames = cast #bit(Simd.U32x4, packed)
             let output = destination + (offset / 2) * Stride
-            for lane in 4 do
+            for lane in 4 {
                 cast([*] u32, output + lane * Stride)[0] = frames[lane]
+            }
         }
 
         var nextA = Simd.permute2(futureEven, futureOdd, MixFirst)
@@ -599,8 +605,9 @@ impl StereoImdct
     // Hand the previous block's delay back to the scalar path on a window switch.
     mtd restorePair(left, right: *Imdct)
     {
-        if not .active do
+        if not .active {
             return
+        }
         for index in SamplesPerBlock
         {
             left.delay[index]  = cast(f64, .delay[2 * index])
@@ -625,23 +632,24 @@ impl StereoImdct
 
         var fft: StereoSpectrum
         prepareStereoSpectrum(&fft, leftSpectrum, rightSpectrum)
-        writeStereoHalf'(false, Stride)(&fft, &.delay[0], output)
-        writeStereoHalf'(true, Stride)(&fft, &.delay[0], output)
+        writeStereoHalf!{false, Stride}(&fft, &.delay[0], output)
+        writeStereoHalf!{true, Stride}(&fft, &.delay[0], output)
     }
 
     mtd restore(states: *[MaxChannels] Imdct)
         => .restorePair(&states[][0], &states[][1])
 
     mtd process(states: *[MaxChannels] Imdct, coefficients: const [*] f64, output: [*] s16)
-        => .processPair'2(&states[][0], &states[][1], coefficients, coefficients + SamplesPerBlock, output)
+        => .processPair!{2}(&states[][0], &states[][1], coefficients, coefficients + SamplesPerBlock, output)
 }
 
 // Six decoded channels imply the 3/2 layout with LFE.
 private const SurroundWaveChannels: [MaxChannels] u32 = #run
 {
     var result: [MaxChannels] u32
-    for output in result.count do
+    for output in result.count {
         result[output] = dolbySourceChannel(cast(u32, output), 7, MaxFullBandwidthChannels, true)
+    }
     return result
 }
 
@@ -659,6 +667,7 @@ impl SurroundImdct
         .layout = Swag.U32.Max
         for index in .pairs.count do
             .pairs[index].active = false
+        }
     }
 
     mtd process(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, shortBlocks: const *[MaxFullBandwidthChannels] bool, destination: [*] s16)
@@ -814,8 +823,8 @@ private func lowCompensation(value, first, second, bin: s32)->s32
     return Math.max(0, value - 128)
 }
 
-private const DitherMultiplier = 1_664_525'u32
-private const DitherIncrement  = 1_013_904_223'u32
+private const DitherMultiplier = 1_664_525_u32
+private const DitherIncrement  = 1_013_904_223_u32
 
 private struct DitherSteps
 {
@@ -826,8 +835,8 @@ private struct DitherSteps
 private const DitherQuads: [3] DitherSteps = #run
 {
     var result: [3] DitherSteps
-    var multiplier = 1'u32
-    var increment  = 0'u32
+    var multiplier = 1_u32
+    var increment  = 0_u32
     for quad in 3
     {
         for lane in 4
@@ -872,8 +881,8 @@ private impl DitherGenerator
     {
         const Advance   = cast(Simd.U32x4, DitherQuads[Quad].multipliers)
         const Increment = cast(Simd.U32x4, DitherQuads[Quad].increments)
-        const Bias      = cast(Simd.U32x4, [0x4330_0000'u32, 0x4330_0000, 0x4330_0000, 0x4330_0000])
-        const Center    = cast(Simd.F64x2, [4_503_599_635_759_104.0'f64, 4_503_599_635_759_104.0])
+        const Bias      = cast(Simd.U32x4, [0x4330_0000_u32, 0x4330_0000, 0x4330_0000, 0x4330_0000])
+        const Center    = cast(Simd.F64x2, [4_503_599_635_759_104.0_f64, 4_503_599_635_759_104.0])
         let states = seed * Advance + Increment
 
         // Put the 24-bit integer beside the exponent for 2^52, then subtract
@@ -898,7 +907,7 @@ private impl DitherGenerator
     #[Swag.Inline]
     mtd(Scaled: bool) writeQuad(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
     {
-        .state = .writeDitherGroup'(Scaled, 0)(Simd.splat(.state), destination, gains, couplingScale)
+        .state = .writeDitherGroup!{Scaled, 0}(Simd.splat(.state), destination, gains, couplingScale)
     }
 
     // Compute adjacent groups directly from their shared starting state.
@@ -906,15 +915,15 @@ private impl DitherGenerator
     mtd(Scaled: bool, Quads: u64) writeDitherRun(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
     {
         let seed = Simd.splat(.state)
-        discard .writeDitherGroup'(Scaled, 0)(seed, destination, gains, couplingScale)
+        discard .writeDitherGroup!{Scaled, 0}(seed, destination, gains, couplingScale)
         if Quads == 2
         {
-            .state = .writeDitherGroup'(Scaled, 1)(seed, destination + 4, gains + 4, couplingScale)
+            .state = .writeDitherGroup!{Scaled, 1}(seed, destination + 4, gains + 4, couplingScale)
         }
         else
         {
-            discard .writeDitherGroup'(Scaled, 1)(seed, destination + 4, gains + 4, couplingScale)
-            .state = .writeDitherGroup'(Scaled, 2)(seed, destination + 8, gains + 8, couplingScale)
+            discard .writeDitherGroup!{Scaled, 1}(seed, destination + 4, gains + 4, couplingScale)
+            .state = .writeDitherGroup!{Scaled, 2}(seed, destination + 8, gains + 8, couplingScale)
         }
     }
 }
@@ -933,10 +942,12 @@ private const PreparedMantissaGain: [16 * 32] f64 = #run
     for bap in 16
     {
         var gain = 1.4142135623730951 / 16_777_216.0
-        if bap >= 6 do
-            gain = 1.0 / cast(f64, 1'u32 << (PreparedMantissaWidth[bap] - 1))
-        elif bap do
+        if bap >= 6 {
+            gain = 1.0 / cast(f64, 1_u32 << (PreparedMantissaWidth[bap] - 1))
+        }
+        else if bap {
             gain = 2.0 / Levels[bap]
+        }
         for exponent in 32
         {
             result[32 * bap + exponent] = gain
@@ -1130,13 +1141,14 @@ internal func mantissaScale(exponent: s32)->f64 => cast #bit (f64, cast(u64, (10
 private func(Bits: u32, Levels: u32, Digits: u32) packedMantissaCodes()->[1 << Bits] u32
 {
     var result: [1 << Bits] u32
-    var validCodes = 1'u32
-    for Digits do
+    var validCodes = 1_u32
+    for Digits {
         validCodes *= Levels
 
+    }
     for code in result.count
     {
-        var packed = 1'u32 << (8 * Digits)
+        var packed = 1_u32 << (8 * Digits)
         if code < validCodes
         {
             var remaining = cast(u32, code)
@@ -1157,22 +1169,27 @@ private func(Bits: u32, Levels: u32, Digits: u32) packedMantissaCodes()->[1 << B
 private const LowMantissaWidths: [5] u32      = [5, 7, 3, 7, 4]
 private const LowMantissaValues: [5, 128] u32 = #run
 {
-    let table1 = packedMantissaCodes'(5, 3, 3)()
-    let table2 = packedMantissaCodes'(7, 5, 3)()
-    let table3 = packedMantissaCodes'(3, 7, 1)()
-    let table4 = packedMantissaCodes'(7, 11, 2)()
-    let table5 = packedMantissaCodes'(4, 15, 1)()
+    let table1 = packedMantissaCodes!{5, 3, 3}()
+    let table2 = packedMantissaCodes!{7, 5, 3}()
+    let table3 = packedMantissaCodes!{3, 7, 1}()
+    let table4 = packedMantissaCodes!{7, 11, 2}()
+    let table5 = packedMantissaCodes!{4, 15, 1}()
     var result: [5, 128] u32
-    for i in table1.count do
+    for i in table1.count {
         result[0, i] = table1[i]
-    for i in table2.count do
+    }
+    for i in table2.count {
         result[1, i] = table2[i]
-    for i in table3.count do
+    }
+    for i in table3.count {
         result[2, i] = table3[i]
-    for i in table4.count do
+    }
+    for i in table4.count {
         result[3, i] = table4[i]
-    for i in table5.count do
+    }
+    for i in table5.count {
         result[4, i] = table5[i]
+    }
     return result
 }
 
@@ -1271,7 +1288,7 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
                 let first = quad * 4
                 if Simd.allTrue(Simd.load(codes + first) == zero)
                 {
-                    zeroedQuads |= 1'u64 << cast(u32, quad)
+                    zeroedQuads |= 1_u64 << cast(u32, quad)
                     continue
                 }
 
@@ -1309,7 +1326,7 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
                 if WideDither and dither and ((zeroedQuads >> cast(u32, firstQuad)) & 7) == 7
                 {
                     let offset = firstQuad * 4
-                    noise.writeDitherRun'(true, 3)(destination + offset, &prepared.coupling[offset], scale)
+                    noise.writeDitherRun!{true, 3}(destination + offset, &prepared.coupling[offset], scale)
                     continue
                 }
 
@@ -1317,9 +1334,9 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
                 {
                     let group  = subband * 3 + quad
                     let source = group * 4
-                    if dither and (zeroedQuads & (1'u64 << cast(u32, group)))
+                    if dither and (zeroedQuads & (1_u64 << cast(u32, group)))
                     {
-                        noise.writeQuad'true(destination + source, &prepared.coupling[source], scale)
+                        noise.writeQuad!{true}(destination + source, &prepared.coupling[source], scale)
                     }
                     else
                     {
@@ -1340,17 +1357,18 @@ private func(Guarded: bool, WideDither: bool) readPreparedMantissas(reader: *Bit
 
 private func initializeDolbyCore()
 {
-    for index in g_FftReverse.count do
+    for index in g_FftReverse.count {
         g_FftReverse[index] = Math.reverse(cast(u8, index)) >> 1
 
-    var half = 1'u64
+    }
+    var half = 1_u64
     while half < g_FftTwiddleReal.count
     {
         let angle    = Math.ConstF64.Pi / cast(f64, half)
         let stepReal = Math.cos(angle)
         let stepImag = Math.sin(angle)
-        var real     = 1'f64
-        var imag     = 0'f64
+        var real     = 1_f64
+        var imag     = 0_f64
         for offset in half
         {
             g_FftTwiddleReal[half + offset] = real
@@ -1379,9 +1397,10 @@ private func initializeDolbyCore()
         g_StereoTwiddleImag[index] = cast(f32, g_FftTwiddleImag[bin])
     }
 
-    for index in 512 do
+    for index in 512 {
         g_StereoWindow[index] = cast(f32, WINDOW[index / 2])
 
+    }
     for index in 64
     {
         let angle = 2.0 * Math.ConstF64.Pi * (8.0 * cast(f64, index) + 1.0) / (4.0 * 512.0)
@@ -1470,9 +1489,9 @@ private func prepareStereoSpectrumFused(fft: *StereoSpectrum, left, right: const
     }
 
     // Each vector holds one complex component for two bins in both channels.
-    const DuplicateFirst   = cast(Simd.U32x4, [0'u32, 1, 0, 1])
-    const DuplicateLast    = cast(Simd.U32x4, [2'u32, 3, 2, 3])
-    const SumAndDifference = cast(Simd.F32x4, [1.0'f32, 1, -1, -1])
+    const DuplicateFirst   = cast(Simd.U32x4, [0_u32, 1, 0, 1])
+    const DuplicateLast    = cast(Simd.U32x4, [2_u32, 3, 2, 3])
+    const SumAndDifference = cast(Simd.F32x4, [1.0_f32, 1, -1, -1])
     for group in 64
     {
         let index = 4 * group
@@ -1486,9 +1505,9 @@ private func prepareStereoSpectrumFused(fft: *StereoSpectrum, left, right: const
         Simd.store(&fft.imaginary[index], i0 + i1 * SumAndDifference)
     }
 
-    fftStereoPair'2(fft)
-    fftStereoPair'8(fft)
-    fftStereoPair'32(fft)
+    fftStereoPair!{2}(fft)
+    fftStereoPair!{8}(fft)
+    fftStereoPair!{32}(fft)
 
     for group in 64
     {
@@ -1522,6 +1541,6 @@ impl StereoImdct
         var fft: StereoSpectrum
         prepareStereoSpectrumFused(&fft, coefficients, coefficients + SamplesPerBlock)
         writeStereoHalf'(false, 2)(&fft, &.delay[0], output)
-        writeStereoHalf'(true, 2)(&fft, &.delay[0], output)
+        writeStereoHalf!{true, 2}(&fft, &.delay[0], output)
     }
 }

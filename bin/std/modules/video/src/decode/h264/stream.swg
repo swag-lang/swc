@@ -432,7 +432,7 @@ impl AvcStream
             break
         }
 
-        if wanted < .nextRank or (not alreadyPending and sync > .nextDecode)
+        if wanted!{.nextRank or (not alreadyPending and sync}.nextDecode)
         {
             .releasePending()
             .clearFrameThreads()

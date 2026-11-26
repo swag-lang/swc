@@ -135,13 +135,14 @@ public impl Outline
         if .pointCount <= 0 or .contourCount <= 0 or not strength
         {
             return
+
+            // Orientation must be computed once for the whole glyph, not per contour.
+            // Outer contours and their holes (counters) are wound in opposite
+            // directions, so a single shift sign expands the outer ring and shrinks
+            // the holes - both adding ink. Re-deriving the winding per contour would
+            // instead grow the holes, making letters bigger but not actually bolder.
         }
 
-        // Orientation must be computed once for the whole glyph, not per contour.
-        // Outer contours and their holes (counters) are wound in opposite
-        // directions, so a single shift sign expands the outer ring and shrinks
-        // the holes - both adding ink. Re-deriving the winding per contour would
-        // instead grow the holes, making letters bigger but not actually bolder.
         let ccw = totalOutlineSignedArea(me) >= 0
 
         // Match FreeType's FT_Outline_EmboldenXY, which halves the strength before

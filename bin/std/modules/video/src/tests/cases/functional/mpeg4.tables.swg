@@ -155,8 +155,11 @@ func mpeg4AssertTable(name: string, lengths: const [..] u8, codes: const [..] u1
                         var coefficient: Mpeg4.Coefficient
                         let shortCode = Mpeg4.readCoefficientPrefix(&reader, prefixes, &coefficient)
                         Swag.require(shortCode == (length <= 8 and offset + 16 <= size * 8))
-                        if not shortCode do
+                        if not shortCode
+                        {
                             Swag.require(expect Mpeg4.readCoefficient(&reader, table != 0, &coefficient))
+                        }
+
                         Swag.require(reader.bitPos == end)
                         Swag.require(coefficient.run == runs[index] and coefficient.last == (lasts[index] != 0))
                         let magnitude = cast(s32, levels[index])

@@ -54,10 +54,10 @@ internal impl Decoder
         return result
     }
 
-    const DcLuminanceMap   = #run compileHuffMap'(HuffLookupBits, false)(StdDcLuminanceNrCodes, StdDcLuminanceValues)
-    const DcChrominanceMap = #run compileHuffMap'(HuffLookupBits, false)(StdDcChrominanceNrCodes, StdDcChrominanceValues)
-    const AcLuminanceMap   = #run compileHuffMap'(BaselineAcLookupBits, true)(StdAcLuminanceNrCodes, StdAcLuminanceValues)
-    const AcChrominanceMap = #run compileHuffMap'(BaselineAcLookupBits, true)(StdAcChrominanceNrCodes, StdAcChrominanceValues)
+    const DcLuminanceMap   = #run compileHuffMap!{HuffLookupBits, false}(StdDcLuminanceNrCodes, StdDcLuminanceValues)
+    const DcChrominanceMap = #run compileHuffMap!{HuffLookupBits, false}(StdDcChrominanceNrCodes, StdDcChrominanceValues)
+    const AcLuminanceMap   = #run compileHuffMap!{BaselineAcLookupBits, true}(StdAcLuminanceNrCodes, StdAcLuminanceValues)
+    const AcChrominanceMap = #run compileHuffMap!{BaselineAcLookupBits, true}(StdAcChrominanceNrCodes, StdAcChrominanceValues)
 
     func isStandardHuffMap(counts, symbols: const [*] u8, standardCounts, standardSymbols: const [..] u8)->bool
     {
@@ -70,20 +70,28 @@ internal impl Decoder
         switch index
         {
         case 0:
-            if isStandardHuffMap(counts, symbols, StdDcLuminanceNrCodes, StdDcLuminanceValues) do
+            if isStandardHuffMap(counts, symbols, StdDcLuminanceNrCodes, StdDcLuminanceValues)
+            {
                 return {DcLuminanceMap.lookup, DcLuminanceMap.tree}
+            }
 
         case 1:
-            if isStandardHuffMap(counts, symbols, StdDcChrominanceNrCodes, StdDcChrominanceValues) do
+            if isStandardHuffMap(counts, symbols, StdDcChrominanceNrCodes, StdDcChrominanceValues)
+            {
                 return {DcChrominanceMap.lookup, DcChrominanceMap.tree}
+            }
 
         case MaxHuffTables / 2:
-            if isStandardHuffMap(counts, symbols, StdAcLuminanceNrCodes, StdAcLuminanceValues) do
+            if isStandardHuffMap(counts, symbols, StdAcLuminanceNrCodes, StdAcLuminanceValues)
+            {
                 return {AcLuminanceMap.lookup, AcLuminanceMap.tree}
+            }
 
         case (MaxHuffTables / 2) + 1:
-            if isStandardHuffMap(counts, symbols, StdAcChrominanceNrCodes, StdAcChrominanceValues) do
+            if isStandardHuffMap(counts, symbols, StdAcChrominanceNrCodes, StdAcChrominanceValues)
+            {
                 return {AcChrominanceMap.lookup, AcChrominanceMap.tree}
+            }
         }
 
         return {null, null}

@@ -505,8 +505,11 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         painter.begin()
         painter.setColorMaskFull()
         painter.clear(Color.fromRgb(73, 21, 131))
-        if i do
+        if i
+        {
             painter.setColorMaskColor()
+        }
+
         painter.setClippingRect({3, 2, 6, 5})
         painter.drawTexture({2, 2, 7, 5}, texture)
         painter.end()
@@ -514,8 +517,10 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
         images[i] = cpu.surfaceImage()
     }
 
-    for byte, index in images[0].pixels do
+    for byte, index in images[0].pixels
+    {
         Swag.require(byte == images[1].pixels[index])
+    }
 }
 
 // Scissor and stencil clipping both reject pixels outside their active region.
@@ -544,13 +549,13 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 // A borrowed texture draws and reads the caller's bytes without allowing updates.
 #test
 {
-    let source = Image.create(1, 1, .RGBA8, [34'u8, 79, 212, 255])
+    let source = Image.create(1, 1, .RGBA8, [34_u8, 79, 212, 255])
     var cpu: RenderCpu
     cpu.begin(4, 4)
     let render: IRenderer = &cpu
     defer render.end()
     var texture = cpu.addBorrowedImage(&source)
-    const Other = [99'u8, 85, 76, 255]
+    const Other = [99_u8, 85, 76, 255]
     Swag.require(texture.isValid() and not render.updateTexture(texture, Other.buffer))
     let pixels = render.readTexturePixels(texture, .RGBA8)
     Swag.require(Slice.equals(pixels.toSlice(), source.pixels.toSlice()))
@@ -609,12 +614,12 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 // Each SIMD bilinear lane selects and quantizes its own four texels.
 #test
 {
-    const Samples = [11'u8, 25, 40, 21, 90, 45, 67, 76, 220, 78, 109, 205,
+    const Samples = [11_u8, 25, 40, 21, 90, 45, 67, 76, 220, 78, 109, 205,
                      7, 14, 30, 55, 72, 46, 63, 125, 195, 101, 54, 240]
-    let image = Image.create(3, 2, .BGRA8, Samples)
-    let x = cast(Math.Simd.F32x4, [-0.5'f32, 0.375, 1.5, 2.5])
-    let y = cast(Math.Simd.F32x4, [0.25'f32, 0.875, 0.0, 1.5])
-    let actual = cast #bit(Math.Simd.U32x4, RenderCpu.stenciledTextureGroup(&image, x, y))
+    let image    = Image.create(3, 2, .BGRA8, Samples)
+    let x        = cast(Math.Simd.F32x4, [-0.5_f32, 0.375, 1.5, 2.5])
+    let y        = cast(Math.Simd.F32x4, [0.25_f32, 0.875, 0.0, 1.5])
+    let actual   = cast #bit(Math.Simd.U32x4, RenderCpu.stenciledTextureGroup(&image, x, y))
     let expected = cast(Math.Simd.U32x4, [0x2E201008, 0x2E311F26, 0xB63A4985, 0xCD6D4EDC])
     Swag.require(Math.Simd.allTrue(actual == expected))
 }
@@ -622,7 +627,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
 // A linearly sampled texture multiplies its source alpha by stencil coverage.
 #test
 {
-    const Texels = [240'u8, 120, 80, 128, 240, 120, 80, 128,
+    const Texels = [240_u8, 120, 80, 128, 240, 120, 80, 128,
                     240, 120, 80, 128, 240, 120, 80, 128]
     let source = Image.create(2, 2, .RGBA8, Texels)
     var cpu: RenderCpu
@@ -639,7 +644,7 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     painter.setColorMaskColor()
     painter.setAntialiased(false)
     painter.startClippingRegion()
-    painter.fillRect({4, 0, 8, 12}, Color.fromArgb(128'u8, 255, 255, 255))
+    painter.fillRect({4, 0, 8, 12}, Color.fromArgb(128_u8, 255, 255, 255))
     painter.endClippingRegion()
     painter.setInterpolationMode(.Linear)
     painter.drawTexture({0, 0, 16, 12}, texture)

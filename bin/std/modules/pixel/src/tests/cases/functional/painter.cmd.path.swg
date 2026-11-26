@@ -37,8 +37,10 @@ using Swag, Core
     for pass in 2
     {
         var path = curve
-        if pass do
+        if pass
+        {
             path.flatten()
+        }
 
         var painter: Painter
         painter.begin()
@@ -52,6 +54,8 @@ using Swag, Core
 
     Swag.require(images[0].pixelColor(6, 8).r != 0)
     Swag.require(images[0].pixelColor(8, 23).r == 0)
-    for byte, index in images[0].pixels do
+    for byte, index in images[0].pixels
+    {
         Swag.require(byte == images[1].pixels[index])
+    }
 }

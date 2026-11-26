@@ -61,13 +61,17 @@ using Swag, Core
         'q', 'o', 'i', 'f', 0, 0, 0, 5, 0, 0, 0, 3, 3, 0,
         0xFE, 10, 20, 30, 0xCB, 0xFE, 40, 50, 60, 0xC0,
         0, 0, 0, 0, 0, 0, 0, 1]
-    for channels in [3'u8, 4'u8]
+    for channels in [3_u8, 4_u8]
     {
         bytes[12] = channels
         let image = expect Image.decode("row-spanning.qoi", bytes)
-        for y in 3 do
-            for x in 5 do
+        for y in 3
+        {
+            for x in 5
+            {
                 Swag.require(image.pixelColor(x, y) == (y * 5 + x < 13 ? Color.fromRgb(10, 20, 30) : Color.fromRgb(40, 50, 60)))
+            }
+        }
     }
 }
 
@@ -183,27 +187,38 @@ using Swag, Core
     for format in [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
     {
         var source = Image.create(37, 7, format)
-        for solid in [Color.fromRgb(0, 0, 0), Color.fromArgb(format.hasAlpha() ? 123'u8 : 255'u8, 19, 53, 241)]
+        for solid in [Color.fromRgb(0, 0, 0), Color.fromArgb(format.hasAlpha() ? 123_u8 : 255_u8, 19, 53, 241)]
         {
             source.fill(solid)
             let encoded = expect source.encodeToBytes("uniform.qoi")
-            let prefix  = solid.argb == 0xFF000000 ? 0'u64 : (format.hasAlpha() ? 5'u64 : 4'u64)
+            let prefix  = solid.argb == 0xFF000000 ? 0_u64 : (format.hasAlpha() ? 5_u64 : 4_u64)
             Swag.require(encoded.count == 14 + prefix + 5 + 8)
-            for run in 4 do
+            for run in 4
+            {
                 Swag.require(encoded[14 + prefix + run] == 0xFD)
-            Swag.require(encoded[14 + prefix + 4] == (prefix ? 0xC9'u8 : 0xCA'u8))
+            }
+
+            Swag.require(encoded[14 + prefix + 4] == (prefix ? 0xC9_u8 : 0xCA_u8))
             let decoded = expect Image.decode("uniform.qoi", encoded.toSlice())
-            for y in source.height do
-                for x in source.width do
+            for y in source.height
+            {
+                for x in source.width
+                {
                     Swag.require(decoded.pixelColor(x, y).argb == solid.argb)
+                }
+            }
         }
 
         // A different interior pixel must use the ordinary chunk writer.
         source.pixels.storage()[source.rowStride + source.bytesPerPixel] = 43
         let encoded = expect source.encodeToBytes("mixed.qoi")
         let decoded = expect Image.decode("mixed.qoi", encoded.toSlice())
-        for y in source.height do
-            for x in source.width do
+        for y in source.height
+        {
+            for x in source.width
+            {
                 Swag.require(decoded.pixelColor(x, y).argb == source.pixelColor(x, y).argb)
+            }
+        }
     }
 }

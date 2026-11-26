@@ -21,7 +21,7 @@ func enter(str: string)
         g_Error = null
         g_Start = true
     }
-    elif Latin1.isDigit(str[0])
+    else if Latin1.isDigit(str[0])
     {
         if g_Start
         {

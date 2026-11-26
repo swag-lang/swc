@@ -65,7 +65,7 @@ func colorPalette(result: *[4] u32, source: const [*] u8, forceFourColors: bool)
     {
         let first  = Simd.splat(a)
         let second = Simd.splat(b)
-        let zero   = Simd.splat(0'u8)
+        let zero   = Simd.splat(0_u8)
         let ab     = cast #bit(Simd.U8x16, Simd.interleaveLow(first, second))
         let ba     = cast #bit(Simd.U8x16, Simd.interleaveLow(second, first))
         let words  = cast #bit(Simd.U16x8, Simd.interleaveLow(ab, zero))
@@ -73,14 +73,14 @@ func colorPalette(result: *[4] u32, source: const [*] u8, forceFourColors: bool)
         let sums   = words + words + other
 
         // The high product divides both RGB sums by three exactly through 765.
-        let values       = cast #bit(Simd.S16x8, Simd.mulHigh(sums, Simd.splat(21846'u16)))
+        let values       = cast #bit(Simd.S16x8, Simd.mulHigh(sums, Simd.splat(21846_u16)))
         let interpolated = cast #bit(Simd.U32x4, Simd.packUnsigned(values, values))
         result[][2] = interpolated[0]
         result[][3] = interpolated[1]
     }
     else
     {
-        result[][2] = (a & b) + (((a ^ b) & 0xFEFEFEFE'u32) >> 1)
+        result[][2] = (a & b) + (((a ^ b) & 0xFEFEFEFE_u32) >> 1)
         result[][3] = 0
     }
 }

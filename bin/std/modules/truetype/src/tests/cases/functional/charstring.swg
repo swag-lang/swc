@@ -125,7 +125,7 @@ using Swag, Core
         code.add(32)
     }
 
-    var indexBytes: Array'u8
+    var indexBytes: Array!{u8}
     indexBytes.add([0, 1, 1, 1, cast(u8, code.count + 1)])
     indexBytes.add(code.toSlice())
     var type2: CffFont

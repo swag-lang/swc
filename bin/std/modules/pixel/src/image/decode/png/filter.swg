@@ -424,19 +424,25 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
 
 func isZeroScanline(source: const [*] u8, count: u64)->bool
 {
-    let zero = Math.Simd.splat(0'u8)
-    var offset = 0'u64
+    let zero   = Math.Simd.splat(0_u8)
+    var offset = 0_u64
     while count - offset >= 16
     {
-        if Math.Simd.anyTrue(Math.Simd.load(source + offset) != zero) do
+        if Math.Simd.anyTrue(Math.Simd.load(source + offset) != zero)
+        {
             return false
+        }
+
         offset += 16
     }
 
     while offset < count
     {
-        if source[offset] != 0 do
+        if source[offset] != 0
+        {
             return false
+        }
+
         offset += 1
     }
 
@@ -451,8 +457,8 @@ func defilterPaethPair(firstSource, secondSource, previous: const [*] u8, first,
 
     // The first pixel's predictor is Up. For RGB8 the fourth byte of each
     // store is provisional, and the next pixel or scalar tail replaces it.
-    let initialSource = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, firstSource)[0]), splat(0'u32)))
-    let initialUp     = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, previous)[0]), splat(0'u32)))
+    let initialSource = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, firstSource)[0]), splat(0_u32)))
+    let initialUp     = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, previous)[0]), splat(0_u32)))
     var packed        = cast #bit(U32x4, (initialSource + initialUp))
     cast([*] u32, first)[0] = packed[0]
     var left   = cast #bit(S16x8, widenLow(cast #bit(U8x16, packed)))
@@ -509,14 +515,23 @@ func(PIXEL_BYTES: u64) scatterAdam7Row(source: const [*] u8, target: [*] u8, wid
 // invalid filter may already have been restored.
 public func restorePredictorRows(input: const [..] u8, output: [..] u8, rowBytes, pixelBytes: u64)->bool
 {
-    if not rowBytes or rowBytes > Swag.S64.Max or not pixelBytes or pixelBytes > rowBytes do
+    if not rowBytes or rowBytes > Swag.S64.Max or not pixelBytes or pixelBytes > rowBytes
+    {
         return false
+    }
+
     let encodedRow = rowBytes + 1
-    let count = input.count / encodedRow
-    if input.count % encodedRow or output.count != count * rowBytes do
+    let count      = input.count / encodedRow
+    if input.count % encodedRow or output.count != count * rowBytes
+    {
         return false
-    if not count do
+    }
+
+    if not count
+    {
         return true
+    }
+
     return defilterRowsInto(count, input.buffer, output.buffer, rowBytes, cast(s64, rowBytes), pixelBytes)
 }
 
@@ -525,10 +540,12 @@ private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, 
     var src  = input
     var dest = output
 
-    var zeroRow: Array'u8
-    var up: const [*] u8
-    if let above = previous do
+    var zeroRow: Array!{u8}
+    var up:      const [*] u8
+    if let above = previous
+    {
         up = above
+    }
     else
     {
         // The first row of each pass sees all-zero bytes above it.
@@ -536,8 +553,8 @@ private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, 
         up = zeroRow.storage()
     }
 
-    let pairPaeth    = rowBytes >= 16 and (filterOffset == 3 or filterOffset == 4)
-    var row          = 0'u64
+    let pairPaeth = rowBytes >= 16 and (filterOffset == 3 or filterOffset == 4)
+    var row       = 0_u64
     while row < height
     {
         let filter = src[0]
@@ -559,16 +576,30 @@ private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, 
 
         switch filter
         {
-        case 0:  Memory.copy(dest, src, rowBytes)
-        case 1:  PackedPixel.restoreHorizontalDeltas(src, dest, rowBytes, filterOffset)
-        case 2:  defilterUpRow(src, up, dest, rowBytes)
-        case 3:  defilterAverageRow(src, up, dest, rowBytes, filterOffset)
+        case 0:
+            Memory.copy(dest, src, rowBytes)
+
+        case 1:
+            PackedPixel.restoreHorizontalDeltas(src, dest, rowBytes, filterOffset)
+
+        case 2:
+            defilterUpRow(src, up, dest, rowBytes)
+
+        case 3:
+            defilterAverageRow(src, up, dest, rowBytes, filterOffset)
+
         case 4:
-            if copyPaeth do
+            if copyPaeth
+            {
                 Memory.copy(dest, up, rowBytes)
-            else do
+            }
+            else
+            {
                 defilterPaethRow(src, up, dest, rowBytes, filterOffset)
-        default: return false
+            }
+
+        default:
+            return false
         }
 
         src  += rowBytes
@@ -579,7 +610,6 @@ private func defilterRowsInto(height: u64, input: const [*] u8, output: [*] u8, 
 
     return true
 }
-
 
 impl Decoder
 {
@@ -762,25 +792,33 @@ impl Decoder
 
             // Keep only a small span of rows for strided passes. Save the last
             // packed row before expansion so the next batch has the right predictor.
-            const BatchRows = 32'u32
+            const BatchRows = 32_u32
             let packedBytes = .getStrideIn(passWidth)
             let frontBytes  = rowBytes - packedBytes
             let targetStep  = cast(u64, Adam7SpacingX[p]) * pixelBytes
             let targetStart = cast(u64, Adam7OrigX[p]) * pixelBytes
             tmpArr.reserve(rowBytes * (Math.min(BatchRows, passHeight) + 1))
-            let storage     = tmpArr.storage()
-            let batch       = storage + rowBytes
-            var first       = 0'u32
+            let storage = tmpArr.storage()
+            let batch   = storage + rowBytes
+            var first   = 0_u32
             while first < passHeight
             {
                 let count = Math.min(BatchRows, passHeight - first)
                 let prior = first ? cast(const [*] u8, storage) : null
-                if not .defilterRows(count, input, batch + frontBytes, packedBytes, cast(s64, rowBytes), prior) do
+                if not .defilterRows(count, input, batch + frontBytes, packedBytes, cast(s64, rowBytes), prior)
+                {
                     return false
-                if first + count < passHeight do
+                }
+
+                if first + count < passHeight
+                {
                     Memory.copy(storage, batch + (count - 1) * rowBytes + frontBytes, packedBytes)
-                if .header.bitDepth < 8 do
+                }
+
+                if .header.bitDepth < 8
+                {
                     .expand8(passWidth, count, batch, cast(s64, rowBytes))
+                }
 
                 var source = batch
                 for j in first until first + count
@@ -789,14 +827,15 @@ impl Decoder
                     let target = dstPixels + outY * rowStride + targetStart
                     switch pixelBytes
                     {
-                    case 1:  scatterAdam7Row'1(source, target, passWidth, targetStep)
-                    case 2:  scatterAdam7Row'2(source, target, passWidth, targetStep)
-                    case 3:  scatterAdam7Row'3(source, target, passWidth, targetStep)
-                    case 4:  scatterAdam7Row'4(source, target, passWidth, targetStep)
-                    case 6:  scatterAdam7Row'6(source, target, passWidth, targetStep)
-                    case 8:  scatterAdam7Row'8(source, target, passWidth, targetStep)
+                    case 1:  scatterAdam7Row!{1}(source, target, passWidth, targetStep)
+                    case 2:  scatterAdam7Row!{2}(source, target, passWidth, targetStep)
+                    case 3:  scatterAdam7Row!{3}(source, target, passWidth, targetStep)
+                    case 4:  scatterAdam7Row!{4}(source, target, passWidth, targetStep)
+                    case 6:  scatterAdam7Row!{6}(source, target, passWidth, targetStep)
+                    case 8:  scatterAdam7Row!{8}(source, target, passWidth, targetStep)
                     default: return false
                     }
+
                     source += rowBytes
                 }
 
@@ -811,8 +850,10 @@ impl Decoder
     // Defilters the decompressed rows into `dstPixels`, which holds the whole image.
     mtd defilter(dstPixels: [*] u8)->bool
     {
-        if .header.interlaceMethod == .Adam7 do
+        if .header.interlaceMethod == .Adam7
+        {
             return .adam7(dstPixels)
+        }
 
         let rowBytes = .getStrideOut(.header.width)
         let firstRow = dstPixels + rowBytes * (.header.height - 1)

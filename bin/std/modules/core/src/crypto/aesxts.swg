@@ -24,8 +24,8 @@ private func aesXtsMultiplyTweak(tweak: *[AesXtsTweakSize] u8)
 private func aesXtsMultiplyTweak(tweak: U8x16)->U8x16
 {
     // The top bits of the second and fourth dwords carry into the next word and into reduction.
-    const CarryOrder = cast(U32x4, [3'u32, 0, 1, 0])
-    const Polynomial = cast(U64x2, [0x87'u64, 1])
+    const CarryOrder = cast(U32x4, [3_u32, 0, 1, 0])
+    const Polynomial = cast(U64x2, [0x87_u64, 1])
     let value     = cast #bit (U64x2, tweak)
     let signBits  = cast #bit (S32x4, tweak) >> 31
     let carryMask = cast #bit (U64x2, permute(signBits, CarryOrder))
@@ -35,32 +35,36 @@ private func aesXtsMultiplyTweak(tweak: U8x16)->U8x16
 #[Swag.Inline]
 private func(Decrypt: bool) aesXtsCryptBlockHardware(aes: *Aes, tweak, input: U8x16)->U8x16
 {
-    #static if Decrypt do
-        return aes[].decryptBlockHardware'true(input ^ tweak) ^ tweak
-    else do
+    #static if Decrypt
+    {
+        return aes[].decryptBlockHardware!{true}(input ^ tweak) ^ tweak
+    }
+    else
+    {
         return aes[].encryptBlockHardware(input ^ tweak) ^ tweak
+    }
 }
 
 private func(Decrypt: bool) aesXtsCryptBlocksHardware(aes: *Aes, initialTweak: U8x16, input: const [*] u8, output: [*] u8, blockCount: u64)->U8x16
 {
     var tweak  = initialTweak
-    var offset = 0'u64
+    var offset = 0_u64
     while offset + 4 <= blockCount
     {
         let second = aesXtsMultiplyTweak(tweak)
         let third  = aesXtsMultiplyTweak(second)
         let fourth = aesXtsMultiplyTweak(third)
         let bytes  = offset * AesBlockSize
-        aes[].xorFourHardware'(true, Decrypt)(tweak, second, third, fourth, input + bytes, output + bytes)
-        tweak   = aesXtsMultiplyTweak(fourth)
+        aes[].xorFourHardware!{true, Decrypt}(tweak, second, third, fourth, input + bytes, output + bytes)
+        tweak  = aesXtsMultiplyTweak(fourth)
         offset += 4
     }
 
     while offset < blockCount
     {
         let bytes = offset * AesBlockSize
-        store(output + bytes, aesXtsCryptBlockHardware'Decrypt(aes, tweak, load(input + bytes)))
-        tweak   = aesXtsMultiplyTweak(tweak)
+        store(output + bytes, aesXtsCryptBlockHardware!{Decrypt}(aes, tweak, load(input + bytes)))
+        tweak  = aesXtsMultiplyTweak(tweak)
         offset += 1
     }
 
@@ -84,9 +88,9 @@ private func aesXtsCryptBlock(aes: *Aes, tweak: [AesXtsTweakSize] u8, input: *[A
 {
     if aes[].usesHardwareRounds()
     {
-        let data = load(&input[][0])
+        let data      = load(&input[][0])
         let whitening = load(&tweak[0])
-        let result = decrypt ? aesXtsCryptBlockHardware'true(aes, whitening, data) : aesXtsCryptBlockHardware'false(aes, whitening, data)
+        let result    = decrypt ? aesXtsCryptBlockHardware!{true}(aes, whitening, data) : aesXtsCryptBlockHardware!{false}(aes, whitening, data)
         store(&output[][0], result)
         return
     }
@@ -127,14 +131,16 @@ func aesXtsCrypt(key, dataUnitNumber, input: const [..] u8, output: [..] u8, dec
     let fullBlocks     = input.count / AesBlockSize
     let remainder      = input.count % AesBlockSize
     let ordinaryBlocks = fullBlocks - cast(u64, remainder != 0)
-    var offset         = 0_u64
-    while offset < ordinaryBlocks
+    if dataAes.usesHardwareRounds()
     {
-        if decrypt do
+        if decrypt
+        {
             dataAes.prepareHardwareDecryption()
+        }
+
         let initial = load(&tweak[0])
-        let next = decrypt ? aesXtsCryptBlocksHardware'true(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks) :
-                            aesXtsCryptBlocksHardware'false(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks)
+        let next    = decrypt ? aesXtsCryptBlocksHardware!{true}(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks) :
+                      aesXtsCryptBlocksHardware!{false}(&dataAes, initial, input.buffer, output.buffer, ordinaryBlocks)
         store(&tweak[0], next)
     }
     else

@@ -23,13 +23,20 @@ func writeU32BigEndian(result: *ConcatBuffer, value: u32)
 private func(CHANNELS: u64, SWAP: bool) readPixel(source: const [*] u8)->u32
 {
     var pixel: u32
-    #static if CHANNELS == 4 do
+    #static if CHANNELS == 4
+    {
         pixel = cast(const *u32, source)[]
-    else do
-        pixel = cast(u32, cast(const *u16, source)[]) | (cast(u32, source[2]) << 16) | 0xFF00_0000'u32
+    }
+    else
+    {
+        pixel = cast(u32, cast(const *u16, source)[]) | (cast(u32, source[2]) << 16) | 0xFF00_0000_u32
+    }
 
-    #static if SWAP do
+    #static if SWAP
+    {
         pixel = (pixel & 0xFF00_FF00) | ((pixel & 255) << 16) | ((pixel >> 16) & 255)
+    }
+
     return pixel
 }
 
@@ -44,7 +51,7 @@ private func writePixelChunk(target: [*] u8, pixel, previous: u32, index: *[64] 
     }
 
     index[][indexPosition] = pixel
-    if (pixel ^ previous) < 0x0100_0000'u32
+    if (pixel ^ previous) < 0x0100_0000_u32
     {
         let dr = cast(s32, (pixel & 255)) - cast(s32, (previous & 255))
         let dg = cast(s32, ((pixel >> 8) & 255)) - cast(s32, ((previous >> 8) & 255))
@@ -100,7 +107,7 @@ internal impl IImageEncoder for Encoder
         // Small files fit in one bucket even if every pixel needs a literal chunk.
         let pixelCount = cast(u64, image.width) * image.height
         let maxBytes   = HeaderSize + EndMarkerSize + image.byteCount + pixelCount
-        result.setBucketSize(Math.min(maxBytes, 32'u64 * 1024))
+        result.setBucketSize(Math.min(maxBytes, 32_u64 * 1024))
         result.addBytes(Magic)
         writeU32BigEndian(result, cast(u32, image.width))
         writeU32BigEndian(result, cast(u32, image.height))
@@ -109,10 +116,10 @@ internal impl IImageEncoder for Encoder
 
         switch image.pixelFormat
         {
-        case .RGB8:  writeChunks'(3, false)(result, &image)
-        case .BGR8:  writeChunks'(3, true)(result, &image)
-        case .RGBA8: writeChunks'(4, false)(result, &image)
-        case .BGRA8: writeChunks'(4, true)(result, &image)
+        case .RGB8:  writeChunks!{3, false}(result, &image)
+        case .BGR8:  writeChunks!{3, true}(result, &image)
+        case .RGBA8: writeChunks!{4, false}(result, &image)
+        case .BGRA8: writeChunks!{4, true}(result, &image)
         default:     unreachable
         }
 

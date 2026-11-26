@@ -92,34 +92,36 @@ private struct MaskField
 
 private func prepareField(mask: u32, fallback: u8)->MaskField
 {
-    if not mask do
+    if not mask {
         return {0, 0, 1, fallback}
+    }
     let shift = Math.trailingZeros(mask)
     let bits  = Math.countOnes(mask)
-    let limit = bits == 32 ? Swag.U32.Max : (1'u32 << bits) - 1
+    let limit = bits == 32 ? Swag.U32.Max : (1_u32 << bits) - 1
     return {mask, shift, limit, fallback}
 }
 
 #[Swag.Inline]
 private func maskToByte(value: u32, field: MaskField)->u8
 {
-    if not field.mask do
+    if not field.mask {
         return field.fallback
+    }
     let sample = cast(u64, ((value & field.mask) >> field.shift))
     return cast(u8, ((sample * 255 + field.limit / 2) / field.limit))
 }
 
 private func isByteField(field: MaskField, bits: u32)->bool
 {
-    return not field.mask or (field.shift % 8 == 0 and field.shift < bits and field.mask == (255'u32 << field.shift))
+    return not field.mask or (field.shift % 8 == 0 and field.shift < bits and field.mask == (255_u32 << field.shift))
 }
 
 private func decodeByteFieldsRow(source: const [*] u8, target: [*] u8, width, pixelBytes: u64, fields: const *[4] MaskField, order, fallback: Math.Simd.U8x16)
 {
     using Math.Simd
     let rowBytes = width * pixelBytes
-    var x        = 0'u64
-    var offset   = 0'u64
+    var x        = 0_u64
+    var offset   = 0_u64
     while width - x >= 4 and rowBytes - offset >= 16
     {
         store(target + x * 4, shuffle(load(source + offset), order) | fallback)
@@ -144,7 +146,7 @@ private func decodeByteFieldsRow(source: const [*] u8, target: [*] u8, width, pi
 private func scaleTenBit(samples: Math.Simd.U32x4)->Math.Simd.U32x4
 {
     // Division by 1023 with round-to-nearest over the full ten-bit range.
-    let biased = samples * 255'u32 + 512'u32
+    let biased = samples * 255_u32 + 512_u32
     return (biased + (biased >> 10)) >> 10
 }
 
@@ -153,15 +155,15 @@ private func decodeRgb10Row(source: const [*] u8, target: [*] u8, width: u64, fi
     using Math.Simd
     let input  = cast(const [*] u32, source)
     let output = cast([*] u32, target)
-    let opaque = splat(0xFF00_0000'u32)
-    var x      = 0'u64
+    let opaque = splat(0xFF00_0000_u32)
+    var x      = 0_u64
     while width - x >= 4
     {
         let word  = load(input + x)
-        let red   = scaleTenBit((word >> 20) & 1023'u32)
-        let green = scaleTenBit((word >> 10) & 1023'u32)
-        let blue  = scaleTenBit(word & 1023'u32)
-        let alpha = hasAlpha ? (((word >> 30) * 85'u32) << 24) : opaque
+        let red   = scaleTenBit((word >> 20) & 1023_u32)
+        let green = scaleTenBit((word >> 10) & 1023_u32)
+        let blue  = scaleTenBit(word & 1023_u32)
+        let alpha = hasAlpha ? (((word >> 30) * 85_u32) << 24) : opaque
         store(output + x, red | (green << 8) | (blue << 16) | alpha)
         x += 4
     }
@@ -169,8 +171,9 @@ private func decodeRgb10Row(source: const [*] u8, target: [*] u8, width: u64, fi
     for i in x until width
     {
         let word = input[i]
-        for channel in 4 do
+        for channel in 4 {
             target[i * 4 + channel] = maskToByte(word, fields[][channel])
+        }
     }
 }
 
@@ -179,7 +182,7 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
     let width      = cast(u64, image.width)
     let pixelBytes = cast(u64, (bits + 7)) / 8
     let rowBytes   = cast(u64, image.width) * pixelBytes
-    if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch
+    if pitch!{rowBytes or cast(u64, image.height)}(buffer.count - offset) / pitch
     {
         fail InvalidFormatError{"DDS pixel rows are truncated"}
     }
@@ -201,9 +204,10 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
                         redMask == 255 and
                         ((bits == 8 and not alphaMask) or (bits == 16 and alphaMask == 0xFF00))
     var byteFields = not luminance
-    for field in fields do
+    for field in fields {
         byteFields = byteFields and isByteField(field, bits)
 
+    }
     var orderBytes:    [16] u8
     var fallbackBytes: [16] u8
     if byteFields
@@ -283,7 +287,7 @@ func decodeMasked(image: *Image, buffer: const [..] u8, offset, pitch: u64, bits
 func copyRows(image: *Image, buffer: const [..] u8, offset, pitch: u64, forceOpaqueAlpha: bool) fail
 {
     let rowBytes = cast(u64, image.rowStride)
-    if pitch < rowBytes or cast(u64, image.height) > (buffer.count - offset) / pitch
+    if pitch!{rowBytes or cast(u64, image.height)}(buffer.count - offset) / pitch
     {
         fail InvalidFormatError{"DDS pixel rows are truncated"}
     }

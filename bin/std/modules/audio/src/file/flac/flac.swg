@@ -61,7 +61,7 @@ private const FrameCrcTable: [8, 256] u16 = #run
 private func frameCrc16Table(bytes: const [..] u8, initial: u16)->u16
 {
     var checksum = initial
-    var offset   = 0'u64
+    var offset   = 0_u64
     while bytes.count - offset >= 8
     {
         checksum = FrameCrcTable[7, bytes[offset] ^ (checksum >> 8)] ^
@@ -75,20 +75,23 @@ private func frameCrc16Table(bytes: const [..] u8, initial: u16)->u16
         offset += 8
     }
 
-    for byte in bytes[offset until] do
+    for byte in bytes[offset until]
+    {
         checksum = ((checksum & 0xFF) << 8) ^ FrameCrcTable[0, byte ^ (checksum >> 8)]
+    }
+
     return checksum
 }
 
 // FLAC's frame trailer protects the complete header and coded subframes.
-internal func frameCrc16(bytes: const [..] u8, initial = 0'u16)->u16
+internal func frameCrc16(bytes: const [..] u8, initial = 0_u16)->u16
 {
     #static if not Core.BIG_ENDIAN
     {
         if bytes.count >= 64
         {
-            let foldedCount = bytes.count & ~15'u64
-            let block       = foldMsbChecksum'(16'u32, 0x8005'u32)(bytes[until foldedCount], cast(u32, initial))
+            let foldedCount = bytes.count & ~15_u64
+            let block       = foldMsbChecksum!{16_u32, 0x8005_u32}(bytes[until foldedCount], cast(u32, initial))
             let checksum    = frameCrc16Table(block, 0)
             return frameCrc16Table(bytes[foldedCount until], checksum)
         }
@@ -207,8 +210,8 @@ private func findFrameSync(bytes: const [..] u8, start, end: u64)->u64
     #[Swag.Inline]
     func syncMask(data: const [*] u8)->Math.Simd.U8x16
     {
-        let leading  = Math.Simd.load(data) == Math.Simd.splat(0xFF'u8)
-        let trailing = (Math.Simd.load(data + 1) & Math.Simd.splat(0xFC'u8)) == Math.Simd.splat(0xF8'u8)
+        let leading  = Math.Simd.load(data) == Math.Simd.splat(0xFF_u8)
+        let trailing = (Math.Simd.load(data + 1) & Math.Simd.splat(0xFC_u8)) == Math.Simd.splat(0xF8_u8)
         return leading & trailing
     }
 
@@ -224,21 +227,30 @@ private func findFrameSync(bytes: const [..] u8, start, end: u64)->u64
                        syncMask(at + VectorBytes) |
                        syncMask(at + 2 * VectorBytes) |
                        syncMask(at + 3 * VectorBytes)
-        if Math.Simd.bitmask(combined) do
+        if Math.Simd.bitmask(combined)
+        {
             break
+        }
+
         scan += 4 * VectorBytes
     }
 
     while limit - scan >= VectorBytes
     {
         let matches = Math.Simd.bitmask(syncMask(data + scan))
-        if matches do
+        if matches
+        {
             return scan + Math.trailingZeros(matches)
+        }
+
         scan += VectorBytes
     }
 
-    for index in scan until limit where data[index] == 0xFF and (data[index + 1] & 0xFC) == 0xF8 do
+    for index in scan until limit where data[index] == 0xFF and (data[index + 1] & 0xFC) == 0xF8
+    {
         return index
+    }
+
     return end
 }
 
@@ -367,9 +379,9 @@ internal func findFrameEnd(source: *ByteSource,
     let boundaryBytes = Math.min(FrameHeaderBytes, remaining)
     let scanLimit     = boundedFrame > remaining - boundaryBytes ? remaining : boundedFrame + boundaryBytes
     var want          = Math.min(FrameHeaderBytes, scanLimit)
-    var scan          = 2'u64
-    var checkedBytes  = 0'u64
-    var checksum      = 0'u16
+    var scan          = 2_u64
+    var checkedBytes  = 0_u64
+    var checksum      = 0_u16
     for
     {
         try source.seek(start)

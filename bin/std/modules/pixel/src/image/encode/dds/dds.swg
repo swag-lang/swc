@@ -145,8 +145,11 @@ internal impl IImageEncoder for Encoder
 
         let width  = cast(u64, image.width)
         let stride = width * (bits / 8)
-        if stride > Swag.S32.Max do
+        if stride > Swag.S32.Max
+        {
             fail UnsupportedFormatError{"DDS row exceeds the image limits"}
+        }
+
         let byteCount = stride * cast(u64, image.height)
         result.grow((dxgi ? HeaderSize + 20 : HeaderSize) + byteCount)
         writeHeader(result, image, cast(u32, stride), dxgi, flags, bits, redMask, greenMask, blueMask, alphaMask)
@@ -171,8 +174,8 @@ internal impl IImageEncoder for Encoder
             let output   = target + cast(u64, y) * stride
             switch image.pixelFormat
             {
-            case .RGB16:  expandRgb16Alpha'false(source, output, width)
-            case .RGBF16: expandRgb16Alpha'true(source, output, width)
+            case .RGB16:  expandRgb16Alpha!{false}(source, output, width)
+            case .RGBF16: expandRgb16Alpha!{true}(source, output, width)
             case .RGBF32: expandRgb32Alpha(source, output, width)
             default:      Memory.copy(output, source, stride)
             }

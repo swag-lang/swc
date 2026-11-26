@@ -38,7 +38,7 @@ private func(T) poly1305LimbProduct(left, right: T)->T
     else
     {
         // A limb and its scaled coefficient fit in 32 bits each.
-        const mask = cast(Simd.U64x2, [0xFFFF_FFFF'u64, 0xFFFF_FFFF])
+        const mask = cast(Simd.U64x2, [0xFFFF_FFFF_u64, 0xFFFF_FFFF])
         return (left & mask) * (right & mask)
     }
 }
@@ -66,7 +66,7 @@ private func poly1305Carry(h: *[5] u64, products: const *[5] u64)
     let third  = products[][2] + (second >> 26)
     let fourth = products[][3] + (third >> 26)
     let fifth  = products[][4] + (fourth >> 26)
-    let low = (first & LimbMask) + (fifth >> 26) * 5
+    let low    = (first & LimbMask) + (fifth >> 26) * 5
     h[][0] = low & LimbMask
     h[][1] = (second & LimbMask) + (low >> 26)
     h[][2] = third & LimbMask
@@ -86,7 +86,7 @@ private func poly1305LoadPair(words: const [*] u64)->[5] Simd.U64x2
         (low >> 26) & LimbMask,
         ((low >> 52) | (high << 12)) & LimbMask,
         (high >> 14) & LimbMask,
-        (high >> 40) | (1'u64 << 24)]
+        (high >> 40) | (1_u64 << 24)]
 }
 
 #[Swag.Inline]
@@ -96,8 +96,11 @@ private func poly1305MultiplyReduced(left, right: [5] u64)->[5] u64
     {
         scaled, products: [5] u64
     }
-    for index in 1 to 4 do
+    for index in 1 to 4
+    {
         scratch.scaled[index] = right[index] * 5
+    }
+
     poly1305Multiply(left, right, scratch.scaled, &scratch.products)
     var result: #returntype
     poly1305Carry(&result, &scratch.products)
@@ -105,8 +108,8 @@ private func poly1305MultiplyReduced(left, right: [5] u64)->[5] u64
     return result
 }
 
-private const Limb44Mask = (1'u64 << 44) - 1
-private const Limb42Mask = (1'u64 << 42) - 1
+private const Limb44Mask = (1_u64 << 44) - 1
+private const Limb42Mask = (1_u64 << 42) - 1
 private alias Poly44Lanes = [3] Simd.U64x2
 
 private struct Poly44Products
@@ -129,11 +132,11 @@ private func poly44ToLimbs(limbs: [3] u64)->[5] u64
 {
     // The carry out of bit 130 after adding five selects the final subtraction.
     let quotient = (limbs[2] + ((limbs[1] + ((limbs[0] + 5) >> 44)) >> 44)) >> 42
-    let first = limbs[0] + quotient * 5
-    let second = limbs[1] + (first >> 44)
-    let third = (limbs[2] + (second >> 44)) & Limb42Mask
-    let low = first & Limb44Mask
-    let mid = second & Limb44Mask
+    let first    = limbs[0] + quotient * 5
+    let second   = limbs[1] + (first >> 44)
+    let third    = (limbs[2] + (second >> 44)) & Limb42Mask
+    let low      = first & Limb44Mask
+    let mid      = second & Limb44Mask
     return [low & LimbMask, ((low >> 26) | (mid << 18)) & LimbMask, (mid >> 8) & LimbMask,
             ((mid >> 34) | (third << 10)) & LimbMask, third >> 16]
 }
@@ -145,7 +148,7 @@ private func poly44LoadPair(words: const [*] u64)->Poly44Lanes
     let second = Simd.load(words + 2)
     let low    = Simd.interleaveLow(first, second)
     let high   = Simd.interleaveHigh(first, second)
-    return [low & Limb44Mask, ((low >> 44) | (high << 20)) & Limb44Mask, (high >> 24) | (1'u64 << 40)]
+    return [low & Limb44Mask, ((low >> 44) | (high << 20)) & Limb44Mask, (high >> 24) | (1_u64 << 40)]
 }
 
 #[Swag.Inline]
@@ -160,15 +163,21 @@ private func poly44Accumulate(index: u64, a0, b0, a1, b1, a2, b2: Simd.U64x2)
 {
     // Three low or high halves, even summed across both lanes, fit in u64.
     product.low[index] = Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(zero, a0, b0),
-                                                                           a1, b1), a2, b2)
+                                                                           a1,
+                                                                           b1),
+                                                  a2,
+                                                  b2)
     product.high[index] = Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(zero, a0, b0),
-                                                                              a1, b1), a2, b2)
+                                                                              a1,
+                                                                              b1),
+                                                    a2,
+                                                    b2)
 }
 
 #[Swag.Inline]
 private func poly44Multiply(left, right: Poly44Lanes, scaled: [2] Simd.U64x2, product: *Poly44Products)
 {
-    let zero = Simd.splat(0'u64)
+    let zero = Simd.splat(0_u64)
 
     poly44Accumulate(0, left[0], right[0], left[1], scaled[1], left[2], scaled[0])
     poly44Accumulate(1, left[0], right[1], left[1], right[0], left[2], scaled[1])
@@ -178,8 +187,8 @@ private func poly44Multiply(left, right: Poly44Lanes, scaled: [2] Simd.U64x2, pr
 #[Swag.Inline]
 private func(T) poly44Carry(low, high: [3] T, result: *[3] T)
 {
-    let mid = low[1] + (low[0] >> 44) + (high[0] << 8)
-    let top = low[2] + (mid >> 44) + (high[1] << 8)
+    let mid   = low[1] + (low[0] >> 44) + (high[0] << 8)
+    let top   = low[2] + (mid >> 44) + (high[1] << 8)
     let carry = (top >> 42) + (high[2] << 10)
     let first = (low[0] & Limb44Mask) + carry + (carry << 2)
     result[][0] = first & Limb44Mask
@@ -190,48 +199,51 @@ private func(T) poly44Carry(low, high: [3] T, result: *[3] T)
 #[Swag.Inline]
 private func(High: bool) poly44Dot(a0, b0, a1, b1, a2, b2: Simd.U64x2)->Simd.U64x2
 {
-    let zero = Simd.splat(0'u64)
-    #static if High do
+    let zero = Simd.splat(0_u64)
+    #static if High
+    {
         return Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(Swag.vecMultiplyAdd52High(zero, a0, b0), a1, b1), a2, b2)
-    else do
+    }
+    else
+    {
         return Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(Swag.vecMultiplyAdd52Low(zero, a0, b0), a1, b1), a2, b2)
+    }
 }
 
 #[Swag.Inline]
-private func poly44Pairs(words: const [*] u64, count: u64, state: *Poly44Lanes,
-                        factor: Poly44Lanes, scaled: [2] Simd.U64x2)
+private func poly44Pairs(words: const [*] u64, count: u64, state: *Poly44Lanes, factor: Poly44Lanes, scaled: [2] Simd.U64x2)
 {
-    var first = state[][0]
+    var first  = state[][0]
     var middle = state[][1]
-    var top = state[][2]
-    let r0 = factor[0]
-    let r1 = factor[1]
-    let r2 = factor[2]
-    let s1 = scaled[0]
-    let s2 = scaled[1]
+    var top    = state[][2]
+    let r0     = factor[0]
+    let r1     = factor[1]
+    let r2     = factor[2]
+    let s1     = scaled[0]
+    let s2     = scaled[1]
     for pair in count
     {
-        let left = Simd.load(words + pair * 4)
+        let left  = Simd.load(words + pair * 4)
         let right = Simd.load(words + pair * 4 + 2)
-        let low = Simd.interleaveLow(left, right)
-        let high = Simd.interleaveHigh(left, right)
-        let a0 = first + (low & Limb44Mask)
-        let a1 = middle + (((low >> 44) | (high << 20)) & Limb44Mask)
-        let a2 = top + ((high >> 24) | (1'u64 << 40))
+        let low   = Simd.interleaveLow(left, right)
+        let high  = Simd.interleaveHigh(left, right)
+        let a0    = first + (low & Limb44Mask)
+        let a1    = middle + (((low >> 44) | (high << 20)) & Limb44Mask)
+        let a2    = top + ((high >> 24) | (1_u64 << 40))
 
-        let p0 = poly44Dot'(false)(a0, r0, a1, s2, a2, s1)
-        let h0 = poly44Dot'(true)(a0, r0, a1, s2, a2, s1)
-        let p1 = poly44Dot'(false)(a0, r1, a1, r0, a2, s2)
-        let h1 = poly44Dot'(true)(a0, r1, a1, r0, a2, s2)
-        let p2 = poly44Dot'(false)(a0, r2, a1, r1, a2, r0)
-        let h2 = poly44Dot'(true)(a0, r2, a1, r1, a2, r0)
-        let d1 = p1 + (h0 << 8)
-        let d2 = p2 + (h1 << 8)
+        let p0   = poly44Dot!{false}(a0, r0, a1, s2, a2, s1)
+        let h0   = poly44Dot!{true}(a0, r0, a1, s2, a2, s1)
+        let p1   = poly44Dot!{false}(a0, r1, a1, r0, a2, s2)
+        let h1   = poly44Dot!{true}(a0, r1, a1, r0, a2, s2)
+        let p2   = poly44Dot!{false}(a0, r2, a1, r1, a2, r0)
+        let h2   = poly44Dot!{true}(a0, r2, a1, r1, a2, r0)
+        let d1   = p1 + (h0 << 8)
+        let d2   = p2 + (h1 << 8)
         let wrap = (d2 >> 42) + (h2 << 10)
-        let d0 = (p0 & Limb44Mask) + wrap + (wrap << 2)
-        first = d0 & Limb44Mask
+        let d0   = (p0 & Limb44Mask) + wrap + (wrap << 2)
+        first  = d0 & Limb44Mask
         middle = (d1 & Limb44Mask) + (p0 >> 44) + (d0 >> 44)
-        top = (d2 & Limb42Mask) + (d1 >> 44)
+        top    = (d2 & Limb42Mask) + (d1 >> 44)
     }
 
     state[][0] = first
@@ -299,11 +311,14 @@ public impl Poly1305
             fail Errors.BadParameterError{"Poly1305 needs a 32-byte key"}
         }
 
-        if .initialized do
+        if .initialized
+        {
             .clear()
 
-        // The first half of the key is clamped: the masks are what keep every
-        // partial product inside the range the limb arithmetic below assumes.
+            // The first half of the key is clamped: the masks are what keep every
+            // partial product inside the range the limb arithmetic below assumes.
+        }
+
         let t0 = load32Le(key.buffer)
         let t1 = load32Le(key.buffer + 4)
         let t2 = load32Le(key.buffer + 8)
@@ -328,14 +343,24 @@ public impl Poly1305
     {
         Swag.assert(.initialized, "Poly1305 needs an initialized sequence")
 
+        if not data.count
+        {
+            return
+        }
+
         var offset = 0_u64
-        while offset < data.count
+
+        // Finish a block carried by a previous update before reading whole blocks in place.
+        if .bufferCount
         {
             offset = Math.min(data.count, Poly1305BlockSize - .bufferCount)
             Swag.memcpy(&.buffer[.bufferCount], data.buffer, offset)
             .bufferCount += offset
-            if .bufferCount < Poly1305BlockSize do
+            if .bufferCount < Poly1305BlockSize
+            {
                 return
+            }
+
             .absorbBlocks(.buffer.buffer, 1, 1 << 24)
             .bufferCount = 0
         }
@@ -361,7 +386,7 @@ public impl Poly1305
                 offset += pairs * 2 * Poly1305BlockSize
                 blocks &= 1
             }
-            elif blocks >= QuadBlockThreshold
+            else if blocks >= QuadBlockThreshold
             {
                 let quads = blocks / 4
                 .absorbQuads(data.buffer + offset, quads)
@@ -404,50 +429,57 @@ public impl Poly1305
         {
             h, g: [5] u64
         }
-
-        h[0]  += carry * 5
-        carry = h[0] >> 26
-        h[0]  &= LimbMask
-        h[1]  += carry
-
-        // Compute `h - p` and keep it only when it did not borrow, which is the
-        // branch-free way to reduce the last time.
-        var g: [5] u64
-        g[0]  = h[0] + 5
-        carry = g[0] >> 26
-        g[0]  &= LimbMask
-        for i in 1 to 3
-        {
-            g[i]  = h[i] + carry
-            carry = g[i] >> 26
-            g[i]  &= LimbMask
-        }
-
-        g[4] = h[4] + carry - (1 << 26)
-
-        let borrowed = (g[4] >> 63) & 1
-        let keepG    = borrowed - 1
-        let keepH    = ~keepG
-        for i in 5
-        {
-            h[i] = (h[i] & keepH) | (g[i] & keepG)
-        }
-
-        var packed: [4] u64
-        packed[0] = (h[0] | (h[1] << 26)) & 0xFFFF_FFFF
-        packed[1] = ((h[1] >> 6) | (h[2] << 20)) & 0xFFFF_FFFF
-        packed[2] = ((h[2] >> 12) | (h[3] << 14)) & 0xFFFF_FFFF
-        packed[3] = ((h[3] >> 18) | (h[4] << 8)) & 0xFFFF_FFFF
-
+        scratch.h = .accumulator
         var result: #returntype
-        var sum = 0_u64
-        for i in 4
+        with scratch
         {
-            sum = packed[i] + .pad[i] + (sum >> 32)
-            for b in 4
+            var carry = .h[1] >> 26
+            .h[1] &= LimbMask
+            for i in 2 to 4
             {
-                result[i * 4 + b] = cast(u8, ((sum >> cast(u32, (b * 8))) & 0xFF))
+                .h[i] += carry
+                carry = .h[i] >> 26
+                .h[i] &= LimbMask
             }
+
+            .h[0] += carry * 5
+            carry = .h[0] >> 26
+            .h[0] &= LimbMask
+            .h[1] += carry
+
+            // Compute `h - p` and keep it only when it did not borrow, which is the
+            // branch-free way to reduce the last time.
+            .g[0] = .h[0] + 5
+            carry = .g[0] >> 26
+            .g[0] &= LimbMask
+            for i in 1 to 3
+            {
+                .g[i] = .h[i] + carry
+                carry = .g[i] >> 26
+                .g[i] &= LimbMask
+            }
+
+            .g[4] = .h[4] + carry - (1 << 26)
+
+            let borrowed = (.g[4] >> 63) & 1
+            let keepG    = borrowed - 1
+            let keepH    = ~keepG
+            for i in 5
+            {
+                .h[i] = (.h[i] & keepH) | (.g[i] & keepG)
+
+                // Store the low 128 bits in two words and propagate the pad carry once.
+            }
+
+            let low     = .h[0] | (.h[1] << 26) | (.h[2] << 52)
+            let high    = (.h[2] >> 12) | (.h[3] << 14) | (.h[4] << 40)
+            let padLow  = me.pad[0] | (me.pad[1] << 32)
+            let padHigh = me.pad[2] | (me.pad[3] << 32)
+            let lowSum  = low + padLow
+            let highSum = high + padHigh + cast(u64, lowSum < low)
+            let words   = cast([*] u64, result.buffer)
+            words[0] = Math.nativeToLittleEndian(lowSum)
+            words[1] = Math.nativeToLittleEndian(highSum)
         }
 
         secureClear(Swag.makeSlice(&scratch, 1))
@@ -465,8 +497,10 @@ public impl Poly1305
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
     }
 
     // Computes the Poly1305 tag of `data` under `key` in one operation.
@@ -541,8 +575,11 @@ public impl Poly1305
         }
         with scratch
         {
-            for i in 1 to 4 do
+            for i in 1 to 4
+            {
                 .scaled[i] = me.r[i] * 5
+            }
+
             .h = me.accumulator
             for block in count
             {
@@ -566,6 +603,7 @@ public impl Poly1305
 
             me.accumulator = .h
         }
+
         secureClear(Swag.makeSlice(&scratch, 1))
     }
 
@@ -600,17 +638,24 @@ public impl Poly1305
                 let words = cast(const [*] u64, blocks + group * 4 * Poly1305BlockSize)
                 .first  = poly1305LoadPair(words)
                 .second = poly1305LoadPair(words + 4)
-                for i in 5 do
-                    .first[i] += cast(Simd.U64x2, [.h[i], 0'u64])
+                for i in 5
+                {
+                    .first[i] += cast(Simd.U64x2, [.h[i], 0_u64])
+                }
+
                 poly1305Multiply(.first, .firstFactors, .firstWrapped, &.firstProducts)
                 poly1305Multiply(.second, .secondFactors, .secondWrapped, &.secondProducts)
-                for i in 5 do
+                for i in 5
+                {
                     .products[i] = Simd.sum(.firstProducts[i] + .secondProducts[i])
+                }
+
                 poly1305Carry(&.h, &.products)
             }
 
             me.accumulator = .h
         }
+
         secureClear(Swag.makeSlice(&scratch, 1))
     }
 
@@ -620,40 +665,47 @@ public impl Poly1305
         // multiplication advances the two lanes by r^2 and r respectively.
         var scratch: struct
         {
-            uniform, final, state, message: Poly44Lanes
-            uniformScaled, finalScaled: [2] Simd.U64x2
+            uniform, final, state, message:  Poly44Lanes
+            uniformScaled, finalScaled:      [2] Simd.U64x2
             key, initial, low, high, result: [3] u64
             product: Poly44Products
         }
 
         with scratch
         {
-            .key = poly44FromLimbs(me.r)
+            .key     = poly44FromLimbs(me.r)
             .initial = poly44FromLimbs(me.accumulator)
             for limb in 3
             {
                 .uniform[limb] = Simd.splat(.key[limb])
-                .state[limb] = cast(Simd.U64x2, [.initial[limb], 0'u64])
+                .state[limb]   = cast(Simd.U64x2, [.initial[limb], 0_u64])
             }
 
             poly44Multiply(.uniform, .uniform, poly44Scale(.uniform), &.product)
             poly44Carry(.product.low, .product.high, &.uniform)
-            for limb in 3 do
+            for limb in 3
+            {
                 .final[limb] = cast(Simd.U64x2, [cast([2] u64, .uniform[limb])[0], .key[limb]])
+            }
+
             .uniformScaled = poly44Scale(.uniform)
-            .finalScaled = poly44Scale(.final)
+            .finalScaled   = poly44Scale(.final)
 
             let words = cast(const [*] u64, blocks)
             poly44Pairs(words, count - 1, &.state, .uniform, .uniformScaled)
             .message = poly44LoadPair(words + (count - 1) * 4)
-            for limb in 3 do
+            for limb in 3
+            {
                 .state[limb] += .message[limb]
+            }
+
             poly44Multiply(.state, .final, .finalScaled, &.product)
             for limb in 3
             {
-                .low[limb] = Simd.sum(.product.low[limb])
+                .low[limb]  = Simd.sum(.product.low[limb])
                 .high[limb] = Simd.sum(.product.high[limb])
             }
+
             poly44Carry(.low, .high, &.result)
             me.accumulator = poly44ToLimbs(.result)
         }
@@ -666,14 +718,16 @@ public impl Poly1305
         // A tile can start with zero and run independently. Concatenation
         // advances the running accumulator by r^TileBlocks, then adds the tile.
         const MaxTiles = 32
-        let key = &.r
+        let key     = &.r
         var advance = .r
-        for TileBlockBits do
+        for TileBlockBits
+        {
             advance = poly1305MultiplyReduced(advance, advance)
+        }
 
         var results: [MaxTiles][5] u64
-        var sum: [5] u64
-        var processed = 0'u64
+        var sum:     [5] u64
+        var processed = 0_u64
         while processed < tileCount
         {
             let count  = Math.min(tileCount - processed, MaxTiles)
@@ -682,10 +736,15 @@ public impl Poly1305
             {
                 var state: Poly1305
                 state.r = key[]
-                if useIfma do
+                if useIfma
+                {
                     state.absorbIfmaPairs(source + tile * TileSize, TileBlocks / 2)
-                else do
+                }
+                else
+                {
                     state.absorbQuads(source + tile * TileSize, TileBlocks / 4)
+                }
+
                 results[tile] = state.accumulator
                 state.clear()
             }
@@ -693,8 +752,11 @@ public impl Poly1305
             for tile in count
             {
                 .accumulator = poly1305MultiplyReduced(.accumulator, advance)
-                for limb in sum.count do
+                for limb in sum.count
+                {
                     sum[limb] = .accumulator[limb] + results[tile][limb]
+                }
+
                 poly1305Carry(&.accumulator, &sum)
             }
 

@@ -269,17 +269,23 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
 {
     if evt is CommandEvent as command
     {
-        if command.id == "next-page" do
+        if command.id == "next-page"
+        {
             nextPage()
-        elif command.id == "previous-page" do
+        }
+        else if command.id == "previous-page"
+        {
             previousPage()
-        else do
+        }
+        else
+        {
             return false
+        }
 
         command.accepted = true
         return true
     }
-    elif evt is ResizeEvent
+    else if evt is ResizeEvent
     {
         layoutRootView()
         buildPage()

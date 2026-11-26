@@ -177,8 +177,9 @@ private func(CHANNELS: u64) storeWordRow(destination: [*] u8, first, second, thi
             let p1  = cast #bit(Simd.U8x16, b)
             let p2  = cast #bit(Simd.U8x16, loadBigEndianWords(third + offset))
             let dst = cast([*] u8, target)
-            #static if CHANNELS == 3 do
-                PackedPixel.storeTriplets'2(dst, p0, p1, p2)
+            #static if CHANNELS == 3 {
+                PackedPixel.storeTriplets!{2}(dst, p0, p1, p2)
+            }
             else
             {
                 let p3 = cast #bit(Simd.U8x16, loadBigEndianWords(fourth + offset))
@@ -195,10 +196,12 @@ private func(CHANNELS: u64) storeWordRow(destination: [*] u8, first, second, thi
         let offset = sample * 2
         target[0] = readU16(first + offset)
         target[1] = readU16(second + offset)
-        #static if CHANNELS >= 3 do
+        #static if CHANNELS >= 3 {
             target[2] = readU16(third + offset)
-        #static if CHANNELS == 4 do
+        }
+        #static if CHANNELS == 4 {
             target[3] = readU16(fourth + offset)
+        }
         target += CHANNELS
     }
 }
@@ -216,7 +219,7 @@ private func(CHANNELS: u64) storeByteRow(destination: [*] u8, first, second, thi
             Simd.store(target, Simd.interleaveLow(a, b))
             Simd.store(target + 16, Simd.interleaveHigh(a, b))
         }
-        elif CHANNELS == 3
+        else if CHANNELS == 3
         {
             PackedPixel.storeTriplets16(target, a, b, Simd.load(third + x))
         }
@@ -233,10 +236,12 @@ private func(CHANNELS: u64) storeByteRow(destination: [*] u8, first, second, thi
         let target = destination + i * CHANNELS
         target[0] = first[i]
         target[1] = second[i]
-        #static if CHANNELS >= 3 do
+        #static if CHANNELS >= 3 {
             target[2] = third[i]
-        #static if CHANNELS == 4 do
+        }
+        #static if CHANNELS == 4 {
             target[3] = fourth[i]
+        }
     }
 }
 
@@ -248,12 +253,12 @@ private func storePlanarRow(image: *Image, y: s32, first, second, third, fourth:
     {
     case .Gray8:       Memory.copy(target, first, width)
     case .Gray16:      copyBigEndianWords(target, first, width)
-    case .GrayAlpha8:  storeByteRow'2(target, first, second, third, fourth, width)
-    case .GrayAlpha16: storeWordRow'2(target, first, second, third, fourth, width)
-    case .RGB8:        storeByteRow'3(target, first, second, third, fourth, width)
-    case .RGB16:       storeWordRow'3(target, first, second, third, fourth, width)
-    case .RGBA8:       storeByteRow'4(target, first, second, third, fourth, width)
-    case .RGBA16:      storeWordRow'4(target, first, second, third, fourth, width)
+    case .GrayAlpha8:  storeByteRow!{2}(target, first, second, third, fourth, width)
+    case .GrayAlpha16: storeWordRow!{2}(target, first, second, third, fourth, width)
+    case .RGB8:        storeByteRow!{3}(target, first, second, third, fourth, width)
+    case .RGB16:       storeWordRow!{3}(target, first, second, third, fourth, width)
+    case .RGBA8:       storeByteRow!{4}(target, first, second, third, fourth, width)
+    case .RGBA16:      storeWordRow!{4}(target, first, second, third, fourth, width)
     default:          unreachable
     }
 }
@@ -266,8 +271,9 @@ private func storeCompositeRow(image: *Image, y: s32, source: const [*] u8, plan
 func storeRawComposite(image: *Image, source: const [*] u8, rowBytes: u64)
 {
     let planeBytes = rowBytes * cast(u64, image.height)
-    for y in image.height do
+    for y in image.height {
         storeCompositeRow(image, y, source + cast(u64, y) * rowBytes, planeBytes)
+    }
 }
 
 private func decodePackedComposite(image: *Image, buffer: const [..] u8, rowLengths: const [*] u8, offset, rowBytes: u64, channels: u16) fail
@@ -283,13 +289,14 @@ private func decodePackedComposite(image: *Image, buffer: const [..] u8, rowLeng
         for y in height
         {
             let size = cast(u64, readU16(rowLengths + (channel * height + y) * 2))
-            if size > buffer.count - end do
+            if size > buffer.count - end {
                 fail InvalidFormatError{"PSD PackBits row is truncated"}
+            }
             end += size
         }
     }
 
-    var planes: Array'u8
+    var planes: Array!{u8}
     planes.reserve(rowBytes * visible)
     let rows = planes.storage()
     for y in height
@@ -311,8 +318,9 @@ private func decodePackedComposite(image: *Image, buffer: const [..] u8, rowLeng
         for y in height
         {
             let size = cast(u64, readU16(rowLengths + (channel * height + y) * 2))
-            if size > buffer.count - end do
+            if size > buffer.count - end {
                 fail InvalidFormatError{"PSD PackBits row is truncated"}
+            }
             try decodePackBits(rows, rowBytes, Swag.makeSlice(buffer.buffer + end, size))
             end += size
         }
@@ -607,11 +615,11 @@ impl Decoder
 // Photoshop's 16-bit channel predictor uses modulo-65536 differences.
 private func restorePredictedWords(row: [*] u8, width: u64)
 {
-    const Shift1 = cast(Simd.U8x16, [128'u8, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
-    const Shift2 = cast(Simd.U8x16, [128'u8, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
-    const Shift4 = cast(Simd.U8x16, [128'u8, 128, 128, 128, 128, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7])
+    const Shift1 = cast(Simd.U8x16, [128_u8, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13])
+    const Shift2 = cast(Simd.U8x16, [128_u8, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
+    const Shift4 = cast(Simd.U8x16, [128_u8, 128, 128, 128, 128, 128, 128, 128, 0, 1, 2, 3, 4, 5, 6, 7])
     let target = cast([*] u16, row)
-    var carry  = Simd.splat(0'u16)
+    var carry  = Simd.splat(0_u16)
     var x: u64
     while width - x >= 8
     {
@@ -644,15 +652,17 @@ impl Layer
         {
             let component = channel.id == -1 ? alpha : cast(u16, channel.id)
             let bytes     = unwrap channel.bytes
-            if bytes.count < 2 or bytes.count - 2 != planeBytes or readU16(bytes.buffer) != 0 do
+            if bytes.count < 2 or bytes.count - 2 != planeBytes or readU16(bytes.buffer) != 0 {
                 return false
-            present |= 1'u8 << component
+            }
+            present |= 1_u8 << component
             planes[component] = bytes.buffer + 2
         }
 
-        if present != (1'u8 << (alpha + 1)) - 1 do
+        if present != (1_u8 << (alpha + 1)) - 1 {
             return false
 
+        }
         for y in result.height
         {
             let offset = cast(u64, y) * rowBytes
@@ -744,10 +754,12 @@ impl Layer
                     for y in result.height
                     {
                         let row = unpacked.storage() + cast(u64, y) * rowBytes
-                        if depth == 8 do
+                        if depth == 8 {
                             PackedPixel.restoreHorizontalDeltas(row, row, rowBytes, 1)
-                        else do
+                        }
+                        else {
                             restorePredictedWords(row, cast(u64, result.width))
+                        }
                     }
                 }
                 pixels = unpacked.toSlice()

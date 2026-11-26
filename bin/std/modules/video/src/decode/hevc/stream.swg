@@ -364,7 +364,7 @@ impl HevcStream
         // Advancing within the current decode window keeps every reference picture already
         // reconstructed. Restart only for a backward seek, or when the requested picture needs
         // a clean decode point beyond the samples currently queued.
-        if rank < .nextRank or (not alreadyPending and sync > .nextDecode)
+        if rank!{.nextRank or (not alreadyPending and sync}.nextDecode)
         {
             .releasePending()
             .clearFrameThreads()

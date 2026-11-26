@@ -49,14 +49,16 @@ using Swag, Core
     {
         var transform = Webp.LosslessTransform{oldWidth: 9, bits: 3}
         transform.pixels.resize(16)
-        for tile in 4 do
+        for tile in 4 {
             transform.pixels[tile * 4 + 1] = cast(u8, ((mode + tile) % Expected.count))
 
-        var pixels: Array'u8
+        }
+        var pixels: Array!{u8}
         pixels.resize(324)
-        for i in pixels.count do
+        for i in pixels.count {
             pixels[i] = cast(u8, ((i * 29 + (i / 4) * 17 + i / 2) % 256))
 
+        }
         Webp.losslessInversePredictor(&transform, &pixels, 9)
         Swag.require(Hash.Crc64.compute(pixels.toSlice()) == Expected[mode])
     }
@@ -65,18 +67,20 @@ using Swag, Core
 // VP8L matches can repeat an overlapping source before reaching the end of the run.
 #test
 {
-    const Guard = 0xAF265B3D'u32
+    const Guard = 0xAF265B3D_u32
     var pixels: [80] u32
-    for distance in [1'u64, 2, 3, 5, 13]
+    for distance in [1_u64, 2, 3, 5, 13]
     {
-        for length in [1'u64, 7, 8, 9, 11, 16, 31, 60]
+        for length in [1_u64, 7, 8, 9, 11, 16, 31, 60]
         {
-            for i in distance do
-                pixels[i] = (cast(u32, i) + 1) * 0x01030609'u32
+            for i in distance {
+                pixels[i] = (cast(u32, i) + 1) * 0x01030609_u32
+            }
             pixels[distance + length] = Guard
             Webp.losslessCopyRun(&pixels[distance], distance, length)
-            for i in length do
+            for i in length {
                 Swag.require(pixels[distance + i] == pixels[i % distance])
+            }
             Swag.require(pixels[distance + length] == Guard)
         }
     }
@@ -85,9 +89,9 @@ using Swag, Core
 // VP8L reads arbitrary field widths across the wide-refill boundary and the final byte.
 #test
 {
-    const Data   = [0x6B'u8, 0x20, 0x9D, 0xF4, 0x12, 0x34, 0xC7, 0x80, 0x45, 0xBA, 0x0D, 0xE5, 0x60, 0x9F, 0xE0, 0x73]
-    const Counts = [3'u32, 11, 32, 14, 32, 26, 10]
-    const Fields = [3'u32, 0x40D, 0xD04BD274, 0x31C, 0x50DBA458, 0x209F60E, 0x1CF]
+    const Data   = [0x6B_u8, 0x20, 0x9D, 0xF4, 0x12, 0x34, 0xC7, 0x80, 0x45, 0xBA, 0x0D, 0xE5, 0x60, 0x9F, 0xE0, 0x73]
+    const Counts = [3_u32, 11, 32, 14, 32, 26, 10]
+    const Fields = [3_u32, 0x40D, 0xD04BD274, 0x31C, 0x50DBA458, 0x209F60E, 0x1CF]
     let data   = cast(const [*] u8, &Data[0])
     var reader = Webp.LosslessBitReader{ptr: data, last: data + Data.count}
     for i in Counts.count
@@ -104,16 +108,16 @@ using Swag, Core
 // Wide refills preserve the arithmetic state and stop at every partition boundary.
 #test
 {
-    const Data          = [0x73'u8, 0xE1, 0x0F, 0x29, 0x94, 0x55, 0x20, 0xDB, 0x42, 0x61, 0xD7, 0x13, 0x06, 0xFE, 0x67, 0xCA]
-    const Probabilities = [0'u8, 255, 157, 128, 2, 46, 250, 112, 76]
-    const Checkpoints   = [{bytes: 0'u32, bits: 0, code: 0'u64},
-                           {bytes: 1'u32, bits: 4, code: 0x9'u64},
-                           {bytes: 7'u32, bits: 94, code: 0x6E33129CDC6F551B'u64},
-                           {bytes: 8'u32, bits: 111, code: 0x2539B8DEAA37B8C4'u64},
-                           {bytes: 9'u32, bits: 118, code: 0x9CDC6F551BDC6236'u64},
-                           {bytes: 14'u32, bits: 193, code: 0x6EF73389C6AF71BB'u64},
-                           {bytes: 15'u32, bits: 213, code: 0x389C6AF71BBDCEE2'u64},
-                           {bytes: 16'u32, bits: 217, code: 0x89C6AF71BBDCEE26'u64}]
+    const Data          = [0x73_u8, 0xE1, 0x0F, 0x29, 0x94, 0x55, 0x20, 0xDB, 0x42, 0x61, 0xD7, 0x13, 0x06, 0xFE, 0x67, 0xCA]
+    const Probabilities = [0_u8, 255, 157, 128, 2, 46, 250, 112, 76]
+    const Checkpoints   = [{bytes: 0_u32, bits: 0, code: 0_u64},
+                           {bytes: 1_u32, bits: 4, code: 0x9_u64},
+                           {bytes: 7_u32, bits: 94, code: 0x6E33129CDC6F551B_u64},
+                           {bytes: 8_u32, bits: 111, code: 0x2539B8DEAA37B8C4_u64},
+                           {bytes: 9_u32, bits: 118, code: 0x9CDC6F551BDC6236_u64},
+                           {bytes: 14_u32, bits: 193, code: 0x6EF73389C6AF71BB_u64},
+                           {bytes: 15_u32, bits: 213, code: 0x389C6AF71BBDCEE2_u64},
+                           {bytes: 16_u32, bits: 217, code: 0x89C6AF71BBDCEE26_u64}]
     for checkpoint in Checkpoints
     {
         var partition: Webp.Vp8Partition
@@ -123,8 +127,9 @@ using Swag, Core
         for i in 256
         {
             let bit = partition.readBit(Probabilities[i % Probabilities.count])
-            if partition.unexpectedEnd do
+            if partition.unexpectedEnd {
                 break
+            }
             code = (code << 1) | cast(u64, bit)
             bits += 1
         }
@@ -140,8 +145,8 @@ using Swag, Core
 {
     func(CHANNELS: u32) check(source: const [*] u8, shift, color: u32)
     {
-        const Count = 23'u32
-        const Guard = 0xE2A76D61'u32
+        const Count = 23_u32
+        const Guard = 0xE2A76D61_u32
         var actual: [Count + 2] u32
         actual[0]         = Guard
         actual[Count + 1] = Guard
@@ -150,7 +155,7 @@ using Swag, Core
         var reference = reader
         discard expect reader.read(shift)
         discard expect reference.read(shift)
-        let decoded = Webp.losslessDecodeByteLiterals'CHANNELS(&reader, &actual[1], Count, color)
+        let decoded = Webp.losslessDecodeByteLiterals!{CHANNELS}(&reader, &actual[1], Count, color)
         Swag.require(decoded)
 
         for i in Count
@@ -163,8 +168,9 @@ using Swag, Core
                 rgba |= cast(u32, Webp.losslessReverseByte(cast(u8, ((code >> 16) & 0xFF)))) << 16
             }
 
-            #static if CHANNELS == 4 do
+            #static if CHANNELS == 4 {
                 rgba |= cast(u32, Webp.losslessReverseByte(cast(u8, (code >> 24)))) << 24
+            }
             Swag.require(actual[i + 1] == rgba)
         }
 
@@ -176,30 +182,31 @@ using Swag, Core
         var short = Webp.LosslessBitReader{ptr: source, last: source + Count * CHANNELS - 1}
         discard expect short.read(shift)
         let saved  = short
-        let danger = Webp.losslessDecodeByteLiterals'CHANNELS(&short, &actual[1], Count, color)
+        let danger = Webp.losslessDecodeByteLiterals!{CHANNELS}(&short, &actual[1], Count, color)
         Swag.require(not danger)
         Swag.require(short.ptr == saved.ptr and short.nBits == saved.nBits and short.bits == saved.bits)
     }
 
     var source: [112] u8
-    for i in source.count do
+    for i in source.count {
         source[i] = cast(u8, ((i * 173 + 19) & 0xFF))
 
-    for shift in 8'u32
+    }
+    for shift in 8_u32
     {
-        check'1(&source[0], shift, 0xA042000F)
-        check'3(&source[0], shift, 0xA0000000)
-        check'4(&source[0], shift, 0)
+        check!{1}(&source[0], shift, 0xA042000F)
+        check!{3}(&source[0], shift, 0xA0000000)
+        check!{4}(&source[0], shift, 0)
     }
 }
 
 // The coefficient sign path matches the probability-half reader across refill and EOF boundaries.
 #test
 {
-    const Data  = [0xE2'u8, 0x17, 0x98, 0x63, 0xCA, 0x01, 0x54, 0x7F, 0x61, 0xB3, 0x92, 0xFE, 0x88, 0x47, 0x13, 0xB2]
+    const Data  = [0xE2_u8, 0x17, 0x98, 0x63, 0xCA, 0x01, 0x54, 0x7F, 0x61, 0xB3, 0x92, 0xFE, 0x88, 0x47, 0x13, 0xB2]
     const Value = 73
 
-    for size in [1'u32, 7, 8, 9, 15, 16]
+    for size in [1_u32, 7, 8, 9, 15, 16]
     {
         var reference, faster: Webp.Vp8Partition
         reference.init(&Data[0], size)
@@ -217,8 +224,9 @@ using Swag, Core
             Swag.require(reference.rangeM1 == faster.rangeM1)
             Swag.require(reference.bits == faster.bits and reference.bitCount == faster.bitCount)
             Swag.require(reference.offset == faster.offset and reference.unexpectedEnd == faster.unexpectedEnd)
-            if reference.unexpectedEnd do
+            if reference.unexpectedEnd {
                 break
+            }
         }
 
         Swag.require(reference.unexpectedEnd)
@@ -270,8 +278,9 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
     {
         let pixels = width * Height
         var expected: [33 * Height] u8
-        for i in pixels do
+        for i in pixels {
             expected[i] = cast #wrap(u8, (i * 57 + (i / width) * 92))
+        }
         for filter in 4
         {
             var payload: [1 + 33 * Height] u8
@@ -281,12 +290,15 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
                 var prediction: s32
                 if filter and i
                 {
-                    if i < width or (filter == 1 and i % width) do
+                    if i < width or (filter == 1 and i % width) {
                         prediction = expected[i - 1]
-                    elif filter == 2 or i % width == 0 do
+                    }
+                    else if filter == 2 or i % width == 0 {
                         prediction = expected[i - width]
-                    else do
+                    }
+                    else {
                         prediction = Math.clamp(cast(s32, expected[i - 1]) + expected[i - width] - expected[i - width - 1], 0, 255)
+                    }
                 }
 
                 payload[i + 1] = cast #wrap(u8, (cast(s32, expected[i]) - prediction))
@@ -295,8 +307,9 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
             let container = Webp.Container{alpha: {data: &payload[0], size: cast(u32, pixels + 1)}}
             var storage: Array'u8
             let decoded   = unwrap (expect Webp.vp8DecodeAlpha(container, width, Height, &storage))
-            for i in pixels do
+            for i in pixels {
                 Swag.require(decoded[i] == expected[i])
+            }
         }
     }
 }
@@ -306,19 +319,19 @@ func webpMultiplyHigh(value, coefficient: s32)->s32 => (value * coefficient) >> 
 {
     let image = expect Image.load(getTestDataPath("vp8-row-window.webp"))
     Swag.require(image.width == 37 and image.height == 257 and image.pixelFormat == .RGBA8)
-    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 12124014753732212138'u64)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 12124014753732212138_u64)
 }
 
 // Packed conversion and its odd tail keep scalar rounding, clipping, and alpha.
 #test
 {
-    const Width  = 33's32
-    const Height = 3's32
-    var input   = [0'u8]
+    const Width  = 33_s32
+    const Height = 3_s32
+    var input   = [0_u8]
     var decoder = Webp.Vp8Decoder{source: &input[0], header: {width: Width, height: Height}, mbWidth: 3, mbHeight: 1}
     Webp.vp8AllocatePlanes(&decoder, 1)
 
-    var alpha: Array'u8
+    var alpha: Array!{u8}
     alpha.resize(Width * Height)
     for row in Height
     {
@@ -511,7 +524,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     const Width  = 193
     const Height = 57
-    for colors in [2'u32, 4, 16]
+    for colors in [2_u32, 4, 16]
     {
         var image  = Image.create(Width, Height, .RGBA8)
         let pixels = cast([*] u32, image.pixels.storage())
@@ -534,8 +547,9 @@ func assertEncodedWebpRoundtrip(source: Image)
         Swag.require(decoded.width == Width and decoded.height == Height)
         Swag.require(decoded.pixelFormat == .RGBA8)
         Swag.require(decoded.pixels.count == image.pixels.count)
-        for i in image.pixels.count do
+        for i in image.pixels.count {
             Swag.require(decoded.pixels[i] == image.pixels[i])
+        }
     }
 }
 
@@ -544,7 +558,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     const Width  = 257
     const Height = 6
-    for colorCount in [256'u32, 257]
+    for colorCount in [256_u32, 257]
     {
         var image  = Image.create(Width, Height, .RGBA8)
         let pixels = cast([*] u32, image.pixels.storage())
@@ -554,7 +568,7 @@ func assertEncodedWebpRoundtrip(source: Image)
             let red   = color & 0xFF
             let green = color >> 8
             let blue  = (color * 17) & 0xFF
-            pixels[i] = 0xFF000000'u32 | red | (green << 8) | (blue << 16)
+            pixels[i] = 0xFF000000_u32 | red | (green << 8) | (blue << 16)
         }
 
         let encoded = expect image.encodeToBytes("full-palette.webp")
@@ -564,8 +578,9 @@ func assertEncodedWebpRoundtrip(source: Image)
         let decoded = expect Image.decode("full-palette.webp", encoded.toSlice())
         Swag.require(decoded.width == Width and decoded.height == Height)
         Swag.require(decoded.pixels.count == image.pixels.count)
-        for i in image.pixels.count do
+        for i in image.pixels.count {
             Swag.require(decoded.pixels[i] == image.pixels[i])
+        }
     }
 }
 
@@ -618,7 +633,7 @@ func assertEncodedWebpRoundtrip(source: Image)
             let red   = color & 255
             let green = color >> 8
             let blue  = (color * 17) & 255
-            pixels[y * Width + x] = 0xFF000000'u32 | red | (green << 8) | (blue << 16)
+            pixels[y * Width + x] = 0xFF000000_u32 | red | (green << 8) | (blue << 16)
         }
     }
 
@@ -635,7 +650,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 #test
 {
     var image = Image.create(127, 95, .RGBA8)
-    image.fill(Color.fromArgb(0'u8, 21'u8, 39'u8, 67'u8))
+    image.fill(Color.fromArgb(0_u8, 21_u8, 39_u8, 67_u8))
     let encoded = expect image.encodeToBytes("solid.webp")
     Swag.require(encoded.count <= 40)
     assertEncodedWebpRoundtrip(image)

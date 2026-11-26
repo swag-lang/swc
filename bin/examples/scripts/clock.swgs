@@ -17,8 +17,10 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         let cx     = bounds.horzCenter()
         let cy     = bounds.vertCenter()
         let radius = Math.min(bounds.width, bounds.height) * 0.34
-        if radius < 16 do
+        if radius < 16
+        {
             return false
+        }
 
         let colors    = wnd.themeColors()
         let now       = Time.DateTime.now()

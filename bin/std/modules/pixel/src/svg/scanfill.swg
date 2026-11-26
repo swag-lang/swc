@@ -2,7 +2,7 @@
 
 using Core, Core.Math
 
-private const ScanTileSide    = 1024
+private const ScanTileSide = 1024
 
 private const ScanBandSize    = 64_u64
 private const ScanBucketCount = 128_u64
@@ -171,8 +171,10 @@ impl ScanFill
     // Records a texture whose pixel grid is aligned with the destination's device pixels.
     mtd paint(painter: *Painter, paths: *LinePathList, color: Color, evenOdd: bool)
     {
-        if painter.recordScanFill(paths, color, evenOdd ? .EvenOdd : .NonZero) do
+        if painter.recordScanFill(paths, color, evenOdd ? .EvenOdd : .NonZero)
+        {
             return
+        }
 
         let transform = painter.transform()
         let density   = painter.contentScale()
@@ -258,14 +260,18 @@ impl ScanFill
     // Blends one solid fill into a bitmap that contains only ink of this color.
     mtd blend(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch, tileSide: s32, color: Color, evenOdd: bool)
     {
-        if not color.a do
+        if not color.a
+        {
             return
+        }
 
         let bounds = transform.transformBounds(.bounds)
         var area   = bounds
         area.intersect({0, 0, cast(f32, result.width), cast(f32, result.height)})
-        if area.isEmpty() do
+        if area.isEmpty()
+        {
             return
+        }
 
         let left   = Math.floor(area.x)
         let top    = Math.floor(area.y)
@@ -274,25 +280,35 @@ impl ScanFill
         if not Math.isFinite(left) or
            not Math.isFinite(top) or
            not Math.isFinite(right) or
-           not Math.isFinite(bottom) do
+           not Math.isFinite(bottom)
+        {
             return
+        }
 
-        if .bands.isEmpty() and not .measuredBuckets and bottom - top > tileSide do
+        if .bands.isEmpty() and not .measuredBuckets and bottom - top > tileSide
+        {
             .measureBuckets(paths)
 
-        // Keep lazy, tile-local preparation when the destination crops away rows.
+            // Keep lazy, tile-local preparation when the destination crops away rows.
+        }
+
         let scale = Math.max(transform.m11, 1.0)
-        if area.height + 1 >= bounds.height do
+        if area.height + 1 >= bounds.height
+        {
             .prepareContours(paths, scale)
 
-        // A small remainder tile leaves the main tile's row bands as the better split.
+            // A small remainder tile leaves the main tile's row bands as the better split.
+        }
+
         let parallelTileSpan = cast(f32, tileSide) * 1.5
-        if .preparedScale >= scale and Swag.workerCount() > 1 and
+        if .preparedScale >= scale and
+           Swag.workerCount() > 1 and
            (right - left >= parallelTileSpan or bottom - top >= parallelTileSpan) and
-           right <= 16_777_216 and bottom <= 16_777_216
+           right <= 16_777_216 and
+           bottom <= 16_777_216
         {
             let tolerance = LinePath.getFlattenDistance(.Normal) / scale
-            var cached = true
+            var cached    = true
             for path in paths.paths where not path.isPolyOnly
             {
                 if path.isDirty or not path.isFlatten or path.flattenTolerance > tolerance
@@ -301,27 +317,28 @@ impl ScanFill
                     break
                 }
             }
+
             if cached
             {
                 let columns = cast(u64, Math.ceil((right - left) / cast(f32, tileSide)))
-                let rows = cast(u64, Math.ceil((bottom - top) / cast(f32, tileSide)))
-                let count = columns * rows
-                let jobs = Math.min(4'u64, cast(u64, Swag.workerCount()), count)
-                var state = {scan: me, paths: paths, transform: transform, result: result,
-                             left: left, top: top, right: right, bottom: bottom, tileSide: cast(f32, tileSide),
-                             columns: columns, count: count, jobs: jobs, color: color, evenOdd: evenOdd}
+                let rows    = cast(u64, Math.ceil((bottom - top) / cast(f32, tileSide)))
+                let count   = columns * rows
+                let jobs    = Math.min(4_u64, cast(u64, Swag.workerCount()), count)
+                var state   = {scan: me, paths: paths, transform: transform, result: result,
+                               left: left, top: top, right: right, bottom: bottom, tileSide: cast(f32, tileSide),
+                               columns: columns, count: count, jobs: jobs, color: color, evenOdd: evenOdd}
                 parallel for |&state| job in jobs
                 {
                     var local: ScanScratch
                     for var index = job; index < state.count; index += state.jobs
                     {
-                        let x = state.left + cast(f32, index % state.columns) * state.tileSide
-                        let y = state.top + cast(f32, index / state.columns) * state.tileSide
+                        let x    = state.left + cast(f32, index % state.columns) * state.tileSide
+                        let y    = state.top + cast(f32, index / state.columns) * state.tileSide
                         let tile = Rectangle{x, y, Math.min(state.right - x, state.tileSide), Math.min(state.bottom - y, state.tileSide)}
-                        state.scan.writeCoverage(state.paths, state.transform, 1, tile, state.color,
-                                                 state.evenOdd, &local, state.result, true, true)
+                        state.scan.writeCoverage(state.paths, state.transform, 1, tile, state.color, state.evenOdd, &local, state.result, true, true)
                     }
                 }
+
                 return
             }
         }
@@ -342,8 +359,7 @@ impl ScanFill
         }
     }
 
-    mtd const blendPreparedRows(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch,
-                               tile: Rectangle, color: Color, evenOdd: bool, first, end: s32)
+    mtd const blendPreparedRows(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch, tile: Rectangle, color: Color, evenOdd: bool, first, end: s32)
     {
         .writeCoverage(paths, transform, 1, tile, color, evenOdd, scratch, result, true, true, first, end)
     }
@@ -411,8 +427,10 @@ private impl ScanRows
 
                 for column in laneStart until end
                 {
-                    if coverage[column] <= 0 do
+                    if coverage[column] <= 0
+                    {
                         continue
+                    }
 
                     let alpha = coverage[column] >= VerticalSamples ? cast(u32, color.a) :
                                 cast(u32, Math.round(coverage[column] / VerticalSamples * color.a))
@@ -420,7 +438,7 @@ private impl ScanRows
                     {
                         output[column] = ink | 0xFF00_0000
                     }
-                    elif alpha
+                    else if alpha
                     {
                         let previous = output[column] >> 24
                         let combined = alpha + (previous * (255 - alpha) + 127) / 255
@@ -519,10 +537,13 @@ private impl ScanFill
             {
                 let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
 
-                if not prepared do
+                if not prepared
+                {
                     path.flattenPoints(.Normal, flattenScale)
 
-                // A closed contour outside either tile axis contributes no visible span.
+                    // A closed contour outside either tile axis contributes no visible span.
+                }
+
                 if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
                    (useRows and scanIntervalMisses(path.minBounds.y, path.maxBounds.y, transform.m22, transform.ty, density, tile.y, tile.height))
                 {

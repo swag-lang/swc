@@ -230,8 +230,11 @@ func pbkdf2HexBytes(text: string)->Array!{u8}
     // OpenSSL PBKDF2-HMAC-SHA-256 with nine iterations. Both inputs overlap
     // the output. The long password and salt each cross a compression block.
     var buffer: [192] u8
-    for index in buffer.count do
+    for index in buffer.count
+    {
         buffer[index] = cast(u8, (index * 31 + 17) & 255)
+    }
+
     let expected: [96] u8 = [
         0x40, 0xE6, 0x03, 0x12, 0x31, 0x1F, 0x3F, 0x80, 0x56, 0x67, 0x2F, 0xA5,
         0xE8, 0x74, 0x50, 0x40, 0x3E, 0x4D, 0x1C, 0x69, 0x05, 0x22, 0x12, 0xB7,

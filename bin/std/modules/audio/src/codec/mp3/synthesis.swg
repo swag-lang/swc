@@ -14,7 +14,7 @@ using Core
 alias Granule576     = [576] f32
 alias SubbandOverlap = [18, 32] f32
 
-private const FilterHistory = 32'u64
+private const FilterHistory = 32_u64
 private const FilterMask    = FilterHistory - 1
 // Four windows can start three rows apart and read fifteen more rows each.
 private const FilterMirrorRows = 18'u64
@@ -101,7 +101,7 @@ func reorderShortBlocks(lines: *Granule576, bands: const [..] u8, firstBand, fir
 func reduceAlias(lines: *Granule576, subbandCount: u32)
 {
     using Math.Simd
-    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    const Reverse = cast(U32x4, [3_u32, 2, 1, 0])
     for subband in 1 until subbandCount
     {
         let boundary = cast(u64, subband) * 18
@@ -165,10 +165,12 @@ private func(T, K: u64) dct9Bin(pairs: const [*] T, middle: T)->T
     var sum: T
     #static if (K & 1) == 0
     {
-        #static if (K & 2) == 0 do
+        #static if (K & 2) == 0 {
             sum = middle
-        else do
+        }
+        else {
             sum = -middle
+        }
     }
 
     sum += pairs[0] * Dct9Matrix[K, 0]
@@ -191,9 +193,9 @@ private func(T) factoredDct9(input: const [*] T, output: [*] T)
         let s3 = input[3] + input[5]
         let middle = input[4]
 
-        const C20  = 0.939692621'f32
-        const C100 = -0.173648178'f32
-        const C140 = -0.766044443'f32
+        const C20  = 0.939692621_f32
+        const C100 = -0.173648178_f32
+        const C140 = -0.766044443_f32
         let u = s0 - s3
         let v = s2 - s3
         let even0 = u * C20 + v * C100
@@ -213,9 +215,9 @@ private func(T) factoredDct9(input: const [*] T, output: [*] T)
         let d2 = input[2] - input[6]
         let d3 = input[3] - input[5]
 
-        const C30 = 0.866025404'f32
-        const C50 = 0.642787610'f32
-        const C70 = 0.342020143'f32
+        const C30 = 0.866025404_f32
+        const C50 = 0.642787610_f32
+        const C70 = 0.342020143_f32
         let difference = d3 - d2
         let odd0 = (d0 + d3) * C50 + difference * C70
         let odd1 = (d0 + d2) * C70 - difference * C50
@@ -300,7 +302,7 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
         output[0] = input[0] + input[1]
         output[1] = (input[0] - input[1]) * 0.707106781
     }
-    elif N == 4
+    else if N == 4
     {
         writeDct4'(T, 1, false)(input[0], input[1], input[2], input[3], output)
     }
@@ -308,18 +310,18 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
     {
         writeDct8'(T, 1)(input, output)
     }
-    elif N == 3
+    else if N == 3
     {
         let ends = input[0] + input[2]
         output[0] = ends + input[1]
         output[1] = (input[0] - input[2]) * 0.866025404
         output[2] = ends * 0.5 - input[1]
     }
-    elif N == 9 and T == Math.Simd.F32x4
+    else if N == 9 and T == Math.Simd.F32x4
     {
         factoredDct9'T(input, output)
     }
-    elif N == 9
+    else if N == 9
     {
         const Half = N / 2
         var sums, differences: [Half] T
@@ -331,15 +333,15 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
             differences[i] = first - last
         }
 
-        output[0] = dct9Bin'(T, 0)(&sums[0], input[Half])
-        output[1] = dct9Bin'(T, 1)(&differences[0], input[Half])
-        output[2] = dct9Bin'(T, 2)(&sums[0], input[Half])
-        output[3] = dct9Bin'(T, 3)(&differences[0], input[Half])
-        output[4] = dct9Bin'(T, 4)(&sums[0], input[Half])
-        output[5] = dct9Bin'(T, 5)(&differences[0], input[Half])
-        output[6] = dct9Bin'(T, 6)(&sums[0], input[Half])
-        output[7] = dct9Bin'(T, 7)(&differences[0], input[Half])
-        output[8] = dct9Bin'(T, 8)(&sums[0], input[Half])
+        output[0] = dct9Bin!{T, 0}(&sums[0], input[Half])
+        output[1] = dct9Bin!{T, 1}(&differences[0], input[Half])
+        output[2] = dct9Bin!{T, 2}(&sums[0], input[Half])
+        output[3] = dct9Bin!{T, 3}(&differences[0], input[Half])
+        output[4] = dct9Bin!{T, 4}(&sums[0], input[Half])
+        output[5] = dct9Bin!{T, 5}(&differences[0], input[Half])
+        output[6] = dct9Bin!{T, 6}(&sums[0], input[Half])
+        output[7] = dct9Bin!{T, 7}(&differences[0], input[Half])
+        output[8] = dct9Bin!{T, 8}(&sums[0], input[Half])
     }
     else
     {
@@ -360,8 +362,8 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
     for index in 18_u64
     {
         var raw: [36] T
-        transformShort'T(input, &raw[0])
-        for i in 18'u64
+        transformShort!{T}(input, &raw[0])
+        for i in 18_u64
         {
             input[i]            = raw[i] + overlap[i * Stride]
             overlap[i * Stride] = raw[18 + i]
@@ -372,8 +374,8 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
 
     // The extra zero bin completes the adjacent-bin sum at the end of the DCT-II.
     var bins: [19] T
-    scaledCosineTransform'(18, T)(input, 1, &bins[0])
-    for i in 9'u64
+    scaledCosineTransform!{18, T}(input, 1, &bins[0])
+    for i in 9_u64
     {
         let first  = bins[9 + i] + bins[10 + i]
         let last   = -(bins[8 - i] + bins[9 - i])
@@ -388,7 +390,7 @@ private func(N: u64, T) dct(input: [*] T, output: [*] T)
 private func inverseTransform(lines: *Granule576, overlap: *SubbandOverlap, subband: u32, blockType: u32)
 {
     let base = cast(u64, subband) * 18
-    transformOverlap'f32(&lines[][base], &overlap[][0, subband], blockType)
+    transformOverlap!{f32}(&lines[][base], &overlap[][0, subband], blockType)
 }
 
 // Vector lanes hold the same time or frequency slot in four adjacent subbands.
@@ -401,7 +403,7 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
     var input: [18] F32x4
 
     // Four contiguous time slots per subband form a tile to transpose into SIMD lanes.
-    for group in 4'u64
+    for group in 4_u64
     {
         let slot = group * 4
         let at   = base + slot
@@ -411,8 +413,9 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
             cast #bit(U32x4, load(&lines[][at + 36])),
             cast #bit(U32x4, load(&lines[][at + 54]))]
         transpose4x4(&rows)
-        for lane in 4'u64 do
+        for lane in 4_u64 {
             input[slot + lane] = cast #bit(F32x4, rows[lane])
+        }
     }
 
     // Read slots 14 to 17 together and use only the last two columns.
@@ -426,10 +429,10 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
     input[16] = cast #bit(F32x4, Swag.vecInterleaveLo(pair01, pair23))
     input[17] = cast #bit(F32x4, Swag.vecInterleaveHi(pair01, pair23))
 
-    transformOverlap'F32x4(&input[0], cast([*] F32x4, &overlap[][0, subband]), blockType)
+    transformOverlap!{F32x4}(&input[0], cast([*] F32x4, &overlap[][0, subband]), blockType)
 
     // Transpose back after windowing and overlap so synthesis can read continuous time slots.
-    for group in 4'u64
+    for group in 4_u64
     {
         let slot = group * 4
         let at   = base + slot
@@ -457,7 +460,7 @@ private func inverseTransform4(lines: *Granule576, overlap: *SubbandOverlap, sub
 // Encoder low-pass filters often leave the top subbands identically zero. Only
 // the preceding window contributes there, up to the previous overlap bound.
 // Return the exclusive upper bound of the current spectrum for the next granule.
-func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, end, blockType: u32, overlapEnd = 32'u32)->u32
+func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, end, blockType: u32, overlapEnd = 32_u32)->u32
 {
     using Math.Simd
     var active = end
@@ -465,9 +468,10 @@ func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, 
     {
         let base = cast(u64, (active - 1)) * 18
         let data = cast(const [*] u32, &lines[][base])
-        let bits = (load(data) | load(data + 4) | load(data + 8) | load(data + 12)) & 0x7FFFFFFF'u32
-        if anyTrue(bits != splat(0'u32)) or lines[][base + 16] != 0 or lines[][base + 17] != 0 do
+        let bits = (load(data) | load(data + 4) | load(data + 8) | load(data + 12)) & 0x7FFFFFFF_u32
+        if anyTrue(bits != splat(0_u32)) or lines[][base + 16] != 0 or lines[][base + 17] != 0 {
             break
+        }
         active -= 1
     }
 
@@ -489,7 +493,7 @@ func inverseTransformBands(lines: *Granule576, overlap: *SubbandOverlap, start, 
     while subband < drainEnd
     {
         let base = cast(u64, subband) * 18
-        for i in 18'u64
+        for i in 18_u64
         {
             lines[][base + i]  = overlap[][i, subband]
             overlap[][i, subband] = 0
@@ -525,13 +529,13 @@ func invertFrequencies(lines: *Granule576, end: u32)
 private func buildMirroredWeights()->[2, 16, 4] Math.Simd.F32x4
 {
     var weights: #returntype
-    for tap in 16'u64
+    for tap in 16_u64
     {
         let oddSign = (tap & 1) == 0 ? 1'f32 : -1'f32
         for group in 4'u64
         {
             var left, right: [4] f32
-            for lane in 4'u64
+            for lane in 4_u64
             {
                 let i = group * 4 + lane + 1
                 left[lane]  = SynthesisWindow[tap * 32 + i] * oddSign
@@ -571,7 +575,7 @@ private func saveSynthesisBins(state: *ChannelState, halves: const [*] f32)
     // The DCT's even and odd results stay separate until the history write.
     let even = halves
     let odd  = halves + 16 * 4
-    for i in 7'u64
+    for i in 7_u64
     {
         newest[2 * i]     = odd[(8 + i) * 4]
         newest[2 * i + 1] = even[(9 + i) * 4]
@@ -579,7 +583,7 @@ private func saveSynthesisBins(state: *ChannelState, halves: const [*] f32)
 
     newest[14] = odd[15 * 4]
     newest[15] = 0
-    for i in 8'u64
+    for i in 8_u64
     {
         newest[16 + 2 * i] = odd[(7 - i) * 4]
         newest[17 + 2 * i] = even[(7 - i) * 4]
@@ -589,6 +593,7 @@ private func saveSynthesisBins(state: *ChannelState, halves: const [*] f32)
     if state.filterAt < FilterMirrorRows do
         Memory.copy(&state.filter[state.filterAt + FilterHistory, 0], newest, #sizeof(f32) * 32)
 
+    }
     let first = even[8 * 4]
     state.firstHistory[state.filterAt]                 = first
     state.firstHistory[state.filterAt + FilterHistory] = first
@@ -651,8 +656,9 @@ private func saveSynthesisBins4(state: *ChannelState, halves: const [*] Math.Sim
 private func buildFirstSampleWeights()->[16] f32
 {
     var weights: #returntype
-    for tap in 16'u64 do
+    for tap in 16_u64 {
         weights[tap] = (tap & 1) == 0 ? SynthesisWindow[tap * 32] : -SynthesisWindow[tap * 32]
+    }
     return weights
 }
 
@@ -664,27 +670,28 @@ private func synthesizeFirstSamples(state: const *ChannelState, at: u64)->Math.S
     using Math.Simd
     let newest = cast(const [*] f32, &state.firstHistory[at])
     var samples: F32x4
-    for tap in 16'u64 do
+    for tap in 16_u64 {
         samples += load(newest + tap) * FirstSampleWeights[tap]
+    }
     return samples
 }
 
 private func synthesizeBlock(state: const *ChannelState, at: u64, destination: [*] f32)
 {
     using Math.Simd
-    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    const Reverse = cast(U32x4, [3_u32, 2, 1, 0])
     let history = cast(const [*] f32, &state.filter[at, 0])
-    for group in 4'u64
+    for group in 4_u64
     {
         var left, right: F32x4
-        addMirroredPair'0(history, group, &left, &right)
-        addMirroredPair'1(history, group, &left, &right)
-        addMirroredPair'2(history, group, &left, &right)
-        addMirroredPair'3(history, group, &left, &right)
-        addMirroredPair'4(history, group, &left, &right)
-        addMirroredPair'5(history, group, &left, &right)
-        addMirroredPair'6(history, group, &left, &right)
-        addMirroredPair'7(history, group, &left, &right)
+        addMirroredPair!{0}(history, group, &left, &right)
+        addMirroredPair!{1}(history, group, &left, &right)
+        addMirroredPair!{2}(history, group, &left, &right)
+        addMirroredPair!{3}(history, group, &left, &right)
+        addMirroredPair!{4}(history, group, &left, &right)
+        addMirroredPair!{5}(history, group, &left, &right)
+        addMirroredPair!{6}(history, group, &left, &right)
+        addMirroredPair!{7}(history, group, &left, &right)
 
         // The final stores meet at sample 16. Its even-delay bin is zero,
         // so both lanes produce the same sample.
@@ -697,9 +704,9 @@ private func synthesizeBlock(state: const *ChannelState, at: u64, destination: [
 private func synthesizeBlockFour(state: const *ChannelState, at: u64, destination: [*] f32)
 {
     using Math.Simd
-    const Reverse = cast(U32x4, [3'u32, 2, 1, 0])
+    const Reverse = cast(U32x4, [3_u32, 2, 1, 0])
     let history = cast(const [*] f32, &state.filter[at, 0])
-    for group in 4'u64
+    for group in 4_u64
     {
         var aLeft, bLeft, cLeft, dLeft: F32x4
         var aRight, bRight, cRight, dRight: F32x4
@@ -709,7 +716,7 @@ private func synthesizeBlockFour(state: const *ChannelState, at: u64, destinatio
         var evenNewer = load(column)
         var oddOlder  = load(column + 80)
         var oddNewer  = load(column + 48)
-        for pair in 8'u64
+        for pair in 8_u64
         {
             let tap  = 2 * pair
             let even = column + pair * 64

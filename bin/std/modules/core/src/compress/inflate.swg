@@ -12,12 +12,12 @@ internal
     // Literals benefit from a wider direct lookup. Distance tables have fewer
     // symbols, and the code-length alphabet never declares more than seven bits.
     const SymbolBits          = 9
-    const SymbolMask          = 0x1FF'u16
-    const NarrowLiteralBits   = 9'u32
-    const WideLiteralBits     = 11'u32
+    const SymbolMask          = 0x1FF_u16
+    const NarrowLiteralBits   = 9_u32
+    const WideLiteralBits     = 11_u32
     const MinWideLiteralBytes = 16 * 1024
-    const DistanceBits        = 8'u32
-    const CodeLengthBits      = 7'u32
+    const DistanceBits        = 8_u32
+    const CodeLengthBits      = 7_u32
     const DistanceMask        = (1 << DistanceBits) - 1
     const CodeLengthMask      = (1 << CodeLengthBits) - 1
     const HuffmanMaxBits      = 16
@@ -30,8 +30,11 @@ internal
         {
             let distance = index + 2
             var lanes: [16] u8
-            for lane in 16 do
+            for lane in 16
+            {
                 lanes[lane] = cast(u8, (8 - distance + lane % distance))
+            }
+
             masks[index] = cast(Math.Simd.U8x16, lanes)
         }
 
@@ -39,7 +42,7 @@ internal
     }
 
     // Largest number of whole repetitions that one vector can contain.
-    const ShortMatchSteps = [16'u64, 15, 16, 15, 12, 14]
+    const ShortMatchSteps = [16_u64, 15, 16, 15, 12, 14]
 
     const LengthBase: [31] u16 = [
         3, 4, 5, 6, 7, 8, 9, 10,
@@ -175,14 +178,14 @@ private
     // RFC 1951 fixes these Huffman trees for every stream and every fixed block.
     var fixedLiteralLengthTable = #run
     {
-        var table: HuffmanTable'(NarrowLiteralBits)
+        var table: HuffmanTable!{NarrowLiteralBits}
         expect table.init(FixedLength)
         return table
     }
 
     var fixedDistanceTable = #run
     {
-        var table: HuffmanTable'(DistanceBits)
+        var table: HuffmanTable!{DistanceBits}
         expect table.init(FixedDist)
         return table
     }
@@ -217,7 +220,7 @@ impl Inflate
     // Largest back-reference distance of the Deflate format, in bytes.
     public const MaxDistance = 32768_u32
 
-    mtd decode(ht: const *HuffmanTable'(CodeLengthBits))->u16 fail
+    mtd decode(ht: const *HuffmanTable!{CodeLengthBits})->u16 fail
     {
         if .stream.numBits == 255
         {
@@ -236,7 +239,7 @@ impl Inflate
         let b = ht.fast[.stream.codeBuffer & CodeLengthMask]
         if b
         {
-            let s = cast(u8, (b >> FastBits))
+            let s = cast(u8, (b >> SymbolBits))
             if .stream.numBits < s
             {
                 fail InvalidFormatError{"truncated input"}
@@ -249,7 +252,7 @@ impl Inflate
         let cde = cast(u16, .stream.peekBits(16))
         let k   = reverse16(cde, 16)
 
-        var s = HuffmanFastBits + 1
+        var s = CodeLengthBits + 1
         while k >= ht.maxCode[s]
         {
             s += 1
@@ -288,7 +291,7 @@ impl Inflate
     // through 'me' for the bit cursor and through 'dest' for the output cursor on
     // every symbol is what the loop cannot afford; 'me' and 'dest' are resynced
     // whenever anything else has to see them.
-    mtd parseBlock(repeatHt, repeatZ: *HuffmanTable, dest: *Array!{u8}) fail
+    mtd(LiteralBits: u32) parseBlock(repeatHt: const *HuffmanTable!{LiteralBits}, repeatZ: const *HuffmanTable!{DistanceBits}, dest: *Array!{u8}) fail
     {
         const LiteralMask = (1 << LiteralBits) - 1
         let startBufCount = dest.count
@@ -367,7 +370,7 @@ impl Inflate
             let b = repeatHt.fast[cb & LiteralMask]
             if b
             {
-                let s = cast(u32, (b >> FastBits))
+                let s = cast(u32, (b >> SymbolBits))
                 if nb < s
                 {
                     fail InvalidFormatError{"truncated input"}
@@ -380,7 +383,7 @@ impl Inflate
             else
             {
                 let k = reverse16(cast(u16, (cb & 0xFFFF)), 16)
-                var s = HuffmanFastBits + 1
+                var s = LiteralBits + 1
                 while k >= repeatHt.maxCode[s]
                 {
                     s += 1
@@ -414,16 +417,13 @@ impl Inflate
 
             if value < 256
             {
-                let outputBytes = count - .outputStart
-                if outputBytes >= .outputLimit
+                if count >= literalEnd
                 {
-                    fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
-                }
-
-                if count >= cap
-                {
-                    if count >= outputEnd do
+                    if count >= outputEnd
+                    {
                         fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
+                    }
+
                     dest.count = count
                     dest.grow(count + 1)
                     buf        = dest.buffer
@@ -443,8 +443,10 @@ impl Inflate
                         for 4
                         {
                             let next = repeatHt.fast[cb & LiteralMask]
-                            if not next or (next & SymbolMask) >= 256 do
+                            if not next or (next & SymbolMask) >= 256
+                            {
                                 break
+                            }
 
                             let length = cast(u32, (next >> SymbolBits))
                             obuf[count] = cast(u8, (next & 255))
@@ -452,6 +454,7 @@ impl Inflate
                             cb          >>= length
                             nb          -= #wrap length
                         }
+
                         continue
                     }
                 }
@@ -522,7 +525,7 @@ impl Inflate
             let d = repeatZ.fast[cb & DistanceMask]
             if d
             {
-                let s = cast(u32, (d >> FastBits))
+                let s = cast(u32, (d >> SymbolBits))
                 if nb < s
                 {
                     fail InvalidFormatError{"truncated input"}
@@ -535,7 +538,7 @@ impl Inflate
             else
             {
                 let k = reverse16(cast(u16, (cb & 0xFFFF)), 16)
-                var s = HuffmanFastBits + 1
+                var s = DistanceBits + 1
                 while k >= repeatZ.maxCode[s]
                 {
                     s += 1
@@ -587,12 +590,12 @@ impl Inflate
                 nb       -= #wrap dextra
             }
 
-            if distance > .windowSize
+            if distance > windowSize
             {
                 fail InvalidFormatError{"bad distance"}
             }
 
-            if count < distance
+            if count - outputStart < distance
             {
                 fail InvalidFormatError{"bad distance"}
             }
@@ -602,15 +605,15 @@ impl Inflate
                 continue
             }
 
-            let outputBytes = count - .outputStart
-            if outputBytes > .outputLimit or length > .outputLimit - outputBytes
+            if count > outputEnd or length > outputEnd - count
             {
                 fail UnsupportedFormatError{"inflate output exceeds the configured limit"}
+
+                // One vector of slack past the match lets the copy below run in whole
+                // blocks and overshoot the last one; the overshoot is inside the buffer
+                // and the next symbol overwrites it.
             }
 
-            // One vector of slack past the match lets the copy below run in whole
-            // blocks and overshoot the last one; the overshoot is inside the buffer
-            // and the next symbol overwrites it.
             let writable = cap - count
             if length + #sizeof(Math.Simd.U8x16) > writable
             {
@@ -620,8 +623,11 @@ impl Inflate
                     // Copy forward without touching bytes outside that slice.
                     let obuf = unwrap buf
                     let from = count - distance
-                    for index in length do
+                    for index in length
+                    {
                         obuf[count + index] = obuf[from + index]
+                    }
+
                     count += length
                     continue
                 }
@@ -670,7 +676,7 @@ impl Inflate
                 Memory.set(obuf + count, obuf[count - 1], length)
                 count += length
             }
-            elif count >= 8
+            else if count >= 8
             {
                 let seed    = cast(const [*] u64, (obuf + count - 8))[0]
                 let window  = cast #bit(Math.Simd.U8x16, Math.Simd.splat(seed))
@@ -681,8 +687,11 @@ impl Inflate
                 for
                 {
                     Math.Simd.store(obuf + dst, pattern)
-                    if end - dst <= #sizeof(Math.Simd.U8x16) do
+                    if end - dst <= #sizeof(Math.Simd.U8x16)
+                    {
                         break
+                    }
+
                     dst += step
                 }
 
@@ -705,27 +714,35 @@ impl Inflate
     // Dynamic blocks own their tables. Stored and fixed blocks can use the small
     // main decoder frame without initializing dynamic lookup storage.
     #[Swag.NoInline]
-    private mtd(LiteralBits: u32) parseDynamicBlock(result: *Array'u8) fail
+    private mtd(LiteralBits: u32) parseDynamicBlock(result: *Array!{u8}) fail
     {
-        var repeatHt:        HuffmanTable'(LiteralBits)
-        var repeatZ:         HuffmanTable'(DistanceBits)
-        var codeLengthHt:    HuffmanTable'(CodeLengthBits)
+        var repeatHt:        HuffmanTable!{LiteralBits}
+        var repeatZ:         HuffmanTable!{DistanceBits}
+        var codeLengthHt:    HuffmanTable!{CodeLengthBits}
         var lenCodes:        [286 + 32 + 137] u8
         var codeLengthSizes: [19] u8
         .stream.refill(14)
-        if .stream.numBits == 255 or .stream.numBits < 14 do
+        if .stream.numBits == 255 or .stream.numBits < 14
+        {
             fail InvalidFormatError{"truncated input"}
+        }
+
         let hlit  = .stream.readBitsUnchecked(5) + 257
         let hdist = .stream.readBitsUnchecked(5) + 1
         let hclen = .stream.readBitsUnchecked(4) + 4
-        if hlit > 286 do
+        if hlit > 286
+        {
             fail InvalidFormatError{"invalid code count"}
+        }
 
         for i in hclen
         {
             .stream.refill(2)
-            if .stream.numBits == 255 or .stream.numBits < 3 do
+            if .stream.numBits == 255 or .stream.numBits < 3
+            {
                 fail InvalidFormatError{"truncated input"}
+            }
+
             let s = cast(u8, .stream.readBitsUnchecked(3))
             codeLengthSizes[LengthDezigzag[i]] = s
         }
@@ -736,8 +753,10 @@ impl Inflate
         while n < ntot
         {
             var c = try .decode(&codeLengthHt)
-            if c < 0 or c >= 19 do
+            if c < 0 or c >= 19
+            {
                 fail InvalidFormatError{"bad code lengths"}
+            }
 
             if c < 16
             {
@@ -746,36 +765,54 @@ impl Inflate
             }
             else
             {
-                var fill = 0'u8
+                var fill = 0_u8
                 .stream.refill(7)
-                if .stream.numBits == 255 do
+                if .stream.numBits == 255
+                {
                     fail InvalidFormatError{"malformed"}
+                }
+
                 switch c
                 {
                 case 16:
-                    if .stream.numBits < 2 do
+                    if .stream.numBits < 2
+                    {
                         fail InvalidFormatError{"truncated input"}
+                    }
+
                     c = cast(u16, (.stream.readBitsUnchecked(2) + 3))
-                    if n == 0 do
+                    if n == 0
+                    {
                         fail InvalidFormatError{"bad code lengths"}
+                    }
+
                     fill = lenCodes[n - 1]
 
                 case 17:
-                    if .stream.numBits < 3 do
+                    if .stream.numBits < 3
+                    {
                         fail InvalidFormatError{"truncated input"}
+                    }
+
                     c = cast(u16, (.stream.readBitsUnchecked(3) + 3))
 
                 case 18:
-                    if .stream.numBits < 7 do
+                    if .stream.numBits < 7
+                    {
                         fail InvalidFormatError{"truncated input"}
+                    }
+
                     c = cast(u16, (.stream.readBitsUnchecked(7) + 11))
 
                 default:
                     fail InvalidFormatError{"bad code lengths"}
                 }
 
-                if ntot - n < c do
+                if ntot - n < c
+                {
                     fail InvalidFormatError{"bad code lengths"}
+                }
+
                 let nc = n + c
                 while n < nc
                 {
@@ -785,11 +822,14 @@ impl Inflate
             }
         }
 
-        if n != ntot do
+        if n != ntot
+        {
             fail InvalidFormatError{"bad code lengths"}
+        }
+
         try repeatHt.init(lenCodes[0 to hlit - 1])
         try repeatZ.init(lenCodes[hlit to ntot - 1])
-        try .parseBlock'(LiteralBits)(&repeatHt, &repeatZ, result)
+        try .parseBlock!{LiteralBits}(&repeatHt, &repeatZ, result)
     }
 
     // Decompresses the Deflate data in `buf` and appends it to `result`.
@@ -858,123 +898,20 @@ impl Inflate
                 .stream.advanceBytes(uncompressedLen)
 
             case 1:
-                try .parseBlock'(NarrowLiteralBits)(&fixedLiteralLengthTable, &fixedDistanceTable, result)
+                try .parseBlock!{NarrowLiteralBits}(&fixedLiteralLengthTable, &fixedDistanceTable, result)
 
             case 3:
                 fail InvalidFormatError{"invalid block type"}
 
             default:
-                var lenCodes:        [286 + 32 + 137] u8
-                var codeLengthSizes: [19] u8
-                .stream.refill(14)
-                if .stream.numBits == 255 or .stream.numBits < 14
+                if buf.count >= MinWideLiteralBytes
                 {
-                    fail InvalidFormatError{"truncated input"}
+                    try .parseDynamicBlock!{WideLiteralBits}(result)
                 }
-
-                let hlit  = .stream.readBitsUnchecked(5) + 257
-                let hdist = .stream.readBitsUnchecked(5) + 1
-                let hclen = .stream.readBitsUnchecked(4) + 4
-                if hlit > 286
+                else
                 {
-                    fail InvalidFormatError{"invalid code count"}
+                    try .parseDynamicBlock!{NarrowLiteralBits}(result)
                 }
-
-                for i in hclen
-                {
-                    .stream.refill(2)
-                    if .stream.numBits == 255 or .stream.numBits < 3
-                    {
-                        fail InvalidFormatError{"truncated input"}
-                    }
-
-                    let s = cast(u8, .stream.readBitsUnchecked(3))
-                    codeLengthSizes[LengthDezigzag[i]] = s
-                }
-
-                try codeLengthHt.init(codeLengthSizes)
-                let ntot = hlit + hdist
-                var n    = 0
-                while n < ntot
-                {
-                    var c = try .decode(&codeLengthHt)
-                    if c < 0 or c >= 19
-                    {
-                        fail InvalidFormatError{"bad code lengths"}
-                    }
-
-                    if c < 16
-                    {
-                        lenCodes[n] = cast(u8, c)
-                        n += 1
-                    }
-                    else
-                    {
-                        var fill = 0_u8
-                        .stream.refill(7)
-                        if .stream.numBits == 255
-                        {
-                            fail InvalidFormatError{"malformed"}
-                        }
-
-                        switch c
-                        {
-                        case 16:
-                            if .stream.numBits < 2
-                            {
-                                fail InvalidFormatError{"truncated input"}
-                            }
-
-                            c = cast(u16, (.stream.readBitsUnchecked(2) + 3))
-                            if n == 0
-                            {
-                                fail InvalidFormatError{"bad code lengths"}
-                            }
-
-                            fill = lenCodes[n - 1]
-
-                        case 17:
-                            if .stream.numBits < 3
-                            {
-                                fail InvalidFormatError{"truncated input"}
-                            }
-
-                            c = cast(u16, (.stream.readBitsUnchecked(3) + 3))
-
-                        case 18:
-                            if .stream.numBits < 7
-                            {
-                                fail InvalidFormatError{"truncated input"}
-                            }
-
-                            c = cast(u16, (.stream.readBitsUnchecked(7) + 11))
-
-                        default:
-                            fail InvalidFormatError{"bad code lengths"}
-                        }
-
-                        if ntot - n < c
-                        {
-                            fail InvalidFormatError{"bad code lengths"}
-                        }
-
-                        let nc = n + c
-                        while n < nc
-                        {
-                            lenCodes[n] = fill
-                            n += 1
-                        }
-                    }
-                }
-
-                if n != ntot
-                {
-                    fail InvalidFormatError{"bad code lengths"}
-                }
-
-                try repeatHt.init(lenCodes[0 to hlit - 1])
-                try repeatZ.init(lenCodes[hlit to ntot - 1])
-                try .parseBlock(&repeatHt, &repeatZ, result)
             }
 
             if final == 1

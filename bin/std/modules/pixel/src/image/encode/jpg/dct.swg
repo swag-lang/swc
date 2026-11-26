@@ -46,8 +46,11 @@ impl Encoder
                 let bytes = columns * .pixelSize
                 let last  = bytes - .pixelSize
                 Memory.copy(padded, row, bytes)
-                for column in columns until 8 do
+                for column in columns until 8
+                {
                     Memory.copy(padded + column * .pixelSize, padded + last, .pixelSize)
+                }
+
                 row = padded
             }
 
@@ -93,19 +96,19 @@ impl Encoder
         values[0] = tmp10 + tmp11
         values[4] = tmp10 - tmp11
 
-        let z1 = (tmp12 + tmp13) * 0.707106781'f32
+        let z1 = (tmp12 + tmp13) * 0.707106781_f32
         values[2] = tmp13 + z1
         values[6] = tmp13 - z1
 
         let odd10 = tmp4 + tmp5
         let odd11 = tmp5 + tmp6
         let odd12 = tmp6 + tmp7
-        let z5    = (odd10 - odd12) * 0.382683433'f32
+        let z5    = (odd10 - odd12) * 0.382683433_f32
 
         // Match the scalar transform's separately rounded z2 product.
-        let z2 = Math.mulAdd(odd10, Math.Simd.splat(0.541196100'f32), z5)
-        let z4 = odd12 * 1.306562965'f32 + z5
-        let z3 = odd11 * 0.707106781'f32
+        let z2 = Math.mulAdd(odd10, Math.Simd.splat(0.541196100_f32), z5)
+        let z4 = odd12 * 1.306562965_f32 + z5
+        let z3 = odd11 * 0.707106781_f32
 
         let z11 = tmp7 + z3
         let z13 = tmp7 - z3
@@ -137,8 +140,8 @@ impl Encoder
     func floatSamples(samples: Math.Simd.S32x4)->Math.Simd.F32x4
     {
         let shifted = cast #bit(Math.Simd.U32x4, (samples + 32768))
-        let biased  = shifted | 0x4B000000'u32
-        return cast #bit(Math.Simd.F32x4, biased) - 8421376.0'f32
+        let biased  = shifted | 0x4B000000_u32
+        return cast #bit(Math.Simd.F32x4, biased) - 8421376.0_f32
     }
 
     // Expands a row's eight occupancy bits to the corresponding entropy-order positions.
@@ -253,16 +256,20 @@ impl Encoder
     {
         let color = rgbWord(source)
         let last  = (columns - 1) * pixelSize
-        if rgbWord(source + last) != color or rgbWord(source - (rows - 1) * stride + last) != color do
+        if rgbWord(source + last) != color or rgbWord(source - (rows - 1) * stride + last) != color
+        {
             return false
+        }
 
         if columns != 8 or rows != 8
         {
             for y in rows
             {
                 let row = source - y * stride
-                for x in columns where rgbWord(row + x * pixelSize) != color do
+                for x in columns where rgbWord(row + x * pixelSize) != color
+                {
                     return false
+                }
             }
 
             return true
@@ -270,28 +277,32 @@ impl Encoder
 
         if pixelSize == 4
         {
-            let rgbMask  = Math.Simd.splat(0xFF_FFFF'u32)
+            let rgbMask  = Math.Simd.splat(0xFF_FFFF_u32)
             let repeated = Math.Simd.splat(color)
             for y in 8
             {
                 let row = cast(const [*] u32, source - y * stride)
                 if Math.Simd.anyTrue(((Math.Simd.load(row) & rgbMask) != repeated) |
-                                     ((Math.Simd.load(row + 4) & rgbMask) != repeated)) do
+                                     ((Math.Simd.load(row + 4) & rgbMask) != repeated))
+                {
                     return false
+                }
             }
         }
         else
         {
-            const Head = cast(Math.Simd.U8x16, [0'u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
-            const Tail = cast(Math.Simd.U8x16, [2'u8, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
+            const Head = cast(Math.Simd.U8x16, [0_u8, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0])
+            const Tail = cast(Math.Simd.U8x16, [2_u8, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
             let seed = Math.Simd.load(source)
             let head = Math.Simd.shuffle(seed, Head)
             let tail = Math.Simd.shuffle(seed, Tail)
             for y in 8
             {
                 let row = source - y * stride
-                if Math.Simd.anyTrue((Math.Simd.load(row) != head) | (Math.Simd.load(row + 8) != tail)) do
+                if Math.Simd.anyTrue((Math.Simd.load(row) != head) | (Math.Simd.load(row + 8) != tail))
+                {
                     return false
+                }
             }
         }
 

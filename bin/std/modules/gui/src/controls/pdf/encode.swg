@@ -105,10 +105,12 @@ private func appendPdfNumber(result: *String, value: f32)
     if not (magnitude < 1e9)
     {
         var text = Format.toString("%{f4}", value)
-        while text.endsWith("0") do
+        while text.endsWith("0") {
             text.removeBack(1)
-        if text.endsWith(".") do
+        }
+        if text.endsWith(".") {
             text.removeBack(1)
+        }
         result.append(text.toString())
         return
     }
@@ -117,9 +119,10 @@ private func appendPdfNumber(result: *String, value: f32)
     let scaled    = cast(f64, magnitude) * 10000.0
     var units     = cast(u64, scaled)
     let remainder = scaled - cast(f64, units)
-    if remainder > 0.5 or (remainder == 0.5 and units & 1 != 0) do
+    if remainder > 0.5 or (remainder == 0.5 and units & 1 != 0) {
         units += 1
 
+    }
     var digits: [16] u8
     var start      = cast(u64, digits.count)
     var fractional = units % 10000
@@ -131,7 +134,7 @@ private func appendPdfNumber(result: *String, value: f32)
             if digit or start < digits.count
             {
                 start -= 1
-                digits[start] = '0'u8 + cast(u8, digit)
+                digits[start] = '0_u8 + cast(u8, digit)
             }
 
             fractional /= 10
@@ -145,10 +148,11 @@ private func appendPdfNumber(result: *String, value: f32)
     while true
     {
         start -= 1
-        digits[start] = '0'u8 + cast(u8, whole % 10)
+        digits[start] = '0_u8 + cast(u8, whole % 10)
         whole /= 10
-        if not whole do
+        if not whole {
             break
+        }
     }
 
     if value < 0
@@ -474,7 +478,7 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
     let sourceStep  = cast(u64, image.bytesPerPixel)
     let source      = image.pixels.storage()
     let nativeGray  = image.pixelFormat == .Gray8 or image.pixelFormat == .GrayAlpha8
-    let grayChannel = nativeGray ? 0'u64 : 1'u64
+    let grayChannel = nativeGray ? 0_u64 : 1_u64
     let swapRedBlue = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
     let hasAlpha    = image.pixelFormat == .BGRA8 or image.pixelFormat == .RGBA8 or image.pixelFormat == .GrayAlpha8
 
@@ -521,18 +525,21 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
                 out[x >> 3] |= bit << (7 - cast(u8, x & 7))
             }
         }
-        elif result.isGray
+        else if result.isGray
         {
-            if sourceStep == 1 do
+            if sourceStep == 1 {
                 Memory.copy(out, row, rowBytes)
+            }
             else
             {
-                for x in width do
+                for x in width {
                     out[x] = row[x * sourceStep + grayChannel]
+                }
             }
         }
-        elif image.pixelFormat == .RGB8 do
+        else if image.pixelFormat == .RGB8 {
             Memory.copy(out, row, rowBytes)
+        }
         else
         {
             for x in width
@@ -559,9 +566,10 @@ private func encodeImagePixels(image: const *Image)->EncodedImage
 // distribution, which gives Deflate more matches and cheaper literals.
 private func preferSubPredictor(samples: const [..] u8, rowBytes, components: u64)->bool
 {
-    if samples.count < 256 * 1024 or rowBytes < components * 16 do
+    if samples.count < 256 * 1024 or rowBytes < components * 16 {
         return false
 
+    }
     func distance(value: s32)->s32
     {
         let magnitude = Math.abs(value)
@@ -589,11 +597,11 @@ private func preferSubPredictor(samples: const [..] u8, rowBytes, components: u6
     return sourceTotal and residualTotal * 4 < sourceTotal
 }
 
-private func compressImageSamples(zlib: *Compress.ZLib, samples: const [..] u8, width, components: u64, bits = 8'u8)->{bytes: Array'u8, predicted: bool} fail
+private func compressImageSamples(zlib: *Compress.ZLib, samples: const [..] u8, width, components: u64, bits = 8_u8)->{bytes: Array!{u8}, predicted: bool} fail
 {
     var result: #returntype
     let rowBytes = width * components
-    var residuals: Array'u8
+    var residuals: Array!{u8}
     var input = samples
     if bits == 8 and preferSubPredictor(samples, rowBytes, components)
     {
@@ -665,9 +673,10 @@ private func allocateImageObject(item: const *Item, nextObject: *u32, sources: *
 
     let image = unwrap item.imageValue()
     let identity = cast(u64, cast(const *void, image))
-    if let known = sources.byImage.tryFind(identity) do
+    if let known = sources.byImage.tryFind(identity) {
         return {number: known.value, firstUse: false}
 
+    }
     let encoded = item.image.encoded()
     let key = Hash.Crc32.compute(encoded.bytes.count ? encoded.bytes.toSlice() : image.pixels.toSlice())
     // Compare contents and metadata too, since separate image owners may hold the same data.

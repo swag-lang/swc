@@ -905,7 +905,7 @@ private func readNumber(s: string, pos: *u64)->f32
     {
         let second         = s[i + 1]
         let hasSecondDigit = Latin1.isDigit(second)
-        let end            = i + (hasSecondDigit ? 2'u64 : 1'u64)
+        let end            = i + (hasSecondDigit ? 2_u64 : 1_u64)
         let suffix         = s[end]
         if not Latin1.isDigit(suffix) and suffix != '.' and (suffix | ' ') != 'e'
         {
@@ -2455,13 +2455,17 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             let target   = mapPoint(state, x, y)
             let control1 = mapPoint(state, c1x, c1y)
             let control2 = mapPoint(state, c2x, c2y)
+
             // A number following a cubic parameter group repeats the command.
             if not path!.elements.capacity
             {
                 let following = skipNumberSeparators(data, pos)
-                if following < len and isNumberStart(data[following]) do
+                if following < len and isNumberStart(data[following])
+                {
                     path.reserveSegments(4)
+                }
             }
+
             path.bezierTo(target.x, target.y, control1.x, control1.y, control2.x, control2.y)
             addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - c2x, y - c2y}, Vector2{c1x - curX, c1y - curY})
             ctlX      = c2x
@@ -7009,7 +7013,7 @@ impl Drawing
             {
                 let copyWidth  = Math.min(tileWidth, width - tileX)
                 var mattes: [2] Image
-                let matteCount = mask != .Color or paired ? 1'u64 : 2'u64
+                let matteCount = mask != .Color or paired ? 1_u64 : 2_u64
                 let readTarget = ss == 1 ? &sampled : &resolved
                 for matte in matteCount
                 {
@@ -7052,10 +7056,16 @@ impl Drawing
                     }
 
                     painter.end()
-                    if paired do
+                    if paired
+                    {
                         cpu!.beginSvgMattes(whiteMatte.colorBuffer)
-                    defer if paired do
+                    }
+
+                    defer if paired
+                    {
                         cpu!.endSvgMattes()
+                    }
+
                     catch renderer.draw(&painter) { return {} }
 
                     // Render-target readbacks and images share the bottom-up row convention. Copy
@@ -7081,17 +7091,28 @@ impl Drawing
                 {
                     // Both borrowed images are consumed before the next renderer operation.
                     let target = cpu.renderTargetImage(readTarget)
-                    if not target or not target.isValid() do
+                    if not target or not target.isValid()
+                    {
                         return {}
-                    if matteCount == 1 do
+                    }
+
+                    if matteCount == 1
+                    {
                         first = target
-                    else do
+                    }
+                    else
+                    {
                         second = target
+                    }
+
                     if paired
                     {
                         let white = cpu.renderTargetImage(pairedResolve ? &whiteResolved : &whiteMatte)
-                        if not white or not white.isValid() do
+                        if not white or not white.isValid()
+                        {
                             return {}
+                        }
+
                         second = white
                     }
                 }
@@ -7110,9 +7131,9 @@ impl Drawing
                     if mask != .Color
                     {
                         let firstWords = cast(const [*] u32, firstMatte)
-                        let whiteRgb = Math.Simd.splat(0x00FF_FFFF'u32)
-                        let full = Math.Simd.splat(255'u32)
-                        var column = 0's32
+                        let whiteRgb   = Math.Simd.splat(0x00FF_FFFF_u32)
+                        let full       = Math.Simd.splat(255_u32)
+                        var column     = 0_s32
                         while copyWidth - column >= 4
                         {
                             let values = Math.Simd.load(firstWords + column) & full
@@ -7126,7 +7147,7 @@ impl Drawing
                         {
                             let value = cast(u32, firstMatte[index * 4])
                             let alpha = mask == .White ? value : 255 - value
-                            let rgb   = mask == .White or not alpha ? 0x00FF_FFFF'u32 : 0'u32
+                            let rgb   = mask == .White or not alpha ? 0x00FF_FFFF_u32 : 0_u32
                             output[index] = rgb | (alpha << 24)
                         }
 
@@ -7137,7 +7158,7 @@ impl Drawing
                     let white      = second.pixels.storage() + cast(u64, second.height - copyHeight + cast(s32, row)) * cast(u64, second.rowStride)
                     let blackWords = cast(const [*] u32, black)
                     let whiteWords = cast(const [*] u32, white)
-                    var start = 0's32
+                    var start      = 0_s32
                     while copyWidth - start >= 4
                     {
                         let a = Math.Simd.load(blackWords + start)
@@ -7195,7 +7216,7 @@ impl Drawing
         #[Swag.Inline]
         func smallFloat(value: Math.Simd.U32x4)->Math.Simd.F32x4
         {
-            return cast #bit(Math.Simd.F32x4, value | 0x4B00_0000'u32) - 8_388_608.0
+            return cast #bit(Math.Simd.F32x4, value | 0x4B00_0000_u32) - 8_388_608.0
         }
 
         #[Swag.Inline]
@@ -7203,36 +7224,38 @@ impl Drawing
         {
             // The smallest nonzero fraction is 1/255, wider than the float
             // rounding at these quotients, so truncating gives the integer division.
-            let amount = smallFloat(premultiplied * 255'u32 + (alpha >> 1)) / divisor
-            let limited = Math.min(amount, Math.Simd.splat(255.0'f32))
+            let amount  = smallFloat(premultiplied * 255_u32 + (alpha >> 1)) / divisor
+            let limited = Math.min(amount, Math.Simd.splat(255.0_f32))
             return cast #bit(Math.Simd.U32x4, Math.Simd.truncateToS32(limited))
         }
 
-        let rgb = Math.Simd.splat(0x00FF_FFFF'u32)
-        let a = black & rgb
-        let b = white & rgb
+        let rgb   = Math.Simd.splat(0x00FF_FFFF_u32)
+        let a     = black & rgb
+        let b     = white & rgb
         let solid = a == b
-        let empty = (a == Math.Simd.splat(0'u32)) & (b == rgb)
-        if Math.Simd.bitwiseAnd(solid | empty) do
-            return Math.Simd.select(solid, a | 0xFF00_0000'u32, rgb)
+        let empty = (a == Math.Simd.splat(0_u32)) & (b == rgb)
+        if Math.Simd.bitwiseAnd(solid | empty)
+        {
+            return Math.Simd.select(solid, a | 0xFF00_0000_u32, rgb)
+        }
 
-        let blue    = a & 255'u32
-        let green   = (a >> 8) & 255'u32
-        let red     = a >> 16
+        let blue     = a & 255_u32
+        let green    = (a >> 8) & 255_u32
+        let red      = a >> 16
         let blackSum = blue + green + red
-        let whiteSum = (b & 255'u32) + ((b >> 8) & 255'u32) + (b >> 16)
+        let whiteSum = (b & 255_u32) + ((b >> 8) & 255_u32) + (b >> 16)
 
         // The signed difference fits in the float mantissa after adding 1024.
-        let uncovered = smallFloat(whiteSum + 1025'u32 - blackSum) - 1024.0
-        let rounded = Math.Simd.truncateToS32(uncovered / 3.0)
-        let opacity = 255's32 - rounded
-        let limited = Math.Simd.select(opacity > Math.Simd.splat(255's32), Math.Simd.splat(255's32), opacity)
-        let alpha = cast #bit(Math.Simd.U32x4, limited)
-        let visible = alpha > Math.Simd.splat(0'u32)
-        let divisor = smallFloat(Math.Simd.select(visible, alpha, Math.Simd.splat(1'u32)))
-        let outBlue = recoverChannel(blue, alpha, divisor)
-        let outGreen = recoverChannel(green, alpha, divisor)
-        let outRed = recoverChannel(red, alpha, divisor)
+        let uncovered = smallFloat(whiteSum + 1025_u32 - blackSum) - 1024.0
+        let rounded   = Math.Simd.truncateToS32(uncovered / 3.0)
+        let opacity   = 255_s32 - rounded
+        let limited   = Math.Simd.select(opacity > Math.Simd.splat(255_s32), Math.Simd.splat(255_s32), opacity)
+        let alpha     = cast #bit(Math.Simd.U32x4, limited)
+        let visible   = alpha > Math.Simd.splat(0_u32)
+        let divisor   = smallFloat(Math.Simd.select(visible, alpha, Math.Simd.splat(1_u32)))
+        let outBlue   = recoverChannel(blue, alpha, divisor)
+        let outGreen  = recoverChannel(green, alpha, divisor)
+        let outRed    = recoverChannel(red, alpha, divisor)
         return Math.Simd.select(visible, outBlue | (outGreen << 8) | (outRed << 16) | (alpha << 24), rgb)
     }
 
@@ -7242,14 +7265,23 @@ impl Drawing
         var ink = Swag.U32.Max
         for item in .items
         {
-            if item.kind != .Shape or item.clip do
+            if item.kind != .Shape or item.clip
+            {
                 return Swag.U32.Max
+            }
+
             let shape = &.shapes[item.index]
-            if not shape.scanFill or shape.stroke or shape.filterId or shape.fillPaintId do
+            if not shape.scanFill or shape.stroke or shape.filterId or shape.fillPaintId
+            {
                 return Swag.U32.Max
+            }
+
             let rgb = shape.fillColor.argb & 0x00FF_FFFF
-            if ink != Swag.U32.Max and ink != rgb do
+            if ink != Swag.U32.Max and ink != rgb
+            {
                 return Swag.U32.Max
+            }
+
             ink = rgb
         }
 
@@ -7267,76 +7299,112 @@ impl Drawing
 
     private mtd const blendScanShapesInRows(result: *Image, transform: Transform2, tileSide: s32, items: const [..] DrawingItem)->bool
     {
-        let workers = Math.min(cast(u64, Swag.workerCount()), 8'u64)
-        if workers < 2 or items.count < 512 or result.height < 64 or
-           result.width > 16_777_216 or result.height > 16_777_216 do
+        let workers = Math.min(cast(u64, Swag.workerCount()), 8_u64)
+        if workers < 2 or
+           items.count < 512 or
+           result.height < 64 or
+           result.width > 16_777_216 or
+           result.height > 16_777_216
+        {
             return false
+        }
 
         let allocator = Swag.getContext().allocator
         let allocatorType: typeinfo = Swag.Allocator
-        if not allocator or Swag.kindOf(allocator) != allocatorType do
+        if not allocator or Swag.kindOf(allocator) != allocatorType
+        {
             return false
+        }
 
-        var work: Array'ScanFillWork
+        var work: Array!{ScanFillWork}
         work.reserve(items.count)
         let imageBounds = Rectangle{0, 0, cast(f32, result.width), cast(f32, result.height)}
         var previous: u64
         for item in items
         {
             let shape = &.shapes[item.index]
+
             // Each geometry list belongs to a single shape preparation job.
-            if shape.deferred != .None or shape.geometry <= previous do
+            if shape.deferred != .None or shape.geometry <= previous
+            {
                 return false
+            }
 
             previous = shape.geometry
-            if not shape.fillColor.a do
+            if not shape.fillColor.a
+            {
                 continue
+            }
 
             let scan = &.scanFills[shape.scanFill - 1]
             var area = transform.transformBounds(scan.bounds)
             area.intersect(imageBounds)
-            if area.isEmpty() do
+            if area.isEmpty()
+            {
                 continue
+            }
+
             let left   = Math.floor(area.x)
             let top    = Math.floor(area.y)
             let right  = Math.ceil(area.right())
             let bottom = Math.ceil(area.bottom())
-            if not Math.isFinite(left) or not Math.isFinite(top) or not Math.isFinite(right) or not Math.isFinite(bottom) do
+            if not Math.isFinite(left) or
+               not Math.isFinite(top) or
+               not Math.isFinite(right) or
+               not Math.isFinite(bottom)
+            {
                 return false
-            if right - left > cast(f32, tileSide) or bottom - top > cast(f32, tileSide) do
+            }
+
+            if right - left > cast(f32, tileSide) or bottom - top > cast(f32, tileSide)
+            {
                 return false
+            }
 
             let paths = .pathsFor(shape)
-            if paths.paths.count >= 1024 do
+            if paths.paths.count >= 1024
+            {
                 return false
+            }
+
             for path in paths.paths
             {
-                if path.polygon.points.allocator and path.polygon.points.allocator != allocator do
+                if path.polygon.points.allocator and path.polygon.points.allocator != allocator
+                {
                     return false
+                }
             }
+
             work.add({scan, paths, {left, top, right - left, bottom - top}, shape.fillColor, shape.evenOdd})
         }
 
-        if work.count < 256 do
+        if work.count < 256
+        {
             return false
+        }
 
         let height     = result.height
         let bandHeight = Math.max(16, (height - 1) / cast(s32, workers * 4) + 1)
         let count      = cast(u64, (height - 1) / bandHeight + 1)
-        var indices: [32] Array'u32
+        var indices:    [32] Array!{u32}
         var references: u64
         for &item, index in work
         {
             let first = cast(s32, item.tile.y) / bandHeight
-            let last = (cast(s32, item.tile.bottom()) - 1) / bandHeight
+            let last  = (cast(s32, item.tile.bottom()) - 1) / bandHeight
             references += cast(u64, last - first + 1)
-            if references > work.count * 4 do
+            if references > work.count * 4
+            {
                 return false
-            for band in first to last do
+            }
+
+            for band in first to last
+            {
                 indices[band].add(cast(u32, index))
+            }
         }
 
-        const ShapeBatch = 128'u64
+        const ShapeBatch = 128_u64
         let workItems = work.toSlice()
         let scale     = transform.m11
         parallel for |workItems, allocator, scale| batch in (workItems.count - 1) / ShapeBatch + 1
@@ -7346,8 +7414,11 @@ impl Drawing
             {
                 for path in workItems[index].paths.paths
                 {
-                    if not path.polygon.points.allocator do
+                    if not path.polygon.points.allocator
+                    {
                         path.polygon.points.allocator = allocator
+                    }
+
                     path.flattenPoints(.Normal, scale)
                 }
             }
@@ -7366,33 +7437,39 @@ impl Drawing
                 let y     = cast(s32, item.tile.y)
                 let first = Math.max(0, top - y)
                 let end   = Math.min(cast(s32, item.tile.height), bottom - y)
-                item.scan.blendPreparedRows(item.paths, state.transform, state.result, &scratch,
-                                            item.tile, item.color, item.evenOdd, first, end)
+                item.scan.blendPreparedRows(item.paths, state.transform, state.result, &scratch, item.tile, item.color, item.evenOdd, first, end)
             }
         }
+
         return true
     }
 
     private mtd const rasterizeScanFills(width, height, sampleTileSide: s32)->Image
     {
         var result = Image.create(width, height, .BGRA8)
-        if not result.isValid() do
+        if not result.isValid()
+        {
             return result
 
-        // Keep the raster API's transparent white in pixels untouched by any fill.
+            // Keep the raster API's transparent white in pixels untouched by any fill.
+        }
+
         result.fill(Color.fromArgb(0x00FF_FFFF))
         let scale     = cast(f32, width) / .width
         let transform = Transform2.createScale(scale, scale, 0, 0)
         var scratch: ScanScratch
-        let items = .items.toSlice()
+        let items     = .items.toSlice()
         if items.count < 512 or Swag.workerCount() <= 1
         {
-            for item in items do
+            for item in items
+            {
                 .blendScanShape(&result, &scratch, transform, sampleTileSide, item.index)
+            }
+
             return result
         }
 
-        var first = 0'u64
+        var first = 0_u64
         while first < items.count
         {
             let shape = &.shapes[items[first].index]
@@ -7405,22 +7482,27 @@ impl Drawing
 
             var end   = first + 1
             let limit = Math.min(first + 65_536, items.count)
-            while end < limit and .pathsFor(&.shapes[items[end].index]).paths.count < 1024 do
+            while end < limit and .pathsFor(&.shapes[items[end].index]).paths.count < 1024
+            {
                 end += 1
+            }
+
             let span = items[first until end]
             if not .blendScanShapesInRows(&result, transform, sampleTileSide, span)
             {
-                for item in span do
+                for item in span
+                {
                     .blendScanShape(&result, &scratch, transform, sampleTileSide, item.index)
+                }
             }
+
             first = end
         }
 
         return result
     }
 
-    private mtd const blendScanShape(result: *Image, scratch: *ScanScratch, transform: Transform2,
-                                    tileSide: s32, index: u64)
+    private mtd const blendScanShape(result: *Image, scratch: *ScanScratch, transform: Transform2, tileSide: s32, index: u64)
     {
         let shape = &.shapes[index]
         .scanFills[shape.scanFill - 1].blend(.pathsFor(shape), transform, result, scratch, tileSide, shape.fillColor, shape.evenOdd)
@@ -7430,8 +7512,11 @@ impl Drawing
     private func resolveScanFillSamples(samples: const *Image, width, height, factor: s32, ink: u32)->Image
     {
         var result = Image.create(width, height, .BGRA8)
-        if not result.isValid() do
+        if not result.isValid()
+        {
             return result
+        }
+
         let count = cast(u32, factor * factor)
         for y in height
         {
@@ -7439,13 +7524,15 @@ impl Drawing
             let output = cast([*] u32, target)
             for x in width
             {
-                var alpha = 0'u32
+                var alpha = 0_u32
                 for row in factor
                 {
                     let source = samples.pixels.storage() + cast(u64, y * factor + row) * samples.rowStride
                     let block  = source + cast(u64, x * factor) * 4
-                    for column in factor do
+                    for column in factor
+                    {
                         alpha += block[column * 4 + 3]
+                    }
                 }
 
                 alpha     = (alpha + count / 2) / count
@@ -7459,10 +7546,16 @@ impl Drawing
     // Geometry and bitmap images share their coverage when the mattes use one submission.
     private mtd const canShareMatteCoverage()->bool
     {
-        if .filters.count or .patterns.count do
+        if .filters.count or .patterns.count
+        {
             return false
-        for item in .items where item.kind == .Text do
+        }
+
+        for item in .items where item.kind == .Text
+        {
             return false
+        }
+
         return true
     }
 

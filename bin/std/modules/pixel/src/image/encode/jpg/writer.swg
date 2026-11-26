@@ -58,7 +58,7 @@ impl Encoder
     #[Swag.Inline]
     mtd writeAmplitude(code: u32, value: s32, category: u8)
     {
-        let mask      = (1'u32 << category) - 1
+        let mask      = (1_u32 << category) - 1
         let amplitude = cast #bit(u32, (value + (value >> 31))) & mask
         .appendEntropyBits(code >> PackedLengthShift, (code & PackedBitsMask) | amplitude)
     }
@@ -68,16 +68,18 @@ impl Encoder
     {
         .bitBuffer = (.bitBuffer << length) | bits
         .bitCount  += length
-        if .bitCount >= 32 do
+        if .bitCount >= 32 {
             .writeEntropyWord()
+        }
     }
 
     #[Swag.Inline]
     private mtd writeEntropyByte(byte: u8)
     {
         .writeByte(byte)
-        if byte == 0xFF do
+        if byte == 0xFF {
             .writeByte(0)
+        }
     }
 
     #[Swag.NoInline]
@@ -85,15 +87,16 @@ impl Encoder
     {
         .bitCount -= 32
         let word        = cast(u32, ((.bitBuffer >> .bitCount) & 0xFFFFFFFF))
-        let low         = word & 0x7F7F7F7F'u32
-        let hasStuffing = ((low + 0x01010101'u32) & word & 0x80808080'u32) != 0
+        let low         = word & 0x7F7F7F7F_u32
+        let hasStuffing = ((low + 0x01010101_u32) & word & 0x80808080_u32) != 0
 
         if not hasStuffing and .outCount <= OutBufSize - 4
         {
             cast([*] u32, &.outBuf[.outCount])[] = Math.nativeToBigEndian(word)
             .outCount += 4
-            if .outCount == OutBufSize do
+            if .outCount == OutBufSize {
                 .flushStaged()
+            }
         }
         else
         {

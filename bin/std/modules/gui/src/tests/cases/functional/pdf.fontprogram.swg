@@ -92,7 +92,7 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
 #test
 {
     const FontBytes = #include("../../../theme/inter-regular.ttf")
-    var objects: Array'u8
+    var objects: Array!{u8}
     addObject(&objects, 5, "<< /Type /Font /Subtype /TrueType /BaseFont /Inter /Encoding /WinAnsiEncoding /FirstChar 79 /LastChar 79 /Widths [1000] /FontDescriptor 6 0 R >>")
     addObject(&objects, 6, "<< /Type /FontDescriptor /FontName /Inter /FontFile2 7 0 R >>")
     addStreamObject(&objects, 7, "", FontBytes)
@@ -107,8 +107,10 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
         var ink: u32
         for y in top until top + 24
         {
-            for x in 40 until 64 where image.pixelColor(x, y).r < 128 do
+            for x in 40 until 64 where image.pixelColor(x, y).r < 128
+            {
                 ink += 1
+            }
         }
 
         Swag.require(ink > 30)

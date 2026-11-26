@@ -55,9 +55,9 @@ private func closestRowDistances(edges: const [..] SdfRowEdge, x: Math.Simd.F64x
         }
         else
         {
-            let t  = Math.max(Math.Simd.splat(0.0_f64), Math.min(Math.Simd.splat(1.0_f64), ((x - edge.x0) * vx + (y - edge.y0) * vy) / lenSquared))
-            let dx = x - (edge.x0 + vx * t)
-            let dy = y - (edge.y0 + vy * t)
+            let t  = Math.max(Math.Simd.splat(0.0_f64), Math.min(Math.Simd.splat(1.0_f64), ((x - edge.x0) * edge.vx + edge.dotY) / edge.lenSquared))
+            let dx = x - (edge.x0 + edge.vx * t)
+            let dy = y - (edge.y0 + edge.vy * t)
             distance = dx * dx + dy * dy
         }
 
@@ -69,7 +69,7 @@ private func closestRowDistances(edges: const [..] SdfRowEdge, x: Math.Simd.F64x
 
 // Collects distance geometry and winding crossings for one row. Each crossing
 // contributes winding to the sample centers strictly to its left.
-private func buildSdfRow(edges: const [..] Edge, geometry: *Array'SdfRowEdge, changes: [..] s32, left, y, limit: f64)
+private func buildSdfRow(edges: const [..] Edge, geometry: *Array!{SdfRowEdge}, changes: [..] s32, left, y, limit: f64)
 {
     let width = cast(s32, changes.count)
     let lowY  = y - limit
@@ -78,39 +78,30 @@ private func buildSdfRow(edges: const [..] Edge, geometry: *Array'SdfRowEdge, ch
     Memory.clear(changes.buffer, changes.count * #sizeof(s32))
     for edge in edges where edge.maxY >= lowY and edge.minY <= highY
     {
+        let vx = edge.x1 - edge.x0
+        let vy = edge.y1 - edge.y0
+        let dy = y - edge.y0
+        geometry.add({edge.x0, edge.y0, vx, vy, vx * vx + vy * vy, dy * vy})
+
         if y < edge.minY or y >= edge.maxY
         {
             continue
         }
 
-        let cross = (edge.x1 - edge.x0) * (y - edge.y0) - (x - edge.x0) * (edge.y1 - edge.y0)
-        var mask  = 0_u32
-        if edge.y0 <= y and edge.y1 > y
+        let x    = edge.x0 + vx * dy / vy
+        let stop = cast(s32, Math.ceil(x - left - 0.5))
+        if stop <= 0
         {
-            mask     = Math.Simd.bitmask(cross > Math.Simd.splat(0.0_f64))
-            winding0 += mask & 1
-            winding1 += (mask >> 1) & 1
+            continue
         }
-        else if edge.y1 <= y and edge.y0 > y
+
+        let winding = vy > 0.0 ? 1 : -1
+        changes[0] += winding
+        if stop < width
         {
-            mask     = Math.Simd.bitmask(cross < Math.Simd.splat(0.0_f64))
-            winding0 -= mask & 1
-            winding1 -= (mask >> 1) & 1
+            changes[stop] -= winding
         }
     }
-
-    var result = 0_u32
-    if winding0
-    {
-        result |= 1
-    }
-
-    if winding1
-    {
-        result |= 2
-    }
-
-    return result
 }
 
 func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
@@ -164,9 +155,9 @@ func renderCurrentOutlineSdf(slot: *GlyphSlot, spread: u32) fail
     // Beyond this vertical distance both signs saturate after conversion
     // to bytes. All edges that cross the row remain available for winding.
     let distanceLimit = cast(f64, safeSpread) + 1.0
-    var geometry: Array'SdfRowEdge
+    var geometry: Array!{SdfRowEdge}
     geometry.reserve(edges.count)
-    var changes: Array's32
+    var changes: Array!{s32}
     changes.resize(cast(u64, width))
     let windingChanges = changes.toSlice()
     let tileWidth      = width >= padding * 2 + 48 ? 16 : width

@@ -33,9 +33,11 @@ impl HmacSha3
             fail Errors.BadParameterError{"HMAC-SHA-3 digest size must be 28, 32, 48, or 64 bytes"}
         }
 
-        .clear()
-        .digestSize = digestSize
-        .blockSize  = 200 - 2 * digestSize
+        .initialized = false
+        .digestSize  = digestSize
+        .blockSize   = 200 - 2 * digestSize
+        try .inner.reset(digestSize)
+        try .outer.reset(digestSize)
 
         var pad: [Hash.Sha3MaxRate / 8] u64
         defer Crypto.secureClear(pad)
@@ -51,17 +53,21 @@ impl HmacSha3
         }
 
         // HMAC pads use one repeated byte, so they can be applied a word at a time.
-        const InnerPad = 0x3636363636363636'u64
-        const OuterPad = 0x5C5C5C5C5C5C5C5C'u64
+        const InnerPad = 0x3636363636363636_u64
+        const OuterPad = 0x5C5C5C5C5C5C5C5C_u64
         let wordCount = .blockSize / 8
         let block     = Swag.makeSlice(bytes, .blockSize)
-        for index in wordCount do
+        for index in wordCount
+        {
             pad[index] ^= InnerPad
+        }
 
         .inner.update(block)
 
-        for index in wordCount do
+        for index in wordCount
+        {
             pad[index] ^= InnerPad ^ OuterPad
+        }
 
         .outer.update(block)
         .initialized = true

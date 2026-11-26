@@ -16,8 +16,10 @@ var g_Angle: f32
 func display() fail
 {
     g_Angle += 75 * g_Frame.deltaSeconds
-    if g_Angle >= 360 do
+    if g_Angle >= 360
+    {
         g_Angle -= 360
+    }
 
     glClearColor(0.06, 0.07, 0.10, 1)
     glClear(GL_COLOR_BUFFER_BIT)

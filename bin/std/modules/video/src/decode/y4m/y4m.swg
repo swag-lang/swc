@@ -287,10 +287,12 @@ private func widenBytes(samples: Math.Simd.U8x16)->Math.Simd.S32x4 =>
 #[Swag.Inline]
 private func(Shift: u32) chroma4(source: const [*] u8)->Math.Simd.S32x4
 {
-    #static if Shift == 0 do
+    #static if Shift == 0 {
         return widenBytes(cast #bit(Math.Simd.U8x16, Math.Simd.splat(cast(const [*] u32, source)[0]))) - 128
-    else do
+    }
+    else {
         return Math.Simd.splat(cast(s32, source[0]) - 128)
+    }
 }
 
 #[Swag.Inline]
@@ -303,9 +305,9 @@ private func packedSamples(value: Math.Simd.S32x4)->Math.Simd.U8x16
 #[Swag.Inline]
 private func storeRgb4(target: [*] u8, r, g, b: Math.Simd.S32x4)
 {
-    const Pixels = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
+    const Pixels = cast(Math.Simd.U8x16, [0_u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
     let rg     = Math.Simd.interleaveLow(packedSamples(r), packedSamples(g))
-    let bx     = Math.Simd.interleaveLow(packedSamples(b), Math.Simd.splat(0'u8))
+    let bx     = Math.Simd.interleaveLow(packedSamples(b), Math.Simd.splat(0_u8))
     let words  = Math.Simd.interleaveLow(cast #bit(Math.Simd.U16x8, rg), cast #bit(Math.Simd.U16x8, bx))
     let packed = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, words), Pixels)
     cast([*] u64, target)[0] = cast #bit(Math.Simd.U64x2, packed)[0]
@@ -316,7 +318,7 @@ private func(Shift: u32, Mono: bool, Full: bool) decodeRows(target: *Image, payl
 {
     let width       = cast(u64, header.info.width)
     let height      = cast(u64, header.info.height)
-    let chromaWidth = (width + (1'u64 << Shift) - 1) >> Shift
+    let chromaWidth = (width + (1_u64 << Shift) - 1) >> Shift
     let chromaSize  = chromaWidth * height
     let groups      = width / 4
     let packed      = unwrap payload.buffer
@@ -341,11 +343,11 @@ private func(Shift: u32, Mono: bool, Full: bool) decodeRows(target: *Image, payl
             var u, v: Math.Simd.S32x4
             #static if not Mono
             {
-                u = chroma4'(Shift)(cb + (col >> Shift))
-                v = chroma4'(Shift)(cr + (col >> Shift))
+                u = chroma4!{Shift}(cb + (col >> Shift))
+                v = chroma4!{Shift}(cr + (col >> Shift))
             }
 
-            let rgb = convertRgb'(Math.Simd.S32x4, Full)(y, u, v)
+            let rgb = convertRgb!{Math.Simd.S32x4, Full}(y, u, v)
             storeRgb4(destination + col * 3, rgb.r, rgb.g, rgb.b)
         }
 
@@ -358,7 +360,7 @@ private func(Shift: u32, Mono: bool, Full: bool) decodeRows(target: *Image, payl
                 v = cast(s32, cr[col >> Shift]) - 128
             }
 
-            let rgb   = convertRgb'(s32, Full)(cast(s32, luma[col]), u, v)
+            let rgb   = convertRgb!{s32, Full}(cast(s32, luma[col]), u, v)
             let pixel = destination + col * 3
             pixel[0] = clampByte(rgb.r)
             pixel[1] = clampByte(rgb.g)
@@ -415,16 +417,16 @@ private func(Full: bool) chromaCorrection8(cb, cr: const [*] u8)->ChromaCorrecti
 private func(Full: bool) convertSubsampled8(target: [*] u8, luma: const [*] u8, correction: const *ChromaCorrection)
 {
     using Math.Simd
-    const TripletLowRg  = cast(U8x16, [0'u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
-    const TripletLowB   = cast(U8x16, [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
-    const TripletHighRg = cast(U8x16, [13'u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
-    const TripletHighB  = cast(U8x16, [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
+    const TripletLowRg  = cast(U8x16, [0_u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
+    const TripletLowB   = cast(U8x16, [128_u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
+    const TripletHighRg = cast(U8x16, [13_u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+    const TripletHighB  = cast(U8x16, [128_u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
     let lumaBytes = cast #bit(U8x16, splat(cast(const [*] u64, luma)[0]))
     var y         = cast #bit(S16x8, widenLow(lumaBytes))
     var fraction: S16x8
     #static if not Full
     {
-        y = Math.max(y - 16, splat(0's16))
+        y = Math.max(y - 16, splat(0_s16))
         let remainder = 42 * y + 128
         y        += remainder >> 8
         fraction = remainder & 255
@@ -453,13 +455,14 @@ private func(Full: bool, Pair: bool) decodeSubsampledRow(target: [*] u8, luma, c
     let groups = width / 8
     for group in groups
     {
-        let correction = chromaCorrection8'Full(cb + group * 4, cr + group * 4)
-        convertSubsampled8'Full(target + group * 24, luma + group * 8, &correction)
-        #static if Pair do
-            convertSubsampled8'Full(target - stride + group * 24, luma + width + group * 8, &correction)
+        let correction = chromaCorrection8!{Full}(cb + group * 4, cr + group * 4)
+        convertSubsampled8!{Full}(target + group * 24, luma + group * 8, &correction)
+        #static if Pair {
+            convertSubsampled8!{Full}(target - stride + group * 24, luma + width + group * 8, &correction)
+        }
     }
 
-    const Rows = Pair ? 2'u64 : 1'u64
+    const Rows = Pair ? 2_u64 : 1_u64
     for row in Rows
     {
         let destination = target - row * stride
@@ -468,7 +471,7 @@ private func(Full: bool, Pair: bool) decodeSubsampledRow(target: [*] u8, luma, c
         {
             let u     = cast(s32, cb[col / 2]) - 128
             let v     = cast(s32, cr[col / 2]) - 128
-            let rgb   = convertRgb'(s32, Full)(cast(s32, y[col]), u, v)
+            let rgb   = convertRgb!{s32, Full}(cast(s32, y[col]), u, v)
             let pixel = destination + col * 3
             pixel[0] = clampByte(rgb.r)
             pixel[1] = clampByte(rgb.g)
@@ -479,7 +482,7 @@ private func(Full: bool, Pair: bool) decodeSubsampledRow(target: [*] u8, luma, c
 
 private func(Full: bool, Vertical: bool) decodeSubsampled(target: *Image, payload: const [..] u8, header: const *Header)
 {
-    const RowCount = Vertical ? 2'u64 : 1'u64
+    const RowCount = Vertical ? 2_u64 : 1_u64
     let width       = cast(u64, header.info.width)
     let height      = cast(u64, header.info.height)
     let stride      = cast(u64, target.rowStride)
@@ -493,7 +496,7 @@ private func(Full: bool, Vertical: bool) decodeSubsampled(target: *Image, payloa
     {
         let row    = pair * RowCount
         let chroma = pair * chromaWidth
-        decodeSubsampledRow'(Full, Vertical)(output - row * stride, y + row * width, cb + chroma, cr + chroma, width, stride)
+        decodeSubsampledRow!{Full, Vertical}(output - row * stride, y + row * width, cb + chroma, cr + chroma, width, stride)
     }
 
     #static if Vertical
@@ -501,7 +504,7 @@ private func(Full: bool, Vertical: bool) decodeSubsampled(target: *Image, payloa
         if height % 2
         {
             let chroma = (height / 2) * chromaWidth
-            decodeSubsampledRow'(Full, false)(target.pixels.storage(), y + (height - 1) * width, cb + chroma, cr + chroma, width, stride)
+            decodeSubsampledRow!{Full, false}(target.pixels.storage(), y + (height - 1) * width, cb + chroma, cr + chroma, width, stride)
         }
     }
 }
@@ -510,11 +513,11 @@ private func(Full: bool) decodeRowsForRange(target: *Image, payload: const [..] 
 {
     switch #complete header.chromaMode
     {
-    case .Yuv411: decodeRows'(2, false, Full)(target, payload, header)
-    case .Yuv420: decodeSubsampled'(Full, true)(target, payload, header)
-    case .Yuv422: decodeSubsampled'(Full, false)(target, payload, header)
-    case .Yuv444: decodeRows'(0, false, Full)(target, payload, header)
-    case .Mono:   decodeRows'(0, true, Full)(target, payload, header)
+    case .Yuv411: decodeRows!{2, false, Full}(target, payload, header)
+    case .Yuv420: decodeSubsampled!{Full, true}(target, payload, header)
+    case .Yuv422: decodeSubsampled!{Full, false}(target, payload, header)
+    case .Yuv444: decodeRows!{0, false, Full}(target, payload, header)
+    case .Mono:   decodeRows!{0, true, Full}(target, payload, header)
     }
 }
 
@@ -524,12 +527,15 @@ private func decodePayload(target: *Image, payload: const [..] u8, header: const
     let height = header.info.height
 
     // Reuse the caller's destination when it has the correct geometry and RGB layout.
-    if target.width != width or target.height != height or target.pixelFormat != .RGB8 do
+    if target.width != width or target.height != height or target.pixelFormat != .RGB8 {
         target[] = Image.create(width, height, .RGB8)
-    if header.colorRange == .Full do
-        decodeRowsForRange'true(target, payload, header)
-    else do
-        decodeRowsForRange'false(target, payload, header)
+    }
+    if header.colorRange == .Full {
+        decodeRowsForRange!{true}(target, payload, header)
+    }
+    else {
+        decodeRowsForRange!{false}(target, payload, header)
+    }
 }
 
 // Reads YUV4MPEG2 streams one frame at a time.

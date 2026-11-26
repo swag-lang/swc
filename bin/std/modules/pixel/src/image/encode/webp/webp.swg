@@ -23,7 +23,7 @@ private func buildGreenCodes()->[LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES]
     {
         let literal   = cast(u32, symbol)
         let shortCode = literal < WEBP_ENCODE_GREEN_SHORT_SYMBOLS
-        let count     = shortCode ? 8'u32 : 9'u32
+        let count     = shortCode ? 8_u32 : 9_u32
         let code      = shortCode ? literal : WEBP_ENCODE_GREEN_LONG_CODE_BASE + literal - WEBP_ENCODE_GREEN_SHORT_SYMBOLS
         let reversed  = cast(u32, Math.reverse(cast(u16, code))) >> (16 - count)
         codes[symbol] = cast(u16, (reversed | (count << 9)))
@@ -32,8 +32,8 @@ private func buildGreenCodes()->[LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES]
     return codes
 }
 
-private const WEBP_ENCODE_RESIDUAL_COLOR_CODES = #run buildResidualCodes'(false, LOSSLESS_LITERAL_CODES)()
-private const WEBP_ENCODE_RESIDUAL_GREEN_CODES = #run buildResidualCodes'(true, LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES)()
+private const WEBP_ENCODE_RESIDUAL_COLOR_CODES = #run buildResidualCodes!{false, LOSSLESS_LITERAL_CODES}()
+private const WEBP_ENCODE_RESIDUAL_GREEN_CODES = #run buildResidualCodes!{true, LOSSLESS_LITERAL_CODES + LOSSLESS_LENGTH_CODES}()
 
 private func(GREEN: bool, Count: u32) buildResidualCodes()->[Count] u32
 {
@@ -74,16 +74,24 @@ private func(GREEN: bool, Count: u32) buildResidualCodes()->[Count] u32
 
     #static if GREEN
     {
-        const LengthWidths = [3'u32, 5, 7, 7, 9, 9, 9, 9]
-        for index in LOSSLESS_LENGTH_CODES do
+        const LengthWidths = [3_u32, 5, 7, 7, 9, 9, 9, 9]
+        for index in LOSSLESS_LENGTH_CODES
+        {
             widths[LOSSLESS_LITERAL_CODES + index] = index < LengthWidths.count ? LengthWidths[index] : 15
+        }
     }
 
     var counts, next: [16] u32
-    for width in widths do
+    for width in widths
+    {
         counts[width] += 1
-    for width in 1 until counts.count do
+    }
+
+    for width in 1 until counts.count
+    {
         next[width] = (next[width - 1] + counts[width - 1]) << 1
+    }
+
     Swag.assert(next[15] + counts[15] == 1 << 15)
 
     var result: #returntype
@@ -140,8 +148,11 @@ impl EncodeBitWriter
         {
             // Leave room for the whole word, then expose only its complete bytes.
             let offset = .bytes.count
-            if offset + 8 > .bytes.capacity do
+            if offset + 8 > .bytes.capacity
+            {
                 .bytes.grow(offset + 8)
+            }
+
             cast([*] u64, (.bytes.storage() + offset))[0] = .bits
             .bytes.count = offset + completeBytes
             .bits        >>= completeBytes * 8
@@ -223,17 +234,23 @@ impl EncodePalette
     #[Swag.Inline]
     mtd indexOf(color: u32)->s32
     {
-        var slot = (color * #wrap 0x9E3779B1'u32) >> 23
+        var slot = (color * #wrap 0x9E3779B1_u32) >> 23
         while .slots[slot]
         {
             let index = .slots[slot] - 1
-            if .colors[index] == color do
+            if .colors[index] == color
+            {
                 return cast(s32, index)
+            }
+
             slot = (slot + 1) & 511
         }
 
-        if .count == .colors.count do
+        if .count == .colors.count
+        {
             return -1
+        }
+
         let index = .count
         .colors[index] = color
         .count         += 1
@@ -269,10 +286,10 @@ impl Encoder
             let output = destination + cast(u64, y) * image.width
             switch image.pixelFormat
             {
-            case .RGB8:  packRow'(false, false)(output, input, image.width)
-            case .BGR8:  packRow'(true, false)(output, input, image.width)
-            case .RGBA8: packRow'(false, true)(output, input, image.width)
-            case .BGRA8: packRow'(true, true)(output, input, image.width)
+            case .RGB8:  packRow!{false, false}(output, input, image.width)
+            case .BGR8:  packRow!{true, false}(output, input, image.width)
+            case .RGBA8: packRow!{false, true}(output, input, image.width)
+            case .BGRA8: packRow!{true, true}(output, input, image.width)
             default:     unreachable
             }
         }
@@ -290,20 +307,34 @@ impl Encoder
         for index in pixels.count
         {
             let pixel = pixels[index]
-            if index and pixel == previous do
+            if index and pixel == previous
+            {
                 continue
+            }
+
             previous = pixel
 
-            if channels.red.count < 3 do
+            if channels.red.count < 3
+            {
                 channels.red.add(cast(u8, (pixel & 0xFF)))
-            if channels.blue.count < 3 do
+            }
+
+            if channels.blue.count < 3
+            {
                 channels.blue.add(cast(u8, ((pixel >> 16) & 0xFF)))
-            if hasAlphaChannel and channels.alpha.count < 3 do
+            }
+
+            if hasAlphaChannel and channels.alpha.count < 3
+            {
                 channels.alpha.add(cast(u8, (pixel >> 24)))
+            }
+
             if channels.red.count == 3 and
                channels.blue.count == 3 and
-               (not hasAlphaChannel or channels.alpha.count == 3) do
+               (not hasAlphaChannel or channels.alpha.count == 3)
+            {
                 break
+            }
         }
 
         return channels.alpha.count > 1 or channels.alpha.values[0] != 0xFF
@@ -387,12 +418,15 @@ impl Encoder
 
         if channel.count == 2
         {
-            codes[][channel.values[1]] = 1'u32 << shift
+            codes[][channel.values[1]] = 1_u32 << shift
             return shift + 1
         }
 
-        for symbol in 256 do
+        for symbol in 256
+        {
             codes[][symbol] = cast(u32, Math.reverse(cast(u8, symbol))) << shift
+        }
+
         return shift + 8
     }
 
@@ -441,10 +475,15 @@ impl Encoder
             let code = WEBP_ENCODE_RESIDUAL_GREEN_CODES[run.symbol]
             writer.writeBits(code & 0xFFFF, code >> 16)
         }
-        else do
+        else
+        {
             writeGreenSymbol(writer, run.symbol)
-        if run.width do
+        }
+
+        if run.width
+        {
             writer.writeBits(run.extra, run.width)
+        }
     }
 
     #[Swag.Inline]
@@ -453,17 +492,23 @@ impl Encoder
         using Math.Simd
 
         let repeated = splat(color)
-        var length   = 1'u32
+        var length   = 1_u32
         while limit - length >= 4
         {
             let different = bitmask(load(data + length) == repeated) ^ 0xF
-            if different do
+            if different
+            {
                 return length + Math.trailingZeros(different)
+            }
+
             length += 4
         }
 
-        while length < limit and data[length] == color do
+        while length < limit and data[length] == color
+        {
             length += 1
+        }
+
         return length
     }
 
@@ -474,15 +519,23 @@ impl Encoder
 
         let runStart = data + index
         var candidate: EncodePixelMatch
-        if index and runStart[0] == data[index - 1] do
+        if index and runStart[0] == data[index - 1]
+        {
             candidate.length = repeatedPixelCount(runStart, runStart[0], limit)
-        if index < width or limit < 2 or candidate.length == limit do
+        }
+
+        if index < width or limit < 2 or candidate.length == limit
+        {
             return candidate
+        }
 
         let aboveStart = runStart - width
-        if runStart[0] != aboveStart[0] or runStart[1] != aboveStart[1] do
+        if runStart[0] != aboveStart[0] or runStart[1] != aboveStart[1]
+        {
             return candidate
-        var length = 2'u32
+        }
+
+        var length = 2_u32
         while limit - length >= 4
         {
             let different = bitmask(load(runStart + length) == load(aboveStart + length)) ^ 0xF
@@ -495,12 +548,15 @@ impl Encoder
             length += 4
         }
 
-        while length < limit and runStart[length] == aboveStart[length] do
+        while length < limit and runStart[length] == aboveStart[length]
+        {
             length += 1
+        }
+
         return length > candidate.length ? EncodePixelMatch{length, true} : candidate
     }
 
-    func(RESIDUAL: bool, ROWS: bool) writePixels(writer: *EncodeBitWriter, pixels: Array'u32, channels: EncodeChannels, rowWidth: u32 = 0)
+    func(RESIDUAL: bool, ROWS: bool) writePixels(writer: *EncodeBitWriter, pixels: Array!{u32}, channels: EncodeChannels, rowWidth: u32 = 0)
     {
         #static if not RESIDUAL
         {
@@ -573,8 +629,10 @@ impl Encoder
         var hasAlpha = false
         if indexed
         {
-            for i in palette.count do
+            for i in palette.count
+            {
                 hasAlpha = hasAlpha or (palette.colors[i] >> 24) != 0xFF
+            }
         }
         else
         {

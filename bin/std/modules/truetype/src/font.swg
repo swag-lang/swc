@@ -3,33 +3,33 @@ using Swag, Core
 #[ConstExpr]
 func imageTag(x1, x2, x3, x4: u32)->u32 => (x1 << 24) | (x2 << 16) | (x3 << 8) | x4
 
-const TAG_CMAP = imageTag('c'_u32, 'm'_u32, 'a'_u32, 'p'_u32)
-const TAG_GLYF = imageTag('g'_u32, 'l'_u32, 'y'_u32, 'f'_u32)
-const TAG_GPOS = imageTag('G'_u32, 'P'_u32, 'O'_u32, 'S'_u32)
-const TAG_HEAD = imageTag('h'_u32, 'e'_u32, 'a'_u32, 'd'_u32)
-const TAG_HHEA = imageTag('h'_u32, 'h'_u32, 'e'_u32, 'a'_u32)
-const TAG_HMTX = imageTag('h'_u32, 'm'_u32, 't'_u32, 'x'_u32)
-const TAG_VHEA = imageTag('v'_u32, 'h'_u32, 'e'_u32, 'a'_u32)
-const TAG_VMTX = imageTag('v'_u32, 'm'_u32, 't'_u32, 'x'_u32)
-const TAG_LOCA = imageTag('l'_u32, 'o'_u32, 'c'_u32, 'a'_u32)
-const TAG_MAXP = imageTag('m'_u32, 'a'_u32, 'x'_u32, 'p'_u32)
-const TAG_NAME = imageTag('n'_u32, 'a'_u32, 'm'_u32, 'e'_u32)
-const TAG_POST = imageTag('p'_u32, 'o'_u32, 's'_u32, 't'_u32)
-const TAG_KERN = imageTag('k'_u32, 'e'_u32, 'r'_u32, 'n'_u32)
-const TAG_COLR = imageTag('C'_u32, 'O'_u32, 'L'_u32, 'R'_u32)
-const TAG_CPAL = imageTag('C'_u32, 'P'_u32, 'A'_u32, 'L'_u32)
-const TAG_OS2  = imageTag('O'_u32, 'S'_u32, '/'_u32, '2'_u32)
-const TAG_CFF  = imageTag('C'_u32, 'F'_u32, 'F'_u32, ' '_u32)
+const TAG_CMAP = imageTag('c'u32, 'm'u32, 'a'u32, 'p'u32)
+const TAG_GLYF = imageTag('g'u32, 'l'u32, 'y'u32, 'f'u32)
+const TAG_GPOS = imageTag('G'u32, 'P'u32, 'O'u32, 'S'u32)
+const TAG_HEAD = imageTag('h'u32, 'e'u32, 'a'u32, 'd'u32)
+const TAG_HHEA = imageTag('h'u32, 'h'u32, 'e'u32, 'a'u32)
+const TAG_HMTX = imageTag('h'u32, 'm'u32, 't'u32, 'x'u32)
+const TAG_VHEA = imageTag('v'u32, 'h'u32, 'e'u32, 'a'u32)
+const TAG_VMTX = imageTag('v'u32, 'm'u32, 't'u32, 'x'u32)
+const TAG_LOCA = imageTag('l'u32, 'o'u32, 'c'u32, 'a'u32)
+const TAG_MAXP = imageTag('m'u32, 'a'u32, 'x'u32, 'p'u32)
+const TAG_NAME = imageTag('n'u32, 'a'u32, 'm'u32, 'e'u32)
+const TAG_POST = imageTag('p'u32, 'o'u32, 's'u32, 't'u32)
+const TAG_KERN = imageTag('k'u32, 'e'u32, 'r'u32, 'n'u32)
+const TAG_COLR = imageTag('C'u32, 'O'u32, 'L'u32, 'R'u32)
+const TAG_CPAL = imageTag('C'u32, 'P'u32, 'A'u32, 'L'u32)
+const TAG_OS2  = imageTag('O'u32, 'S'u32, '/'u32, '2_u32)
+const TAG_CFF  = imageTag('C!{u32}, 'F'u32, 'F'u32, ' 'u32)
 
 // Container signatures found at offset zero of a font file. The sfnt wrappers
 // carry TrueType or CFF outlines, and ttcf selects a collection member. WOFF1 is
 // rebuilt as sfnt; WOFF2 is recognized so the parser can report it unsupported.
 const TAG_SFNT = 0x0001_0000_u32
-const TAG_TRUE = imageTag('t'_u32, 'r'_u32, 'u'_u32, 'e'_u32)
-const TAG_TTCF = imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32)
-const TAG_OTTO = imageTag('O'_u32, 'T'_u32, 'T'_u32, 'O'_u32)
-const TAG_WOFF = imageTag('w'_u32, 'O'_u32, 'F'_u32, 'F'_u32)
-const TAG_WOF2 = imageTag('w'_u32, 'O'_u32, 'F'_u32, '2'_u32)
+const TAG_TRUE = imageTag('t'u32, 'r'u32, 'u'u32, 'e'u32)
+const TAG_TTCF = imageTag('t'u32, 't'u32, 'c'u32, 'f'u32)
+const TAG_OTTO = imageTag('O'u32, 'T'u32, 'T'u32, 'O'u32)
+const TAG_WOFF = imageTag('w'u32, 'O'u32, 'F'u32, 'F'u32)
+const TAG_WOF2 = imageTag('w'u32, 'O'u32, 'F'u32, '2_u32)
 
 // One ordered glyph layer from a version-0 `COLR` color glyph.
 public struct ColorGlyphLayer
@@ -82,15 +82,15 @@ struct GposPairLookup
 // is only needed by callers that address glyphs by name.
 struct GlyphNames
 {
-    entries: Array'string
+    entries: Array!{string}
 
     // Format 2 maps glyphs to the standard names or to Pascal strings in the font.
     // Only the custom strings need an index because their records have variable length.
     postIndices:      const [..] u8?
     late postStrings: const [..] u8
-    postOffsets:      Array'u32
+    postOffsets:      Array!{u32}
 
-    byName: HashTable'(string, u32)
+    byName: HashTable!{string, u32}
     ready:  Swag.AtomicFlag
     lock:   Swag.Mutex
 }
@@ -99,8 +99,9 @@ impl GlyphNames
 {
     mtd const count()->u64
     {
-        if let indices = .postIndices do
+        if let indices = .postIndices {
             return indices.count / 2
+        }
         return .entries.count
     }
 
@@ -108,13 +109,15 @@ impl GlyphNames
     {
         if let indices = .postIndices
         {
-            if glyphIndex >= indices.count / 2 do
+            if glyphIndex >= indices.count / 2 {
                 return null
+            }
             return packedPostGlyphName(me, indices, glyphIndex)
         }
 
-        if glyphIndex >= .entries.count do
+        if glyphIndex >= .entries.count {
             return null
+        }
         let name = .entries[glyphIndex]
         return name.count ? name : null
     }
@@ -132,8 +135,9 @@ impl GlyphNames
         .byName.reserve(glyphCount * 2)
         for glyphIndex in glyphCount
         {
-            if let name = .nameOf(cast(u32, glyphIndex)) do
+            if let name = .nameOf(cast(u32, glyphIndex)) {
                 .byName.add(name, cast(u32, glyphIndex), updateValue: false)
+            }
         }
 
         .ready.raise()
@@ -141,14 +145,16 @@ impl GlyphNames
 
     mtd glyphIndex(name: string)->u32
     {
-        if not name.count or not .count() do
+        if not name.count or not .count() {
             return 0
 
+        }
         if not .ready.isRaised()
         {
             Sync.scopedLock(&.lock)
-            if not .ready.isRaised() do
+            if not .ready.isRaised() {
                 .buildIndex()
+            }
         }
 
         return .byName.getOrDefault(name, 0)
@@ -223,8 +229,8 @@ impl VerticalMetricTable
 
 struct ProgramTables
 {
-    advances: Array'u16
-    cmap:     HashTable'(u32, u32)
+    advances: Array!{u16}
+    cmap:     HashTable!{u32, u32}
 }
 
 // Internal backing store for a public Face. The public Face is the first field so
@@ -269,8 +275,9 @@ struct FaceImpl
     // Unicode map built from the font's own encoding, for a program that ships no `cmap`.
     // A bare CFF or Type 1 file is addressed by name or by code, and this is what still
     // lets it answer a character lookup.
-    syntheticCMap: HashTable!{u32, u32}
-    hasCMap:       bool
+    programTables:       ProgramTables
+    sharedProgramTables: const *ProgramTables?
+    hasCMap:             bool
 
     outlinePoints:     Array!{Vector}
     outlineTags:       Array!{u8}
@@ -278,8 +285,9 @@ struct FaceImpl
     bitmapPixels:      Array!{u8}
     colorBitmapPixels: Array!{u8}
 
-    // Horizontal kerning pairs from the legacy 'kern' table (format 0).
-    // Key = (leftGlyph << 16) | rightGlyph, value = kerning in font design units.
+    // A single ordered legacy kerning subtable can stay packed. Unordered or merged
+    // pairs use the hash table with `(leftGlyph << 16) | rightGlyph` as the key.
+    kernData:  const [..] u8?
     kernPairs: HashTable!{u32, s16}
 
     // Pair-adjustment subtables the GPOS 'kern' feature reaches, as offsets into
@@ -290,9 +298,9 @@ struct FaceImpl
     gposPairSubtables: Array!{u32}
     gposPairLookups:   Array!{GposPairLookup}
 
-    // Names declared by an sfnt `post` table. Keys are owned by this face.
-    postNameToGid:  HashTable!{String, u32}
-    postGlyphNames: Array!{String}
+    // Names borrow the owned sfnt bytes or the static Macintosh glyph vocabulary.
+    postNames:       GlyphNames
+    sharedPostNames: *GlyphNames?
 }
 
 impl FaceImpl
@@ -335,16 +343,18 @@ impl FaceImpl
 
     mtd const fontBytes()->const [..] u8
     {
-        if .fontData.count do
+        if .fontData.count {
             return .fontData.toSlice()
+        }
         return .fontSource.faceBytes()
     }
 
     mtd loadCff(bytes: const [..] u8) fail
     {
         .sharedCff = try .fontSource.cachedCff(bytes)
-        if not .sharedCff do
+        if not .sharedCff {
             .cff = try parseCffFont(bytes)
+        }
     }
 
     #[Swag.Inline]
@@ -356,8 +366,9 @@ impl FaceImpl
     mtd loadType1(bytes: const [..] u8) fail
     {
         .sharedType1 = try .fontSource.cachedType1(bytes)
-        if not .sharedType1 do
+        if not .sharedType1 {
             .type1 = try parseType1Font(bytes)
+        }
     }
 
     #[Swag.Inline]
@@ -376,9 +387,10 @@ impl FaceImpl
     // the last long advance. Bare PostScript faces supply their own charstring advances.
     mtd const glyphAdvance(glyphIndex: u32)->u16
     {
-        if not .numLongMetrics do
+        if not .numLongMetrics {
             return .charstringTables().advances[glyphIndex]
 
+        }
         let index = Math.min(glyphIndex, cast(u32, .numLongMetrics - 1))
         let entry = .horizontalMetrics.buffer + cast(u64, index) * 4
         return Math.make16(entry[0], entry[1])
@@ -389,8 +401,9 @@ impl FaceImpl
     mtd const glyphByteRange(glyphIndex: u32)->{ start: u32, stop: u32 }
     {
         let locations = .glyphLocations
-        if not locations do
+        if not locations {
             return {0, 0}
+        }
         if .indexToLocFormat == 0
         {
             let entry = locations.buffer + cast(u64, glyphIndex) * 2
@@ -419,51 +432,27 @@ impl FaceImpl
     // Returns the glyph name held at an index, or null when unavailable.
     mtd const glyphName(glyphIndex: u32)->string?
     {
-        if glyphIndex >= .face.glyphCount
-        {
+        if glyphIndex >= .face.glyphCount {
             return null
-        }
 
+        }
         switch #complete .outlineSource
         {
         case .Cff:
-            if glyphIndex >= .cff.glyphNames.count
-            {
-                return null
-            }
-
-            if not .cff.glyphNames[glyphIndex].length
-            {
-                return null
-            }
-
-            return .cff.glyphNames[glyphIndex].toString()
+            return .cffFont().glyphNames.nameOf(glyphIndex)
 
         case .Type1:
-            if glyphIndex >= .type1.glyphNames.count
-            {
+            let names = &.type1Font().glyphNames
+            if glyphIndex >= names.count {
                 return null
             }
-
-            if not .type1.glyphNames[glyphIndex].length
-            {
+            if not names[glyphIndex].count {
                 return null
             }
-
-            return .type1.glyphNames[glyphIndex].toString()
+            return names[glyphIndex]
 
         case .Glyf:
-            if glyphIndex >= .postGlyphNames.count
-            {
-                return null
-            }
-
-            if not .postGlyphNames[glyphIndex].length
-            {
-                return null
-            }
-
-            return .postGlyphNames[glyphIndex].toString()
+            return .postGlyphNames().nameOf(glyphIndex)
         }
     }
 
@@ -481,22 +470,20 @@ impl FaceImpl
     // Returns the character identifier map of a CID-keyed CFF, or nothing for another font.
     mtd glyphIndexByCid(cid: u32)->u32
     {
-        if .outlineSource != .Cff or not .cff.isCid
-        {
+        if .outlineSource != .Cff {
             return 0
-        }
 
-        return .cff.cidToGid.getOrDefault(cid, 0)
+        }
+        let font = .cffFont()
+        return font.isCid ? font.glyphIndexByCid(cid) : 0
     }
 }
 
 func getFaceImpl(face: *Face?)->*FaceImpl fail
 {
-    if not face
-    {
+    if not face {
         try fault(0x23)
     }
-
     let safeFace = unwrap face
     return cast(*FaceImpl, cast(*void, safeFace))
 }
@@ -507,8 +494,7 @@ func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
 {
     for it in faceData.tables
     {
-        if it.tag == tag
-        {
+        if it.tag == tag {
             return it
         }
     }
@@ -519,11 +505,9 @@ func findTable(faceData: *FaceImpl, tag: u32)->const *TableRecord?
 func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u8 fail
 {
     let rec = findTable(faceData, tag)
-    if not rec
-    {
+    if not rec {
         try fault(missingCode)
     }
-
     let r = unwrap rec
     return try getSlice(faceData.fontBytes(), r.offset, r.length)
 }

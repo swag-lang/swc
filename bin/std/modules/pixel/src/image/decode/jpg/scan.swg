@@ -186,8 +186,10 @@ impl Decoder
         for
         {
             value = table.tree[~value + (1 - .readLocalEntropyBits(bits, count, 1))]
-            if value >= 0 do
+            if value >= 0
+            {
                 return value
+            }
         }
     }
 
@@ -230,8 +232,10 @@ impl Decoder
                     s = code & 255
                 }
 
-                if s != 0 do
+                if s != 0
+                {
                     s = extendSign(.readLocalEntropyBits(&bits, &count, s), s)
+                }
 
                 s += previousDc[]
                 previousDc[] = s
@@ -290,10 +294,16 @@ impl Decoder
                         s   &= 0x0F
                         if not s
                         {
-                            if run != 15 do
+                            if run != 15
+                            {
                                 break
-                            if k + 15 > 63 do
+                            }
+
+                            if k + 15 > 63
+                            {
                                 fail InvalidFormatError{"decode error"}
+                            }
+
                             k += 16
                             continue
                         }
@@ -302,8 +312,11 @@ impl Decoder
                     }
 
                     k += run
-                    if k > 63 do
+                    if k > 63
+                    {
                         fail InvalidFormatError{"decode error"}
+                    }
+
                     let value = cast(s16, (amplitude * q[k]))
                     p[ZigzagToTransposed[k]] = value
                     ac |= value
@@ -382,19 +395,19 @@ impl Decoder
             }
 
         case YH2V1:
-            .convertH2V1'Rgb(first)
+            .convertH2V1!{Rgb}(first)
 
         case YH1V1:
-            .convertH1V1'Rgb(first)
+            .convertH1V1!{Rgb}(first)
 
         case RGBH1V1:
-            .convertRgbH1V1'Rgb(first)
+            .convertRgbH1V1!{Rgb}(first)
 
         case CmykH1V1:
-            .convertCmykH1V1'Rgb(first)
+            .convertCmykH1V1!{Rgb}(first)
 
         case YGeneric:
-            .convertGeneric'Rgb(first)
+            .convertGeneric!{Rgb}(first)
 
         case GrayScale:
             .convertGrayscale(first)
@@ -660,13 +673,17 @@ impl Decoder
         if count >= 4
         {
             let entry = Math.Simd.splat(value)
-            for group in count / 4 do
+            for group in count / 4
+            {
                 Math.Simd.store(destination + group * 4, entry)
+            }
         }
         else
         {
-            for i in count do
+            for i in count
+            {
                 destination[i] = value
+            }
         }
     }
 
@@ -841,8 +858,10 @@ impl Decoder
         }
 
         // Header-only probes validate the referenced tables but do not consume entropy codes.
-        if not .decOptions.decodePixels and (not .progressiveFlag or not .decOptions.decodeMetadata) do
+        if not .decOptions.decodePixels and (not .progressiveFlag or not .decOptions.decodeMetadata)
+        {
             return
+        }
 
         for i in MaxHuffTables where .huffNum[i].count and not .h[i].ready
         {

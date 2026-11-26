@@ -8,10 +8,10 @@ using Core.Math
 #[Swag.Inline]
 private func adlerWeights(bytes: Simd.U8x16, weights: Simd.S8x16)->Simd.S32x4
 {
-    return Simd.mulAddPairs(Simd.mulAddPairs(bytes, weights), Simd.splat(1's16))
+    return Simd.mulAddPairs(Simd.mulAddPairs(bytes, weights), Simd.splat(1_s16))
 }
 
-private const AdlerWeights16 = cast(Simd.S8x16, [16's8, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
+private const AdlerWeights16 = cast(Simd.S8x16, [16_s8, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1])
 
 #[Swag.Inline]
 private func updateAdlerBlock16(input: const [*] u8, byteSum, weightedSum: *u32)
@@ -63,7 +63,7 @@ private func updateAdlerShort(input: const [*] u8, count: u64, byteSum, weighted
 {
     var sum      = byteSum[]
     var weighted = weightedSum[]
-    var offset   = 0'u64
+    var offset   = 0_u64
     while count - offset >= 4
     {
         let word   = Math.littleEndianToNative(cast(const [*] u32, input + offset)[0])
@@ -71,6 +71,7 @@ private func updateAdlerShort(input: const [*] u8, count: u64, byteSum, weighted
         let second = (word >> 8) & 0xFF
         let third  = (word >> 16) & 0xFF
         let fourth = word >> 24
+
         // Each byte contributes to its own prefix and to the prefixes that follow.
         weighted += 4 * sum + 4 * first + 3 * second + 2 * third + fourth
         sum      += first + second + third + fourth
@@ -148,7 +149,7 @@ private impl Adler32
         const BlocksPerReduction = 5552 / 64
         var byteSum     = .currentValue & 0xFFFF
         var weightedSum = .currentValue >> 16
-        var offset      = 0'u64
+        var offset      = 0_u64
 
         while byteCount - offset >= 64
         {
@@ -233,18 +234,14 @@ public impl Adler32
         }
         else
         {
-            const BlocksPerReduction = BytesPerReduction / 16
-            var byteOffset = 0_u64
-
-            // Reduce both sums before their accumulated values can overflow.
-            while byteCount - byteOffset >= BytesPerReduction
+            if byteCount >= 128
             {
                 .updateLarge(input, byteCount)
                 return
             }
 
             updateAdlerBlock16(input, &byteSum, &weightedSum)
-            var offset = 16'u64
+            var offset = 16_u64
             while byteCount - offset >= 16
             {
                 updateAdlerBlock16(input + offset, &byteSum, &weightedSum)
@@ -272,8 +269,10 @@ public impl Adler32
     func compute(buffer: const [..] u8)->u32
     {
         let count = buffer.count
-        if count == 0 do
+        if count == 0
+        {
             return 1
+        }
 
         let input = buffer.buffer
         if count >= 128
@@ -283,9 +282,9 @@ public impl Adler32
             return checksum.value()
         }
 
-        var byteSum     = 1'u32
-        var weightedSum = 0'u32
-        var offset      = 0'u64
+        var byteSum     = 1_u32
+        var weightedSum = 0_u32
+        var offset      = 0_u64
         while count - offset >= 16
         {
             updateAdlerBlock16(input + offset, &byteSum, &weightedSum)
@@ -293,10 +292,14 @@ public impl Adler32
         }
 
         updateAdlerShort(input + offset, count - offset, &byteSum, &weightedSum)
+
         // The byte sum stays below the modulus for at most 127 bytes. The
         // weighted sum can reach the modulus when there are 23 bytes or more.
-        if count > 22 do
+        if count > 22
+        {
             weightedSum %= Modulus
+        }
+
         return byteSum | (weightedSum << 16)
     }
 }

@@ -371,7 +371,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
 // Byte alpha endpoints preserve the same pixels around the ordinary partial-alpha blend.
 #test
 {
-    Image.registerDecoder'(ImageReaderRgba8OverDecoder)()
+    Image.registerDecoder!{ImageReaderRgba8OverDecoder}()
     var reader  = expect ImageReader.decode("image.rgba8animationblend", "input")
     let initial = expect reader.read(0)
     Swag.require(initial.pixels[0] == 90 and initial.pixels[3] == 0)
@@ -448,7 +448,7 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
 {
     const Width = 11
     var source, behind, expected: [Width] u32
-    var state = 0x819CF293'u32
+    var state = 0x819CF293_u32
     for a in 256
     {
         for b in 256
@@ -456,9 +456,9 @@ impl IAllocator for ImageReaderDecoderAllocatorProbe
             for x in Width
             {
                 state = state * #wrap 1664525 + #wrap 1013904223
-                let sourceAlpha = x == 1 ? 0'u32 : (x == 4 ? 255'u32 : cast(u32, a))
+                let sourceAlpha = x == 1 ? 0_u32 : (x == 4 ? 255_u32 : cast(u32, a))
                 source[x] = (sourceAlpha << 24) | ((state >> 3) & 0xFFFFFF)
-                state = state * #wrap 1664525 + #wrap 1013904223
+                state     = state * #wrap 1664525 + #wrap 1013904223
                 behind[x] = (cast(u32, b) << 24) | ((state >> 3) & 0xFFFFFF)
             }
 

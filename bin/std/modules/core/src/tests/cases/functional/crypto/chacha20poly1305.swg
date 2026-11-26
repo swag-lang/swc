@@ -178,12 +178,16 @@ func rangeBytes(count: u64, first: u8)->Array!{u8}
 #test
 {
     var key: [Crypto.Poly1305KeySize] u8
-    for index in key.count do
+    for index in key.count
+    {
         key[index] = cast(u8, (index * 53 + 17) & 255)
+    }
 
     var data: [8194] u8
-    for index in data.count do
+    for index in data.count
+    {
         data[index] = cast(u8, (index * 97 + (index >> 3) * 11 + 243) & 255)
+    }
 
     let lengths:  [17] u64 = [1023, 1024, 1025, 1040, 1056, 1072, 1087, 1088, 2047, 2048, 2049, 2063, 2064, 2065, 4096, 4097, 8193]
     let expected: [17] Crypto.Poly1305Tag = [
@@ -223,7 +227,7 @@ func rangeBytes(count: u64, first: u8)->Array!{u8}
 // OpenSSL tags for two-lane products with maximal clamped limbs and unaligned input.
 #test
 {
-    var key: [Crypto.Poly1305KeySize] u8
+    var key:  [Crypto.Poly1305KeySize] u8
     var data: [4098] u8
     Swag.memset(key.buffer, 0xFF, key.count)
     Swag.memset(data.buffer, 0xFF, data.count)
@@ -253,7 +257,7 @@ func rangeBytes(count: u64, first: u8)->Array!{u8}
     for length, index in lengths
     {
         let input = data[1 until length + 1]
-        let tag = expect Crypto.Poly1305.compute(key, input)
+        let tag   = expect Crypto.Poly1305.compute(key, input)
         Swag.require(Crypto.constantTimeEqual(tag, expected[index]))
 
         var mac = expect Crypto.Poly1305.create(key)
@@ -271,13 +275,15 @@ func rangeBytes(count: u64, first: u8)->Array!{u8}
     Swag.setWorkerCount(4)
     const Tile = 128 * 1024
     var key: [Crypto.Poly1305KeySize] u8
-    for index in key.count do
+    for index in key.count
+    {
         key[index] = cast(u8, (index * 61 + 249) & 255)
+    }
 
-    var data: Array'u8
+    var data: Array!{u8}
     data.resize(3 * Tile + 50)
     Memory.set(data.storage(), 0xFF, data.count)
-    let lengths: [5] u64 = [2 * Tile - 1, 2 * Tile, 2 * Tile + 1, 2 * Tile + 64, 3 * Tile + 49]
+    let lengths:  [5] u64 = [2 * Tile - 1, 2 * Tile, 2 * Tile + 1, 2 * Tile + 64, 3 * Tile + 49]
     let expected: [5] Crypto.Poly1305Tag = [
         [0x46, 0x3B, 0xA4, 0xF8, 0x5D, 0x6C, 0x55, 0x33, 0x10, 0x60, 0xDB, 0xDF, 0x26, 0xDA, 0x16, 0x46],
         [0xB0, 0x24, 0xC3, 0xAB, 0xC0, 0x55, 0x4C, 0x0E, 0x73, 0x49, 0xAA, 0xE2, 0x89, 0xC3, 0xBD, 0x72],
@@ -287,7 +293,7 @@ func rangeBytes(count: u64, first: u8)->Array!{u8}
 
     for length, index in lengths
     {
-        let input = data.toSlice()[1 until length + 1]
+        let input  = data.toSlice()[1 until length + 1]
         let direct = expect Crypto.Poly1305.compute(key, input)
         Swag.require(Crypto.constantTimeEqual(direct, expected[index]))
 

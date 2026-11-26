@@ -24,7 +24,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     discard header.addColumn("Owner", width * 0.24)
     header.setSortIndicator(1, round ? .Ascending : .Descending)
 
-    let rows = Wnd.create'Wnd(panel, {Inset, 126, width, 118})
+    let rows = Wnd.create!{Wnd}(panel, {Inset, 126, width, 118})
     rows.hookOnEvent = func|header|(view, event)
     {
         if event is PaintEvent as paint

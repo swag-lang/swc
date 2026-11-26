@@ -69,11 +69,13 @@ func realVideoCompare(name: string)
 {
     var plane: RealVideo.Plane
     plane.resize(11, 9)
-    for y in 9's32
+    for y in 9_s32
     {
         let row = plane.at(0, y)
-        for x in 11's32 do
+        for x in 11_s32
+        {
             row[x] = cast(u8, ((x * 37 + y * 61 + x * y * 7) & 255))
+        }
     }
 
     var luma: [80] u8
@@ -81,17 +83,20 @@ func realVideoCompare(name: string)
     RealVideo.predictMotion(&luma[0], 10, &plane, 0, 0, 8, {-3, -2}, false)
     const FirstRow: [8] u8 = [0, 2, 41, 74, 101, 146, 237, 181]
     const LastRow:  [8] u8 = [148, 140, 62, 46, 130, 108, 164, 101]
-    for column in 8'u64
+    for column in 8_u64
     {
         Swag.require(luma[column] == FirstRow[column])
         Swag.require(luma[70 + column] == LastRow[column])
     }
 
     RealVideo.predictMotion(&luma[0], 10, &plane, 0, 0, 8, {-32768, 32767}, false)
-    for row in 8'u64
+    for row in 8_u64
     {
-        for column in 8'u64 do
+        for column in 8_u64
+        {
             Swag.require(luma[row * 10 + column] == 232)
+        }
+
         Swag.require(luma[row * 10 + 8] == 0xA5 and luma[row * 10 + 9] == 0xA5)
     }
 
@@ -99,8 +104,10 @@ func realVideoCompare(name: string)
     var chroma: [16] u8
     RealVideo.predictMotion(&chroma[0], 4, &plane, 8, 6, 4, {7, 7}, true)
     const Chroma: [16] u8 = [138, 92, 69, 69, 130, 92, 72, 72, 126, 91, 138, 138, 126, 91, 138, 138]
-    for sample, index in chroma do
+    for sample, index in chroma
+    {
         Swag.require(sample == Chroma[index])
+    }
 }
 
 // Both transform passes retain the coefficient orientation and signed rounding.
@@ -111,23 +118,29 @@ func realVideoCompare(name: string)
     const Dc:      [16] s32 = [489, -15057, -15911, -1009, -28, 17048, 17049, -676, -545, 16643, 17195, 234, -1232, -15736, -15150, 735]
     var samples = Block
     RealVideo.inverseTransform(&samples, false)
-    for actual, index in samples do
+    for actual, index in samples
+    {
         Swag.require(actual == Samples[index])
+    }
 
     var dc = Block
     RealVideo.inverseTransform(&dc, true)
-    for actual, index in dc do
+    for actual, index in dc
+    {
         Swag.require(actual == Dc[index])
+    }
 }
 
 // The DC-only reconstruction shares the full transform's rounding and clips the same pixels.
 #test
 {
     var prediction: [28] u8
-    for &sample, index in prediction do
+    for &sample, index in prediction
+    {
         sample[] = cast(u8, (index * 47 & 255))
+    }
 
-    for dc in [-32768's32, -1532, -511, -4, -3, 0, 3, 4, 511, 1532, 32767]
+    for dc in [-32768_s32, -1532, -511, -4, -3, 0, 3, 4, 511, 1532, 32767]
     {
         var reference = prediction
         var direct    = prediction
@@ -161,21 +174,24 @@ func realVideoCompare(name: string)
 #test
 {
     const Bytes: [8] u8 = [0xDE, 0xAD, 0xBE, 0xEF, 0x56, 0xAB, 0x33, 0]
-    for size in [6'u64, 8]
+    for size in [6_u64, 8]
     {
         var bits = RealVideo.Bits.open(Bytes[until size])
         Swag.require(bits.read(4) == 0xD)
         Swag.require(bits.read(32) == 0xEADBEEF5)
         Swag.require(bits.read(12) == 0x6AB)
-        if size == 8 do
+        if size == 8
+        {
             Swag.require(bits.read(16) == 0x3300)
+        }
+
         Swag.require(bits.read(0) == 0 and not bits.broken)
         Swag.require(bits.read(1) == 0 and bits.broken)
     }
 
     // PType[0] decodes a single set bit as symbol zero, including at the end of a slice.
     const Prefix: [2] u8 = [1, 0]
-    for size in [1'u64, 2]
+    for size in [1_u64, 2]
     {
         var bits = RealVideo.Bits.open(Prefix[until size])
         Swag.require(bits.read(7) == 0)

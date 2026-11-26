@@ -79,7 +79,7 @@ internal struct ClipPath
 {
     path:    LinePathList     // The authored shape in page coordinates.
     evenOdd: bool             // Whether `W*` chose the alternating rule over the winding count.
-    parent:  u32 = InvalidClipPath   // Shaped clip already in force when this one was defined.
+    parent:  u32 = InvalidClipPath     // Shaped clip already in force when this one was defined.
 
     // The polygon fallback is built on demand for tessellation or textured image fills.
     intersection:    LinePathList
@@ -210,9 +210,13 @@ impl Page
         Swag.assert(index < .items.count, "item index out of range")
         Swag.assert(isFiniteTransform(transform), "invalid item transform")
         let item = &.items[index]
+
         // Capture a decoded image's clip in its original image coordinates before moving it.
-        if item.kind == .Image and item.clipPath != InvalidClipPath and not item.imageClipReady do
+        if item.kind == .Image and item.clipPath != InvalidClipPath and not item.imageClipReady
+        {
             discard .prepareImageClip(item)
+        }
+
         item.transform = transform
         item.refreshPaintBounds()
     }
@@ -363,13 +367,19 @@ internal impl Page
     mtd resolveClipPath(index: u32)->{path: *LinePathList, rule: PathFillRule}
     {
         let leaf = unwrap .clipPaths[index]
-        if leaf.parent == InvalidClipPath do
+        if leaf.parent == InvalidClipPath
+        {
             return {&leaf.path, leaf.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero}
-        if leaf.hasIntersection do
+        }
+
+        if leaf.hasIntersection
+        {
             return {&leaf.intersection, PathFillRule.NonZero}
 
-        // Walk to the nearest cached ancestor, then populate descendants in clip order.
-        var pending: Array'(*ClipPath)
+            // Walk to the nearest cached ancestor, then populate descendants in clip order.
+        }
+
+        var pending: Array!{*ClipPath}
         var ancestor = leaf
         while ancestor.parent != InvalidClipPath and not ancestor.hasIntersection
         {
@@ -381,7 +391,7 @@ internal impl Page
         var frameRule = ancestor.parent == InvalidClipPath and ancestor.evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero
 
         // Preserve the page-space tolerance of the polygon fallback at deep zoom levels.
-        const IntersectionScale = 20.0'f32
+        const IntersectionScale = 20.0_f32
         for index in reversed(pending.count)
         {
             let child = pending[index]
@@ -392,8 +402,8 @@ internal impl Page
             shape.intersect(&frame, child.evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, frameRule)
             child.intersection    = #move shape
             child.hasIntersection = true
-            framePath = &child.intersection
-            frameRule = .NonZero
+            framePath             = &child.intersection
+            frameRule             = .NonZero
         }
 
         return {&leaf.intersection, PathFillRule.NonZero}

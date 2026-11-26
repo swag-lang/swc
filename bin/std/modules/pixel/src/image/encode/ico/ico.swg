@@ -92,7 +92,7 @@ private func appendAll(result: *ConcatBuffer, images: const [..] Image) fail
     cast([*] IconDir, output)[0] = dir
 
     var offset = directoryBytes
-    var index  = 0'u64
+    var index  = 0_u64
     for &image in images
     {
         let dibBytes = dibSizeOf(image)
@@ -138,11 +138,11 @@ private func dibSizeOf(image: Image)->u64
 // Expands a packed RGB or BGR image to opaque BGRA.
 private func expandIconPixels(source: const [*] u8, destination: [*] u8, count: u64, swapRedBlue: bool)
 {
-    const Keep = cast(Math.Simd.U8x16, [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
-    const Swap = cast(Math.Simd.U8x16, [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128])
+    const Keep = cast(Math.Simd.U8x16, [0_u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128])
+    const Swap = cast(Math.Simd.U8x16, [2_u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128])
     let shuffle = swapRedBlue ? Swap : Keep
-    let alpha   = cast #bit(Math.Simd.U8x16, Math.Simd.splat(0xFF000000'u32))
-    var index   = 0'u64
+    let alpha   = cast #bit(Math.Simd.U8x16, Math.Simd.splat(0xFF000000_u32))
+    var index   = 0_u64
 
     // Four output pixels use 12 source bytes, but the load reads a full vector.
     while count - index >= 6

@@ -89,11 +89,19 @@ func decodeNameRecord(nameTable: const [..] u8, stringOffset, recordOffset: u64)
             fault(0x91)
         }
 
-        var chars: Array!{u16}
-        chars.resize(raw.count / 2)
-        for index in chars.count
+        if not raw.count
         {
-            chars[index] = readU16(raw, cast(u64, index) * 2)
+            return {}
+        }
+
+        var chars: Array!{u16}
+        let count = cast(u32, raw.count / 2)
+        let words = chars.emplaceAddress(count)
+        var entry = raw.buffer
+        for index in count
+        {
+            words[index] = Math.make16(entry[0], entry[1])
+            entry        += 2
         }
 
         return Utf8.fromUtf16(chars.toSlice())
@@ -119,12 +127,16 @@ func decodeBestName(nameTable: const [..] u8, nameID: u16)->String fail
 
     // Every candidate needs its first eight bytes. Only qualifying records need the
     // string length and offset.
-    if count do
+    if count
+    {
         try assertRange(nameTable, 6, cast(u64, count) * 12 - 4)
+    }
+
     for index in count
     {
-        let base = 6_u64 + cast(u64, index) * 12
-        if try readU16(nameTable, base + 6) != nameID
+        let base  = 6_u64 + cast(u64, index) * 12
+        let entry = nameTable.buffer + base
+        if Math.make16(entry[6], entry[7]) != nameID
         {
             continue
         }
@@ -197,7 +209,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
     }
 
     let record    = unwrap rec
-    let postTable = try getSlice(faceData.fontData.toSlice(), record.offset, record.length)
+    let postTable = try getSlice(faceData.fontBytes(), record.offset, record.length)
     if postTable.count < 32
     {
         try fault(0x9B)
@@ -216,8 +228,10 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
     {
         let glyphCount = faceData.face.glyphCount
         faceData.sharedPostNames = try faceData.fontSource.cachedPostNames(postTable, glyphCount, format)
-        if not faceData.sharedPostNames do
+        if not faceData.sharedPostNames
+        {
             try parsePostGlyphNames(&faceData.postNames, glyphCount, postTable, format)
+        }
     }
 }
 
@@ -231,7 +245,7 @@ func parseOS2(faceData: *FaceImpl) fail
         return
     }
 
-    let table = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    let table = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
     if table.count < 4
     {
         return
@@ -250,20 +264,61 @@ func parseOS2(faceData: *FaceImpl) fail
 private func(sequential: bool) validateCMapGroups(subTable: const [..] u8, glyphCount: u32) fail
 {
     let groupCount = try readU32(subTable, 12)
-    if cast(u64, groupCount) > (subTable.count - 16) / 12 do
+    if cast(u64, groupCount) > (subTable.count - 16) / 12
+    {
         try fault(0x03)
+    }
 
     var record          = cast(const [*] u32, subTable.buffer + 16)
-    var previousEndCode = 0'u32
-    var checked         = 0'u32
-    #static if Math.nativeToBigEndian(1'u32) != 1
+    var previousEndCode = 0_u32
+    var checked         = 0_u32
+    #static if Math.nativeToBigEndian(1_u32) != 1
     {
-        if allowMissing
-        {
-            return
-        }
+        const Previous = cast(Math.Simd.U32x4, [0_u32, 4, 5, 6])
+        let unicodeLimit = Swag.vecSplat(0x10FFFF_u32)
+        let glyphLimit   = Swag.vecSplat(glyphCount)
 
-        try fault(0x92)
+        // Four groups fit in three vectors. The overlapping loads also touch the
+        // first word of the next group, so reserve it for the scalar tail.
+        while groupCount - checked >= 5
+        {
+            let row0      = Math.Simd.load(record)
+            let row1      = Math.Simd.load(record + 3)
+            let row2      = Math.Simd.load(record + 6)
+            let row3      = Math.Simd.load(record + 9)
+            let low0      = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveLo(row0, row1))
+            let low1      = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveLo(row2, row3))
+            let high0     = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveHi(row0, row1))
+            let high1     = cast #bit(Math.Simd.U64x2, Swag.vecInterleaveHi(row2, row3))
+            let starts    = Math.byteSwap(cast #bit(Math.Simd.U32x4, Swag.vecInterleaveLo(low0, low1)))
+            let ends      = Math.byteSwap(cast #bit(Math.Simd.U32x4, Swag.vecInterleaveHi(low0, low1)))
+            let glyphs    = Math.byteSwap(cast #bit(Math.Simd.U32x4, Swag.vecInterleaveLo(high0, high1)))
+            let prior     = Math.Simd.permute2(Swag.vecSplat(previousEndCode), ends, Previous)
+            let orderMask = Swag.vecMask(starts <= prior) & (checked ? 15_u32 : 14_u32)
+            if orderMask or Swag.vecMask((starts > ends) | (ends > unicodeLimit))
+            {
+                try fault(0x03)
+            }
+
+            #static if sequential
+            {
+                if Swag.vecMask(glyphs >= glyphLimit) or Swag.vecMask(ends - starts >= glyphLimit - glyphs)
+                {
+                    try fault(0x03)
+                }
+            }
+            else
+            {
+                if Swag.vecMask((glyphs >= glyphLimit) & (glyphs != Swag.vecSplat(0_u32)))
+                {
+                    try fault(0x03)
+                }
+            }
+
+            previousEndCode = ends[3]
+            record          += 12
+            checked         += 4
+        }
     }
 
     for index in checked until groupCount
@@ -271,18 +326,24 @@ private func(sequential: bool) validateCMapGroups(subTable: const [..] u8, glyph
         let startCode  = Math.bigEndianToNative(record[0])
         let endCode    = Math.bigEndianToNative(record[1])
         let startGlyph = Math.bigEndianToNative(record[2])
-        if startCode > endCode or endCode > 0x10FFFF or (index and startCode <= previousEndCode) do
+        if startCode > endCode or endCode > 0x10FFFF or (index and startCode <= previousEndCode)
+        {
             try fault(0x03)
+        }
 
         #static if sequential
         {
-            if cast(u64, startGlyph) + (endCode - startCode) >= glyphCount do
+            if cast(u64, startGlyph) + (endCode - startCode) >= glyphCount
+            {
                 try fault(0x03)
+            }
         }
         else
         {
-            if startGlyph and startGlyph >= glyphCount do
+            if startGlyph and startGlyph >= glyphCount
+            {
                 try fault(0x03)
+            }
         }
 
         previousEndCode = endCode
@@ -305,7 +366,7 @@ func selectCMap(cmapTable: const [..] u8, glyphCount: u32)->CMapSelection fail
 
     var result: #returntype
     var bestScore = -1
-    var bestFmt   = 0_u16
+    var validatedGroupOffset = Swag.U64.Max
 
     for index in count
     {
@@ -382,10 +443,11 @@ func selectCMap(cmapTable: const [..] u8, glyphCount: u32)->CMapSelection fail
             if not segCountX2 or (segCountX2 & 1) != 0
             {
                 try fault(0x03)
+
+                // Four parallel arrays each contain segCount 16-bit entries, with
+                // the fixed header and reservedPad taking 16 bytes in total.
             }
 
-            // Four parallel arrays each contain segCount 16-bit entries, with
-            // the fixed header and reservedPad taking 16 bytes in total.
             let requiredLength = 16_u64 + cast(u64, segCountX2) * 4
             if subTable.count < requiredLength
             {
@@ -455,7 +517,7 @@ func selectCMap(cmapTable: const [..] u8, glyphCount: u32)->CMapSelection fail
                 }
 
                 let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
-                if lastGlyph >= faceData.face.glyphCount
+                if lastGlyph >= glyphCount
                 {
                     try fault(0x03)
                 }
@@ -514,43 +576,16 @@ func selectCMap(cmapTable: const [..] u8, glyphCount: u32)->CMapSelection fail
         // Different platform records can point at the same grouped map.
         if (format == 12 or format == 13) and validatedGroupOffset != offset
         {
-            let groupCount = try readU32(subTable, 12)
-            if cast(u64, groupCount) > (subTable.count - 16) / 12
+            if format == 12
             {
-                try fault(0x03)
+                try validateCMapGroups!{true}(subTable, glyphCount)
+            }
+            else
+            {
+                try validateCMapGroups!{false}(subTable, glyphCount)
             }
 
-            var previousEndCode = 0_u32
-            var hasPrevious     = false
-            for index in groupCount
-            {
-                let base       = 16_u64 + cast(u64, index) * 12
-                let startCode  = try readU32(subTable, base)
-                let endCode    = try readU32(subTable, base + 4)
-                let startGlyph = try readU32(subTable, base + 8)
-                if startCode > endCode or
-                   endCode > 0x10FFFF or
-                   (hasPrevious and startCode <= previousEndCode)
-                {
-                    try fault(0x03)
-                }
-
-                if format == 12
-                {
-                    let lastGlyph = cast(u64, startGlyph) + cast(u64, endCode - startCode)
-                    if lastGlyph >= faceData.face.glyphCount
-                    {
-                        try fault(0x03)
-                    }
-                }
-                else if startGlyph and startGlyph >= faceData.face.glyphCount
-                {
-                    try fault(0x03)
-                }
-
-                previousEndCode = endCode
-                hasPrevious     = true
-            }
+            validatedGroupOffset = offset
         }
 
         // Variation sequences supplement the selected map rather than compete with
@@ -589,7 +624,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
             return
         }
 
-        try fault(0x96)
+        try fault(0x92)
     }
 
     let table     = unwrap record
@@ -603,7 +638,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         faceData.hasCMap    = true
         faceData.face.selectCharMap(selection.platformID, selection.encodingID)
     }
-    elif not allowMissing
+    else if not allowMissing
     {
         try fault(0x96)
     }
@@ -611,42 +646,21 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
 
 func parseHorizontalMetrics(faceData: *FaceImpl) fail
 {
-    let glyphCount = faceData.face.glyphCount
-    if not faceData.numLongMetrics or faceData.numLongMetrics > glyphCount
+    let glyphCount      = faceData.face.glyphCount
+    let longMetricCount = cast(u32, faceData.numLongMetrics)
+    if not longMetricCount or longMetricCount > glyphCount
     {
         try fault(0x95)
     }
 
     let hmtx = try getTableSlice(faceData, TAG_HMTX, 0x93)
-    let shortMetricCount = glyphCount - faceData.numLongMetrics
-    let requiredBytes    = cast(u64, faceData.numLongMetrics) * 4 + cast(u64, shortMetricCount) * 2
+    let requiredBytes = cast(u64, longMetricCount) * 4 + cast(u64, glyphCount - longMetricCount) * 2
     if hmtx.count < requiredBytes
     {
         try fault(0x95)
     }
 
-    faceData.glyphMetrics.resize(glyphCount)
-
-    var lastAdvance = 0_u16
-    for index in glyphCount
-    {
-        var metric: GlyphMetric
-        if index < faceData.numLongMetrics
-        {
-            let base = cast(u64, index) * 4
-            metric.advanceWidth    = try readU16(hmtx, base + 0)
-            metric.leftSideBearing = try readS16(hmtx, base + 2)
-            lastAdvance            = metric.advanceWidth
-        }
-        else
-        {
-            let base = cast(u64, faceData.numLongMetrics) * 4 + cast(u64, (index - faceData.numLongMetrics)) * 2
-            metric.advanceWidth    = lastAdvance
-            metric.leftSideBearing = try readS16(hmtx, base)
-        }
-
-        faceData.glyphMetrics[index] = metric
-    }
+    faceData.horizontalMetrics = hmtx
 }
 
 // Validates the packed vertical advances and top side bearings.
@@ -666,22 +680,21 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
 
     let vheaTable = unwrap vheaRecord
     let vmtxTable = unwrap vmtxRecord
-    let vhea      = try getSlice(faceData.fontData.toSlice(), vheaTable.offset, vheaTable.length)
+    let vhea      = try getSlice(faceData.fontBytes(), vheaTable.offset, vheaTable.length)
     if vhea.count < 36
     {
         try fault(0x98)
     }
 
-    let numLongMetrics = try readU16(vhea, 34)
-    let glyphCount     = faceData.face.glyphCount
-    if not numLongMetrics or numLongMetrics > glyphCount
+    let longMetricCount = cast(u32, (try readU16(vhea, 34)))
+    let glyphCount      = faceData.face.glyphCount
+    if not longMetricCount or longMetricCount > glyphCount
     {
         try fault(0x98)
     }
 
-    let vmtx = try getSlice(faceData.fontData.toSlice(), vmtxTable.offset, vmtxTable.length)
-    let shortMetricCount = glyphCount - numLongMetrics
-    let requiredBytes    = cast(u64, numLongMetrics) * 4 + cast(u64, shortMetricCount) * 2
+    let vmtx = try getSlice(faceData.fontBytes(), vmtxTable.offset, vmtxTable.length)
+    let requiredBytes = cast(u64, longMetricCount) * 4 + cast(u64, glyphCount - longMetricCount) * 2
     if vmtx.count < requiredBytes
     {
         try fault(0x98)
@@ -696,18 +709,18 @@ func buildVerticalGlyphMetrics(faceData: *FaceImpl) fail
     }
 }
 
-func decodeVerticalMetrics(vmtx: const [..] u8, glyphCount, longMetricCount: u32, allocator: IAllocator? = null)->Array'GlyphVerticalMetrics
+func decodeVerticalMetrics(vmtx: const [..] u8, glyphCount, longMetricCount: u32, allocator: IAllocator? = null)->Array!{GlyphVerticalMetrics}
 {
     var result: #returntype
     result.allocator = allocator
     let metrics     = result.emplaceAddress(glyphCount)
     var entry       = vmtx.buffer
-    var firstScalar = 0'u32
-    const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+    var firstScalar = 0_u32
+    const SwapWords = cast(Math.Simd.U8x16, [1_u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
 
     // Each long record consists of two contiguous 16-bit values. Convert four records
     // at once when their native layout matches the packed table apart from byte order.
-    #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1'u16) != 1
+    #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1_u16) != 1
     {
         let blocks      = longMetricCount / 4
         var destination = cast([*] u8, metrics)
@@ -732,7 +745,7 @@ func decodeVerticalMetrics(vmtx: const [..] u8, glyphCount, longMetricCount: u32
     // Short records reuse the last advance and supply their own top side bearing.
     let lastAdvance = metrics[longMetricCount - 1].advanceHeight
     var firstShort  = longMetricCount
-    #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1'u16) != 1
+    #static if #sizeof(GlyphVerticalMetrics) == 4 and Math.nativeToBigEndian(1_u16) != 1
     {
         let advances    = Math.Simd.splat(lastAdvance)
         let blocks      = (glyphCount - longMetricCount) / 8
@@ -760,9 +773,12 @@ func decodeVerticalMetrics(vmtx: const [..] u8, glyphCount, longMetricCount: u32
 
 func validateGlyphEnd(locations: const [..] u8, glyphCount: u32, longFormat: bool)->u64 fail
 {
-    if longFormat do
-        return cast(u64, try validatePackedOffsets'4(locations.buffer, glyphCount))
-    return cast(u64, try validatePackedOffsets'2(locations.buffer, glyphCount)) * 2
+    if longFormat
+    {
+        return cast(u64, try validatePackedOffsets!{4}(locations.buffer, glyphCount))
+    }
+
+    return cast(u64, try validatePackedOffsets!{2}(locations.buffer, glyphCount)) * 2
 }
 
 func buildGlyphLocations(faceData: *FaceImpl) fail
@@ -776,51 +792,77 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     let glyf       = try getTableSlice(faceData, TAG_GLYF, 0x8E)
     let glyphCount = faceData.face.glyphCount
     let longFormat = faceData.indexToLocFormat == 1
-    let width      = longFormat ? 4'u64 : 2'u64
+    let width      = longFormat ? 4_u64 : 2_u64
     let locations  = try getSlice(loca, 0, (cast(u64, glyphCount) + 1) * width)
 
     let end = try faceData.fontSource.validatedGlyphEnd(locations, glyphCount, longFormat)
-    if end > glyf.count do
+    if end > glyf.count
+    {
         try fault(0x08)
+    }
+
     faceData.glyphLocations = locations
 }
 
 private func keepOrderedKernPairs(faceData: *FaceImpl, pairs: const [..] u8)->bool
 {
-    var previous = -1's64
-    var values   = 0'u16
+    var previous = -1_s64
+    var values   = 0_u16
     var pair     = pairs.buffer
     let count    = pairs.count / 6
-    var checked  = 0'u64
+    var checked  = 0_u64
 
-    #static if Math.nativeToBigEndian(1'u16) != 1
+    #static if Math.nativeToBigEndian(1_u16) != 1
     {
-        for index in faceData.glyphLocations.count
+        const Keys       = cast(Math.Simd.U8x16, [3_u8, 2, 1, 0, 9, 8, 7, 6, 128, 128, 128, 128, 128, 128, 128, 128])
+        const ValueBytes = cast(Math.Simd.U8x16, [0_u8, 0, 0, 0, 255, 255, 0, 0, 0, 0, 255, 255, 0, 0, 0, 0])
+        const PriorLanes = cast(Math.Simd.U32x4, [0_u32, 4, 5, 6])
+        var packedValues: Math.Simd.U8x16
+
+        // Both loads stay inside five complete records and cover the first four.
+        while count - checked >= 5
         {
-            faceData.glyphLocations[index] = cast(u32, (try readU16(loca, cast(u64, index) * 2))) * 2
+            let first  = Math.Simd.load(pair)
+            let second = Math.Simd.load(pair + 12)
+            let low    = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(first, Keys))
+            let high   = cast #bit(Math.Simd.U64x2, Math.Simd.shuffle(second, Keys))
+            let keys   = cast #bit(Math.Simd.U32x4, Swag.vecInterleaveLo(low, high))
+            let prior  = Math.Simd.permute2(Swag.vecSplat(checked ? cast(u32, previous) : 0_u32), keys, PriorLanes)
+            if Swag.vecMask(keys <= prior) & (checked ? 15_u32 : 14_u32)
+            {
+                return false
+            }
+
+            packedValues |= first | second
+            previous     = keys[3]
+            pair         += 24
+            checked      += 4
+        }
+
+        if Swag.vecMask((packedValues & ValueBytes) != Swag.vecSplat(0_u8))
+        {
+            values = 1
         }
     }
-    else
-    {
-        for index in faceData.glyphLocations.count
-        {
-            faceData.glyphLocations[index] = try readU32(loca, cast(u64, index) * 4)
-        }
-    }
 
-    var previous = 0_u32
-    for offset in faceData.glyphLocations
+    for checked until count
     {
-        if offset < previous or cast(u64, offset) > glyf.count
+        let key = cast(s64, Math.make32(pair[0], pair[1], pair[2], pair[3]))
+        if key <= previous
         {
-            try fault(0x08)
+            return false
         }
 
-        previous = offset
+        previous = key
+        values   |= Math.make16(pair[4], pair[5])
+        pair     += 6
     }
 
-    if values do
+    if values
+    {
         faceData.kernData = pairs
+    }
+
     return true
 }
 
@@ -844,10 +886,13 @@ private func addKernPairs(faceData: *FaceImpl, pairs: const [..] u8)
 
 private func storeKernPairs(faceData: *FaceImpl, pairs: const [..] u8)
 {
-    if not faceData.kernData and faceData.kernPairs.isEmpty() and keepOrderedKernPairs(faceData, pairs) do
+    if not faceData.kernData and faceData.kernPairs.isEmpty() and keepOrderedKernPairs(faceData, pairs)
+    {
         return
 
-    // Preserve the last nonzero value when several records state the same pair.
+        // Preserve the last nonzero value when several records state the same pair.
+    }
+
     if let previous = faceData.kernData
     {
         addKernPairs(faceData, previous)
@@ -867,7 +912,7 @@ func parseKern(faceData: *FaceImpl) fail
         return
     }
 
-    let table = try getSlice(faceData.fontData.toSlice(), rec.offset, rec.length)
+    let table = try getSlice(faceData.fontBytes(), rec.offset, rec.length)
     if table.count < 4
     {
         return
@@ -909,21 +954,8 @@ func parseKern(faceData: *FaceImpl) fail
             let pairCount     = Math.min(declaredCount, (length - 14) / 6)
             if pairCount
             {
-                if pairOff + 6 > subtableEnd
-                {
-                    break
-                }
-
-                let left  = try readU16(table, pairOff + 0)
-                let right = try readU16(table, pairOff + 2)
-                let value = try readS16(table, pairOff + 4)
-                if value != 0
-                {
-                    let key = (cast(u32, left) << 16) | cast(u32, right)
-                    faceData.kernPairs.add(key, value)
-                }
-
-                pairOff += 6
+                let pairs = try getSlice(table, offset + 14, cast(u64, pairCount) * 6)
+                storeKernPairs(faceData, pairs)
             }
         }
 
@@ -940,19 +972,26 @@ func lookupLegacyKerning(faceData: const *FaceImpl, key: u32)->s16
 {
     if let pairs = faceData.kernData
     {
-        var first = 0'u64
+        var first = 0_u64
         var end   = pairs.count / 6
         while first < end
         {
             let middle = first + (end - first) / 2
             let pair   = pairs.buffer + middle * 6
             let value  = Math.make32(pair[0], pair[1], pair[2], pair[3])
-            if key == value do
+            if key == value
+            {
                 return cast #bit(s16, Math.make16(pair[4], pair[5]))
-            if key < value do
+            }
+
+            if key < value
+            {
                 end = middle
-            else do
+            }
+            else
+            {
                 first = middle + 1
+            }
         }
 
         return 0
@@ -1083,10 +1122,11 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
     if not nameTable
     {
         fault(0x91)
+
+        // The guard above raises, but "fault" is an ordinary fallible call: nothing marks it as
+        // never returning, so the proof has to be stated here.
     }
 
-    // The guard above raises, but "fault" is an ordinary fallible call: nothing marks it as
-    // never returning, so the proof has to be stated here.
     let familyName = decodeBestName(unwrap nameTable, NAME_ID_FAMILY)
     if familyName.isEmpty()
     {
@@ -1197,7 +1237,7 @@ func metadataIn(data: const [..] u8, faceIndex: u32)->FaceMetadata fail
 // A bare CFF or Type 1 program ships no `hmtx`, and the advance of a charstring glyph is
 // stated inside the charstring itself. Resolving it stops at the first stack-clearing
 // operator, so this costs a fraction of interpreting the outline.
-func buildCharstringMetrics(faceData: *FaceImpl, advances: *Array'u16) fail
+func buildCharstringMetrics(faceData: *FaceImpl, advances: *Array!{u16}) fail
 {
     let glyphCount = faceData.face.glyphCount
     advances.resize(glyphCount)
@@ -1207,11 +1247,11 @@ func buildCharstringMetrics(faceData: *FaceImpl, advances: *Array'u16) fail
         var width = 0.0_f64
         if faceData.outlineSource == .Cff
         {
-            width = try runType2Charstring(&faceData.cff, gid, null)
+            width = try type2CharstringWidth(faceData.cffFont(), gid)
         }
         else
         {
-            width = try runType1Charstring(&faceData.type1, gid, null)
+            width = try type1CharstringWidth(faceData.type1Font(), gid)
         }
 
         advances[gid] = cast(u16, Math.clamp(Math.round(width), 0.0, cast(f64, Swag.U16.Max)))
@@ -1223,7 +1263,7 @@ func buildCharstringMetrics(faceData: *FaceImpl, advances: *Array'u16) fail
 // The font's built-in encoding says which glyph each code selects, and StandardEncoding
 // says which character that code stands for; together they answer a character lookup
 // without inventing a mapping the font never declared.
-func buildSyntheticCMap(faceData: *FaceImpl, cmap: *HashTable'(u32, u32))
+func buildSyntheticCMap(faceData: *FaceImpl, cmap: *HashTable!{u32, u32})
 {
     for code in 256_u32
     {
@@ -1234,20 +1274,35 @@ func buildSyntheticCMap(faceData: *FaceImpl, cmap: *HashTable'(u32, u32))
         }
 
         let value = standardEncodingRune(cast(u8, code))
-        if value and not faceData.syntheticCMap.contains(cast(u32, value))
+        if value and not cmap.contains(cast(u32, value))
         {
-            faceData.syntheticCMap.add(cast(u32, value), gid)
+            cmap.add(cast(u32, value), gid)
         }
     }
 
     // A subset that names its glyphs by code point still resolves, which is the convention
     // a document writer falls back to when no standard name fits.
-    func addNamedGlyph(cmap: *HashTable'(u32, u32), name: string, gid: u64)
+    func addNamedGlyph(cmap: *HashTable!{u32, u32}, name: string, gid: u64)
     {
-        let value = glyphNameRune(name.toString())
-        if value and not faceData.syntheticCMap.contains(cast(u32, value))
+        let value = glyphNameRune(name)
+        if value
         {
-            faceData.syntheticCMap.add(cast(u32, value), cast(u32, gid))
+            cmap.add(cast(u32, value), cast(u32, gid), updateValue: false)
+        }
+    }
+
+    if faceData.outlineSource == .Cff
+    {
+        for name, gid in faceData.cffFont().glyphNames.entries
+        {
+            addNamedGlyph(cmap, name, gid)
+        }
+    }
+    else
+    {
+        for name, gid in faceData.type1Font().glyphNames
+        {
+            addNamedGlyph(cmap, name, gid)
         }
     }
 }
@@ -1289,10 +1344,11 @@ func parseProgramFace(faceData: *FaceImpl, fallbackFamilyName: string) fail
     if not faceData.face.glyphCount
     {
         try fault(0xBA)
+
+        // The design bounding box is the only vertical information such a program states, and
+        // it is what a renderer needs a line height for.
     }
 
-    // The design bounding box is the only vertical information such a program states, and
-    // it is what a renderer needs a line height for.
     let ascender  = cast(s16, faceData.face.bbox.yMax)
     let descender = cast(s16, faceData.face.bbox.yMin)
     faceData.face.setHorizontalMetrics(ascender, descender, 0, cast(s16, faceData.face.bbox.xMax))
@@ -1410,7 +1466,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     parseCMap(faceData, isSubset)
     if not faceData.hasCMap and faceData.outlineSource == .Cff
     {
-        buildSyntheticCMap(faceData)
+        buildSyntheticCMap(faceData, &faceData.programTables.cmap)
     }
 
     parseNames(faceData, fallbackFamilyName)

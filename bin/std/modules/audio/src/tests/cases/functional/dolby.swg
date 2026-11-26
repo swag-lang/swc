@@ -675,19 +675,27 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
             if shortBlock
             {
                 stereo.restore(&mixed)
-                for channel in 2 do
+                for channel in 2
+                {
                     mixed[channel].process(&spectrum[channel, 0], true, &actual[channel], 2)
+                }
             }
             else
             {
-                if fused do
+                if fused
+                {
                     stereo.processFused(&mixed, &spectrum, &actual[0])
-                else do
+                }
+                else
+                {
                     stereo.process(&mixed, &spectrum, &actual[0])
+                }
             }
 
-            for sample in actual.count do
+            for sample in actual.count
+            {
                 Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
+            }
         }
     }
 }
@@ -708,8 +716,11 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
         {
             let source   = StreamChannel[output]
             let useShort = source < shortWindow.count and (source + block * 2) % 7 == 5
-            if source < shortWindow.count do
+            if source < shortWindow.count
+            {
                 shortWindow[source] = useShort
+            }
+
             for bin in 256
             {
                 let centered = cast(s32, ((bin * 13 + source * 53 + block * 17) & 63)) - 32
@@ -721,8 +732,10 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
 
         surround.process(&mixed, &spectrum, &shortWindow, &actual[0])
 
-        for sample in actual.count do
+        for sample in actual.count
+        {
             Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
+        }
     }
 }
 
@@ -742,18 +755,23 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
                 unsigned.skip(start)
                 signed.skip(start)
 
-                var wanted = 0'u32
+                var wanted = 0_u32
                 for bit in width
                 {
                     let position = start + bit
                     wanted <<= 1
-                    if position < end do
+                    if position < end
+                    {
                         wanted |= (cast(u32, bytes[position >> 3]) >> cast(u32, 7 - (position & 7))) & 1
+                    }
                 }
 
                 var wantedSigned = cast(s32, wanted)
-                if width and (wanted & (1'u32 << cast(u32, width - 1))) do
-                    wantedSigned -= cast(s32, 1'u32 << cast(u32, width))
+                if width and (wanted & (1_u32 << cast(u32, width - 1)))
+                {
+                    wantedSigned -= cast(s32, 1_u32 << cast(u32, width))
+                }
+
                 Swag.require(unsigned.read(cast(u32, width)) == wanted)
                 Swag.require(signed.readSigned(cast(u32, width)) == wantedSigned)
                 Swag.require(unsigned.overrun == (start + width > end))

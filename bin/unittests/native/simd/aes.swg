@@ -2,12 +2,14 @@ alias AesState = #simd [16] u8
 
 #test
 {
-    if not Swag.hasCpuFeature(.Aes) do
+    if not Swag.hasCpuFeature(.Aes)
+    {
         return
 
-    let zero          = Swag.vecSplat(0'u8)
-    let substitution  = Swag.vecSplat(0x63'u8)
-    let roundKey      = Swag.vecSplat(0x31'u8)
+    }
+    let zero          = Swag.vecSplat(0_u8)
+    let substitution  = Swag.vecSplat(0x63_u8)
+    let roundKey      = Swag.vecSplat(0x31_u8)
     let encrypted     = Swag.vecAesEncryptRound(zero, roundKey)
     let encryptedLast = Swag.vecAesEncryptLastRound(zero, roundKey)
     let decrypted     = Swag.vecAesDecryptRound(substitution, roundKey)

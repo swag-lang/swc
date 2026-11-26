@@ -175,34 +175,34 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
 #test
 {
     var layer: Mpeg4.Layer
-    for index in 64'u64
+    for index in 64_u64
     {
         layer.intraMatrix[index] = cast(u8, (1 + index * 4))
         layer.interMatrix[index] = cast(u8, (255 - index * 4))
     }
 
-    let inputs = [-2048's32, -201, -5, -1, 0, 1, 5, 201, 2047]
-    for quantType in 2'u32
+    let inputs = [-2048_s32, -201, -5, -1, 0, 1, 5, 201, 2047]
+    for quantType in 2_u32
     {
         layer.quantType = quantType
         for intra in [false, true]
         {
-            for quant in [1'u32, 2, 17, 31, 32]
+            for quant in [1_u32, 2, 17, 31, 32]
             {
                 for first in inputs.count
                 {
                     var actual, expected: [64] s32
-                    var sum = 0's32
-                    for index in 64'u64
+                    var sum = 0_s32
+                    for index in 64_u64
                     {
                         let level = inputs[(first + index) % inputs.count]
                         actual[index] = level
-                        var value = 0's32
+                        var value = 0_s32
                         if intra and not index
                         {
                             value = level
                         }
-                        elif level
+                        else if level
                         {
                             let sign = level < 0 ? -1 : 1
                             let step = cast(s32, quant)
@@ -221,11 +221,16 @@ func mpeg4VolChromaFormatBit(bytes: const [..] u8, bodyOffset: u64)->u64
                         sum += expected[index]
                     }
 
-                    if quantType and not intra and not (sum & 1) do
+                    if quantType and not intra and not (sum & 1)
+                    {
                         expected[63] ^= 1
+                    }
+
                     Mpeg4.dequantise(&actual, &layer, quant, intra)
-                    for index in 64'u64 do
+                    for index in 64_u64
+                    {
                         Swag.require(actual[index] == expected[index])
+                    }
                 }
             }
         }

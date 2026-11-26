@@ -51,7 +51,11 @@ private func visualHeadingKind(level: u32)->BlockKind
 
 private func appendBlock(blocks: *Array!{Block}, kind: BlockKind, text: #move String)
 {
-    if text.isEmpty() and (kind < .AlertNote or kind > .AlertCaution)
+    if text.isEmpty() and
+       (kind!
+    {
+        .AlertNote or kind
+    }.AlertCaution)
     {
         return
     }
@@ -238,7 +242,11 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             while blockIndex < result.count
             {
                 let kind = result[blockIndex].kind
-                if headingsOnly and (kind < .Heading1 or kind > .Heading6)
+                if headingsOnly and
+                   (kind!
+                {
+                    .Heading1 or kind
+                }.Heading6)
                 {
                     result.removeAtOrdered(blockIndex)
                 }

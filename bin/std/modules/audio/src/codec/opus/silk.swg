@@ -116,7 +116,7 @@ private func lowSilkProduct(samples, coefficients, negative: Simd.U16x8)->Simd.S
 // Multiply four signed 32-bit samples by signed 16-bit taps, truncating each product in Q16.
 #[Swag.Inline]
 private func multiplySilkQ16(a, b: Simd.S32x4)->Simd.S32x4
-    => (a >> 16) * b + (((a & 0xFFFF's32) * b) >> 16)
+    => (a >> 16) * b + (((a & 0xFFFF_s32) * b) >> 16)
 
 private func log2lin(inLogQ7: s32)->s32
 {
@@ -343,8 +343,8 @@ private func resampleFir(samples, coefficients: Simd.S16x8)->s16
 #[Swag.Inline]
 private func resampleFirFour(a, b, c, d: Simd.S32x4)->Simd.S32x4
 {
-    const Even = cast(Simd.U32x4, [0'u32, 2, 4, 6])
-    const Odd  = cast(Simd.U32x4, [1'u32, 3, 5, 7])
+    const Even = cast(Simd.U32x4, [0_u32, 2, 4, 6])
+    const Odd  = cast(Simd.U32x4, [1_u32, 3, 5, 7])
     let first  = Swag.vecShuffle2(a, b, Even) + Swag.vecShuffle2(a, b, Odd)
     let second = Swag.vecShuffle2(c, d, Even) + Swag.vecShuffle2(c, d, Odd)
     let sum    = Swag.vecShuffle2(first, second, Even) + Swag.vecShuffle2(first, second, Odd)
@@ -410,8 +410,8 @@ private impl Resampler
                 let odd        = cast #wrap (u16, ResamplerUp2Hq1[j])
                 let evenSigned = cast #bit (s16, even)
                 let oddSigned  = cast #bit (s16, odd)
-                taps.lo[j] = cast(Simd.U16x8, [even, 0'u16, odd, 0, even, 0, odd, 0])
-                taps.hi[j] = cast(Simd.S16x8, [0's16, evenSigned, 0, oddSigned, 0, evenSigned, 0, oddSigned])
+                taps.lo[j] = cast(Simd.U16x8, [even, 0_u16, odd, 0, even, 0, odd, 0])
+                taps.hi[j] = cast(Simd.S16x8, [0_s16, evenSigned, 0, oddSigned, 0, evenSigned, 0, oddSigned])
             }
 
             return taps
@@ -447,7 +447,7 @@ private impl Resampler
         var indexQ16 = 0_s32
         while indexQ16 < maxIndexQ16
         {
-            let packed = count & ~3'u32
+            let packed = count & ~3_u32
             let phase0 = ResamplerPhase[0]
             let phase4 = ResamplerPhase[4]
             let phase8 = ResamplerPhase[8]
@@ -1146,8 +1146,8 @@ private impl SilkChannel
 
             // Keep the eight oldest and eight newest predictor samples in registers.
             // Each signed product is split at bit 16 before the individually truncated terms are summed.
-            const Reverse = cast(Simd.U16x8, [7'u16, 6, 5, 4, 3, 2, 1, 0])
-            const Ones    = cast(Simd.S16x8, [1's16, 1, 1, 1, 1, 1, 1, 1])
+            const Reverse = cast(Simd.U16x8, [7_u16, 6, 5, 4, 3, 2, 1, 0])
+            const Ones    = cast(Simd.S16x8, [1_s16, 1, 1, 1, 1, 1, 1, 1])
             let a0 = Swag.vecShuffle(Simd.packSigned((Simd.load(coefficients) << 16) >> 16,
                                                      (Simd.load(coefficients + 4) << 16) >> 16),
                                      Reverse)
@@ -1156,8 +1156,8 @@ private impl SilkChannel
                                      Reverse)
             let au0       = cast #bit(Simd.U16x8, a0)
             let au1       = cast #bit(Simd.U16x8, a1)
-            let an0       = a0 < Simd.splat(0's16)
-            let an1       = a1 < Simd.splat(0's16)
+            let an0       = a0 < Simd.splat(0_s16)
+            let an1       = a1 < Simd.splat(0_s16)
             let head      = cast([*] s32, &sLpcQ14[0])
             let h0        = Simd.load(head)
             let h1        = Simd.load(head + 4)
@@ -1165,8 +1165,8 @@ private impl SilkChannel
             let h3        = Simd.load(head + 12)
             var olderHigh = cast #bit(Simd.U16x8, Simd.packSigned(h0 >> 16, h1 >> 16))
             var newerHigh = cast #bit(Simd.U16x8, Simd.packSigned(h2 >> 16, h3 >> 16))
-            var olderLow  = Simd.packUnsigned(h0 & 0xFFFF's32, h1 & 0xFFFF's32)
-            var newerLow  = Simd.packUnsigned(h2 & 0xFFFF's32, h3 & 0xFFFF's32)
+            var olderLow  = Simd.packUnsigned(h0 & 0xFFFF_s32, h1 & 0xFFFF_s32)
+            var newerLow  = Simd.packUnsigned(h2 & 0xFFFF_s32, h3 & 0xFFFF_s32)
             let bias      = cast(s32, (.lpcOrder >> 1))
             for i in .subfrLength
             {
@@ -1181,12 +1181,18 @@ private impl SilkChannel
                 // Spelling out the rare saturation cases keeps the predictor
                 // recurrence in signed 32-bit arithmetic on the common path.
                 var shifted = pred << 4
-                if shifted >> 4 != pred do
+                if shifted >> 4 != pred
+                {
                     shifted = lshiftSat32(pred, 4)
+                }
+
                 let residual = predictorInput[i]
                 var value    = shifted + residual
-                if ((shifted ^ value) & (residual ^ value)) < 0 do
+                if ((shifted ^ value) & (residual ^ value)) < 0
+                {
                     value = addSat32(shifted, residual)
+                }
+
                 olderHigh = Simd.align(olderHigh, newerHigh, 2)
                 olderLow  = Simd.align(olderLow, newerLow, 2)
 

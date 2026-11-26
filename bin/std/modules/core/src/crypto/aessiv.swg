@@ -73,8 +73,8 @@ private func aesSivComputeTag(macKey: const [..] u8, hasAssociatedData: bool, as
         finalBlock[index] ^= value[index]
     }
 
-    var result = try AesCmac.compute(macKey, finalBlock)
-    return result
+    try cmac.update(finalBlock)
+    return try cmac.finalize()
 }
 
 private func aesSivCrypt(key, associatedData: const [..] u8, hasAssociatedData: bool, input: const [..] u8, output: [..] u8, inputTag: const [..] u8, outputTag: [..] u8, decrypt: bool) fail

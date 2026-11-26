@@ -315,7 +315,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     format.horzAlignment = .Left
     format.flags         |= .WordWrap
 
-    var text = RichString.fromMarkup("alpha <a>beta</a>.")
+    var text = RichString.fromMarkup("alpha <a>beta!{/a}.")
     text.compute()
 
     // Room for 'alpha beta' and not for the period after it, which is where the break used to go.

@@ -6,11 +6,11 @@ using Swag, Core
 {
     var faceData: FaceImpl
     faceData.face.setGlyphCount(9)
-    faceData.syntheticCMap.add('A'_u32, 8)
-    faceData.syntheticCMap.add('B'_u32, 9)
+    faceData.programTables.cmap.add('A'u32, 8)
+    faceData.programTables.cmap.add('B'u32, 9)
 
-    Swag.require(expect lookupGlyphIndex(&faceData, 'A'_u32) == 8)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'B'_u32) == 0)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 8)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'B'u32) == 0)
 }
 
 func makeCmap8Fixture(setSupplementaryFlag: bool)->Array!{u8}
@@ -27,8 +27,8 @@ func makeCmap8Fixture(setSupplementaryFlag: bool)->Array!{u8}
     writeBigU32(&cmap, subTable + 8204, 2)
 
     let bmpGroup = subTable + 8208
-    writeBigU32(&cmap, bmpGroup, 'A'_u32)
-    writeBigU32(&cmap, bmpGroup + 4, 'C'_u32)
+    writeBigU32(&cmap, bmpGroup, 'A'u32)
+    writeBigU32(&cmap, bmpGroup + 4, 'C'u32)
     writeBigU32(&cmap, bmpGroup + 8, 7)
 
     let supplementaryGroup = bmpGroup + 12
@@ -77,7 +77,7 @@ func makeCmap13Fixture()->Array!{u8}
     return cmap
 }
 
-func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
+func parseTestCmap(faceData: *FaceImpl, cmap: Array!{u8}) fail
 {
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
@@ -126,10 +126,10 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 
 #test
 {
-    let glyphA = lookupCMap4(Cmap4Fixture, 'A'_u32)
+    let glyphA = lookupCMap4(Cmap4Fixture, 'A'u32)
     Swag.require(glyphA == 3)
 
-    let glyphB = lookupCMap4(Cmap4Fixture, 'B'_u32)
+    let glyphB = lookupCMap4(Cmap4Fixture, 'B'u32)
     Swag.require(glyphB == 0)
 }
 
@@ -273,7 +273,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 
     discard expect parseCMap(&faceData, false)
     Swag.require(faceData.cmapFormat == 8)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'B'_u32) == 8)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'B'u32) == 8)
     Swag.require(expect lookupGlyphIndex(&faceData, 0x1F600) == 20)
     Swag.require(expect lookupGlyphIndex(&faceData, 0x1F601) == 21)
     Swag.require(expect lookupGlyphIndex(&faceData, 0x1F602) == 0)
@@ -305,8 +305,8 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
     let groupOffset = 12_u64 + 8208 + 12
 
     // The second group's start overlaps the first group's end.
-    writeBigU32(&cmap, groupOffset, 'C'_u32)
-    writeBigU32(&cmap, groupOffset + 4, 'C'_u32)
+    writeBigU32(&cmap, groupOffset, 'C'u32)
+    writeBigU32(&cmap, groupOffset + 4, 'C'u32)
     var faceData: FaceImpl
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
@@ -379,13 +379,13 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
     cmap[6 + 'A']  = 3
     cmap[6 + 0xE9] = 9
 
-    let glyphA = lookupCMap0(cmap.toSlice(), 'A'_u32)
+    let glyphA = lookupCMap0(cmap.toSlice(), 'A'u32)
     Swag.require(glyphA == 3)
 
     let glyphAccent = lookupCMap0(cmap.toSlice(), 0xE9)
     Swag.require(glyphAccent == 9)
 
-    let glyphUnmapped = lookupCMap0(cmap.toSlice(), 'B'_u32)
+    let glyphUnmapped = lookupCMap0(cmap.toSlice(), 'B'u32)
     Swag.require(glyphUnmapped == 0)
 
     let glyphBeyondByte = lookupCMap0(cmap.toSlice(), 0x0100)
@@ -395,41 +395,41 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 // Format 6 covers one contiguous run and nothing on either side of it.
 #test
 {
-    let glyphA = lookupCMap6(Cmap6Fixture, 'A'_u32)
+    let glyphA = lookupCMap6(Cmap6Fixture, 'A'u32)
     Swag.require(glyphA == 5)
 
-    let glyphC = lookupCMap6(Cmap6Fixture, 'C'_u32)
+    let glyphC = lookupCMap6(Cmap6Fixture, 'C'u32)
     Swag.require(glyphC == 7)
 
-    let glyphBelow = lookupCMap6(Cmap6Fixture, '@'_u32)
+    let glyphBelow = lookupCMap6(Cmap6Fixture, '@'u32)
     Swag.require(glyphBelow == 0)
 
-    let glyphAbove = lookupCMap6(Cmap6Fixture, 'D'_u32)
+    let glyphAbove = lookupCMap6(Cmap6Fixture, 'D'u32)
     Swag.require(glyphAbove == 0)
 }
 
 // Format 13 folds a whole range onto one glyph instead of walking it.
 #test
 {
-    let glyphA = lookupCMap13(Cmap13Fixture, 'A'_u32)
+    let glyphA = lookupCMap13(Cmap13Fixture, 'A'u32)
     Swag.require(glyphA == 9)
 
-    let glyphZ = lookupCMap13(Cmap13Fixture, 'Z'_u32)
+    let glyphZ = lookupCMap13(Cmap13Fixture, 'Z'u32)
     Swag.require(glyphZ == 9)
 
-    let glyphOutside = lookupCMap13(Cmap13Fixture, 'a'_u32)
+    let glyphOutside = lookupCMap13(Cmap13Fixture, 'a'u32)
     Swag.require(glyphOutside == 0)
 }
 
 // Group validation covers adjacent SIMD batches, the final tail, and both glyph rules.
 #test
 {
-    const GroupCount = 9'u32
-    const Records    = 28'u64
-    const RecordSize = 12'u64
-    for format in [12'u16, 13'u16]
+    const GroupCount = 9_u32
+    const Records    = 28_u64
+    const RecordSize = 12_u64
+    for format in [12_u16, 13_u16]
     {
-        var cmap: Array'u8
+        var cmap: Array!{u8}
         cmap.add([0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
         cmap.resize(Records + GroupCount * RecordSize)
         writeBigU16(&cmap, 12, format)
@@ -449,9 +449,9 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
         Swag.require(expect lookupGlyphIndex(&valid, 9) == (format == 12 ? 6 : 5))
 
         const Changes = [
-            {offset: Records + 4 * RecordSize,     value: 7'u32},
+            {offset: Records + 4 * RecordSize,     value: 7_u32},
             {offset: Records + 1 * RecordSize + 8, value: Swag.U32.Max},
-            {offset: Records + 8 * RecordSize + 4, value: 0x110000'u32}]
+            {offset: Records + 8 * RecordSize + 4, value: 0x110000_u32}]
         for change in Changes
         {
             var malformed = cmap
@@ -479,13 +479,13 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
     Swag.require(faceData.cmapFormat == 13)
     Swag.require(faceData.face.charMap.platformID == 0)
     Swag.require(faceData.face.charMap.encodingID == 4)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'A'_u32) == 9)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'C'_u32) == 9)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'E'_u32) == 20)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'F'_u32) == 20)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'G'_u32) == 0)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'D'_u32) == 0)
-    Swag.require(expect lookupGlyphIndex(&faceData, 'Z'_u32) == 0)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'A'u32) == 9)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'C'u32) == 9)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'E'u32) == 20)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'F'u32) == 20)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'G'u32) == 0)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'D'u32) == 0)
+    Swag.require(expect lookupGlyphIndex(&faceData, 'Z'u32) == 0)
 }
 
 // Format-13 groups must fit their extent, be sorted and non-overlapping, and name
@@ -694,7 +694,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 // Two faces can share a cmap range and declare different glyph counts.
 #test
 {
-    var cmap: Array'u8
+    var cmap: Array!{u8}
     cmap.add([
         0x00, 0x00, 0x00, 0x01,
         0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
@@ -726,7 +726,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 // Visiting a grouped map skips glyph zero and the surrogate interval.
 #test
 {
-    var cmap: Array'u8
+    var cmap: Array!{u8}
     cmap.resize(12 + 16 + 36)
     cmap[3]  = 1
     cmap[7]  = 4
@@ -749,8 +749,8 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
     faceData.face.setGlyphCount(3000)
     expect parseCMap(&faceData, false)
 
-    var characters: Array'rune
-    var glyphs:     Array'u32
+    var characters: Array!{rune}
+    var glyphs:     Array!{u32}
     faceData.face.visitCharacters(0, func|&characters, &glyphs|(character: rune, glyphIndex: u32)->bool
     {
         characters.add(character)
@@ -761,10 +761,11 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
     const Expected: [7] rune = ['B', 'C', cast(rune, 0xD7FF), cast(rune, 0xE000),
                                 cast(rune, 0xE001), cast(rune, 0x1F600), cast(rune, 0x1F601)]
     Swag.require(Slice.equals(characters.toSlice(), cast(const [..] rune, Expected)))
-    for character, index in characters do
+    for character, index in characters {
         Swag.require(glyphs[index] == faceData.face.glyphIndex(character))
 
-    var visited = 0'u32
+    }
+    var visited = 0_u32
     faceData.face.visitCharacters(0xD800, func|&visited|(character: rune, glyphIndex: u32)->bool
     {
         Swag.require(character == 0xE000 and glyphIndex == 2059)
@@ -779,8 +780,8 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 {
     var faceData: FaceImpl
     expect parseTestCmap(&faceData, makeCmap13Fixture())
-    var codes:  Array'rune
-    var glyphs: Array'u32
+    var codes:  Array!{rune}
+    var glyphs: Array!{u32}
     faceData.face.visitCharacters('B', func|&codes, &glyphs|(character: rune, glyphIndex: u32)->bool
     {
         codes.add(character)
@@ -796,8 +797,8 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 // Format-4 visitation agrees with lookup for array entries, deltas and overlapping segments.
 #test
 {
-    const Subtable = 12'u64
-    var cmap: Array'u8
+    const Subtable = 12_u64
+    var cmap: Array!{u8}
     cmap.resize(Subtable + 48)
     cmap[3]  = 1
     cmap[5]  = 3
@@ -831,12 +832,13 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
 
         var faceData: FaceImpl
         expect parseTestCmap(&faceData, cmap)
-        var expected: Array'rune
-        for code in 0x42'u32 to 0x45
+        var expected: Array!{rune}
+        for code in 0x42_u32 to 0x45
         {
             let character = cast(rune, code)
-            if faceData.face.glyphIndex(character) do
+            if faceData.face.glyphIndex(character) {
                 expected.add(character)
+            }
         }
 
         if not attempt
@@ -846,7 +848,7 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array!{u8}) fail
         }
 
         let face = &faceData.face
-        var visited: Array'rune
+        var visited: Array!{rune}
         face.visitCharacters(0x42, func|face, &visited|(character: rune, glyphIndex: u32)->bool
         {
             Swag.require(face.glyphIndex(character) == glyphIndex)

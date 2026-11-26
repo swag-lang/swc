@@ -164,6 +164,8 @@ private func circlePath(cx, cy, r: f32)->String
     let before = renderClipped(&cold)
     let after  = renderClipped(&warm)
     Swag.require(before.pixels.count == after.pixels.count)
-    for byte, index in before.pixels do
+    for byte, index in before.pixels
+    {
         Swag.require(byte == after.pixels[index])
+    }
 }

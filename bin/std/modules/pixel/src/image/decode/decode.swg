@@ -116,8 +116,10 @@ impl Image
 
     func registerDecoderEntry(type: const *TypeInfoStruct, checksGeometry: bool)
     {
-        for &decoder in decoders where decoder.type == type do
+        for &decoder in decoders where decoder.type == type
+        {
             return
+        }
 
         let itf = unwrap Swag.makeInterface(null, type, IImageDecoder)
         decoders.add(ImageDecoder{itf.format(), type, checksGeometry})

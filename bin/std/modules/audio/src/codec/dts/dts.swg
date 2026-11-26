@@ -191,8 +191,8 @@ private impl BitReader
             return
         }
 
-        let wordBits = .packed14 ? 14'u32 : 16
-        let mask     = .packed14 ? 0x3FFF'u16 : 0xFFFF
+        let wordBits = .packed14 ? 14_u32 : 16
+        let mask     = .packed14 ? 0x3FFF_u16 : 0xFFFF
         while .bitsBuffered < count and .byteSize - .bytePosition >= 2
         {
             let first  = .data[.bytePosition]
@@ -226,13 +226,13 @@ private impl BitReader
                 .overrun = true
                 let remaining = .bitsBuffered
                 .bitsBuffered = 0
-                let bits = .buffer & ((1'u64 << remaining) - 1)
+                let bits = .buffer & ((1_u64 << remaining) - 1)
                 return cast(u32, (bits << (count - remaining)))
             }
         }
 
         .bitsBuffered -= count
-        return cast(u32, ((.buffer >> .bitsBuffered) & ((1'u64 << count) - 1)))
+        return cast(u32, ((.buffer >> .bitsBuffered) & ((1_u64 << count) - 1)))
     }
 
     mtd readSigned(count: u32)->s32
@@ -259,8 +259,9 @@ private impl BitReader
         let lastPairByte = (position + 6 * width) >> 3
         if .packed14 or .littleEndianWords or .overrun or lastPairByte + 8 > .byteSize
         {
-            for index in SamplesPerSubband do
+            for index in SamplesPerSubband {
                 output[][index] = .readSigned(width)
+            }
             return
         }
 
@@ -286,8 +287,9 @@ private impl BitReader
 
     mtd readHuffman(root: u32)->s32 fail
     {
-        if .bitsBuffered < HuffmanPrefixBits do
+        if .bitsBuffered < HuffmanPrefixBits {
             .refill(HuffmanPrefixBits)
+        }
         var node = cast(s32, root)
         if .bitsBuffered >= HuffmanPrefixBits and not .overrun
         {
@@ -321,12 +323,14 @@ private impl BitReader
     // would run past the packet, so short valid codes may still end close to its boundary.
     mtd readTernaryBand(output: *[SamplesPerSubband] s32) fail
     {
-        if .bitsBuffered < 2 * TernaryPrefixBits do
+        if .bitsBuffered < 2 * TernaryPrefixBits {
             .refill(2 * TernaryPrefixBits)
+        }
         if .bitsBuffered < 2 * TernaryPrefixBits or .overrun
         {
-            for index in SamplesPerSubband do
+            for index in SamplesPerSubband {
                 output[][index] = (try .readHuffman(QuantBookRoots[0, 0])) - QuantBookBias[0]
+            }
             return
         }
 
@@ -519,7 +523,7 @@ private struct Codec
     historyStart:      [MaxPrimaryChannels] u32
     predictionHistory: [MaxPrimaryChannels, MaxSubbands, 4] f64
     lfeHistory:        [8] f64
-    subbands:          Array'f64
+    subbands:          Array!{f64}
 }
 
 private impl Codec
@@ -598,8 +602,9 @@ private impl Codec
 
         // The three variable-length books share the unary code order and rotate its symbols.
         var code: u32
-        while code < 3 and reader.read(1) do
+        while code < 3 and reader.read(1) {
             code += 1
+        }
         return (4 + code - selector) & 3
     }
 
@@ -794,10 +799,12 @@ private impl Codec
         Memory.copy(&history[0], &.lfeHistory[0], #sizeof(.lfeHistory))
         Memory.copy(&history[8], samples, sampleCount * #sizeof(f64))
         let output = destination + .lfeDestination(header)
-        if header.lfe == 1 do
-            synthesisLfe'(128, 4)(output, header.channels, &history[0], sampleCount)
-        else do
-            synthesisLfe'(64, 8)(output, header.channels, &history[0], sampleCount)
+        if header.lfe == 1 {
+            synthesisLfe!{128, 4}(output, header.channels, &history[0], sampleCount)
+        }
+        else {
+            synthesisLfe!{64, 8}(output, header.channels, &history[0], sampleCount)
+        }
         Memory.copy(&.lfeHistory[0], &history[sampleCount], #sizeof(.lfeHistory))
     }
 
@@ -1209,8 +1216,9 @@ impl IPacketCodec for Codec
         }
 
         reader.byteSize = header.frameBytes
-        if header.sampleRate != .sampleRate or header.channels != .channels do
+        if header.sampleRate != .sampleRate or header.channels != .channels {
             fail InvalidFormatError{"DTS packet shape differs from its container track"}
+        }
         try .decodeFrame(cast([*] s16, destination), &reader, &header)
         return required
     }

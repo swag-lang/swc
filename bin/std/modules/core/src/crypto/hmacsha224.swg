@@ -13,20 +13,6 @@ struct HmacSha224
     initialized: bool
 }
 
-private func sha224Bytes(digest: Hash.Sha224.Digest)->HmacSha224Digest
-{
-    var result: #returntype
-    for index in digest.count
-    {
-        for byte in 4
-        {
-            result[index * 4 + byte] = Math.byteAt(digest[index], 3 - byte)
-        }
-    }
-
-    return result
-}
-
 impl HmacSha224
 {
     // Creates an initialized HMAC-SHA-224 sequence for `key`.
@@ -40,13 +26,15 @@ impl HmacSha224
     // Replaces any previous keyed state and starts a new sequence for `key`.
     mtd reset(key: const [..] u8)
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
 
         var pad: [64] u8
         if key.count > pad.count
         {
-            var hashed = sha2HmacDigestBytes'7(Hash.Sha224.compute(key))
+            var hashed = sha2HmacDigestBytes!{7}(Hash.Sha224.compute(key))
             Swag.memcpy(&pad[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
@@ -56,13 +44,13 @@ impl HmacSha224
         }
 
         .inner.reset()
-        xorSha2HmacPad'0x36(pad.buffer)
+        xorSha2HmacPad!{0x36}(pad.buffer)
         .inner.update(pad)
 
         .outer.reset()
 
         // Convert the inner pad into the outer pad in the same buffer.
-        xorSha2HmacPad'(0x36 ^ 0x5C)(pad.buffer)
+        xorSha2HmacPad!{0x36 ^ 0x5C}(pad.buffer)
         .outer.update(pad)
         .initialized = true
         secureClear(pad)
@@ -84,7 +72,7 @@ impl HmacSha224
         let innerDigest = .inner.finishHmacInner()
         let outerDigest = .outer.finishHmacOuter(innerDigest)
         var result: #returntype
-        writeSha2HmacDigest'7(outerDigest, result.buffer)
+        writeSha2HmacDigest!{7}(outerDigest, result.buffer)
         .clear()
         return result
     }
@@ -98,8 +86,10 @@ impl HmacSha224
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        if .initialized do
+        if .initialized
+        {
             .clear()
+        }
     }
 
     // Computes HMAC-SHA-224 for `data` in one operation.

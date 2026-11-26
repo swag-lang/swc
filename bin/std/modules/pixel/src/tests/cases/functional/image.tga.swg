@@ -430,7 +430,7 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
 // Truevision's legacy extensions select the same decoder as TGA.
 #test
 {
-    let source = Image.create(1, 1, .BGR8, [10'u8, 20, 30])
+    let source = Image.create(1, 1, .BGR8, [10_u8, 20, 30])
     let bytes  = expect source.encodeToBytes("out.tga")
     Swag.require(Image.canLoad("in.tga"))
     Swag.require(Image.canSave("out.tga"))
@@ -1272,13 +1272,15 @@ private func requireTgaDecodeFails(bytes: const [..] u8, options: DecodeOptions)
     var image = Image.create(Width, Height, .RGB8)
     for i in Width * Height
     {
-        let value = i <= Width ? 0'u8 : cast(u8, i)
-        for channel in 3 do
+        let value = i <= Width ? 0_u8 : cast(u8, i)
+        for channel in 3
+        {
             image.pixels[3 * i + channel] = value
+        }
     }
 
     let bytes  = expect image.encodeToBytes("row-packets.tga", Tga.EncodeOptions{rle: true})
-    var offset = 18'u64
+    var offset = 18_u64
     for Height
     {
         var remaining = cast(u64, Width)

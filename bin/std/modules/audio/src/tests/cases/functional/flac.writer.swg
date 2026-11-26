@@ -62,11 +62,14 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
 
     const Frames = 4096
     var samples: [Frames * 2] s16
-    var state = 0x4893_8717'u32
+    var state = 0x4893_8717_u32
     for frame in Frames
     {
-        if frame == Frames / 2 do
+        if frame == Frames / 2
+        {
             samples[2 * frame] = 12_000
+        }
+
         state = cast #wrap(u32, cast(u64, state) * 1_664_525 + 1_013_904_223)
         samples[2 * frame + 1] = cast #bit(s16, cast(u16, state >> 16))
     }
@@ -88,7 +91,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     var samples: [Frames] s16
     for index in Frames
     {
-        let magnitude = cast(s16, 1'u32 << (2 + (cast(u32, index) >> 9)))
+        let magnitude = cast(s16, 1_u32 << (2 + (cast(u32, index) >> 9)))
         samples[index] = (index & 1) ? magnitude : -magnitude
     }
 
@@ -122,7 +125,7 @@ func assertFlacWriterSamples(path: string, expected: const [..] s16, channels, s
     var samples: [Frames] s16
     for index in Frames
     {
-        let radians = cast(f64, index) * (6.283185307179586'f64 / 257)
+        let radians = cast(f64, index) * (6.283185307179586_f64 / 257)
         samples[index] = cast(s16, Math.sin(radians) * 20_000)
     }
 

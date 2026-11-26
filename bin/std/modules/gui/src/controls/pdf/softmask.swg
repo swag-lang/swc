@@ -53,9 +53,14 @@ impl SoftMaskRef
     mtd const groupTransform()->Transform2
     {
         var result = .ctm
-        if result.m11 == 1 and result.m22 == 1 and not result.m12 and not result.m21 and
-           Math.abs(result.tx) <= 65536 and Math.abs(result.ty) <= 65536 and
-           result.tx == Math.round(result.tx) and result.ty == Math.round(result.ty)
+        if result.m11 == 1 and
+           result.m22 == 1 and
+           not result.m12 and
+           not result.m21 and
+           Math.abs(result.tx) <= 65536 and
+           Math.abs(result.ty) <= 65536 and
+           result.tx == Math.round(result.tx) and
+           result.ty == Math.round(result.ty)
         {
             result.tx, result.ty = 0
         }
@@ -77,9 +82,12 @@ impl SoftMaskKey
 {
     mtd const opEquals(other: SoftMaskKey)->bool
     {
-        return .groupId == other.groupId and .transform == other.transform and
-               .pageWidth == other.pageWidth and .pageHeight == other.pageHeight and
-               .backdrop == other.backdrop and .kind == other.kind
+        return .groupId == other.groupId and
+               .transform == other.transform and
+               .pageWidth == other.pageWidth and
+               .pageHeight == other.pageHeight and
+               .backdrop == other.backdrop and
+               .kind == other.kind
     }
 }
 
@@ -87,11 +95,11 @@ impl Hash.IHash32 for SoftMaskKey
 {
     mtd const impl compute()->u32
     {
-        let t = &.transform
+        let t    = &.transform
         var hash = .groupId
         for value in [t.m11, t.m12, t.m21, t.m22, t.tx, t.ty, .pageWidth, .pageHeight]
         {
-            let bits = value == 0 ? 0'u32 : cast #bit(u32, value)
+            let bits = value == 0 ? 0_u32 : cast #bit(u32, value)
             hash = (hash << 5 | hash >> 27) ^ bits
         }
 

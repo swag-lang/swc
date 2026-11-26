@@ -25,10 +25,10 @@ private struct FontSourceStorage
 {
     late allocator:  IAllocator
     references:      s64 = 1
-    bytes:           Array'u8
-    woffSfnt:        Array'u8
+    bytes:           Array!{u8}
+    woffSfnt:        Array!{u8}
     type1Program:    *Type1Font?
-    cffPrograms:     Array'(*CffFont)
+    cffPrograms:     Array!{*CffFont}
     programTables:   *ProgramTables?
     cmapSelections:  Array'CMapCacheEntry
     verticalMetrics: Array'(*VerticalMetricTable)
@@ -41,16 +41,24 @@ impl FontSourceStorage
 {
     mtd opDrop()
     {
-        if let program = .type1Program do
+        if let program = .type1Program
+        {
             Memory.delete(program, .allocator)
-        for program in .cffPrograms do
+        }
+
+        for program in .cffPrograms
+        {
             Memory.delete(program, .allocator)
-        if let tables = .programTables do
+        }
+
+        if let tables = .programTables
+        {
             Memory.delete(tables, .allocator)
         for table in .verticalMetrics do
             Memory.delete(table, .allocator)
         for entry in .postNames do
             Memory.delete(entry.names, .allocator)
+        }
     }
 }
 
@@ -70,8 +78,10 @@ impl FontSource
 {
     mtd opPostCopy()
     {
-        if let storage = .storage do
+        if let storage = .storage
+        {
             discard Atomic.add(&storage.references, 1)
+        }
     }
 
     mtd opDrop()
@@ -90,18 +100,26 @@ impl FontSource
     // Face views use the reconstructed sfnt once prepareBytes has published it.
     mtd const faceBytes()->const [..] u8
     {
-        if let storage = .storage do
+        if let storage = .storage
+        {
             return storage.woffSfnt.count ? storage.woffSfnt.toSlice() : storage.bytes.toSlice()
+        }
+
         return ""
     }
 
     private mtd const prepareBytes(faceIndex: u32)->const [..] u8 fail
     {
         let input = .bytes()
-        if input.count < 4 or (try readU32(input, 0)) != TAG_WOFF do
+        if input.count < 4 or (try readU32(input, 0)) != TAG_WOFF
+        {
             return input
-        if faceIndex do
+        }
+
+        if faceIndex
+        {
             try fault(0x0F)
+        }
 
         let storage = unwrap .storage
         Sync.scopedLock(&storage.parseMutex)
@@ -119,13 +137,17 @@ impl FontSource
 
     mtd const cachedType1(bytes: const [..] u8)->const *Type1Font? fail
     {
-        if not .storage do
+        if not .storage
+        {
             return null
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
-        if let program = storage.type1Program do
+        if let program = storage.type1Program
+        {
             return program
+        }
 
         let context = Swag.getContext()
         let previousAllocator = context.allocator
@@ -133,7 +155,7 @@ impl FontSource
         defer context.allocator = previousAllocator
 
         var program = try parseType1Font(bytes)
-        let cached  = Memory.new'Type1Font(storage.allocator)
+        let cached  = Memory.new!{Type1Font}(storage.allocator)
         cached[] = #move program
         storage.type1Program = cached
         return cached
@@ -142,15 +164,19 @@ impl FontSource
     // Different faces of a collection can reference the same CFF byte range.
     mtd const cachedCff(bytes: const [..] u8)->*CffFont? fail
     {
-        if not .storage do
+        if not .storage
+        {
             return null
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
         for program in storage.cffPrograms
         {
-            if program.block.buffer == bytes.buffer and program.block.count == bytes.count do
+            if program.block.buffer == bytes.buffer and program.block.count == bytes.count
+            {
                 return program
+            }
         }
 
         let context = Swag.getContext()
@@ -159,7 +185,7 @@ impl FontSource
         defer context.allocator = previousAllocator
 
         var parsed  = try parseCffFont(bytes)
-        let program = Memory.new'CffFont(storage.allocator)
+        let program = Memory.new!{CffFont}(storage.allocator)
         program[] = #move parsed
         storage.cffPrograms.add(program)
         return program
@@ -168,16 +194,20 @@ impl FontSource
     // Only a bare program uses these tables. It occupies the entire source.
     mtd const cachedProgramTables(face: *FaceImpl)->const *ProgramTables? fail
     {
-        if not .storage do
+        if not .storage
+        {
             return null
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
-        if let tables = storage.programTables do
+        if let tables = storage.programTables
+        {
             return tables
+        }
 
         let allocator = storage.allocator
-        let tables    = Memory.new'ProgramTables(allocator)
+        let tables    = Memory.new!{ProgramTables}(allocator)
         defer #fail Memory.delete(tables, allocator)
         tables.advances.allocator = allocator
         let context = Swag.getContext()
@@ -193,8 +223,10 @@ impl FontSource
     // A shared table can occur on faces with different glyph bounds.
     mtd const cachedCMap(bytes: const [..] u8, glyphCount: u32)->CMapSelection fail
     {
-        if not .storage do
+        if not .storage
+        {
             return try selectCMap(bytes, glyphCount)
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
@@ -202,8 +234,10 @@ impl FontSource
         {
             if entry.bytes.buffer == bytes.buffer and
                entry.bytes.count == bytes.count and
-               entry.glyphCount == glyphCount do
+               entry.glyphCount == glyphCount
+            {
                 return entry.selection
+            }
         }
 
         let selection = try selectCMap(bytes, glyphCount)
@@ -213,8 +247,10 @@ impl FontSource
 
     mtd const cachedVerticalMetrics(bytes: const [..] u8, glyphCount, longMetricCount: u32)->*VerticalMetricTable?
     {
-        if not .storage do
+        if not .storage
+        {
             return null
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
@@ -234,8 +270,10 @@ impl FontSource
 
     mtd const cachedPostNames(table: const [..] u8, glyphCount, format: u32)->*GlyphNames? fail
     {
-        if not .storage do
+        if not .storage
+        {
             return null
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
@@ -243,8 +281,10 @@ impl FontSource
         {
             if entry.table.buffer == table.buffer and
                entry.table.count == table.count and
-               entry.glyphCount == glyphCount do
+               entry.glyphCount == glyphCount
+            {
                 return entry.names
+            }
         }
 
         let context = Swag.getContext()
@@ -253,7 +293,7 @@ impl FontSource
         defer context.allocator = previousAllocator
 
         let allocator = storage.allocator
-        let names     = Memory.new'GlyphNames(allocator)
+        let names     = Memory.new!{GlyphNames}(allocator)
         defer #fail Memory.delete(names, allocator)
         names.entries.allocator = storage.allocator
         try parsePostGlyphNames(names, glyphCount, table, format)
@@ -263,8 +303,10 @@ impl FontSource
 
     mtd const validatedGlyphEnd(bytes: const [..] u8, glyphCount: u32, longFormat: bool)->u64 fail
     {
-        if not .storage do
+        if not .storage
+        {
             return try validateGlyphEnd(bytes, glyphCount, longFormat)
+        }
 
         let storage = .storage
         Sync.scopedLock(&storage.parseMutex)
@@ -274,8 +316,10 @@ impl FontSource
         {
             if entry.bytes.buffer == bytes.buffer and
                entry.bytes.count == bytes.count and
-               entry.longFormat == longFormat do
+               entry.longFormat == longFormat
+            {
                 return entry.end
+            }
         }
 
         let end = try validateGlyphEnd(bytes, glyphCount, longFormat)
@@ -283,9 +327,9 @@ impl FontSource
         return end
     }
 
-    private func takeBytes(bytes: #move Array'u8, allocator: IAllocator)->FontSource
+    private func takeBytes(bytes: #move Array!{u8}, allocator: IAllocator)->FontSource
     {
-        let storage = Memory.new'FontSourceStorage(allocator)
+        let storage = Memory.new!{FontSourceStorage}(allocator)
         storage.allocator                 = allocator
         storage.bytes                     = #move bytes
         storage.cffPrograms.allocator     = allocator
@@ -323,7 +367,7 @@ public impl FontSource
     func copy(bytes: const [..] u8, allocator: IAllocator? = null)->FontSource
     {
         let resolvedAllocator = unwrap (allocator orelse Swag.getContext().allocator)
-        var owned = Array'u8{allocator: resolvedAllocator}
+        var owned = Array!{u8}{allocator: resolvedAllocator}
         owned.add(bytes)
         return takeBytes(#move owned, resolvedAllocator)
     }
@@ -334,8 +378,11 @@ public impl FontSource
     // A default source answers an empty slice.
     mtd const bytes()->const [..] u8
     {
-        if let storage = .storage do
+        if let storage = .storage
+        {
             return storage.bytes.toSlice()
+        }
+
         return ""
     }
 

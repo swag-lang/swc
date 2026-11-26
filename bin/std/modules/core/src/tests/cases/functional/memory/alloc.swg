@@ -218,9 +218,9 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
     let allocator: Swag.IAllocator = &backing
     let items = Memory.new!{OverAlignedMemoryValue}(2, allocator)
     Swag.require(cast(u64, items) % 64 == 0,
-                 "Memory.new<T>(count) must honor T's alignment")
+                 "Memory.new!{T}(count) must honor T's alignment")
     Swag.require(backing.requestedAlignment >= 64,
-                 "Memory.new<T>(count) must request T's alignment")
+                 "Memory.new!{T}(count) must request T's alignment")
 }
 
 // Filling and tracking are allocator diagnostics: only a runtime built with them can enable them.

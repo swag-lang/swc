@@ -90,12 +90,14 @@ private func encodeFileRows(image: Image, output: [*] u8, rowBytes: u64)
     }
 }
 
-private func encodePackBitsRows(output: *Array'u8, image: Image, rowBytes: u64)
+private func encodePackBitsRows(output: *Array!{u8}, image: Image, rowBytes: u64)
 {
     let swizzled = image.pixelFormat == .BGR8 or image.pixelFormat == .BGRA8
-    var converted: Array'u8
-    if swizzled do
+    var converted: Array!{u8}
+    if swizzled
+    {
         converted.reserve(rowBytes)
+    }
 
     let pixels = image.pixels.storage()
     for fileY in image.height
@@ -104,10 +106,15 @@ private func encodePackBitsRows(output: *Array'u8, image: Image, rowBytes: u64)
         if swizzled
         {
             let destination = converted.storage()
-            if image.pixelFormat == .BGR8 do
+            if image.pixelFormat == .BGR8
+            {
                 PackedPixel.swapRedBlue24Row(source, destination, cast(u64, image.width))
-            else do
+            }
+            else
+            {
                 PackedPixel.swapRedBlue32Row(source, destination, cast(u64, image.width))
+            }
+
             packBitsRow(output, destination, rowBytes)
         }
         else
@@ -217,7 +224,7 @@ internal impl IImageEncoder for Encoder
         var hasPredictor: bool
         if userOptions.compression == .Lzw
         {
-            var rawData: Array'u8
+            var rawData: Array!{u8}
             rawData.reserve(rawDataLen)
             let raw = rawData.storage()
             encodeFileRows(image, raw, rowBytes)
@@ -255,10 +262,14 @@ internal impl IImageEncoder for Encoder
         result.addNative(42_u16)         // magic
         result.addNative(cast(u32, ifdOffset))     // offset to first IFD
 
-        if compressionTag == COMPRESSION_NONE do
+        if compressionTag == COMPRESSION_NONE
+        {
             encodeFileRows(image, result.reserveInPlace(storedLen), rowBytes)
-        else do
+        }
+        else
+        {
             result.addBytes(packedData.toSlice())
+        }
 
         if dataPad
         {

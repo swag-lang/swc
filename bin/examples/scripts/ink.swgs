@@ -9,7 +9,7 @@
 
 using Core, Gui, Pixel, Core.Math
 
-var Palette:         [9] Color
+var Palette:      [9] Color
 var newDrop = true
 var counter = 0
 var currentColor: Color
@@ -31,8 +31,10 @@ var lastPos:      Vector2
 
 #drop
 {
-    for drop in drops do
+    for drop in drops
+    {
         Memory.delete(drop)
+    }
 }
 
 struct Drop
@@ -79,8 +81,10 @@ impl Drop
         {
             let p = v - other.center
             let distanceSquared = p.lengthSquared()
-            if not distanceSquared do
+            if not distanceSquared
+            {
                 continue
+            }
 
             let root = sqrt(1 + otherr / distanceSquared)
             v[] = (p * root) + other.center

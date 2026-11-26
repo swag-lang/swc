@@ -503,32 +503,37 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 #test
 {
     const Config: [2] u8 = [0x12, 0x10]
-    const PacketCount    = 560'u64
-    const Damaged        = 530'u64
+    const PacketCount    = 560_u64
+    const Damaged        = 530_u64
     let path    = audioGetTestDataPath("aac-lc-stereo-44100.aac")
     let fixture = expect aacTestPackets(path)
-    var packets: Array'SoundPacket
-    for PacketCount do
+    var packets: Array!{SoundPacket}
+    for PacketCount
+    {
         packets.add(fixture[10])
+    }
 
     var sound = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, PacketCount * 1024, packets.toSlice(), Config)
     discard expect createNoSoundEngine()
     defer destroyEngine()
     let voice = expect Voice.create(&sound)
     defer voice.destroy()
-    var serial: Array's16
+    var serial: Array!{s16}
     for
     {
         let chunk = expect voice.readBuffer()
-        if not chunk.size do
+        if not chunk.size
+        {
             break
+        }
+
         serial.add(cast(const [*] s16, unwrap chunk.buffer)[until chunk.size / #sizeof(s16)])
     }
 
     Swag.require(serial.count == PacketCount * 2048)
     let expected  = serial.storage()
     let context   = Swag.getContext()
-    var delivered = 0'u64
+    var delivered = 0_u64
     expect sound.decodePcm16(func|expected, context, delivered = &delivered|(samples: const [..] s16)->bool
     {
         Swag.require(Swag.getContext() == context)

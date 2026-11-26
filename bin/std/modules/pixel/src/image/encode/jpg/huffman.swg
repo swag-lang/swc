@@ -83,10 +83,10 @@ impl Encoder
         }
     }
 
-    const LumaDcCodes   = #run compileCodes'12(StdDcLuminanceNrCodes, StdDcLuminanceValues, false)
-    const LumaAcCodes   = #run compileCodes'256(StdAcLuminanceNrCodes, StdAcLuminanceValues, true)
-    const ChromaDcCodes = #run compileCodes'12(StdDcChrominanceNrCodes, StdDcChrominanceValues, false)
-    const ChromaAcCodes = #run compileCodes'256(StdAcChrominanceNrCodes, StdAcChrominanceValues, true)
+    const LumaDcCodes   = #run compileCodes!{12}(StdDcLuminanceNrCodes, StdDcLuminanceValues, false)
+    const LumaAcCodes   = #run compileCodes!{256}(StdAcLuminanceNrCodes, StdAcLuminanceValues, true)
+    const ChromaDcCodes = #run compileCodes!{12}(StdDcChrominanceNrCodes, StdDcChrominanceValues, false)
+    const ChromaAcCodes = #run compileCodes!{256}(StdAcChrominanceNrCodes, StdAcChrominanceValues, true)
 
     // A symbol already determines the category. Keep the shifted prefix and combined bit count.
     func(Size: u64) compileCodes(counts, symbols: const [..] u8, ac: bool)->[Size] u32
@@ -96,11 +96,13 @@ impl Encoder
         for k in 1 to 16
         {
             // Undefined symbols still carry the amplitude bits, as with a zero-length prefix.
-            for i in packed.count do
+            for i in packed.count
+            {
                 packed[i] = (cast(u32, i) & 15) << PackedLengthShift
+            }
         }
 
-        var code  = 0'u16
+        var code  = 0_u16
         var index = 0
         for length in 1 to 16
         {

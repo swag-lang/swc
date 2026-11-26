@@ -19,6 +19,13 @@ private func aesCcmValidTagSize(size: u64)->bool
 
 private func aesCcmMacBlock(aes: *Aes, state: *[AesBlockSize] u8, block: *[AesBlockSize] u8) fail
 {
+    if aes[].usesHardwareRounds()
+    {
+        let next = aes[].encryptBlockHardware(load(&state[][0]) ^ load(&block[][0]))
+        store(&state[][0], next)
+        return
+    }
+
     for index in AesBlockSize
     {
         block[][index] ^= state[][index]
@@ -100,11 +107,13 @@ private func aesCcmMacAssociatedData(aes: *Aes, state: *[AesBlockSize] u8, assoc
 
 private func aesCcmMacDataHardware(aes: *Aes, state: *[AesBlockSize] u8, data: const [..] u8)
 {
-    let fullBlockBytes = data.count & ~15'u64
-    let tailBytes = data.count - fullBlockBytes
+    let fullBlockBytes     = data.count & ~15_u64
+    let tailBytes          = data.count - fullBlockBytes
     var chained: [1] U8x16 = [load(&state[][0])]
-    for block in fullBlockBytes / AesBlockSize do
+    for block in fullBlockBytes / AesBlockSize
+    {
         chained[0] = aes[].encryptBlockHardware(chained[0] ^ load(data.buffer + block * AesBlockSize))
+    }
 
     if tailBytes
     {
@@ -134,7 +143,7 @@ private func aesCcmStartMac(aes: *Aes, nonce, associatedData: const [..] u8, pla
     Swag.memcpy(&block[1], nonce.buffer, nonce.count)
     for index in lengthBytes
     {
-        block[15 - index] = cast(u8, (plaintext.count >> cast(u32, index * 8)) & 0xFF)
+        block[15 - index] = cast(u8, (plaintextSize >> cast(u32, index * 8)) & 0xFF)
     }
 
     defer Crypto.secureClear(block)
@@ -142,30 +151,16 @@ private func aesCcmStartMac(aes: *Aes, nonce, associatedData: const [..] u8, pla
     try aesCcmMacAssociatedData(aes, state, associatedData)
 }
 
-    var offset = 0_u64
-    while offset < plaintext.count
-    {
-        var messageBlock: [AesBlockSize] u8
-        let count = Math.min(plaintext.count - offset, AesBlockSize)
-        Swag.memcpy(&messageBlock[0], plaintext.buffer + offset, count)
-        try aesCcmMacBlock(aes, &state, &messageBlock)
-        Crypto.secureClear(messageBlock)
-        offset += count
-    }
-
-    var result = state
-    var counter: [AesBlockSize] u8
-    counter[0] = cast(u8, lengthBytes - 1)
-    Swag.memcpy(&counter[1], nonce.buffer, nonce.count)
+private func aesCcmFinishTag(aes: *Aes, counter, state: const *[AesBlockSize] u8, tagSize: u64)->[AesBlockSize] u8 fail
+{
+    var result = state[]
     var encryptedCounter: [AesBlockSize] u8
-    try aes.encryptBlock(counter, encryptedCounter)
+    try aes[].encryptBlock(counter[], encryptedCounter)
     for index in tagSize
     {
         result[index] ^= encryptedCounter[index]
     }
 
-    Crypto.secureClear(state)
-    Crypto.secureClear(counter)
     Crypto.secureClear(encryptedCounter)
     return result
 }
@@ -181,7 +176,7 @@ private func aesCcmComputeTag(aes: *Aes, nonce: const [..] u8, associatedData, p
     }
     else
     {
-        var offset = 0'u64
+        var offset = 0_u64
         while offset < plaintext.count
         {
             var messageBlock: [AesBlockSize] u8
@@ -202,27 +197,28 @@ private func aesCcmEncryptMacHardware(aes: *Aes, counterZero: [AesBlockSize] u8,
 {
     var initialCounter = counterZero
     initialCounter[15] = 1
-    let prefix = cast #bit (U64x2, load(&initialCounter[0]))
-    let low    = Swag.byteSwap(prefix[1])
-    let blocks = source.count / AesBlockSize
-    let rounds = aes[].hardwareRoundCount()
-    let initialKey = aes[].roundKey(0)
-    let finalKey   = aes[].roundKey(rounds)
+    let prefix             = cast #bit (U64x2, load(&initialCounter[0]))
+    let low                = Swag.byteSwap(prefix[1])
+    let blocks             = source.count / AesBlockSize
+    let rounds             = aes[].hardwareRoundCount()
+    let initialKey         = aes[].roundKey(0)
+    let finalKey           = aes[].roundKey(rounds)
     var chained: [1] U8x16 = [load(&state[][0])]
     for block in blocks
     {
-        let offset = block * AesBlockSize
+        let offset    = block * AesBlockSize
         let plaintext = load(source.buffer + offset)
-        var counter = prefix
+        var counter   = prefix
         counter[1] = Swag.byteSwap(low + block)
         var auth   = chained[0] ^ plaintext ^ initialKey
         var stream = cast #bit (U8x16, counter) ^ initialKey
+
         // Both operations use the same schedule and their round pipelines are independent.
         for round in 1 until rounds
         {
             let key = aes[].roundKey(round)
-            auth    = Swag.vecAesEncryptRound(auth, key)
-            stream  = Swag.vecAesEncryptRound(stream, key)
+            auth   = Swag.vecAesEncryptRound(auth, key)
+            stream = Swag.vecAesEncryptRound(stream, key)
         }
 
         chained[0] = Swag.vecAesEncryptLastRound(auth, finalKey)
@@ -236,7 +232,7 @@ private func aesCcmEncryptMacHardware(aes: *Aes, counterZero: [AesBlockSize] u8,
     {
         // Authenticate the padded plaintext before overwriting an in-place tail.
         aesCcmMacDataHardware(aes, state, source[fullBlockBytes until])
-        aesXorCounterBlocksHardware'64(aes, prefix, source, destination, blocks, 1)
+        aesXorCounterBlocksHardware!{64}(aes, prefix, source, destination, blocks, 1)
     }
 }
 
@@ -332,7 +328,8 @@ func aesCcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
     defer aes.clear()
     var computedTag: [AesBlockSize] u8
     defer Crypto.secureClear(computedTag)
-    if plaintext.count >= 64 and aes.usesHardwareRounds() and
+    if plaintext.count >= 64 and
+       aes.usesHardwareRounds() and
        (plaintext.count < AesCcmParallelThreshold or Swag.workerCount() <= 1)
     {
         var state: [AesBlockSize] u8
@@ -348,6 +345,7 @@ func aesCcmEncrypt(key, nonce, associatedData, plaintext: const [..] u8, ciphert
         computedTag = try aesCcmComputeTag(&aes, nonce, associatedData, plaintext, tag.count)
         try aesCcmCrypt(&aes, nonce, plaintext, ciphertext)
     }
+
     Swag.memcpy(tag.buffer, &computedTag[0], tag.count)
 }
 

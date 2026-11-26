@@ -7,8 +7,7 @@ func parseTestTableRecord(bytes: *Array!{u8}, tag: u32)->u64
     for index in readBigU16(bytes, 4)
     {
         let record = 12_u64 + cast(u64, index) * 16
-        if readBigU32(bytes, record) == tag
-        {
+        if readBigU32(bytes, record) == tag {
             return record
         }
     }
@@ -154,20 +153,21 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array!{u8}
 {
     // Check decreases in a vector group and across its boundaries, including the scalar tail.
     const Offsets: [11] u8 = [1, 1, 2, 3, 5, 5, 6, 6, 7, 8, 8]
-    for width in [2'u8, 3, 4]
+    for width in [2_u8, 3, 4]
     {
-        var bytes: Array'u8
+        var bytes: Array!{u8}
         bytes.resize(3 + Offsets.count * width + 7)
         writeBigU16(&bytes, 0, Offsets.count - 1)
         bytes[2] = width
-        for offset, index in Offsets do
+        for offset, index in Offsets {
             bytes[2 + (index + 1) * width] = offset
 
+        }
         let index = expect readCffIndex(bytes.toSlice(), 0)
         Swag.require(index.count() == Offsets.count - 1)
         Swag.require(index.end == bytes.count and index.item(0).count == 0 and index.item(3).count == 2)
 
-        for position in [2'u64, 5, 10]
+        for position in [2_u64, 5, 10]
         {
             let field = 2 + (position + 1) * width
             let saved = bytes[field]
@@ -237,7 +237,7 @@ private func lookupCffName(thread: const *Threading.Thread)
 
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add([
         0x01, 0x00, 0x04, 0x04,                       // Header
         0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
@@ -387,7 +387,7 @@ private func lookupCffName(thread: const *Threading.Thread)
 
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add([
         0x01, 0x00, 0x04, 0x04,                       // Header
         0x00, 0x01, 0x01, 0x01, 0x02, 0x41,           // Name INDEX
@@ -413,7 +413,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     Swag.require(ranged.glyphIndexByCid(3) == 0)
 
     // The final byte of a format 1 or 2 range is required before reading it.
-    for format in [1'u8, 2]
+    for format in [1_u8, 2]
     {
         bytes[57] = format
         let limit = format == 1 ? 60 : 61
@@ -632,7 +632,7 @@ private func lookupCffName(thread: const *Threading.Thread)
     // Even an optional table the face parser does not otherwise consume must fit
     // within the font before its directory record is accepted.
     var bytes      = loadFontBytes("arial.ttf")
-    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'_u32, 'S'_u32, 'I'_u32, 'G'_u32))
+    let dsigRecord = parseTestTableRecord(&bytes, imageTag('D'u32, 'S'u32, 'I'u32, 'G'u32))
     writeBigU32(&bytes, dsigRecord + 8, cast(u32, bytes.count + 1))
 
     var rejected: Swag.Error
@@ -833,7 +833,7 @@ private func lookupCffName(thread: const *Threading.Thread)
 
     var source = FontSource.copy(bytes.toSlice(), allocatorView)
     var ready:   u32
-    var tasks:   [2] Swag.Task'(*Face?)
+    var tasks:   [2] Swag.Task!{*Face?}
     var workers: [2] Swag.Executor
     for &task, index in tasks
     {
@@ -841,9 +841,10 @@ private func lookupCffName(thread: const *Threading.Thread)
         task.submit(func|source = &source, ready = &ready|()->*Face?
         {
             discard Atomic.add(ready, 1)
-            while Atomic.get(ready) != 2 do
+            while Atomic.get(ready) != 2 {
                 Threading.Thread.yield()
 
+            }
             return expect source.loadFace()
         },
                     executor: &workers[index])
@@ -867,33 +868,34 @@ private func lookupCffName(thread: const *Threading.Thread)
 
 func(width: u8) checkPackedOffsetBoundaries()
 {
-    const OffsetCount = 20'u32
+    const OffsetCount = 20_u32
     var bytes: [OffsetCount * width] u8
-    for offset in OffsetCount do
+    for offset in OffsetCount {
         bytes[offset * width + width - 1] = cast(u8, offset)
-    Swag.require(expect validatePackedOffsets'width(&bytes[0], OffsetCount - 1) == OffsetCount - 1)
+    }
+    Swag.require(expect validatePackedOffsets!{width}(&bytes[0], OffsetCount - 1) == OffsetCount - 1)
 
     // The first two SIMD blocks each ascend internally. The pair between them descends.
     const VectorPairs = width == 2 ? 8 : 4
     let next = (VectorPairs + 1) * width + width - 1
     bytes[next] = VectorPairs - 1
     var rejected: Swag.Error
-    discard catch validatePackedOffsets'width(&bytes[0], OffsetCount - 1) as rejected
+    discard catch validatePackedOffsets!{width}(&bytes[0], OffsetCount - 1) as rejected
     Swag.require(not rejected.isEmpty())
 
     // A descending last offset must also be caught after the SIMD loop.
     bytes[next] = VectorPairs + 1
     bytes[OffsetCount * width - 1] = 0
     rejected    = {}
-    discard catch validatePackedOffsets'width(&bytes[0], OffsetCount - 1) as rejected
+    discard catch validatePackedOffsets!{width}(&bytes[0], OffsetCount - 1) as rejected
     Swag.require(not rejected.isEmpty())
 }
 
 #test
 {
-    checkPackedOffsetBoundaries'2()
-    checkPackedOffsetBoundaries'3()
-    checkPackedOffsetBoundaries'4()
+    checkPackedOffsetBoundaries!{2}()
+    checkPackedOffsetBoundaries!{3}()
+    checkPackedOffsetBoundaries!{4}()
 }
 
 // The shared loca scan still has to fit each face's own glyf table.

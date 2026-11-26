@@ -100,7 +100,7 @@ func nestedSquares()->LinePathList
 // Blocks of outer edges may skip a distant hole while retaining tolerant contacts.
 #test
 {
-    for top in [25.0'f32, 0.25'f32, -1.0'f32]
+    for top in [25.0_f32, 0.25_f32, -1.0_f32]
     {
         var list: LinePathList
         with let outer = list.newPath()
@@ -108,8 +108,11 @@ func nestedSquares()->LinePathList
             .start(0, 0)
             .lineTo(10, 0)
             .lineTo(10.02, 0)
-            for i in 49 do
+            for i in 49
+            {
                 .lineTo(cast(f32, 12 + i * 2), 0)
+            }
+
             .lineTo(108, 100)
             .lineTo(0, 100)
             .close()

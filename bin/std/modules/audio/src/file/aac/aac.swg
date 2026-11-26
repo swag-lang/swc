@@ -110,8 +110,10 @@ internal func openFile(path: string)->SoundFile fail
 {
     var source    = try ByteSource.openFile(path)
     let fileBytes = source.size()
-    if fileBytes < 7 do
+    if fileBytes < 7
+    {
         fail InvalidFormatError{"file carries no ADTS frame"}
+    }
 
     var packets: Array!{SoundPacket}
     var config:  Array!{u8}

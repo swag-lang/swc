@@ -87,9 +87,10 @@ impl BitStream
             if .codeBuffer == 0 and .numBits == cast #bit (u8, -1)
             {
                 .numBits = 0
+
+                // If buffer is already full, prevent overflow
             }
 
-            // If buffer is already full, prevent overflow
             if .codeBuffer >= 1_u64 << .numBits
             {
                 .numBits = 255

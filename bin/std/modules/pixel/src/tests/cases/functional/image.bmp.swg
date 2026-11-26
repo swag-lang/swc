@@ -69,10 +69,10 @@ private func checkBmp16Masks(masks: Bmp.Masks)
     // Cover every wide field width and test both low and high bit alignment.
     for bits in 9 until 15
     {
-        let mask = (1'u32 << bits) - 1
+        let mask = (1_u32 << bits) - 1
         masks.r = Bmp.readMask(mask)
-        masks.g = Bmp.readMask(1'u32 << bits)
-        masks.b = Bmp.readMask(1'u32 << (bits + 1))
+        masks.g = Bmp.readMask(1_u32 << bits)
+        masks.b = Bmp.readMask(1_u32 << (bits + 1))
         checkBmp16Masks(masks)
 
         masks.r = Bmp.readMask(2)
@@ -745,12 +745,15 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
                                   [0x00FFFFFF, 0x0F000000, 0xF0000000, 0],
                                   [0x3FFFFFFF, 0x40000000, 0x80000000, 0]]
 
-    func pixelWord(x, y: s32)->u32 => cast(u32, (y * Width + x + 1)) * #wrap 0x9E37_79B9'u32
+    func pixelWord(x, y: s32)->u32 => cast(u32, (y * Width + x + 1)) * #wrap 0x9E37_79B9_u32
 
     func scale(pixel, mask: u32)->u8
     {
-        if not mask do
+        if not mask
+        {
             return 255
+        }
+
         let shift = Math.trailingZeros(mask)
         let max   = cast(u64, mask >> shift)
         let value = cast(u64, ((pixel & mask) >> shift))
@@ -763,11 +766,18 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
         cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 70 + Bytes, bfOffBits: 70})
         cb.addStruct(Bmp.Header{biSize: 56, biWidth: Width, biHeight: -Height, biPlanes: 1,
                                 biBitCount: 32, biCompression: Bmp.BI_BITFIELDS, biSizeImage: Bytes})
-        for mask in layout do
+        for mask in layout
+        {
             cb.addNative(mask)
-        for y in Height do
-            for x in Width do
+        }
+
+        for y in Height
+        {
+            for x in Width
+            {
                 cb.addNative(pixelWord(cast(s32, x), cast(s32, y)))
+            }
+        }
 
         let image = expect Image.decode("masked-rows.bmp", nnBytes(cb.toSlice()))
         for y in Height
@@ -790,13 +800,13 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     var image = Image.create(Samples, 1, .BGRA8)
     for bits in 1 until 31
     {
-        let max = (1'u32 << bits) - 1
+        let max = (1_u32 << bits) - 1
         for high in [false, true]
         {
             let shift = high ? 32 - bits : 0
             let masks = Bmp.Masks{r: Bmp.readMask(max << shift),
-                                  g: Bmp.readMask(high ? 1'u32 : 1'u32 << bits),
-                                  b: Bmp.readMask(high ? 2'u32 : 1'u32 << (bits + 1))}
+                                  g: Bmp.readMask(high ? 1_u32 : 1_u32 << bits),
+                                  b: Bmp.readMask(high ? 2_u32 : 1_u32 << (bits + 1))}
             for level in 255
             {
                 let boundary = cast(u32, ((cast(u64, max) * (2 * level + 1) + 509) / 510))
@@ -820,13 +830,13 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
 {
     const Width  = 33
     const Height = 17
-    for depth in [1'u16, 4, 8]
+    for depth in [1_u16, 4, 8]
     {
-        let full          = 1'u32 << depth
-        let short         = depth == 1 ? 1'u32 : (depth == 4 ? 7'u32 : 43'u32)
-        let pixelsPerByte = 8'u32 / depth
+        let full          = 1_u32 << depth
+        let short         = depth == 1 ? 1_u32 : (depth == 4 ? 7_u32 : 43_u32)
+        let pixelsPerByte = 8_u32 / depth
         let dataBytes     = (cast(u32, Width) + pixelsPerByte - 1) / pixelsPerByte
-        let stride        = (dataBytes + 3) & ~3'u32
+        let stride        = (dataBytes + 3) & ~3_u32
         for paletteCount in [short, full]
         {
             let offset = 54 + 4 * paletteCount
@@ -855,8 +865,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
                     cb.addNative(packed)
                 }
 
-                for stride - dataBytes do
-                    cb.addNative(0xFD'u8)
+                for stride - dataBytes
+                {
+                    cb.addNative(0xFD_u8)
+                }
             }
 
             cb.makeLinear()
@@ -866,7 +878,7 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
                 for x in Width
                 {
                     let index = cast(u8, (cast(u32, x * 5 + y * 17) % paletteCount))
-                    let want  = Color.fromArgb(255'u8, 255 - index, index ^ 0xA5, index)
+                    let want  = Color.fromArgb(255_u8, 255 - index, index ^ 0xA5, index)
                     Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == want)
                 }
             }
@@ -878,9 +890,9 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
 #test
 {
     const Packed: [18] u8 = [5, 0x01, 0, 2, 2, 0, 0, 5, 0x10, 0x10, 0x1F, 0xA5, 1, 0x0F, 0, 0, 0, 1]
-    const First           = 0xFF020100'u32
-    const Second          = 0xFF2C2B2A'u32
-    const Clear           = 0xFF000000'u32
+    const First           = 0xFF020100_u32
+    const Second          = 0xFF2C2B2A_u32
+    const Clear           = 0xFF000000_u32
     const Expected        = [First, Second, First, Second, First, Clear, Clear, Second, First, Second, First, Second, First]
     var cb: ConcatBuffer
     cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 62 + cast(u32, Packed.count), bfOffBits: 62})
@@ -891,8 +903,10 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     cb.addBytes(Packed)
 
     let image = expect Image.decode("rle4-mixed.bmp", nnBytes(cb.toSlice()))
-    for color, x in Expected do
+    for color, x in Expected
+    {
         Swag.require(image.pixelColor(cast(s32, x), 0).argb == color)
+    }
 }
 
 // Error: BI_RLE8 stream ending without an end-of-bitmap marker must fail.
@@ -968,11 +982,11 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
 // A truncated command can occur before the first pixel or in the end marker.
 #test
 {
-    for depth in [4'u16, 8]
+    for depth in [4_u16, 8]
     {
         let compression = depth == 4 ? Bmp.BI_RLE4 : Bmp.BI_RLE8
-        let index       = depth == 4 ? 0x10'u8 : 1'u8
-        for size in [1'u32, 3]
+        let index       = depth == 4 ? 0x10_u8 : 1_u8
+        for size in [1_u32, 3]
         {
             var cb: ConcatBuffer
             cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 62 + size, bfOffBits: 62})
@@ -980,11 +994,11 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
                                     biCompression: compression, biSizeImage: size, biClrUsed: 2})
             addBmpPaletteColor(&cb, 0, 0, 0)
             addBmpPaletteColor(&cb, 40, 50, 60)
-            cb.addNative(1'u8)
+            cb.addNative(1_u8)
             if size == 3
             {
                 cb.addNative(index)
-                cb.addNative(0'u8)
+                cb.addNative(0_u8)
             }
 
             var image:   Image

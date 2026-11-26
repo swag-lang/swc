@@ -6,7 +6,7 @@ using Core
 #test
 {
     var scratch: ScanScratch
-    var line: Array'Crossing
+    var line:    Array!{Crossing}
     for sample in 3
     {
         line.clear()
@@ -15,13 +15,20 @@ using Core
             var index = (i * 83) % 192
             if sample == 1
             {
-                if index == 90 do
+                if index == 90
+                {
                     index = 91
-                elif index == 91 do
+                }
+                else if index == 91
+                {
                     index = 90
+                }
             }
-            elif sample == 2 do
+            else if sample == 2
+            {
                 index = 191 - index
+            }
+
             line.add({cast(f32, index), cast(s32, (i * 83) % 192)})
         }
 
@@ -32,13 +39,20 @@ using Core
             var original = cast(s32, i)
             if sample == 1
             {
-                if original == 90 do
+                if original == 90
+                {
                     original = 91
-                elif original == 91 do
+                }
+                else if original == 91
+                {
                     original = 90
+                }
             }
-            elif sample == 2 do
+            else if sample == 2
+            {
                 original = 191 - original
+            }
+
             Swag.require(sorted.winding == original)
         }
     }

@@ -172,7 +172,7 @@ const PackedFormats: [18] PixelFormat = [
         var metadata: ImageMetadata
         metadata.signature = 73
         metadata.tag       = "alpha-test"
-        metadata.value.add(0x5A'u8)
+        metadata.value.add(0x5A_u8)
         source.metadata.add(#move metadata)
 
         let before = Hash.Crc32.compute(source.pixels.toSlice())
@@ -385,10 +385,10 @@ const PackedFormats: [18] PixelFormat = [
     var image = Image.create(4097, 4097, .BGRA8, alphaMode: .Premultiplied)
     let words = cast([*] u32, image.pixels.storage())
     let count = image.byteCount / 4
-    var state = 0x7892B1FD'u32
+    var state = 0x7892B1FD_u32
     for index in count
     {
-        state = state * #wrap 1664525 + #wrap 1013904223
+        state        = state * #wrap 1664525 + #wrap 1013904223
         words[index] = state
     }
 

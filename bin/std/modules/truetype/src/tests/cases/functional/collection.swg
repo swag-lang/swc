@@ -19,7 +19,7 @@ using Swag, Core
 {
     var truncated: Array!{u8}
     truncated.resize(12)
-    writeBigU32(&truncated, 0, imageTag('t'_u32, 't'_u32, 'c'_u32, 'f'_u32))
+    writeBigU32(&truncated, 0, imageTag('t'u32, 't'u32, 'c'u32, 'f'u32))
 
     var emptyOutcome: Swag.Error
     discard catch Face.countFaces(truncated.toSlice()) as emptyOutcome
@@ -116,7 +116,7 @@ using Swag, Core
     let bytes  = buildFontCollection(["arial.ttf", "arialbd.ttf"])
     let source = FontSource.copy(bytes.toSlice())
     var ready:   u32
-    var tasks:   [2] Swag.Task'bool
+    var tasks:   [2] Swag.Task!{bool}
     var workers: [2] Swag.Executor
     for &task, index in tasks
     {
@@ -124,17 +124,19 @@ using Swag, Core
         task.submit(func|source = &source, ready = &ready, index|()->bool
         {
             discard Atomic.add(ready, 1)
-            while Atomic.get(ready) != 2 do
+            while Atomic.get(ready) != 2 {
                 Threading.Thread.yield()
 
+            }
             for 4
             {
                 let face = expect source.loadFace(cast(u32, index))
                 defer face.destroy()
                 expect face.setPixelSize(0, 20)
                 expect face.loadChar('A', .Render)
-                if face.isBold() != (index == 1) or not face.glyph.bitmap.rows do
+                if face.isBold() != (index == 1) or not face.glyph.bitmap.rows {
                     return false
+                }
             }
 
             return true
@@ -142,8 +144,9 @@ using Swag, Core
                     executor: &workers[index])
     }
 
-    for &task in tasks do
+    for &task in tasks {
         Swag.require(expect task.take())
+    }
 }
 
 // A large collection member survives changes to either the file or the caller's buffer.
@@ -184,8 +187,9 @@ using Swag, Core
         expect face.loadChar('A', .Render)
         Swag.require(face.glyph.advance.x == expected.glyph.advance.x)
         Swag.require(face.glyph.bitmap.rows == expected.glyph.bitmap.rows and face.glyph.bitmap.rows > 0)
-        for row in face.glyph.bitmap.rows do
+        for row in face.glyph.bitmap.rows {
             Swag.require(Slice.equals(expect face.glyph.bitmap.row(row), expect expected.glyph.bitmap.row(row)))
+        }
     }
 }
 
@@ -217,9 +221,10 @@ using Swag, Core
     expect face.loadChar('A', .Render)
     Swag.require(face.glyph.advance.x == original.glyph.advance.x)
     Swag.require(face.glyph.bitmap.rows == original.glyph.bitmap.rows and face.glyph.bitmap.rows > 0)
-    for row in face.glyph.bitmap.rows do
+    for row in face.glyph.bitmap.rows {
         Swag.require(Slice.equals(expect face.glyph.bitmap.row(row), expect original.glyph.bitmap.row(row)))
 
+    }
     writeBigU32(&bytes, record + 12, cast(u32, MinFontCompactionSize + 1))
     discard expect File.writeAllBytes(path, bytes.toSlice())
     var invalidFile:   Swag.Error

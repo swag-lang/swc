@@ -113,13 +113,13 @@ private
         const Green = cast(S16x8, [cast(s16, FixCbToG), cast(s16, FixCrToG),
                                    cast(s16, FixCbToG), cast(s16, FixCrToG), cast(s16, FixCbToG), cast(s16, FixCrToG),
                                    cast(s16, FixCbToG), cast(s16, FixCrToG)])
-        let blue    = cast #bit(S16x8, widenLow(cb)) - 128's16
-        let red     = cast #bit(S16x8, widenLow(cr)) - 128's16
-        let greenLo = (mulAddPairs(pairLow(blue, red), Green) + (1's32 << 14)) >> 15
+        let blue    = cast #bit(S16x8, widenLow(cb)) - 128_s16
+        let red     = cast #bit(S16x8, widenLow(cr)) - 128_s16
+        let greenLo = (mulAddPairs(pairLow(blue, red), Green) + (1_s32 << 14)) >> 15
         var result: #returntype
         result.bc = roundedHigh(blue, cast(s16, 2 * FixCbToB - 2 * 65536)) + (blue << 1)
         result.rc = roundedHigh(red, cast(s16, 2 * FixCrToR - 65536)) + red
-        let greenHi = (mulAddPairs(pairHigh(blue, red), Green) + (1's32 << 14)) >> 15
+        let greenHi = (mulAddPairs(pairHigh(blue, red), Green) + (1_s32 << 14)) >> 15
         result.gc = packSigned(greenLo, greenHi)
 
         return result
@@ -130,10 +130,12 @@ private
     // Each sample of a chroma half serves two horizontally adjacent luma samples.
     func(High: bool) duplicateBias(bias: ChromaBias)->ChromaBias
     {
-        #static if High do
+        #static if High {
             return {pairHigh(bias.rc, bias.rc), pairHigh(bias.gc, bias.gc), pairHigh(bias.bc, bias.bc)}
-        else do
+        }
+        else {
             return {pairLow(bias.rc, bias.rc), pairLow(bias.gc, bias.gc), pairLow(bias.bc, bias.bc)}
+        }
     }
 
     // Writes the twenty-four bytes of eight interleaved pixels.
@@ -155,7 +157,7 @@ private
         storeTriplets(destination, Math.Simd.packUnsigned(y + first, y + bias.gc), Math.Simd.packUnsigned(y + last, y + last))
     }
 
-    func(Rgb: bool) storeColor(destination: [*] u8, luma: const [*] u8, bias: ChromaBias) => storeColorSamples'Rgb(destination, Math.Simd.load(luma), bias)
+    func(Rgb: bool) storeColor(destination: [*] u8, luma: const [*] u8, bias: ChromaBias) => storeColorSamples!{Rgb}(destination, Math.Simd.load(luma), bias)
 }
 
 // The transform coefficients, paired the way a multiply-add of adjacent lanes consumes them.
@@ -252,7 +254,7 @@ private
         let tmp11 = tmp1 + tmp2
         let tmp12 = tmp1 - tmp2
 
-        let zero = Math.Simd.splat(0's32)
+        let zero = Math.Simd.splat(0_s32)
         let odd0 = Math.Simd.mulAddPairs(pair13, Odd0From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd0From57))
         let odd1 = Math.Simd.mulAddPairs(pair13, Odd1From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd1From57))
         let odd2 = Math.Simd.mulAddPairs(pair13, Odd2From13) + (LowBand ? zero : Math.Simd.mulAddPairs(pair57, Odd2From57))
@@ -271,17 +273,19 @@ private
     // Runs one pass over the eight lines held in `v`, into the two halves of the result.
     func transformLines(v: [*] Math.Simd.S16x8, low, high: [*] Math.Simd.S32x4)
     {
-        transformHalf'false(pairLow(v[0], v[4]), pairLow(v[2], v[6]), pairLow(v[1], v[3]), pairLow(v[5], v[7]), low)
-        transformHalf'false(pairHigh(v[0], v[4]), pairHigh(v[2], v[6]), pairHigh(v[1], v[3]), pairHigh(v[5], v[7]), high)
+        transformHalf!{false}(pairLow(v[0], v[4]), pairLow(v[2], v[6]), pairLow(v[1], v[3]), pairLow(v[5], v[7]), low)
+        transformHalf!{false}(pairHigh(v[0], v[4]), pairHigh(v[2], v[6]), pairHigh(v[1], v[3]), pairHigh(v[5], v[7]), high)
     }
 
     func(Upper: bool) transformLowBandHalf(v: [*] Math.Simd.S16x8, result: [*] Math.Simd.S32x4)
     {
-        let zero = Math.Simd.splat(0's16)
-        #static if Upper do
-            transformHalf'true(pairHigh(v[0], zero), pairHigh(v[2], zero), pairHigh(v[1], v[3]), zero, result)
-        else do
-            transformHalf'true(pairLow(v[0], zero), pairLow(v[2], zero), pairLow(v[1], v[3]), zero, result)
+        let zero = Math.Simd.splat(0_s16)
+        #static if Upper {
+            transformHalf!{true}(pairHigh(v[0], zero), pairHigh(v[2], zero), pairHigh(v[1], v[3]), zero, result)
+        }
+        else {
+            transformHalf!{true}(pairLow(v[0], zero), pairLow(v[2], zero), pairLow(v[1], v[3]), zero, result)
+        }
     }
 }
 
@@ -351,17 +355,19 @@ impl Decoder
         }
 
             transposeFirstFour(v)
-            transformLowBandHalf'false(v, low)
-            transformLowBandHalf'true(v, high)
+            transformLowBandHalf!{false}(v, low)
+            transformLowBandHalf!{true}(v, high)
         }
         else
         {
-            for i in 8 do
+            for i in 8 {
                 v[i] = Math.Simd.load(data + i * 8)
+            }
             transformLines(v, low, high)
-            for i in 8 do
+            for i in 8 {
                 v[i] = Math.Simd.packSigned((low[i] + lineRound) >> linePass, (high[i] + lineRound) >> linePass)
 
+            }
             transpose(v)
             transformLines(v, low, high)
         }
@@ -424,7 +430,7 @@ impl Decoder
         var luma        = .safeSampleBuf() + row * 8
         for .maxMcusPerRow
         {
-            storeColor'Rgb(destination, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
+            storeColor!{Rgb}(destination, luma, chromaBias8(luma + planeBytes, luma + 2 * planeBytes))
 
             destination += 24
             luma        += mcuBytes
@@ -461,7 +467,7 @@ impl Decoder
         let row         = .maxMcuSizeY - .mcuLinesLeft
         let chromatic   = .adobeTransform == 2
         let inverse     = .hasAdobeMarker and not chromatic
-        let colorMask   = Math.Simd.splat(inverse ? 0'u8 : 255'u8)
+        let colorMask   = Math.Simd.splat(inverse ? 0_u8 : 255_u8)
         let blackMask   = ~colorMask
         var destination = output
         var source      = .safeSampleBuf() + row * 8
@@ -528,8 +534,8 @@ impl Decoder
         {
             // One chroma row feeds both luma rows of the minimum coded unit.
             let bias = chromaBias8(c, c + 64)
-            storeColor'Rgb(d0, y, bias)
-            storeColor'Rgb(d1, y + 8, bias)
+            storeColor!{Rgb}(d0, y, bias)
+            storeColor!{Rgb}(d1, y + 8, bias)
 
             d0 += 24
             d1 += 24
@@ -554,8 +560,8 @@ impl Decoder
         {
             // The matching chroma row covers two horizontally adjacent luma blocks.
             let bias = chromaBias8(cb, cb + chromaPlaneBytes)
-            storeColor'Rgb(destination, luma, duplicateBias'false(bias))
-            storeColor'Rgb(destination + 24, luma + 64, duplicateBias'true(bias))
+            storeColor!{Rgb}(destination, luma, duplicateBias!{false}(bias))
+            storeColor!{Rgb}(destination + 24, luma + 64, duplicateBias!{true}(bias))
 
             destination += 48
             luma        += mcuBytes
@@ -584,12 +590,12 @@ impl Decoder
         {
             // The same eight chroma corrections feed sixteen pixels in both luma rows.
             let bias  = chromaBias8(c, c + 64)
-            let left  = duplicateBias'false(bias)
-            let right = duplicateBias'true(bias)
-            storeColor'Rgb(d0, y, left)
-            storeColor'Rgb(d1, y + 8, left)
-            storeColor'Rgb(d0 + 24, y + 64, right)
-            storeColor'Rgb(d1 + 24, y + 72, right)
+            let left  = duplicateBias!{false}(bias)
+            let right = duplicateBias!{true}(bias)
+            storeColor!{Rgb}(d0, y, left)
+            storeColor!{Rgb}(d1, y + 8, left)
+            storeColor!{Rgb}(d0 + 24, y + 64, right)
+            storeColor!{Rgb}(d1 + 24, y + 72, right)
 
             d0 += 48
             d1 += 48
@@ -624,8 +630,9 @@ impl Decoder
                 let x = group * 8
                 offsets[group][component] = rowOffset + ((x / horizontalRatio) >> 3) * 64
                 var lanes: [16] u8
-                for lane in 8 do
+                for lane in 8 {
                     lanes[lane] = cast(u8, (((x + lane) / horizontalRatio) & 7))
+                }
                 indices[group][component] = cast #bit(U8x16, lanes)
             }
 
@@ -641,7 +648,7 @@ impl Decoder
                 let y  = shuffle(load(mcu + offsets[group][0]), indices[group][0])
                 let cb = shuffle(load(mcu + offsets[group][1]), indices[group][1])
                 let cr = shuffle(load(mcu + offsets[group][2]), indices[group][2])
-                storeColorSamples'Rgb(destination, y, chromaBias8Samples(cb, cr))
+                storeColorSamples!{Rgb}(destination, y, chromaBias8Samples(cb, cr))
                 destination += 24
             }
 

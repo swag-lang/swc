@@ -99,15 +99,19 @@ func coefficientPrefixes(inter: bool)->const [*] u32 => inter ? &InterPrefixes[0
 func readCoefficientPrefix(reader: *BitReader, prefixes: const [*] u32, result: *Coefficient)->bool
 {
     let at = reader.bitPos
-    if at + 16 > reader.bitEnd do
+    if at + 16 > reader.bitEnd
+    {
         return false
+    }
 
     let data = unwrap reader.data + (at >> 3)
     let word = cast(u32, Swag.byteSwap(cast(const [*] u16, data)[0]))
     let bits = (word >> (7 - cast(u32, at & 7))) & 511
     let code = prefixes[bits]
-    if not code do
+    if not code
+    {
         return false
+    }
 
     reader.bitPos += code & 15
     result.last   = (code & 0x400) != 0
@@ -122,8 +126,11 @@ func readCoefficient(reader: *BitReader, inter: bool, result: *Coefficient)->boo
     if reader.bitPos + TcoefEscapeLen <= reader.bitEnd
     {
         let mark = reader.bitPos
-        if reader.read(TcoefEscapeLen) == TcoefEscapeCod do
+        if reader.read(TcoefEscapeLen) == TcoefEscapeCod
+        {
             return try readEscape(reader, inter, result)
+        }
+
         reader.bitPos = mark
     }
 

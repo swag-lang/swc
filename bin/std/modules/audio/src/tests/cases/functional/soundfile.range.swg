@@ -130,16 +130,19 @@ using Swag, Core
 // A nonzero PCM range keeps its byte position across multiple input windows.
 #test
 {
-    const Frames = 150_000'u64
-    const First  = 17'u64
-    const Count  = 140_000'u64
+    const Frames = 150_000_u64
+    const First  = 17_u64
+    const Count  = 140_000_u64
     let path = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("pcm-range-%.wav", Guid128.random()))
     defer discard catch File.delete(path)
 
-    var samples: Array's16
+    var samples: Array!{s16}
     samples.resize(2 * Frames)
-    for index in samples.count do
+    for index in samples.count
+    {
         samples[index] = cast(s16, cast(s32, index % 65_521) - 32_760)
+    }
+
     var writer = expect Wav.Writer.create(path.toString(), 2, 48_000)
     expect writer.addFrames(samples.toSlice())
     expect writer.end()
@@ -148,7 +151,7 @@ using Swag, Core
     {
         let sound = expect SoundFile.load(path.toString(), preloadData: preload)
         var next  = 2 * First
-        var calls = 0'u32
+        var calls = 0_u32
         expect sound.decodePcm16(First, Count, func|&next, &calls, &samples|(part: const [..] s16)->bool
         {
             Swag.require(part.count and part.count % 2 == 0)

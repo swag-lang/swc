@@ -34,11 +34,12 @@ func renderColorGlyph(face: *Face, baseGlyph: u32, paletteIndex: u16, foreground
     if layers.isEmpty()
     {
         try fault(0x12)
+
+        // First find the union of the positioned layer bitmaps. The existing rasterizer
+        // owns one reusable grayscale buffer, so the second pass renders directly into
+        // the separate color destination without retaining per-layer copies.
     }
 
-    // First find the union of the positioned layer bitmaps. The existing rasterizer
-    // owns one reusable grayscale buffer, so the second pass renders directly into
-    // the separate color destination without retaining per-layer copies.
     var hasBounds = false
     var left      = 0
     var right     = 0

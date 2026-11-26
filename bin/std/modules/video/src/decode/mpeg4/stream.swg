@@ -199,7 +199,12 @@ impl Mpeg4Stream
 
         // An AVI skip inside the active GOP can continue from its ready pictures and anchors.
         // A new GOP may offer a shorter decode, and backward skips always need new anchors.
-        if .started and (not .slotTimestamps or rank < .nextRank or .decodeStartRank(rank) > .emitRank)
+        if .started and
+           (not .slotTimestamps or
+            rank!
+        {
+            .nextRank or .decodeStartRank(rank)
+        }.emitRank)
         {
             .started = false
         }

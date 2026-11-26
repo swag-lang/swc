@@ -113,10 +113,11 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
     if bytes.count < 4
     {
         return result
+
+        // A bare CFF opens with its format version, followed by a header size of at least four
+        // and an offset size of one to four; no sfnt signature can be mistaken for it.
     }
 
-    // A bare CFF opens with its format version, followed by a header size of at least four
-    // and an offset size of one to four; no sfnt signature can be mistaken for it.
     if bytes[0] == 1 and bytes[1] == 0 and bytes[2] >= 4 and bytes[3] >= 1 and bytes[3] <= 4
     {
         result.source = .Cff
@@ -135,29 +136,11 @@ private func detectProgramSource(bytes: const [..] u8)->{ source: OutlineSource,
 
 func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: string, allocator: IAllocator?, fileName: string? = null, source: const *FontSource? = null)->*Face fail
 {
-    if bytes.count == 0
-    {
-        try fault(0x06)
-    }
-
     let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let context = Swag.getContext()
     let previousAllocator   = context.allocator
     context.allocator = allocationAllocator
     defer context.allocator = previousAllocator
-
-    var normalized: Array!{u8}
-    var fontBytes = bytes
-    if bytes.count >= 4 and try readU32(bytes, 0) == TAG_WOFF
-    {
-        if faceIndex
-        {
-            try fault(0x0F)
-        }
-
-        normalized = try inflateWoff(bytes)
-        fontBytes  = normalized.toSlice()
-    }
 
     let faceData = Memory.new!{FaceImpl}(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
@@ -171,21 +154,26 @@ func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyName: str
     }
 
     let input = fileName ? faceData.fontData.toSlice() : bytes
-    if not input.count do
+    if not input.count
+    {
         try fault(0x06)
+    }
 
     if input.count >= 4 and try readU32(input, 0) == TAG_WOFF
     {
-        if faceIndex do
+        if faceIndex
+        {
             try fault(0x0F)
+        }
+
         var normalized = try inflateWoff(input)
         faceData.fontData = #move normalized
     }
-    elif let shared = source
+    else if let shared = source
     {
         faceData.fontSource = shared[]
     }
-    elif not fileName
+    else if not fileName
     {
         var member = try copyFontMember(input, faceIndex)
         if member.isEmpty()
@@ -417,7 +405,7 @@ public impl Face
     // let count = try TrueType.Face.countFaces(bytes.toSlice())
     // for index in count
     // {
-    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), index)) == "MS PGothic" { }
+    //     if (try TrueType.Face.familyNameAt(bytes.toSlice(), index)) == "MS PGothic" do
     //         break
     // }
     // ```
@@ -690,7 +678,7 @@ public impl Face
     // indices and empty or unavailable names return null.
     //
     // ```swag
-    // if let name = face.glyphName(glyphIndex) { }
+    // if let name = face.glyphName(glyphIndex) do
     //     Swag.print("glyph name: ", name)
     // ```
     mtd glyphName(glyphIndex: u32)->string?
@@ -885,7 +873,7 @@ func lookupKerningDesignUnits(faceData: const *FaceImpl, leftGlyph, rightGlyph: 
 
     if not units
     {
-        units = faceData.kernPairs.tryFind((leftGlyph << 16) | rightGlyph)?.value orelse 0
+        units = lookupLegacyKerning(faceData, (leftGlyph << 16) | rightGlyph)
     }
 
     return units

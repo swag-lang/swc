@@ -117,8 +117,10 @@ func x25519HexBytes(text: string)->Array!{u8}
         expect Crypto.x25519SharedSecret(key, coordinate, next)
         coordinate = key
         key        = next
-        if iteration == 0 do
+        if iteration == 0
+        {
             Swag.require(Crypto.constantTimeEqual(key, first.toSlice()))
+        }
     }
 
     Swag.require(Crypto.constantTimeEqual(key, thousandth.toSlice()))

@@ -52,8 +52,11 @@ private func kmacAbsorbBytepad(shake: *Hash.Shake, rate: u64, block: *[Hash.Sha3
     // The header is already in the zero-padded first block. Later blocks absorb the value directly.
     defer Crypto.secureClear(block[])
     let firstLength = Math.min(value.count, rate - prefixLength)
-    if firstLength do
+    if firstLength
+    {
         Swag.memcpy(block[].buffer + prefixLength, value.buffer, firstLength)
+    }
+
     shake[].update(block[][until rate])
 
     if firstLength < value.count
@@ -76,21 +79,6 @@ private func kmacBytepadString(shake: *Hash.Shake, rate: u64, value: const [..] 
         fail Errors.BadParameterError{"KMAC string is too long to encode"}
     }
 
-    var widthEncoding:  [9] u8
-    var lengthEncoding: [9] u8
-    let widthLength  = kmacEncodeLeft(rate, &widthEncoding)
-    let lengthLength = kmacEncodeLeft(value.count * 8, &lengthEncoding)
-    let totalLength  = widthLength + lengthLength + value.count
-    shake[].update(Swag.makeSlice(&widthEncoding[0], widthLength))
-    shake[].update(Swag.makeSlice(&lengthEncoding[0], lengthLength))
-    shake[].update(value)
-    let padding = (rate - (totalLength % rate)) % rate
-    if padding
-    {
-        var zeros: [Hash.Sha3MaxRate] u8
-        shake[].update(Swag.makeSlice(&zeros[0], padding))
-    }
-
     var prefix: [Hash.Sha3MaxRate] u8
     prefix[0] = 1
     prefix[1] = cast(u8, rate)
@@ -103,25 +91,6 @@ private func kmacBytepadPrefix(shake: *Hash.Shake, rate: u64, customization: con
     if customization.count > Swag.U64.Max / 8
     {
         fail Errors.BadParameterError{"KMAC customization is too long to encode"}
-    }
-
-    var widthEncoding:      [9] u8
-    var nameLengthEncoding: [9] u8
-    var customizationLengthEncoding: [9] u8
-    let widthLength         = kmacEncodeLeft(rate, &widthEncoding)
-    let nameLength          = kmacEncodeLeft(32, &nameLengthEncoding)
-    let customizationLength = kmacEncodeLeft(customization.count * 8, &customizationLengthEncoding)
-    let totalLength         = widthLength + nameLength + 4 + customizationLength + customization.count
-    shake[].update(Swag.makeSlice(&widthEncoding[0], widthLength))
-    shake[].update(Swag.makeSlice(&nameLengthEncoding[0], nameLength))
-    shake[].update("KMAC")
-    shake[].update(Swag.makeSlice(&customizationLengthEncoding[0], customizationLength))
-    shake[].update(customization)
-    let padding = (rate - (totalLength % rate)) % rate
-    if padding
-    {
-        var zeros: [Hash.Sha3MaxRate] u8
-        shake[].update(Swag.makeSlice(&zeros[0], padding))
     }
 
     var prefix: [Hash.Sha3MaxRate] u8
@@ -151,8 +120,12 @@ private func kmacCompute(securityBits: u64, key, message, customization: const [
     }
 
     let rate  = securityBits == 128 ? 168_u64 : 136_u64
-    var shake = try Hash.Shake.createCShake(securityBits)
-    try kmacBytepadPrefix(&shake, rate, customization)
+    var shake = try Hash.Shake.createCShake(securityBits, emptyKmacPrefix: not customization.count)
+    if customization.count
+    {
+        try kmacBytepadPrefix(&shake, rate, customization)
+    }
+
     try kmacBytepadString(&shake, rate, key)
     shake.update(message)
 

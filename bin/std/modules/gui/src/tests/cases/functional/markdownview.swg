@@ -536,7 +536,7 @@ func markdownFixturePath()->String => Path.combine(testSourceRoot(#curlocation),
 // Inline HTML is tokenized by the HTML parser before its semantics join Markdown rich text.
 #test
 {
-    Swag.require(Markdown.renderInline("Press <kbd>Ctrl</kbd> and <strong>go</strong>.") == "Press <c>Ctrl</c> and <b>go</b>.")
+    Swag.require(Markdown.renderInline("Press <kbd>Ctrl</kbd> and <strong>go!{/strong}.") == "Press <c>Ctrl</c> and <b>go!{/b}.")
     Swag.require(Markdown.renderInline("**Use <span>HTML</span> inside emphasis**") == "<b>Use HTML inside emphasis</b>")
     Swag.require(Markdown.renderInline("<a href=\"https://example.com\">Example</a>") == "<a>Example</a><t>https://example.com</t>")
     Swag.require(Markdown.renderInline("<span>&amp;lt; &lt;tag&gt;</span>") == "&lt; <<tag>")

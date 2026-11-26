@@ -2405,7 +2405,7 @@ impl Slice
         {
             for plane in 2_u64
             {
-                let count = try residualCavlc'4(&.bits, -1, (mb.residual!.chromaDc).buffer + plane * 4)
+                let count = try residualCavlc!{4}(&.bits, -1, (mb.residual!.chromaDc).buffer + plane * 4)
                 mb.dcFlags[1 + plane] = count > 0 ? 1 : 0
             }
         }
@@ -2448,7 +2448,7 @@ impl Slice
         if isIntra16
         {
             let nC    = .planeNc(mb, plane, 0, 0)
-            let count = try residualCavlc'16(&.bits, nC, storage.dc)
+            let count = try residualCavlc!{16}(&.bits, nC, storage.dc)
             mb.dcFlags[cast(u64, plane)] = count > 0 ? 1 : 0
             if count > 0 and isLuma
             {
@@ -2488,7 +2488,7 @@ impl Slice
                 {
                     // CAVLC codes an 8x8 block as four interleaved 4x4 blocks: the levels of
                     // this cell sit at every fourth position of the 8x8 scan.
-                    count = try residualCavlc'16(&.bits, nC, levels.buffer)
+                    count = try residualCavlc!{16}(&.bits, nC, levels.buffer)
                     let block = storage.t8 + cast(u64, quad) * 64
                     for coefficient in 16_u64
                     {

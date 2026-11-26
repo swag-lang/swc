@@ -77,7 +77,7 @@ impl LosslessBitReader
         if .last - .ptr >= 8 and .nBits < 8
         {
             // The eighth byte remains available for the next refill.
-            let word = cast(const [*] u64, .ptr)[0] & 0x00FFFFFFFFFFFFFF'u64
+            let word = cast(const [*] u64, .ptr)[0] & 0x00FFFFFFFFFFFFFF_u64
             .bits  |= word << .nBits
             .ptr   += 7
             .nBits += 56
@@ -134,7 +134,7 @@ struct LosslessHuffmanTree
 struct LosslessHuffmanGroup
 {
     trees:        [LOSSLESS_HUFFMAN_TREES] LosslessHuffmanTree
-    literalTable: Array'u32
+    literalTable: Array!{u32}
     literalMask:  u32
 }
 
@@ -396,9 +396,10 @@ impl LosslessHuffmanTree
     mtd next(reader: *LosslessBitReader)->u32 fail
     {
         var node: u32
-        if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last do
+        if reader.nBits < LOSSLESS_LUT_BITS and reader.ptr < reader.last {
             reader.refill()
 
+        }
         if reader.nBits >= LOSSLESS_LUT_BITS
         {
             let entry = cast(u32, .lut[reader.bits & LOSSLESS_LUT_MASK])
@@ -737,8 +738,9 @@ func losslessDecodeHuffmanGroups(reader: *LosslessBitReader, groups: *Array!{Los
             try losslessDecodeHuffmanTree(reader, tree, alphabetSize)
         }
 
-        if group do
+        if group {
             group.buildLiteralTable()
+        }
     }
 }
 
@@ -808,16 +810,19 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
         let alpha  = &groupData[0].trees[LOSSLESS_HUFF_ALPHA]
         if losslessUniformByteTree(red) and losslessUniformByteTree(blue)
         {
-            if losslessUniformByteTree(alpha) and losslessDecodeByteLiterals'4(reader, target, pixelCount, 0) do
+            if losslessUniformByteTree(alpha) and losslessDecodeByteLiterals!{4}(reader, target, pixelCount, 0) {
                 return
-            if not alpha.maxLength and losslessDecodeByteLiterals'3(reader, target, pixelCount, alpha.nodes[0].symbol << 24) do
+            }
+            if not alpha.maxLength and losslessDecodeByteLiterals!{3}(reader, target, pixelCount, alpha.nodes[0].symbol << 24) {
                 return
+            }
         }
-        elif not red.maxLength and not blue.maxLength and not alpha.maxLength
+        else if not red.maxLength and not blue.maxLength and not alpha.maxLength
         {
             let color = red.nodes[0].symbol | (blue.nodes[0].symbol << 16) | (alpha.nodes[0].symbol << 24)
-            if losslessDecodeByteLiterals'1(reader, target, pixelCount, color) do
+            if losslessDecodeByteLiterals!{1}(reader, target, pixelCount, color) {
                 return
+            }
         }
     }
 
@@ -888,7 +893,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
         default:
             using Math.Simd
 
-            const RgbaToArgb = cast(U8x16, [2'u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
+            const RgbaToArgb = cast(U8x16, [2_u8, 1, 0, 3, 6, 5, 4, 7, 10, 9, 8, 11, 14, 13, 12, 15])
             let multiplier = splat(LOSSLESS_COLOR_CACHE_MULTIPLIER)
             while offset - cachedOffset >= 16
             {
@@ -910,7 +915,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array!{u8}, width
                 let rgba = cast(const [*] u32, output + cachedOffset)[0]
 
                 // The WebP hash uses ARGB, while the decoded pixels are stored as RGBA.
-                let argb = (rgba & 0xFF00FF00'u32) | ((rgba & 0xFF) << 16) | ((rgba >> 16) & 0xFF)
+                let argb = (rgba & 0xFF00FF00_u32) | ((rgba & 0xFF) << 16) | ((rgba >> 16) & 0xFF)
                 colorCache[(argb * #wrap LOSSLESS_COLOR_CACHE_MULTIPLIER) >> colorCacheShift] = rgba
                 cachedOffset += 4
             }
@@ -969,8 +974,8 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
     for transform.oldWidth - 1
     {
         let value = destination[0]
-        let low   = (value & 0x7F7F7F7F'u32) + (prediction & 0x7F7F7F7F'u32)
-        destination[0] = low ^ ((value ^ prediction) & 0x80808080'u32)
+        let low   = (value & 0x7F7F7F7F_u32) + (prediction & 0x7F7F7F7F_u32)
+        destination[0] = low ^ ((value ^ prediction) & 0x80808080_u32)
     }
 
     var top         = 0_u64
@@ -992,7 +997,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
         var x = 1_s32
         while x < transform.oldWidth
         {
-            let zero  = splat(0'u8)
+            let zero  = splat(0_u8)
             var carry = row[start - 1]
             while end - column >= 4
             {
@@ -1123,8 +1128,9 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             x      += 1
         }
 
-        for x in column until end do
+        for x in column until end {
             addPixel(row + x, row[x - 1])
+        }
     }
 
     func addSpan(destination: [*] u32, prediction: const [*] u32, count: s32)
@@ -1138,8 +1144,9 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             i += 4
         }
 
-        for j in i until count do
+        for j in i until count {
             addPixel(destination + j, prediction[j])
+        }
     }
 
     func addAverages(destination: [*] u32, left, right: const [*] u32, count: s32)
@@ -1154,8 +1161,9 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             x += 4
         }
 
-        for i in x until count do
+        for i in x until count {
             addPixel(destination + i, averagePixel(left[i], right[i]))
+        }
     }
 
     func addColor(row: [*] u32, first, last: s32, color: u32)
@@ -1169,8 +1177,9 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
             x += 4
         }
 
-        for i in x until last do
+        for i in x until last {
             addPixel(row + i, color)
+        }
     }
 
     func addSelected(row: [*] u32, top: const [*] u32, first, last: s32)
@@ -1196,7 +1205,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
         #[Swag.Inline]
         func halve(value: U8x16)->U8x16
         {
-            let even = value & splat(0xFE'u8)
+            let even = value & splat(0xFE_u8)
             return cast #bit(U8x16, (cast #bit(U16x8, even) >> 1))
         }
 
@@ -1228,14 +1237,15 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
     }
 
     let width = transform.oldWidth
-    if width == 0 or height == 0 do
+    if width == 0 or height == 0 {
         return
 
+    }
     let data = cast([*] u32, pixels.storage())
     addPixel(data, 0xFF000000)
     addFromLeft(data, 1, width)
 
-    let tileWidth   = 1's32 << transform.bits
+    let tileWidth   = 1_s32 << transform.bits
     let tilesPerRow = losslessTileCount(width, transform.bits)
     let parameters  = transform.pixels.storage()
     for y in 1 until height
@@ -1245,7 +1255,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
         addPixel(row, top[0])
 
         var tile     = cast(u64, (4 * (y >> transform.bits) * tilesPerRow)) + 1
-        var x        = 1's32
+        var x        = 1_s32
         var boundary = tileWidth
         while x < width
         {
@@ -1268,17 +1278,20 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
                 addSpan(row + x, top + x - 1, endX - x)
 
             case 5:
-                for column in x until endX do
+                for column in x until endX {
                     addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column + 1]), top[column]))
 
+                }
             case 6:
-                for column in x until endX do
+                for column in x until endX {
                     addPixel(row + column, averagePixel(row[column - 1], top[column - 1]))
 
+                }
             case 7:
-                for column in x until endX do
+                for column in x until endX {
                     addPixel(row + column, averagePixel(row[column - 1], top[column]))
 
+                }
             case 8:
                 addAverages(row + x, top + x - 1, top + x, endX - x)
 
@@ -1286,9 +1299,10 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
                 addAverages(row + x, top + x, top + x + 1, endX - x)
 
             case 10:
-                for column in x until endX do
+                for column in x until endX {
                     addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column - 1]), averagePixel(top[column], top[column + 1])))
 
+                }
             case 11:
                 addSelected(row, top, x, endX)
 
@@ -1296,7 +1310,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array!{u8}
                 addGradient'false(row, top, x, endX)
 
             case 13:
-                addGradient'true(row, top, x, endX)
+                addGradient!{true}(row, top, x, endX)
             }
 
             x        = endX
@@ -1310,9 +1324,9 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array!{u8
 {
     using Math.Simd
 
-    const GreenSamples = cast(U8x16, [0x80'u8, 1, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13])
-    const RedSamples   = cast(U8x16, [0x80'u8, 0, 0x80, 0, 0x80, 4, 0x80, 4, 0x80, 8, 0x80, 8, 0x80, 12, 0x80, 12])
-    const GreenAlpha   = cast(U8x16, [0'u8, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255])
+    const GreenSamples = cast(U8x16, [0x80_u8, 1, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13])
+    const RedSamples   = cast(U8x16, [0x80_u8, 0, 0x80, 0, 0x80, 4, 0x80, 4, 0x80, 8, 0x80, 8, 0x80, 12, 0x80, 12])
+    const GreenAlpha   = cast(U8x16, [0_u8, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255])
 
     #[Swag.Inline]
     func multipliers(red, blue: s32)->S16x8
@@ -1325,7 +1339,7 @@ func losslessInverseCrossColor(transform: *LosslessTransform, pixels: *Array!{u8
     }
 
     let width        = transform.oldWidth
-    let tileWidth    = 1's32 << transform.bits
+    let tileWidth    = 1_s32 << transform.bits
     let tilesPerRow  = losslessTileCount(width, transform.bits)
     let data         = pixels.storage()
     let coefficients = transform.pixels.storage()
@@ -1374,7 +1388,7 @@ func losslessInverseSubtractGreen(pixels: *Array!{u8})
 {
     using Math.Simd
 
-    const Green = cast(U8x16, [1'u8, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13, 0x80])
+    const Green = cast(U8x16, [1_u8, 0x80, 1, 0x80, 5, 0x80, 5, 0x80, 9, 0x80, 9, 0x80, 13, 0x80, 13, 0x80])
     let data = cast([*] u8, pixels.storage())
     var offset: u64
     while pixels.count - offset >= 16

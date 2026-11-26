@@ -25,12 +25,12 @@ const BitRatesMpeg2: [15] u32 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 
 private func buildFrameBytes()->[3, 3, 15] u16
 {
     var sizes: #returntype
-    for version in 3'u64
+    for version in 3_u64
     {
-        let factor = version == 2 ? 144_000'u32 : 72_000
-        for rate in 3'u64
+        let factor = version == 2 ? 144_000_u32 : 72_000
+        for rate in 3_u64
         {
-            for bitrate in 15'u64
+            for bitrate in 15_u64
             {
                 let kbits = version == 2 ? BitRatesMpeg1[bitrate] : BitRatesMpeg2[bitrate]
                 sizes[version, rate, bitrate] = cast(u16, (factor * kbits / SampleRates[version, rate]))
@@ -189,11 +189,12 @@ impl BitReader
             let data = unwrap .data
             word = Math.bigEndianToNative(cast(const [*] u32, data + at)[0])
         }
-        elif at < remaining
+        else if at < remaining
         {
             let data = unwrap .data
-            for i in remaining - at do
+            for i in remaining - at {
                 word |= cast(u32, data[at + i]) << cast(u32, (24 - 8 * i))
+            }
         }
 
         return (word << cast(u32, (.bitPos & 7))) >> (32 - count)
@@ -209,8 +210,9 @@ impl BitReader
     #[Swag.Inline]
     mtd read(count: u32)->u32
     {
-        if not count do
+        if not count {
             return 0
+        }
         let value = .peek(count)
         .consume(count)
         return value
@@ -221,8 +223,9 @@ impl BitReader
     {
         let at = .bitPos
         .bitPos += 1
-        if at >= .bitEnd do
+        if at >= .bitEnd {
             return 0
+        }
         let data = unwrap .data
         return (cast(u32, data[at >> 3]) >> (7 - cast(u32, (at & 7)))) & 1
     }
@@ -236,11 +239,13 @@ impl BitReader
     mtd readMagnitude(value, escape: u32, gain: f32)->f32
     {
         var magnitude = value
-        if value == 15 and escape do
+        if value == 15 and escape {
             magnitude += .read(escape)
-        if not magnitude do
+        }
+        if not magnitude {
             return 0
 
+        }
         let sample = Powers43[magnitude] * gain
         let sign = .readBit() << 31
         return cast #bit(f32, cast #bit(u32, sample) ^ sign)
@@ -304,14 +309,14 @@ func readSideInfo(header: const *FrameHeader, bytes: const [..] u8, granules: *[
     if header.isMpeg1
     {
         let shareBits   = 4 * header.channels
-        let privateBits = header.channels == 1 ? 5'u32 : 3'u32
+        let privateBits = header.channels == 1 ? 5_u32 : 3_u32
         let start       = reader.read(9 + privateBits + shareBits)
         mainDataBegin = cast(u64, start >> (privateBits + shareBits))
-        scfsi         = start & ((1'u32 << shareBits) - 1)
+        scfsi         = start & ((1_u32 << shareBits) - 1)
     }
     else
     {
-        let privateBits = header.channels == 1 ? 1'u32 : 2'u32
+        let privateBits = header.channels == 1 ? 1_u32 : 2_u32
         mainDataBegin = cast(u64, reader.read(8 + privateBits) >> privateBits)
     }
 
@@ -424,18 +429,22 @@ struct PreparedFrame
 func prepareFrame(packet: const [..] u8, destinationSize: u64, sampleRate, channels: u32)->PreparedFrame fail
 {
     let header = try readHeader(packet)
-    if packet.count < header.frameBytes do
+    if packet.count < header.frameBytes {
         fail InvalidFormatError{"MP3 frame is shorter than its header states"}
-    if header.sampleRate != sampleRate or header.channels != channels do
+    }
+    if header.sampleRate != sampleRate or header.channels != channels {
         fail InvalidFormatError{"MP3 frame does not match the stream its container declared"}
-    if destinationSize < cast(u64, header.frameSamples) * channels * #sizeof(s16) do
+    }
+    if destinationSize < cast(u64, header.frameSamples) * channels * #sizeof(s16) {
         fail BadParameterError{"MP3 destination buffer is too small"}
 
-    let sideOffset    = 4 + (header.hasCrc ? 2'u64 : 0)
+    }
+    let sideOffset    = 4 + (header.hasCrc ? 2_u64 : 0)
     let payloadOffset = sideOffset + header.sideInfoBytes
-    if payloadOffset > header.frameBytes do
+    if payloadOffset > header.frameBytes {
         fail InvalidFormatError{"MP3 frame is too short for its side information"}
 
+    }
     var result: #returntype
     result.header        = header
     result.payloadOffset = payloadOffset
@@ -469,8 +478,9 @@ struct Codec
 private func buildPowers43()->[15 + (1 << 13)] f32
 {
     var powers: #returntype
-    for value in powers.count do
-        powers[value] = cast(f32, Math.pow(cast(f64, value), 4.0'f64 / 3.0'f64))
+    for value in powers.count {
+        powers[value] = cast(f32, Math.pow(cast(f64, value), 4.0_f64 / 3.0_f64))
+    }
     return powers
 }
 
@@ -488,7 +498,7 @@ private func buildBandGains()->[MaxGainExponent - MinGainExponent + 1] f32
     for index in gains.count
     {
         let exponent = cast(s32, index) + MinGainExponent
-        gains[index] = cast(f32, Math.pow(2.0'f64, cast(f64, exponent) / 4.0'f64))
+        gains[index] = cast(f32, Math.pow(2.0_f64, cast(f64, exponent) / 4.0_f64))
     }
 
     return gains
@@ -496,8 +506,8 @@ private func buildBandGains()->[MaxGainExponent - MinGainExponent + 1] f32
 
 private const BandGains = #run buildBandGains()
 
-private const Count1TableA = 25'u32
-private const Count1TableB = 26'u32
+private const Count1TableA = 25_u32
+private const Count1TableB = 26_u32
 
 // The decoding tree for a resolved Huffman table number.
 private func codeTree(table: u32)->const [..] s16
@@ -549,37 +559,38 @@ private func packSymbol(symbol, axis: u32)->u32
 
 // A complete prefix reaches a negative leaf. Otherwise it names the node where
 // the bitwise walk must resume.
-private func walkPrefix(tree: const [..] s16, prefix, bits: u32, start = 0's16)->{node: s16, length: u32}
+private func walkPrefix(tree: const [..] s16, prefix, bits: u32, start = 0_s16)->{node: s16, length: u32}
 {
     var node = start
     for length in 1 until bits + 1
     {
         let bit = (prefix >> (bits - length)) & 1
         node = tree[cast(u32, node) * 2 + bit]
-        if node < 0 do
+        if node < 0 {
             return {node, length}
+        }
     }
 
     return {node, bits}
 }
 
 // Ten bits cover the longest count1 code and all four signs that can follow it.
-private const Count1PrefixBits = 10'u32
+private const Count1PrefixBits = 10_u32
 
 private func buildCount1Tokens()->[2, 1 << Count1PrefixBits] u16
 {
     var tokens: #returntype
-    for table in 2'u32
+    for table in 2_u32
     {
         let tree = codeTree(Count1TableA + table)
-        for prefix in 1'u32 << Count1PrefixBits
+        for prefix in 1_u32 << Count1PrefixBits
         {
             let {node, length} = walkPrefix(tree, prefix, Count1PrefixBits)
             Swag.require(node < 0)
             let symbol = cast(u32, (-node - 1))
             var total  = length
-            var values = 0'u32
-            for i in 4'u32 where (symbol & (8'u32 >> i)) != 0
+            var values = 0_u32
+            for i in 4_u32 where (symbol & (8_u32 >> i)) != 0
             {
                 total += 1
                 let sign = (prefix >> (Count1PrefixBits - total)) & 1
@@ -596,9 +607,9 @@ private func buildCount1Tokens()->[2, 1 << Count1PrefixBits] u16
 private const Count1Tokens        = #run buildCount1Tokens()
 private const SignedUnit: [4] f32 = [0.0, 1.0, 0.0, -1.0]
 
-private const PairPrefixBits = 10'u32
-private const PairTailBits   = 4'u32
-private const PairTailRows   = 149'u64 // Ten-bit prefixes that still name an internal node.
+private const PairPrefixBits = 10_u32
+private const PairTailBits   = 4_u32
+private const PairTailRows   = 149_u64 // Ten-bit prefixes that still name an internal node.
 
 // Leaf entries carry two five-bit magnitudes with signs, the four-bit code length,
 // and the two-bit sign count. A sign count of three leaves the trailing bits to the
@@ -612,19 +623,19 @@ private struct PairLookup
 private func buildPairLookup()->PairLookup
 {
     var result: #returntype
-    var continuation = 0'u64
-    for table in 25'u32
+    var continuation = 0_u64
+    for table in 25_u32
     {
         let tree = codeTree(table)
         let axis = codeWidth(table)
-        for prefix in 1'u32 << PairPrefixBits
+        for prefix in 1_u32 << PairPrefixBits
         {
             let {node, length} = walkPrefix(tree, prefix, PairPrefixBits)
             if node >= 0
             {
                 Swag.require(continuation < PairTailRows)
                 result.roots[table, prefix] = cast(u16, continuation)
-                for suffix in 1'u32 << PairTailBits
+                for suffix in 1_u32 << PairTailBits
                 {
                     let entry = walkPrefix(tree, suffix, PairTailBits, node)
                     let next  = entry.node
@@ -679,8 +690,9 @@ private func buildPairLookup()->PairLookup
 private func buildSignedPowers()->[32] f32
 {
     var values: #returntype
-    for value in values.count do
+    for value in values.count {
         values[value] = value & 16 ? -Powers43[value & 15] : Powers43[value & 15]
+    }
     return values
 }
 
@@ -822,9 +834,10 @@ impl Codec
             share <<= 1
         }
 
-        if header.isMpeg1 and channel == 1 do
+        if header.isMpeg1 and channel == 1 {
             Memory.copy(&.intensityPos[0], &values[0], Math.min(at, 40))
 
+        }
         while at < 40
         {
             values[at] = 0
@@ -972,8 +985,9 @@ impl Codec
                     let bits  = (token >> 10) & 15
                     if bits
                     {
-                        if reader.bitPos + bits > limit do
+                        if reader.bitPos + bits > limit {
                             return
+                        }
                         let signs = token >> 14
                         if signs == 3
                         {
@@ -1219,7 +1233,7 @@ impl Codec
 
         // A short block interleaves its windows, and a mixed block does so past its long bands.
         let shortBlock   = info.blockType == 2
-        var longSubbands = 32'u32
+        var longSubbands = 32_u32
         if shortBlock
         {
             var firstLine = 0_u32
@@ -1452,8 +1466,8 @@ impl Codec
 private func packPcm16(source: const [*] f32)->Math.Simd.S16x8
 {
     using Math.Simd
-    let low  = Math.clamp(load(source) * 32767.0, splat(-32768.0'f32), splat(32767.0'f32))
-    let high = Math.clamp(load(source + 4) * 32767.0, splat(-32768.0'f32), splat(32767.0'f32))
+    let low  = Math.clamp(load(source) * 32767.0, splat(-32768.0_f32), splat(32767.0_f32))
+    let high = Math.clamp(load(source + 4) * 32767.0, splat(-32768.0_f32), splat(32767.0_f32))
     return packSigned(truncateToS32(low), truncateToS32(high))
 }
 

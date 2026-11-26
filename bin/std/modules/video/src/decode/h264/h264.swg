@@ -615,12 +615,13 @@ impl Decoder
             }
 
             let nalType = sample[offset] & 0x1F
-            if nalType == 1 or nalType == 5 do
+            if nalType == 1 or nalType == 5 {
                 count += 1
                 if count > 1
                 {
                     return false
                 }
+            }
             }
 
             offset += size

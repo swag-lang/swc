@@ -204,11 +204,15 @@ func createText(parent: *Wnd, text: string, rect: Math.Rectangle, flags = LabelF
 // Mark the active palette and page as selections in the current theme.
 func updateSelectors()
 {
-    for button, index in g_ThemeButtons do
+    for button, index in g_ThemeButtons
+    {
         button.setForm(index == cast(u64, g_Variant) ? .Alternate : .Flat)
+    }
 
-    for button, index in g_PageButtons do
+    for button, index in g_PageButtons
+    {
         button.setForm(index == cast(u64, g_Page) ? .Alternate : .Flat)
+    }
 }
 
 func updateHeader()
@@ -315,7 +319,7 @@ func onRootEvent(_: *Wnd, evt: IEvent)->bool
         command.accepted = true
         return true
     }
-    elif evt is ResizeEvent
+    else if evt is ResizeEvent
     {
         layoutRootView()
     }
@@ -361,8 +365,10 @@ func updateTestMode()
         return
     }
 
-    if cast(s32, g_Variant) + 1 >= ThemeVariantCount do
+    if cast(s32, g_Variant) + 1 >= ThemeVariantCount
+    {
         return
+    }
 
     showPage(0)
     setVariant(nextThemeVariant(g_Variant))

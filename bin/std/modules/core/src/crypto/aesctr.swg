@@ -10,10 +10,14 @@ public const AesCtrCounterSize = 16
 #[Swag.Inline]
 private func aesCtrNetworkWord(value: u64)->u64
 {
-    #static if BIG_ENDIAN do
+    #static if BIG_ENDIAN
+    {
         return value
-    else do
+    }
+    else
+    {
         return Swag.byteSwap(value)
+    }
 }
 
 private func aesCtrAddCounter(counter: *[AesCtrCounterSize] u8, amount: u64)->bool
@@ -33,6 +37,7 @@ private func aesCtrAddCounter(counter: *[AesCtrCounterSize] u8, amount: u64)->bo
 internal func aesGcmCounterBlock(initial: U64x2, index: u64)->U8x16
 {
     var words = cast #bit (U32x4, initial)
+
     // GCM reserves counter one for its tag mask.
     #static if BIG_ENDIAN do
         words[3] = cast(u32, index + 2)
@@ -117,8 +122,11 @@ internal func(CounterBits: u32) aesXorCounterBlocksHardware(aes: *Aes, prefix: U
         var tail: [16] u8
         store(&tail[0], aes[].encryptBlockHardware(aesCounterBlock'CounterBits(prefix, low, block)))
         let offset = block * AesBlockSize
-        for i in source.count - offset do
+        for i in source.count - offset
+        {
             destinationBytes[offset + i] = sourceBytes[offset + i] ^ tail[i]
+        }
+
         Crypto.secureClear(tail)
     }
 }
@@ -144,11 +152,52 @@ internal func(CounterBits: u32) aesXorCounterPairsSoftware(aes: *Aes, prefix: U6
 
 private func aesCtrCryptBlocks(aes: *Aes, initialCounter: [AesCtrCounterSize] u8, source: const [..] u8, destination: [..] u8, firstBlock, blockCount: u64) fail
 {
-    var block = 0_u64
-    while block < blockCount
+    if aes[].usesHardwareRounds()
+    {
+        if blockCount == 0
+        {
+            return
+        }
+
+        let prefix = cast #bit (U64x2, load(&initialCounter[0]))
+        let low    = Swag.byteSwap(prefix[1])
+        if firstBlock + blockCount - 1 > Swag.U64.Max - low
+        {
+            aesXorCounterBlocksHardware!{128}(aes, prefix, source, destination, firstBlock, blockCount)
+        }
+        else
+        {
+            aesXorCounterBlocksHardware!{64}(aes, prefix, source, destination, firstBlock, blockCount)
+        }
+
+        return
+    }
+
+    // The public operation has already checked the final 128-bit counter.
+    let prefix       = cast #bit (U64x2, load(&initialCounter[0]))
+    let initialLow   = aesCtrNetworkWord(prefix[1])
+    let initialHigh  = aesCtrNetworkWord(prefix[0])
+    let fullBlockEnd = Math.min(firstBlock + blockCount, source.count / AesBlockSize)
+    var block        = firstBlock
+    while block + 2 <= fullBlockEnd
+    {
+        let firstLow  = initialLow + block
+        let secondLow = firstLow + 1
+        var first     = prefix
+        var second    = prefix
+        first[0]  = aesCtrNetworkWord(initialHigh + cast(u64, firstLow < initialLow))
+        second[0] = aesCtrNetworkWord(initialHigh + cast(u64, secondLow < initialLow))
+        first[1]  = aesCtrNetworkWord(firstLow)
+        second[1] = aesCtrNetworkWord(secondLow)
+        let offset = block * AesBlockSize
+        aes[].xorTwoCountersSoftware(cast #bit (U8x16, first), cast #bit (U8x16, second), source.buffer + offset, destination.buffer + offset)
+        block += 2
+    }
+
+    while block < firstBlock + blockCount
     {
         var counter = initialCounter
-        if not aesCtrAddCounter(&counter, firstBlock + block)
+        if not aesCtrAddCounter(&counter, block)
         {
             fail Errors.BadParameterError{"AES-CTR counter range overflows 128 bits"}
         }
@@ -157,9 +206,16 @@ private func aesCtrCryptBlocks(aes: *Aes, initialCounter: [AesCtrCounterSize] u8
         try aes[].encryptBlock(counter, keyStream)
         let offset = block * AesCtrCounterSize
         let count  = Math.min(source.count - offset, AesCtrCounterSize)
-        for index in count
+        if count == AesBlockSize
         {
-            destination[offset + index] = source[offset + index] ^ keyStream[index]
+            store(destination.buffer + offset, load(source.buffer + offset) ^ load(&keyStream[0]))
+        }
+        else
+        {
+            for index in count
+            {
+                destination[offset + index] = source[offset + index] ^ keyStream[index]
+            }
         }
 
         Crypto.secureClear(counter)

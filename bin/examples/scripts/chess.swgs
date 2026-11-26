@@ -3,9 +3,9 @@
 
 using Core, Gui, Pixel
 
-const CellSize   = 90_f32
-const BoardSize  = CellSize * 8
-const BorderSize = 30_f32
+const CellSize            = 90_f32
+const BoardSize           = CellSize * 8
+const BorderSize          = 30_f32
 const BoardWithBorderSize = BoardSize + 2 * BorderSize
 const BoardMargin         = 16.0
 const SidebarX            = BoardWithBorderSize + 2 * BoardMargin
@@ -568,8 +568,10 @@ func paintStates(wnd: *Wnd, painter: *Painter)
 
     let check = isCheck(g_Board, g_Game.whiteTurn) ? "King in check" : "King is safe"
     painter.drawString(SidebarX, 108, check, font, colors.softText)
-    if g_Game.gameStatus != "Game is not over" do
+    if g_Game.gameStatus != "Game is not over"
+    {
         painter.drawString(SidebarX, 134, g_Game.gameStatus, font, colors.text)
+    }
 
     painter.drawString(SidebarX, 184, "Castling", headline, colors.text)
     let states = [
@@ -578,8 +580,10 @@ func paintStates(wnd: *Wnd, painter: *Painter)
         Format.toString("Black kingside: %", castleStatus(g_Game.castle[1, 0], not g_Game.whiteTurn, 90, 92)),
         Format.toString("Black queenside: %", castleStatus(g_Game.castle[1, 1], not g_Game.whiteTurn, 90, 88))]
 
-    for state, index in states do
+    for state, index in states
+    {
         painter.drawString(SidebarX, 218 + cast(f32, index) * 24, state.toString(), font, colors.softText)
+    }
 }
 
 func pickCell(pos: Math.Point)->s8

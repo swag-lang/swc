@@ -404,14 +404,14 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 #test
 {
     const Samples: [21] s16 = [0, 1, -1, 2, 511, -4, 6, -2, 8, -5, 5, -6, -7, 4, -6, 2, -5, 4, -2, 4, 3]
-    for parameter in [2'u32, 16]
+    for parameter in [2_u32, 16]
     {
         let wide          = parameter == 16
-        let inputShift    = wide ? 12'u32 : 0
-        let outputShift   = wide ? 4'u32 : 0
-        let remainderMask = (1'u64 << parameter) - 1
-        var frame: Array'u8
-        frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, cast(u8, Samples.count - 1)])
+        let inputShift    = wide ? 12_u32 : 0
+        let outputShift   = wide ? 4_u32 : 0
+        let remainderMask = (1_u64 << parameter) - 1
+        var frame: Array!{u8}
+        frame.add([0xFF_u8, 0xF9, 0x60, 0, 0, cast(u8, Samples.count - 1)])
         frame.add(flacTestHeaderCrc8(frame.toSlice()))
 
         // A zero-order fixed predictor leaves the Rice residuals as the output samples.
@@ -424,14 +424,20 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
         {
             let twice = cast(u64, Math.abs(cast(s32, sample))) << (inputShift + 1)
             let code  = sample < 0 ? twice - 1 : twice
-            for code >> parameter do
+            for code >> parameter
+            {
                 flacTestAppendBits(&frame, &bitCount, 0, 1)
+            }
+
             flacTestAppendBits(&frame, &bitCount, 1, 1)
             flacTestAppendBits(&frame, &bitCount, code & remainderMask, parameter)
         }
 
-        while bitCount & 7 do
+        while bitCount & 7
+        {
             flacTestAppendBits(&frame, &bitCount, 0, 1)
+        }
+
         let checksum = Flac.frameCrc16(frame.toSlice())
         frame.add(cast(u8, checksum >> 8))
         frame.add(cast(u8, checksum & 0xFF))
@@ -443,8 +449,10 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
         var decoded: [Samples.count] s16
         let bytes = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
         Swag.require(bytes == #sizeof(decoded))
-        for index in Samples.count do
+        for index in Samples.count
+        {
             Swag.require(decoded[index] == Samples[index] << outputShift)
+        }
 
         var error: Swag.Error
         discard catch decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice()[until frame.count - 9]) as error
@@ -523,25 +531,36 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     const Residual: [9] s32 = [25, -40, 33, -9, 71, -15, 11, 32, -21]
     const Frames = Warmup.count + Residual.count
 
-    var frame: Array'u8
-    frame.add([0xFF'u8, 0xF9, 0x60, 0, 0, cast(u8, Frames - 1)])
+    var frame: Array!{u8}
+    frame.add([0xFF_u8, 0xF9, 0x60, 0, 0, cast(u8, Frames - 1)])
     frame.add(flacTestHeaderCrc8(frame.toSlice()))
     var bits = frame.count * 8
     flacTestAppendBits(&frame, &bits, 0x46, 8)     // Order-four LPC subframe.
-    for sample in Warmup do
+    for sample in Warmup
+    {
         flacTestAppendBits(&frame, &bits, cast #wrap(u64, sample) & 0xFF_FFFF, 24)
+    }
+
     flacTestAppendBits(&frame, &bits, 4, 4)     // Five-bit coefficients.
     flacTestAppendBits(&frame, &bits, 2, 5)     // Right shift by two.
-    for tap in Taps do
+    for tap in Taps
+    {
         flacTestAppendBits(&frame, &bits, cast #wrap(u64, tap) & 31, 5)
+    }
+
     flacTestAppendBits(&frame, &bits, 0, 6)      // Rice coding with one partition.
     flacTestAppendBits(&frame, &bits, 15, 4)     // Escape to fixed-width residuals.
     flacTestAppendBits(&frame, &bits, 8, 5)
-    for value in Residual do
+    for value in Residual
+    {
         flacTestAppendBits(&frame, &bits, cast #wrap(u64, value) & 255, 8)
+    }
 
-    while bits & 7 do
+    while bits & 7
+    {
         flacTestAppendBits(&frame, &bits, 0, 1)
+    }
+
     let checksum = Flac.frameCrc16(frame.toSlice())
     frame.add(cast(u8, checksum >> 8))
     frame.add(cast(u8, checksum & 0xFF))
@@ -553,7 +572,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     var decoded: [Frames] s16
     let written = expect decoder.decodePacket(cast([*] void, &decoded[0]), #sizeof(decoded), frame.toSlice())
     Swag.require(written == #sizeof(decoded))
-    audioAssertSamples(cast([..] u8, decoded), [4687's16, -2735, 7812, -3907, -6934, 829, -2735, -1355, 3680, 1080, 648, 1651, -907])
+    audioAssertSamples(cast([..] u8, decoded), [4687_s16, -2735, 7812, -3907, -6934, 829, -2735, -1355, 3680, 1080, 648, 1651, -907])
 }
 
 // Channel interleaving preserves clipping for predictor output wider than signed 32 bits.
@@ -563,13 +582,13 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     const Wide: [5] s64 = [0x1_0000_0001, -0x1_0000_0002, 0x8000_0000, -0x8000_0001, 43]
     const Frames        = Wide.count
     const Parameter     = 30
-    const Mask          = (1'u64 << Parameter) - 1
+    const Mask          = (1_u64 << Parameter) - 1
 
     var config = flacMonoTestConfig(cast(u8, Frames))
     config[12] |= cast(u8, (Channels - 1) << 1)
 
-    var frame: Array'u8
-    frame.add([0xFF'u8, 0xF9, 0x60, 0x50, 0, cast(u8, Frames - 1)])
+    var frame: Array!{u8}
+    frame.add([0xFF_u8, 0xF9, 0x60, 0x50, 0, cast(u8, Frames - 1)])
     frame.add(flacTestHeaderCrc8(frame.toSlice()))
     var bits = frame.count * 8
     var expected: [Frames * Channels] s16
@@ -583,16 +602,21 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
         {
             let value = channel ? cast(s64, channel * 10 + sample) - 20 : Wide[sample]
             let code  = value < 0 ? cast(u64, -value) * 2 - 1 : cast(u64, value) * 2
-            for code >> Parameter do
+            for code >> Parameter
+            {
                 flacTestAppendBits(&frame, &bits, 0, 1)
+            }
+
             flacTestAppendBits(&frame, &bits, 1, 1)
             flacTestAppendBits(&frame, &bits, code & Mask, Parameter)
-            expected[sample * Channels + channel] = cast(s16, Math.clamp(value, -32768's64, 32767's64))
+            expected[sample * Channels + channel] = cast(s16, Math.clamp(value, -32768_s64, 32767_s64))
         }
     }
 
-    while bits & 7 do
+    while bits & 7
+    {
         flacTestAppendBits(&frame, &bits, 0, 1)
+    }
 
     let checksum = Flac.frameCrc16(frame.toSlice())
     frame.add(cast(u8, checksum >> 8))
@@ -619,26 +643,31 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     config[3] = cast(u8, Frames)
     flacTestSetTotalSamples(&config, Frames)
 
-    for assignment in [0x10'u8, 0x80]
+    for assignment in [0x10_u8, 0x80]
     {
-        var frame: Array'u8
-        frame.add([0xFF'u8, 0xF9, 0x60, assignment, 0, cast(u8, Frames - 1)])
+        var frame: Array!{u8}
+        frame.add([0xFF_u8, 0xF9, 0x60, assignment, 0, cast(u8, Frames - 1)])
         frame.add(flacTestHeaderCrc8(frame.toSlice()))
         var bits = frame.count * 8
         flacTestAppendBits(&frame, &bits, 2, 8)     // Verbatim left subframe.
-        for sample in Left do
+        for sample in Left
+        {
             flacTestAppendBits(&frame, &bits, cast #wrap(u64, sample) & 0xFFFF_FFFF, 32)
+        }
+
         flacTestAppendBits(&frame, &bits, 2, 8)
-        let width = assignment == 0x10 ? 32'u32 : 33
-        let mask  = (1'u64 << width) - 1
+        let width = assignment == 0x10 ? 32_u32 : 33
+        let mask  = (1_u64 << width) - 1
         for index in Frames
         {
             let sample = assignment == 0x10 ? Right[index] : Left[index] - Right[index]
             flacTestAppendBits(&frame, &bits, cast #wrap(u64, sample) & mask, width)
         }
 
-        while bits & 7 do
+        while bits & 7
+        {
             flacTestAppendBits(&frame, &bits, 0, 1)
+        }
 
         let checksum = Flac.frameCrc16(frame.toSlice())
         frame.add(cast(u8, checksum >> 8))
@@ -667,17 +696,22 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
 {
     var config = flac24BitStereoTestConfig()
     config[3] = 11
-    const Description = (48_000'u64 << 44) | (1'u64 << 41) | (15'u64 << 36) | 11
-    for byte in 8 do
+    const Description = (48_000_u64 << 44) | (1_u64 << 41) | (15_u64 << 36) | 11
+    for byte in 8
+    {
         config[10 + byte] = cast(u8, (Description >> (56 - byte * 8)) & 0xFF)
+    }
 
-    var frame: Array'u8
-    frame.add([0xFF'u8, 0xF8, 0x6A, 0x98, 0, 10])
+    var frame: Array!{u8}
+    frame.add([0xFF_u8, 0xF8, 0x6A, 0x98, 0, 10])
     frame.add(flacTestHeaderCrc8(frame.toSlice()))
     var bits = frame.count * 8
     flacTestAppendBits(&frame, &bits, 0x44, 8)     // Order-three predictor on the 17-bit side channel.
-    for 3 do
+    for 3
+    {
         flacTestAppendBits(&frame, &bits, 0, 17)
+    }
+
     flacTestAppendBits(&frame, &bits, 1, 4)     // Two-bit coefficients.
     flacTestAppendBits(&frame, &bits, 0, 5)     // No prediction shift.
     flacTestAppendBits(&frame, &bits, 1, 2)
@@ -685,8 +719,11 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     flacTestAppendBits(&frame, &bits, 0, 6)      // Rice method 0, one partition.
     flacTestAppendBits(&frame, &bits, 15, 4)     // Raw residuals.
     flacTestAppendBits(&frame, &bits, 17, 5)
-    for delta in [1'u64, 1, 1, 1, 32764, 0, 0x18000, 8] do
+    for delta in [1_u64, 1, 1, 1, 32764, 0, 0x18000, 8]
+    {
         flacTestAppendBits(&frame, &bits, delta, 17)
+    }
+
     flacTestAppendBits(&frame, &bits, 0, 8)     // Constant right channel.
     flacTestAppendBits(&frame, &bits, 0xC000, 16)
 
@@ -839,7 +876,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     // Insert a metadata padding block after the marker and STREAMINFO.
     const StreamInfoEnd = 42
     let padding = boundary - second.sourceOffset - 4
-    var shifted: Array'u8
+    var shifted: Array!{u8}
     shifted.add(bytes.toSlice()[until StreamInfoEnd])
     shifted.add(1)
     shifted.add(cast(u8, (padding >> 16)))
@@ -928,7 +965,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
         let channels = original.numChannels()
         let frames   = cast(u64, packet.sampleFrameCount)
         let samples  = frames * channels
-        var reference: Array's16
+        var reference: Array!{s16}
         expect original.decodePcm16(0, frames, func|&reference|(part)
         {
             reference.add(part)
@@ -937,10 +974,13 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
         Swag.require(reference.count == samples)
 
         // More than two MiB of PCM exercises multiple bounded read-ahead batches.
-        var packets: Array'SoundPacket
-        let packetCount = 2 * 1024 * 1024'u64 / (samples * #sizeof(s16)) + 8
-        for packetCount do
+        var packets: Array!{SoundPacket}
+        let packetCount = 2 * 1024 * 1024_u64 / (samples * #sizeof(s16)) + 8
+        for packetCount
+        {
             packets.add(packet)
+        }
+
         let source = expect SoundFile.openPacketStream(original.sourcePath(),
                                                        .Flac,
                                                        original.sampleRateHz(),
@@ -949,7 +989,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
                                                        packets.toSlice(),
                                                        original.decoderConfig.toSlice())
 
-        var callbacks = 0'u64
+        var callbacks = 0_u64
         let caller    = Swag.getContext()
         let expected  = reference.toSlice()
         expect source.decodePcm16(1, frames * packetCount - 2, func|&callbacks, caller, expected, channels, packetCount|(part)
@@ -972,10 +1012,13 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     let packet      = expect original.packet(0)
     let frames      = cast(u64, packet.sampleFrameCount)
     let channels    = original.numChannels()
-    var packets: Array'SoundPacket
-    let packetCount = 1024 * 1024'u64 / (frames * channels * #sizeof(s16)) + 8
-    for packetCount do
+    var packets: Array!{SoundPacket}
+    let packetCount = 1024 * 1024_u64 / (frames * channels * #sizeof(s16)) + 8
+    for packetCount
+    {
         packets.add(packet)
+    }
+
     let invalidAt = packetCount / 2
     packets[invalidAt].byteSize = 1
     let source = expect SoundFile.openPacketStream(original.sourcePath(),
@@ -986,7 +1029,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
                                                    packets.toSlice(),
                                                    original.decoderConfig.toSlice())
 
-    var callbacks = 0'u64
+    var callbacks = 0_u64
     expect source.decodePcm16(func|&callbacks|(_)
     {
         callbacks += 1

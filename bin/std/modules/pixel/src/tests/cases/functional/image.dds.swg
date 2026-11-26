@@ -251,8 +251,10 @@ func ddsRoundtrip(source: Image)->Image
         32, 0x40, 0, 24, 0xFF0000, 0xFF00, 0xFF, 0,
         0x1000, 0, 0, 0, 0]
     var encoded: ConcatBuffer
-    for field in Header do
+    for field in Header
+    {
         ddsAddU32(&encoded, field)
+    }
 
     for y in Height
     {
@@ -263,8 +265,10 @@ func ddsRoundtrip(source: Image)->Image
             encoded.addNative(cast(u8, x + y + 30))
         }
 
-        for Pitch - 3 * Width do
-            encoded.addNative(173'u8)
+        for Pitch - 3 * Width
+        {
+            encoded.addNative(173_u8)
+        }
     }
 
     let image = expect Image.decode("padded-bgr.dds", nnBytes(encoded.toSlice()))
@@ -285,8 +289,11 @@ func ddsRoundtrip(source: Image)->Image
     const Descending: [8] u8 = [255, 0, 218, 182, 145, 109, 72, 36]
     const Ascending:  [8] u8 = [0, 255, 51, 102, 153, 204, 0, 255]
     var selectors: u64
-    for i in 16 do
+    for i in 16
+    {
         selectors |= cast(u64, (i & 7)) << (16 + i * 3)
+    }
+
     let words: [2] u64 = [selectors | 255, selectors | 0xFF00]
     let bytes = Swag.makeSlice(cast(const [*] u8, &words[0]), 16)
     var image = Image.create(4, 4, .RGBA8)
@@ -301,10 +308,14 @@ func ddsRoundtrip(source: Image)->Image
                 let pixel = image.pixelColor(cast(s32, i % 4), topDown ? y : 3 - y)
                 let index = i & 7
                 Swag.require(pixel.r == Descending[index] and pixel.a == 255)
-                if format == .BC4 do
+                if format == .BC4
+                {
                     Swag.require(pixel.g == Descending[index] and pixel.b == Descending[index])
-                else do
+                }
+                else
+                {
                     Swag.require(pixel.g == Ascending[index] and pixel.b == 0)
+                }
             }
         }
     }
@@ -318,8 +329,10 @@ func ddsRoundtrip(source: Image)->Image
     for format in [PixelFormat.RGB16, PixelFormat.RGBF16, PixelFormat.RGBF32]
     {
         var image = Image.create(Width, Height, format)
-        for i in image.byteCount do
+        for i in image.byteCount
+        {
             image.pixels[i] = cast #wrap(u8, (i * 37 + 13))
+        }
 
         var packed: PixelFormat
         switch format
@@ -361,14 +374,16 @@ func ddsRoundtrip(source: Image)->Image
     const Height  = 4097
     const Columns = (Width + 3) / 4
     const Rows    = (Height + 3) / 4
-    var blocks: Array'u64
+    var blocks: Array!{u64}
     blocks.resize(Columns * Rows)
     for row in Rows
     {
-        let color = row & 1 ? 0x07E0'u64 : 0xF800'u64
+        let color = row & 1 ? 0x07E0_u64 : 0xF800_u64
         let word  = Core.BIG_ENDIAN ? Swag.byteSwap(color) : color
-        for column in Columns do
+        for column in Columns
+        {
             blocks[row * Columns + column] = word
+        }
     }
 
     let packed = Swag.makeSlice(cast(const [*] u8, blocks.storage()), blocks.count * 8)
@@ -386,10 +401,13 @@ func ddsRoundtrip(source: Image)->Image
     }
 
     // Repeating one encoded block must still preserve each of its four rows.
-    const Word = 0xFFAA5500_07E0F800'u64
+    const Word = 0xFFAA5500_07E0F800_u64
     let repeated = Core.BIG_ENDIAN ? Swag.byteSwap(Word) : Word
-    for i in blocks.count do
+    for i in blocks.count
+    {
         blocks[i] = repeated
+    }
+
     let colors = [Color.fromRgb(255, 0, 0), Color.fromRgb(0, 255, 0), Color.fromRgb(170, 85, 0), Color.fromRgb(85, 170, 0)]
     for topDown in [true, false]
     {

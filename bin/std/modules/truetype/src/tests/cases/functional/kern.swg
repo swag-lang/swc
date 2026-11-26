@@ -12,7 +12,7 @@ func writePairPosition(table: *Array!{u8}, offset: u64, xAdvance: s16)
     writeBigU16(table, offset + 10, 12)
     writeBigU16(table, offset + 12, 1)     // One pair value.
     writeBigU16(table, offset + 14, 2)     // Second glyph.
-    writeBigU16(table, offset + 16, cast #bit (u16, xAdvance))
+    writeBigU16(table, offset + 16, cast #bit(u16, xAdvance))
     writeBigU16(table, offset + 18, 1)     // Coverage format 1.
     writeBigU16(table, offset + 20, 1)
     writeBigU16(table, offset + 22, 1)     // First glyph.
@@ -327,16 +327,19 @@ func makeGposKernFixture()->Array!{u8}
 // Packed validation keeps key zero, tests group boundaries, and sees nonzero values in the group.
 #test
 {
-    const Pairs     = 9'u32
-    const PairStart = 18'u64
-    var bytes: Array'u8
+    const Pairs     = 9_u32
+    const PairStart = 18_u64
+    var bytes: Array!{u8}
     bytes.resize(PairStart + Pairs * 6)
     writeBigU16(&bytes, 2, 1)
     writeBigU16(&bytes, 6, 14 + Pairs * 6)
     writeBigU16(&bytes, 8, 1)
     writeBigU16(&bytes, 10, Pairs)
-    for index in Pairs do
+    for index in Pairs
+    {
         writeBigU32(&bytes, PairStart + index * 6, cast(u32, index))
+    }
+
     writeBigU16(&bytes, PairStart + 4, 0xFFF0)
 
     for duplicate in 2

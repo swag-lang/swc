@@ -277,7 +277,7 @@ private const Ac3ExponentGroups: [32, 128] u16 = #run
             destination[written + 1] = second
             destination[written + 2] = previous
         }
-        elif GroupSize == 2
+        else if GroupSize == 2
         {
             destination[written]     = first
             destination[written + 1] = first
@@ -301,9 +301,9 @@ private func decodeExponents(reader: *BitReader, strategy, groups, absolute, ski
 {
     switch strategy
     {
-    case 1: try decodeExponentGroups'1(reader, groups, absolute, skip, destination)
-    case 2: try decodeExponentGroups'2(reader, groups, absolute, skip, destination)
-    case 3: try decodeExponentGroups'4(reader, groups, absolute, skip, destination)
+    case 1: try decodeExponentGroups!{1}(reader, groups, absolute, skip, destination)
+    case 2: try decodeExponentGroups!{2}(reader, groups, absolute, skip, destination)
+    case 3: try decodeExponentGroups!{4}(reader, groups, absolute, skip, destination)
     }
 }
 
@@ -614,7 +614,7 @@ private impl Ac3Codec
 
     mtd preparePacketBits(packet: const [..] u8)->BitReader
     {
-        if not packet.count or packet.count > MaxAc3FrameBytes do
+        if not packet.count or packet.count > MaxAc3FrameBytes {
             return BitReader.create(packet.buffer, packet.count)
 
             if block.coupling and block.channelCoupled[channel] and not couplingRead
@@ -634,6 +634,7 @@ private impl Ac3Codec
             // checked once at the end of the block, before any PCM is emitted.
             readPreparedMantissas'(false, true)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
             reader.overrun = reader.bitPos > reader.size * 8
+        }
         }
         else
         {
@@ -836,14 +837,14 @@ private struct Ac3PreparedFrame
 }
 
 internal const Ac3PipelineFrames  = BlocksPerAc3Frame * SamplesPerBlock
-private const Ac3PipelineCapacity = 16'u64
+private const Ac3PipelineCapacity = 16_u64
 
 internal struct Ac3DecodeBatch
 {
     private headers:     [Ac3PipelineCapacity] Ac3PreparedFrame
     private spectra:     Array'f64
     private packetLimit: u64
-    pcm:                 Array's16
+    pcm:                 Array!{s16}
     count:               u64
 }
 
@@ -852,7 +853,7 @@ internal impl Ac3DecodeBatch
     mtd initialize(channels: u32)
     {
         // Keep the maximum batch footprint independent of channel count.
-        .packetLimit = Math.min(Ac3PipelineCapacity, 32'u64 / channels)
+        .packetLimit = Math.min(Ac3PipelineCapacity, 32_u64 / channels)
         let capacity = .packetLimit * Ac3PipelineFrames * channels
         .spectra.reserve(capacity)
         .pcm.reserve(capacity)
@@ -893,8 +894,9 @@ internal impl Ac3DecodePipeline
         {
             let destination = spectra + blockIndex * channels * SamplesPerBlock
             try .codec.parseBlock(&reader, &header.bsi, blockIndex, destination)
-            for channel in header.bsi.nfchans do
+            for channel in header.bsi.nfchans {
                 header.blockSwitch[blockIndex, channel] = .codec.block.blockSwitch[channel]
+            }
         }
 
         batch.count += 1
@@ -902,10 +904,12 @@ internal impl Ac3DecodePipeline
 
     mtd prepare(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
     {
-        if .codec.channels == 2 do
-            try .prepareFrame'2(batch, packet)
-        else do
-            try .prepareFrame'0(batch, packet)
+        if .codec.channels == 2 {
+            try .prepareFrame!{2}(batch, packet)
+        }
+        else {
+            try .prepareFrame!{0}(batch, packet)
+        }
     }
 
     mtd(FixedChannels: u32) synthesizeFrames(batch: *Ac3DecodeBatch)
@@ -928,10 +932,12 @@ internal impl Ac3DecodePipeline
 
     mtd synthesize(batch: *Ac3DecodeBatch)
     {
-        if .codec.channels == 2 do
-            .synthesizeFrames'2(batch)
-        else do
-            .synthesizeFrames'0(batch)
+        if .codec.channels == 2 {
+            .synthesizeFrames!{2}(batch)
+        }
+        else {
+            .synthesizeFrames!{0}(batch)
+        }
     }
 }
 

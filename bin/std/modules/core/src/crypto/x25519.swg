@@ -7,7 +7,7 @@ public const X25519KeySize = 32
 
 // Five radix-2^51 limbs represent any value below 2^255 before canonical reduction.
 private const FieldLimbBits         = 51
-private const FieldLimbMask         = (1'u64 << FieldLimbBits) - 1
+private const FieldLimbMask         = (1_u64 << FieldLimbBits) - 1
 private const FieldModulus: [5] u64 = [FieldLimbMask - 18, FieldLimbMask, FieldLimbMask, FieldLimbMask, FieldLimbMask]
 
 // Reduced values keep each limb below 2^51, with limb 1 allowed another 1023.
@@ -45,7 +45,7 @@ private impl X25519Product
     mtd reduceLimb()->u64
     {
         let limb = .low & FieldLimbMask
-        .low = (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
+        .low  = (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
         .high = 0
         return limb
     }
@@ -83,53 +83,76 @@ private func x25519Normalize(value: X25519Field)->X25519Field
 internal func x25519AddLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
-    for index in 16
+    for index in result.limbs.count
     {
         result.limbs[index] = left.limbs[index] + right.limbs[index]
     }
 
-    return x25519Normalize(result)
+    return result
 }
 
 #[Swag.Inline]
 internal func x25519SubtractLoose(left, right: X25519Field)->X25519Field
 {
     var result: #returntype
-    for index in 16
+    for index in result.limbs.count
     {
-        let modulusLimb = index == 0 ? 65517_u64 : index == 15 ? 32767_u64 : 65535_u64
-        result.limbs[index] = left.limbs[index] + 2 * modulusLimb - right.limbs[index]
+        result.limbs[index] = left.limbs[index] + 2 * FieldModulus[index] - right.limbs[index]
     }
 
-    return x25519Normalize(result)
+    return result
 }
 
-internal func x25519Add(left, right: X25519Field)->X25519Field => x25519Normalize(x25519AddLoose(left, right))
+internal func x25519Add(left, right: X25519Field)->X25519Field      => x25519Normalize(x25519AddLoose(left, right))
 internal func x25519Subtract(left, right: X25519Field)->X25519Field => x25519Normalize(x25519SubtractLoose(left, right))
 
 internal func x25519Multiply(left, right: X25519Field)->X25519Field
 {
-    var products: [32] u64
-    for i in 16
-    {
-        for j in 16
-        {
-            products[i + j] += left.limbs[i] * right.limbs[j]
-        }
-    }
-
-    for index in 16 until 32
-    {
-        products[index - 16] += products[index] * 38
-    }
-
+    // A product past limb four wraps around with a factor of 19.
+    let a       = left.limbs
+    let b       = right.limbs
+    let scaled1 = 19 * b[1]
+    let scaled2 = 19 * b[2]
+    let scaled3 = 19 * b[3]
+    let scaled4 = 19 * b[4]
     var result: #returntype
-    for index in 16
-    {
-        result.limbs[index] = products[index]
-    }
+    var column: X25519Product
+    column.addProduct(a[0], b[0])
+    column.addProduct(a[1], scaled4)
+    column.addProduct(a[2], scaled3)
+    column.addProduct(a[3], scaled2)
+    column.addProduct(a[4], scaled1)
+    result.limbs[0] = column.reduceLimb()
 
-    return x25519Normalize(result)
+    column.addProduct(a[0], b[1])
+    column.addProduct(a[1], b[0])
+    column.addProduct(a[2], scaled4)
+    column.addProduct(a[3], scaled3)
+    column.addProduct(a[4], scaled2)
+    result.limbs[1] = column.reduceLimb()
+
+    column.addProduct(a[0], b[2])
+    column.addProduct(a[1], b[1])
+    column.addProduct(a[2], b[0])
+    column.addProduct(a[3], scaled4)
+    column.addProduct(a[4], scaled3)
+    result.limbs[2] = column.reduceLimb()
+
+    column.addProduct(a[0], b[3])
+    column.addProduct(a[1], b[2])
+    column.addProduct(a[2], b[1])
+    column.addProduct(a[3], b[0])
+    column.addProduct(a[4], scaled4)
+    result.limbs[3] = column.reduceLimb()
+
+    column.addProduct(a[0], b[4])
+    column.addProduct(a[1], b[3])
+    column.addProduct(a[2], b[2])
+    column.addProduct(a[3], b[1])
+    column.addProduct(a[4], b[0])
+    result.limbs[4] = column.reduceLimb()
+    x25519FoldCarry(&result, column.low)
+    return result
 }
 
 internal func x25519Square(value: X25519Field)->X25519Field
@@ -143,21 +166,10 @@ internal func x25519Square(value: X25519Field)->X25519Field
     column.addProduct(a[2], 38 * a[3])
     result.limbs[0] = column.reduceLimb()
 
-internal func x25519Invert(value: X25519Field)->X25519Field
-{
-    // p - 2 = 2^255 - 21; this fixed exponent has no secret-dependent control flow.
-    var result: X25519Field
-    result.limbs[0] = 1
-    var bit = 255_u32
-    while bit
-    {
-        bit    -= 1
-        result = x25519Square(result)
-        if bit >= 8 or ((0xEB_u32 >> bit) & 1)
-        {
-            result = x25519Multiply(result, value)
-        }
-    }
+    column.addProduct(a[0], 2 * a[1])
+    column.addProduct(a[2], 38 * a[4])
+    column.addProduct(a[3], 19 * a[3])
+    result.limbs[1] = column.reduceLimb()
 
     column.addProduct(a[0], 2 * a[2])
     column.addProduct(a[1], a[1])
@@ -180,8 +192,11 @@ internal func x25519Invert(value: X25519Field)->X25519Field
 private func x25519SquareRepeated(value: X25519Field, count: u32)->X25519Field
 {
     var result = value
-    for count do
+    for count
+    {
         result = x25519Square(result)
+    }
+
     return result
 }
 
@@ -212,18 +227,24 @@ private func(Secret: bool) x25519Power(value: X25519Field, inverse: bool)->X2551
 
     defer
     {
-        #static if Secret do
+        #static if Secret
+        {
             Crypto.secureClear(Swag.makeSlice(&powers, 1))
+        }
     }
-    if inverse do
+
+    if inverse
+    {
         return x25519Multiply(x25519SquareRepeated(powers.p250, 5), powers.z11)
+    }
+
     return x25519Multiply(x25519SquareRepeated(powers.p250, 2), value)
 }
 
-internal func x25519Invert(value: X25519Field)->X25519Field => x25519Power'(true)(value, inverse: true)
+internal func x25519Invert(value: X25519Field)->X25519Field => x25519Power!{true}(value, inverse: true)
 
-internal func x25519InvertPublic(value: X25519Field)->X25519Field => x25519Power'(false)(value, inverse: true)
-internal func x25519Pow252Minus3(value: X25519Field)->X25519Field => x25519Power'(true)(value, inverse: false)
+internal func x25519InvertPublic(value: X25519Field)->X25519Field => x25519Power!{false}(value, inverse: true)
+internal func x25519Pow252Minus3(value: X25519Field)->X25519Field => x25519Power!{true}(value, inverse: false)
 
 internal func x25519Decode(data: const [..] u8)->X25519Field
 {
@@ -241,36 +262,23 @@ internal func x25519Decode(data: const [..] u8)->X25519Field
 
 internal func x25519Encode(value: X25519Field, destination: [..] u8)
 {
-    var canonical         = x25519Normalize(value)
-    let modulus: [16] u64 = [65517, 65535, 65535, 65535, 65535, 65535, 65535, 65535,
-                             65535, 65535, 65535, 65535, 65535, 65535, 65535, 32767]
-    for reduction in 2
+    // The extra 19 produces a carry out of bit 255 exactly when the
+    // value is at least 2^255 - 19. Use that carry to subtract the modulus.
+    var canonical = value.limbs
+    var carry     = (canonical[0] + 19) >> FieldLimbBits
+    for index in 1 until canonical.count
     {
-        discard reduction
-        var difference: [16] u64
-        var borrow = 0_u64
-        for index in 16
-        {
-            let sub       = modulus[index] + borrow
-            let underflow = canonical.limbs[index] < sub
-            difference[index] = (canonical.limbs[index] - sub) & (index == 15 ? 0x7FFF_u64 : 0xFFFF_u64)
-            borrow = cast(u64, underflow)
-        }
-
-        let selectDifference = 0_u64 - (1 - borrow)
-        for index in 16
-        {
-            canonical.limbs[index] = (difference[index] & selectDifference) |
-                                     (canonical.limbs[index] & ~selectDifference)
-        }
+        carry = (canonical[index] + carry) >> FieldLimbBits
     }
 
-    for index in X25519KeySize
+    canonical[0] += 19 * carry
+    for index in 4
     {
         carry = canonical[index] >> FieldLimbBits
         canonical[index]     &= FieldLimbMask
         canonical[index + 1] += carry
     }
+
     canonical[4] &= FieldLimbMask
 
     let words = cast([*] u64, destination.buffer)
@@ -283,7 +291,7 @@ internal func x25519Encode(value: X25519Field, destination: [..] u8)
 private func x25519ConditionalSwap(left, right: *X25519Field, swap: u64)
 {
     let mask = 0_u64 - swap
-    for index in 16
+    for index in left.limbs.count
     {
         let difference = (left[].limbs[index] ^ right[].limbs[index]) & mask
         left[].limbs[index]  ^= difference
@@ -295,7 +303,7 @@ private func x25519ClampScalar(privateKey: const [..] u8)->[X25519KeySize] u8
 {
     var result: #returntype
     Swag.memcpy(result.buffer, privateKey.buffer, X25519KeySize)
-    result[0] &= 248
+    result[0]  &= 248
     result[31] = (result[31] & 63) | 64
     return result
 }

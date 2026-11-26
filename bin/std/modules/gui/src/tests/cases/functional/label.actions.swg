@@ -39,7 +39,7 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(360, 170)
-    let label = Label.createMarkup(&host.root, "<a>First action</a> and <a href=\"second\">Second action</a>.", {20, 20, 300, 40}, flags: .LinkActions)
+    let label = Label.createMarkup(&host.root, "<a>First action</a> and <a href=\"second\">Second action!{/a}.", {20, 20, 300, 40}, flags: .LinkActions)
     let next  = PushButton.create(&host.root, "Next", {20, 90, 90, 30})
     var received: String
     label.sigLinkActivated += func|&received|(_, target) { received = target }
@@ -67,7 +67,7 @@ using Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(320, 120)
     host.theme.setLight()
-    let label        = Label.createMarkup(&host.root, "Retry after <a>3\u00A0minutes</a>.", {20, 20, 280, 60}, flags: .SecondaryText | .LinkActions)
+    let label        = Label.createMarkup(&host.root, "Retry after <a>3\u00A0minutes!{/a}.", {20, 20, 280, 60}, flags: .SecondaryText | .LinkActions)
     let active       = host.renderSettled(&host.root)
     var activePixels = 0_u32
     for y in active.height
@@ -96,15 +96,15 @@ using Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(360, 120)
 
-    let label = Label.create(&host.root, "<a>report</a> &amp; <b>R&D</b>.txt", {20, 20, 300, 40}, flags: .LinkActions)
+    let label = Label.create(&host.root, "<a>report</a> &amp; <b>R&D!{/b}.txt", {20, 20, 300, 40}, flags: .LinkActions)
     discard host.renderSettled(&host.root)
-    Swag.require(label.text() == "<a>report</a> &amp; <b>R&D</b>.txt")
+    Swag.require(label.text() == "<a>report</a> &amp; <b>R&D!{/b}.txt")
     Swag.require(label.name.isPlain() and not label.name.hasUrl)
     Swag.require(label.focusPolicy == .None)
 
-    label.setMarkup(Format.toString("Open <a>%</a>", RichString.escape("<b>R&D</b>.txt")))
+    label.setMarkup(Format.toString("Open <a>%</a>", RichString.escape("<b>R&D!{/b}.txt")))
     discard host.renderSettled(&host.root)
-    Swag.require(label.text() == "Open <b>R&D</b>.txt")
+    Swag.require(label.text() == "Open <b>R&D!{/b}.txt")
     Swag.require(label.name.hasUrl)
     Swag.require(label.focusPolicy == .Tab)
 

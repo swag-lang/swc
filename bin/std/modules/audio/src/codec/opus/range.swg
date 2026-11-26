@@ -21,10 +21,10 @@ private const UintBits   = 8_u32
 private const UniformDivision: [257] u64 = #run
 {
     var result: [257] u64
-    for total in 1'u32 until result.count
+    for total in 1_u32 until result.count
     {
         let shift = (total & (total - 1)) ? 63 - cast(u32, Swag.leadingZeros(total)) : 31
-        let scale = 1'u64 << shift
+        let scale = 1_u64 << shift
         let magic = (scale + total - 1) / total
         result[total] = magic | (cast(u64, shift) << 32)
     }
@@ -48,7 +48,7 @@ private const TellBoundaries: [8] u32 = #run
     for initial in 32768 until 65536
     {
         var normalized = cast(u32, initial)
-        var fraction   = 0'u32
+        var fraction   = 0_u32
         for 3
         {
             normalized = (normalized * normalized) >> 15
@@ -58,8 +58,10 @@ private const TellBoundaries: [8] u32 = #run
         }
 
         let region = (initial >> 12) - 8
-        if fraction == region do
+        if fraction == region
+        {
             boundaries[region] = cast(u32, initial)
+        }
     }
 
     return boundaries

@@ -22,7 +22,7 @@ struct StreamEncoder
     {
         encoder:        Encoder
         pending:        [2 * 1_024] s16
-        buffered:       Array's16
+        buffered:       Array!{s16}
         bufferedFrames: u32
         window:         EncodeWindow
         nextShort:      bool
@@ -60,7 +60,7 @@ impl StreamEncoder
     func createAdaptive(sampleRate: u32, channels: u16, bandwidth: Bandwidth = .Full)->StreamEncoder fail
     {
         var result = try StreamEncoder.create(sampleRate, channels, bandwidth)
-        result.buffered.resize(1_024'u64 * channels)
+        result.buffered.resize(1_024_u64 * channels)
         result.encoder.prepareShortWindows()
         return result
     }
@@ -76,8 +76,11 @@ impl StreamEncoder
         var result = try StreamEncoder.create(sampleRate, channels, bandwidth)
         result.packetBudget = cast(u64, bitsPerSecond) * 1_024 / (8 * sampleRate)
         let minimum = channels == 1 ? 6 : bandwidth == .Voice ? 10 : 11
-        if result.packetBudget < minimum do
+        if result.packetBudget < minimum
+        {
             fail BadParameterError{"AAC payload limit is too small for its channel configuration"}
+        }
+
         return result
     }
 
@@ -164,8 +167,11 @@ impl StreamEncoder
         }
 
         .finalizing = true
-        if .buffered.count do
+        if .buffered.count
+        {
             return try .finishWindowed(packet)
+        }
+
         if .pendingFrames
         {
             let valid = .pendingFrames

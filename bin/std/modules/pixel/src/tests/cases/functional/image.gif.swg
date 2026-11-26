@@ -275,8 +275,10 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
         0, 0x3B]
     let image = expect Image.decode("dense-self-reference.gif", Bytes)
     Swag.require(image.width == 3 and image.height == 1)
-    for x in image.width do
+    for x in image.width
+    {
         assertGifPixelAt(image, x, 0, 109, 151, 197, 255)
+    }
 }
 
 // LZW codes cross sub-blocks while interlaced rows are restored in all four passes.
@@ -347,7 +349,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     Swag.require(Memory.compare(image.pixels.storage(), canvas.pixels.storage(), image.byteCount) == 0)
 }
 
-func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
+func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array!{u8}
 {
     const Header: [25] u8 = [
         'G', 'I', 'F', '8', '9', 'a',
@@ -358,25 +360,33 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     const PixelCount          = 33 * 9
     var bytes: #returntype
     bytes.add(Header)
-    if withTransparency do
+    if withTransparency
+    {
         bytes.add(Control)
+    }
+
     bytes.add(Descriptor)
 
     for offset in PixelCount
     {
-        if offset == 0 do
-            bytes.add(255'u8)
-        elif offset == 255 do
+        if offset == 0
+        {
+            bytes.add(255_u8)
+        }
+        else if offset == 255
+        {
             bytes.add(cast(u8, (PixelCount + 1 - 255)))
 
-        // Each byte has a four-bit clear code followed by a literal.
+            // Each byte has a four-bit clear code followed by a literal.
+        }
+
         let paletteIndex = invalidIndex and offset == 16 ? 4 : (offset & 3)
         bytes.add(cast(u8, ((paletteIndex << 4) | 8)))
     }
 
-    bytes.add(9'u8)        // LZW end code
-    bytes.add(0'u8)        // Sub-block terminator
-    bytes.add(0x3B'u8)     // GIF trailer
+    bytes.add(9_u8)        // LZW end code
+    bytes.add(0_u8)        // Sub-block terminator
+    bytes.add(0x3B_u8)     // GIF trailer
     return bytes
 }
 
@@ -398,10 +408,14 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
                 let paletteIndex = (y * image.width + x) & 3
                 let color        = paletteIndex * 3
                 let row          = image.height - y - 1
-                if withTransparency and paletteIndex == 1 do
+                if withTransparency and paletteIndex == 1
+                {
                     assertGifPixelAt(image, x, row, 0, 0, 0, 0)
-                else do
+                }
+                else
+                {
                     assertGifPixelAt(image, x, row, Palette[color], Palette[color + 1], Palette[color + 2], 255)
+                }
             }
         }
     }
@@ -556,8 +570,10 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     let source = Image.create(263, 277, .Gray8)
     for y in source.height
     {
-        for x in source.width do
+        for x in source.width
+        {
             source.pixels.storage()[y * source.rowStride + x] = cast(u8, (x * 73 + y * 61) & 255)
+        }
     }
 
     let encoded = expect source.encodeToBytes("full-gray.gif")
@@ -699,5 +715,5 @@ func wideGifPaletteFixture(withTransparency, invalidIndex: bool)->Array'u8
     let decoded = expect Image.decode("long-run.gif", encoded.toSlice())
     Swag.require(decoded.width == source.width and decoded.height == source.height)
     Swag.require(decoded.pixelFormat == .RGB8)
-    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 3791399009'u32)
+    Swag.require(Hash.Crc32.compute(decoded.pixels.toSlice()) == 3791399009_u32)
 }

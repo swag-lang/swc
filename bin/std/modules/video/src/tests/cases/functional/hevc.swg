@@ -7,16 +7,16 @@ using Core, Core.Errors, Pixel
 // that follow it in the same RBSP. Check both the initial load and a refill.
 #test
 {
-    const Lengths    = [2'u64, 4, 6]
-    const Bins       = [24'u64, 1_616_276, 105_924_311_481]
-    const PaddedBins = [43305'u32, 47417, 47417]
-    let bytes = [0x31'u8, 0x21, 0xD6, 0x49, 0xFF, 0xFF, 0xF4, 0xFA]
+    const Lengths    = [2_u64, 4, 6]
+    const Bins       = [24_u64, 1_616_276, 105_924_311_481]
+    const PaddedBins = [43305_u32, 47417, 47417]
+    let bytes = [0x31_u8, 0x21, 0xD6, 0x49, 0xFF, 0xFF, 0xF4, 0xFA]
     for size, index in Lengths
     {
         var reader: Hevc.CabacReader
         expect reader.start(bytes.buffer, size)
         let available  = cast(u32, (size * 8 - 9))
-        let firstCount = Math.min(available, 24'u32)
+        let firstCount = Math.min(available, 24_u32)
         let remaining  = available - firstCount
         let first      = cast(u64, reader.bypassBits(firstCount))
         let decoded    = (first << remaining) | reader.bypassBits(remaining)
@@ -30,9 +30,9 @@ using Core, Core.Errors, Pixel
 // The two reserved nine-bit offsets exceed the initial arithmetic range.
 #test
 {
-    for second in [0'u8, 0x80]
+    for second in [0_u8, 0x80]
     {
-        let bytes = [0xFF'u8, second]
+        let bytes = [0xFF_u8, second]
         var reader:   Hevc.CabacReader
         var rejected: Swag.Error
         catch reader.start(bytes.buffer, bytes.count) as rejected

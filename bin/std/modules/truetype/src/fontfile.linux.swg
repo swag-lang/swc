@@ -2,8 +2,8 @@
 
 using Swag, Core
 
-private const MaxParallelFontReads = 4'u32
-private const MinParallelFontBytes = 4'u64 * 1024 * 1024
+private const MaxParallelFontReads = 4_u32
+private const MinParallelFontBytes = 4_u64 * 1024 * 1024
 
 func fontReadWorkers(length: u64)->u32 =>
     length >= MinParallelFontBytes ? Math.min(Swag.workerCount(), MaxParallelFontReads) : 0
@@ -16,7 +16,7 @@ private struct FontReadPart
 
 private func readPositionalPart(fd: s32, offset: u64, destination: [*] u8, length: u64)->FontReadPart
 {
-    var position = 0'u64
+    var position = 0_u64
     while position < length
     {
         let read = Linux.pread(fd, destination + position, length - position, cast(s64, offset + position))
@@ -26,10 +26,15 @@ private func readPositionalPart(fd: s32, offset: u64, destination: [*] u8, lengt
             continue
         }
 
-        if not read do
+        if not read
+        {
             break
-        if Linux.errno() != Linux.EINTR do
+        }
+
+        if Linux.errno() != Linux.EINTR
+        {
             return {}
+        }
     }
 
     return {count: position, ok: true}
@@ -59,14 +64,19 @@ func readParallelFontRange(stream: *File.FileStream, offset: u64, buffer: [..] u
     group.wait()
 
     // Return the contiguous prefix in file order, as a single stream read does.
-    var result = 0'u64
+    var result = 0_u64
     for index in workers
     {
-        if not parts[index].ok do
+        if not parts[index].ok
+        {
             return {count: 0, ok: false}
+        }
+
         result += parts[index].count
-        if parts[index].count != partSize do
+        if parts[index].count != partSize
+        {
             break
+        }
     }
 
     return {count: result, ok: true}

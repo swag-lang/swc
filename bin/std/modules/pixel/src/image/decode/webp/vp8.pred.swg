@@ -89,18 +89,19 @@ func vp8Predict4(decoder: *Vp8Decoder, y, x: s32, predictor: u8)
         let bcd = vp8Average3(b, c, d)
         let cde = vp8Average3(c, d, e)
         let def = vp8Average3(d, e, f)
-        for j in 4 do
+        for j in 4 {
             writeRow(&decoder.ybr[y + j][x], abc, bcd, cde, def)
 
+        }
     case VP8_PRED_HE:
         let apq = vp8Average3(a, p, q)
         let pqr = vp8Average3(p, q, r)
         let qrs = vp8Average3(q, r, s)
         let rss = vp8Average3(r, s, s)
-        cast([*] u32, &decoder.ybr[y + 0][x])[0] = cast(u32, apq) * 0x01010101'u32
-        cast([*] u32, &decoder.ybr[y + 1][x])[0] = cast(u32, pqr) * 0x01010101'u32
-        cast([*] u32, &decoder.ybr[y + 2][x])[0] = cast(u32, qrs) * 0x01010101'u32
-        cast([*] u32, &decoder.ybr[y + 3][x])[0] = cast(u32, rss) * 0x01010101'u32
+        cast([*] u32, &decoder.ybr[y + 0][x])[0] = cast(u32, apq) * 0x01010101_u32
+        cast([*] u32, &decoder.ybr[y + 1][x])[0] = cast(u32, pqr) * 0x01010101_u32
+        cast([*] u32, &decoder.ybr[y + 2][x])[0] = cast(u32, qrs) * 0x01010101_u32
+        cast([*] u32, &decoder.ybr[y + 3][x])[0] = cast(u32, rss) * 0x01010101_u32
 
     case VP8_PRED_RD:
         let srq = vp8Average3(s, r, q)
@@ -209,18 +210,21 @@ func vp8PredictLarge(decoder: *Vp8Decoder, y, x, size: s32, predictor: u8)
     #[Swag.Inline]
     func storeRow(destination: [*] u8, pixels: U8x16, size: s32)
     {
-        if size == 16 do
+        if size == 16 {
             store(destination, pixels)
-        else do
+        }
+        else {
             storeLow8(destination, pixels)
+        }
     }
 
     #[Swag.Inline]
     func fillBlock(decoder: *Vp8Decoder, y, x, size: s32, value: u8)
     {
         let pixels = splat(value)
-        for row in size do
+        for row in size {
             storeRow(&decoder.ybr[y + row][x], pixels, size)
+        }
     }
 
     switch predictor
@@ -334,7 +338,7 @@ func vp8ParsePredY16(decoder: *Vp8Decoder, mbX: s32)
         predictor = VP8_PRED_TM
     }
 
-    let modes = cast(u32, predictor) * 0x01010101'u32
+    let modes = cast(u32, predictor) * 0x01010101_u32
     cast([*] u32, &decoder.upMb[mbX].predictor[0])[0] = modes
     cast([*] u32, &decoder.leftMb.predictor[0])[0]    = modes
 
@@ -364,24 +368,30 @@ func vp8ParsePredC8(decoder: *Vp8Decoder)
 #[Swag.Inline]
 private func vp8ReadPredY4(partition: *Vp8Partition, probability: const [*] u8)->u8
 {
-    if not partition.readBit(probability[0]) do
+    if not partition.readBit(probability[0]) {
         return VP8_PRED_DC
-    if not partition.readBit(probability[1]) do
+    }
+    if not partition.readBit(probability[1]) {
         return VP8_PRED_TM
-    if not partition.readBit(probability[2]) do
+    }
+    if not partition.readBit(probability[2]) {
         return VP8_PRED_VE
 
+    }
     if not partition.readBit(probability[3])
     {
-        if not partition.readBit(probability[4]) do
+        if not partition.readBit(probability[4]) {
             return VP8_PRED_HE
+        }
         return partition.readBit(probability[5]) ? VP8_PRED_VR : VP8_PRED_RD
     }
 
-    if not partition.readBit(probability[6]) do
+    if not partition.readBit(probability[6]) {
         return VP8_PRED_LD
-    if not partition.readBit(probability[7]) do
+    }
+    if not partition.readBit(probability[7]) {
         return VP8_PRED_VL
+    }
     return partition.readBit(probability[8]) ? VP8_PRED_HU : VP8_PRED_HD
 }
 

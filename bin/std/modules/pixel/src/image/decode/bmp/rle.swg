@@ -43,8 +43,10 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if count < 4
             {
                 let color = colors[value]
-                for i in count do
+                for i in count
+                {
                     writePackedBgr(dst + cast(u64, i) * 3, color)
+                }
             }
             else
             {
@@ -120,7 +122,7 @@ func rle4Index(value: u8, index: u32)->u32 => cast(u32, ((index & 1) ? (value & 
 
 private func fillPalettePair(destination: [*] u8, count: u64, pair: u64)
 {
-    const RepeatPair = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 128, 128, 128, 128])
+    const RepeatPair = cast(Math.Simd.U8x16, [0_u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 128, 128, 128, 128])
     let block = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, Math.Simd.splat(pair)), RepeatPair)
     var dst   = destination
     for count / 4

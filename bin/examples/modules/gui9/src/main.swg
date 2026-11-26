@@ -184,8 +184,11 @@ func createRootView()
 
     // Left: the reusable file-browsing composite (no dialog involved).
     var startFolder = Env.getSpecialDirectory(.UserDocuments)
-    if not Directory.exists(startFolder) do
+    if not Directory.exists(startFolder)
+    {
         startFolder = Path.directoryName(#file)
+    }
+
     g_FileState.currentFolder = startFolder
 
     var opt: FileDlgOptions

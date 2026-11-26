@@ -725,11 +725,13 @@ impl ConcatBuffer
     // A null `alloc` selects the current context allocator. A transfer empties the
     // buffer and invalidates its borrows. Multiple buckets, embedded storage, or a
     // different allocator require a copy and leave the source unchanged.
-    mtd moveToArray(alloc: Swag.IAllocator? = null)->Array'u8
+    mtd moveToArray(alloc: Swag.IAllocator? = null)->Array!{u8}
     {
         let target = alloc ? alloc : Swag.getContext().allocator
-        if not .count() or .lastBucket != .firstBucket or .usesEmbeddedBucket or .allocator != target do
+        if not .count() or .lastBucket != .firstBucket or .usesEmbeddedBucket or .allocator != target
+        {
             return .toArray(alloc)
+        }
 
         let storage = .eatBuffer()
         return {allocator: target, buffer: storage.data, count: storage.size, capacity: storage.capacity}

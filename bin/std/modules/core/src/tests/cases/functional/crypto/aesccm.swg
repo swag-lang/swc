@@ -114,7 +114,7 @@ func aesCcmHexBytes(text: string)->Array!{u8}
     // OpenSSL EVP vector for the shortest counter field, batched CTR and a partial block.
     const Key = "0123456789abcdefghijklmnopqrstuv"
     const Aad = "swag-crypto-1"
-    let nonce = aesCcmHexBytes("ffffffffffffffffffffffffff")
+    let nonce    = aesCcmHexBytes("ffffffffffffffffffffffffff")
     let expected = aesCcmHexBytes(#stringof(
         "2fe735f45c7a860659e3f35f431d9188b4341baabcd4a4e6887adb0f38bc74be",
         "d984612790d09abd69fc3f390d0d30821d3d3a0eb855ed4864480987082560e9",
@@ -123,12 +123,14 @@ func aesCcmHexBytes(text: string)->Array!{u8}
         "9edf8543069332eeb588cd4a72309bf13b"))
     let expectedTag = aesCcmHexBytes("1e17d7d418e585b66ee97c59585c5051")
     var storage: [147] u8
-    var tag: [Crypto.AesCcmTagMaxSize] u8
-    storage[0] = 0xA5
+    var tag:     [Crypto.AesCcmTagMaxSize] u8
+    storage[0]   = 0xA5
     storage[146] = 0x5A
     let data = storage[1 until 146]
-    for index in data.count do
+    for index in data.count
+    {
         data[index] = cast(u8, (index * 13 + 7) & 0xFF)
+    }
 
     expect Crypto.aesCcmEncrypt(Key, nonce.toSlice(), Aad, data, data, tag)
     Swag.require(Crypto.constantTimeEqual(data, expected.toSlice()))
@@ -142,7 +144,10 @@ func aesCcmHexBytes(text: string)->Array!{u8}
     tag[0] ^= 1
 
     expect Crypto.aesCcmDecrypt(Key, nonce.toSlice(), Aad, data, tag, data)
-    for index in data.count do
+    for index in data.count
+    {
         Swag.require(data[index] == cast(u8, (index * 13 + 7) & 0xFF))
+    }
+
     Swag.require(storage[0] == 0xA5 and storage[146] == 0x5A)
 }

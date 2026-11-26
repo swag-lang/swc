@@ -41,16 +41,18 @@ private func aesKeyWrapReadLength(source: const [*] u8)->u32
 
 private func(Decrypt: bool) aesKeyWrapRoundsHardware(aes: *Aes, a: *[AesKeyWrapIntegritySize] u8, data: [..] u8)
 {
-    #static if Decrypt do
+    #static if Decrypt
+    {
         aes[].prepareHardwareDecryption()
+    }
 
-    let words = cast([*] u64, data.buffer)
+    let words      = cast([*] u64, data.buffer)
     let blockCount = data.count / 8
-    let saved = cast(*u64, a)
-    var chain = saved[]
+    let saved      = cast(*u64, a)
+    var chain      = saved[]
     var packed, counter: U64x2
     packed[0] = chain
-    var step = Decrypt ? blockCount * 6 : 1'u64
+    var step = Decrypt ? blockCount * 6 : 1_u64
     for 6
     {
         for block in blockCount
@@ -62,7 +64,7 @@ private func(Decrypt: bool) aesKeyWrapRoundsHardware(aes: *Aes, a: *[AesKeyWrapI
                 counter[0] = mask
                 packed[1]  = words[index]
                 let block = cast #bit (U8x16, packed ^ counter)
-                packed = cast #bit (U64x2, aes[].decryptBlockHardware'true(block))
+                packed       = cast #bit (U64x2, aes[].decryptBlockHardware!{true}(block))
                 words[index] = packed[1]
             }
             else
@@ -72,9 +74,10 @@ private func(Decrypt: bool) aesKeyWrapRoundsHardware(aes: *Aes, a: *[AesKeyWrapI
                 input[1] = words[index]
                 let block  = cast #bit (U8x16, input)
                 let result = cast #bit (U64x2, aes[].encryptBlockHardware(block))
-                chain = result[0] ^ mask
+                chain        = result[0] ^ mask
                 words[index] = result[1]
             }
+
             step = Decrypt ? step - 1 : step + 1
         }
     }
@@ -97,6 +100,14 @@ private func aesKeyWrapWrapCore(aes: *Aes, initialA: [AesKeyWrapIntegritySize] u
     var a = initialA
     Swag.memcpy(output.buffer + 8, input.buffer, input.count)
     Swag.memcpy(output.buffer, &a[0], 8)
+    if aes[].usesHardwareRounds()
+    {
+        aesKeyWrapRoundsHardware!{false}(aes, &a, output[8 until])
+        Swag.memcpy(output.buffer, &a[0], 8)
+        Crypto.secureClear(a)
+        return
+    }
+
     var round = 0_u64
     while round < 6
     {
@@ -133,6 +144,12 @@ private func aesKeyWrapUnwrapCore(aes: *Aes, input: const [..] u8, a: *[AesKeyWr
     let blockCount = output.count / 8
     Swag.memcpy(&a[][0], input.buffer, 8)
     Swag.memcpy(output.buffer, input.buffer + 8, output.count)
+    if aes[].usesHardwareRounds()
+    {
+        aesKeyWrapRoundsHardware!{true}(aes, a, output)
+        return
+    }
+
     var round = 6_u64
     while round > 0
     {

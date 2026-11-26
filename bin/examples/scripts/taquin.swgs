@@ -25,8 +25,10 @@ func areAdjacent(a, b: s32)->bool
 
 func shuffle(wnd: *Wnd)
 {
-    for tile in TileCount do
+    for tile in TileCount
+    {
         g_Board[tile] = tile
+    }
 
     g_Empty     = EmptyTile
     g_SlideFrom = -1
@@ -70,12 +72,16 @@ func tileRect(board: Math.Rectangle, tile: s32)->Math.Rectangle
 
 func slideTile(wnd: *Wnd, position: Math.Point)
 {
-    if g_SlideFrom >= 0 do
+    if g_SlideFrom >= 0
+    {
         return
+    }
 
     let board = boardRect(wnd)
-    if not board.contains(position) do
+    if not board.contains(position)
+    {
         return
+    }
 
     let extent = board.width / Side
     let column = cast(s32, (position.x - board.x) / extent)
@@ -102,18 +108,25 @@ func drawBoard(wnd: *Wnd, painter: *Painter)
             g_SlideFrom          = -1
 
             var solved = true
-            for tile, index in g_Board where tile != index do
+            for tile, index in g_Board where tile != index
+            {
                 solved = false
-            if solved do
+            }
+
+            if solved
+            {
                 g_Status.setText("Puzzle solved.")
+            }
         }
 
         wnd.invalidate()
     }
 
     let board = boardRect(wnd)
-    if board.isEmpty() do
+    if board.isEmpty()
+    {
         return
+    }
 
     painter.fillRoundRect(board, 8, 8, wnd.themeColors().view_Bk)
     for tile, index in g_Board where tile != EmptyTile
@@ -127,8 +140,10 @@ func drawBoard(wnd: *Wnd, painter: *Painter)
         }
 
         dest.inflate(-TileGap * 0.5)
-        if dest.width > 0 do
+        if dest.width > 0
+        {
             painter.drawTexture(dest, tileRect(g_Source, tile), g_Texture)
+        }
     }
 }
 

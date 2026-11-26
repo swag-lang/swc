@@ -16,8 +16,8 @@ struct Bits
     broken:   bool
 }
 
-private const PrefixBits  = 8'u32
-private const PrefixCount = 1'u32 << PrefixBits
+private const PrefixBits  = 8_u32
+private const PrefixCount = 1_u32 << PrefixBits
 private const RootCount   = IntraCbpPattern.count + IntraCbp.count + IntraFirst.count + IntraSecond.count + IntraThird.count + IntraCoeff.count +
                             InterCbpPattern.count + InterCbp.count + InterFirst.count + InterSecond.count + InterThird.count + InterCoeff.count +
                             AicTop.count + AicOne.count + PType.count + BType.count + AicTwo.count
@@ -36,7 +36,7 @@ private func buildCodePrefixes()->PrefixLookup
     let groups: [17] const [..] s32 = [IntraCbpPattern, IntraCbp, IntraFirst, IntraSecond, IntraThird, IntraCoeff,
                                        InterCbpPattern, InterCbp, InterFirst, InterSecond, InterThird, InterCoeff,
                                        AicTop, AicOne, PType, BType, AicTwo]
-    var row = 0'u32
+    var row = 0_u32
     for group in groups
     {
         for root in group
@@ -45,14 +45,15 @@ private func buildCodePrefixes()->PrefixLookup
             for prefix in PrefixCount
             {
                 var node   = cast(u32, root)
-                var length = 0'u32
+                var length = 0_u32
                 for bit in PrefixBits
                 {
                     let branch = (prefix >> (PrefixBits - 1 - bit)) & 1
                     node   = CodeTree[node * 2 + branch]
                     length += 1
-                    if not node or node >= 0xF000 do
+                    if not node or node >= 0xF000 {
                         break
+                    }
                 }
 
                 result.entries[row * PrefixCount + prefix] = length << 16 | node
@@ -91,20 +92,22 @@ impl Bits
         }
         else
         {
-            for index in needed do
+            for index in needed {
                 value = (value << 8) | first[index]
+            }
             value >>= needed * 8 - skip - count
         }
 
-        return cast(u32, value & ((1'u64 << count) - 1))
+        return cast(u32, value & ((1_u64 << count) - 1))
     }
 
     mtd code(root: s32)->s32
     {
-        if .broken do
+        if .broken {
             return 0
+        }
         var node      = root
-        var remaining = 24'u32
+        var remaining = 24_u32
 
         // Two bytes cover an eight-bit prefix regardless of its alignment.
         if .length - (.position >> 3) >= 2
@@ -116,8 +119,9 @@ impl Bits
             let consumed = entry >> 16
             .position += consumed
             node      = cast(s32, entry & 0xFFFF)
-            if node >= 0xF000 do
+            if node >= 0xF000 {
                 return node ^ 0xFFFF
+            }
             if not node
             {
                 .broken = true

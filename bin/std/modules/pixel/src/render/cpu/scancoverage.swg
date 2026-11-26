@@ -12,16 +12,16 @@ internal struct Crossing
 internal struct ScanSample
 {
     y:         f64
-    crossings: Array'Crossing
+    crossings: Array!{Crossing}
 }
 
 internal struct ScanScratch
 {
-    rows:     Array'ScanSample
-    coverage: Array'f32
-    order:    Array'u32
-    reordered: Array'Crossing
-    keys, sorted: Array'u64
+    rows:         Array!{ScanSample}
+    coverage:     Array!{f32}
+    order:        Array!{u32}
+    reordered:    Array!{Crossing}
+    keys, sorted: Array!{u64}
 }
 
 internal impl ScanScratch
@@ -37,51 +37,64 @@ internal impl ScanScratch
             .rows.resize(count)
 
             // The sample grid is local to the tile, so its ordinates survive clearing the rows.
-            for row in first until count do
+            for row in first until count
+            {
                 .rows[row].y = cast(f64, (cast(f32, row) + 0.5) / VerticalSamples)
+            }
         }
 
         let crossings = .rows.toSlice()[0 until count]
-        for &line in crossings do
+        for &line in crossings
+        {
             line.crossings.clear()
+        }
+
         return crossings
     }
 
     // The same set of edges usually crosses multiple nearby samples. Reusing the
     // previous permutation often leaves only local exchanges. The repair has a
     // fixed budget, so a different set of edges falls back to a full sort.
-    mtd reorderLine(line: *Array'Crossing)->bool
+    mtd reorderLine(line: *Array!{Crossing})->bool
     {
         let count = line.count
-        if .order.count != count do
+        if .order.count != count
+        {
             return false
+        }
+
         .reordered.growResize(count)
-        let old = line.storage()
-        let target = .reordered.storage()
-        let order = .order.storage()
+        let old       = line.storage()
+        let target    = .reordered.storage()
+        let order     = .order.storage()
         var exchanges = 16 + count / 8
         for index in count
         {
             let original = order[index]
             let crossing = old[original]
-            var slot = index
+            var slot     = index
             while slot and target[slot - 1].x > crossing.x
             {
-                if not exchanges do
+                if not exchanges
+                {
                     return false
-                exchanges -= 1
+                }
+
+                exchanges    -= 1
                 target[slot] = target[slot - 1]
                 order[slot]  = order[slot - 1]
-                slot -= 1
+                slot         -= 1
             }
+
             target[slot] = crossing
             order[slot]  = original
         }
+
         Memory.copy(old, target, count * #sizeof(Crossing))
         return true
     }
 
-    mtd sortLine(line: *Array'Crossing)
+    mtd sortLine(line: *Array!{Crossing})
     {
         #[Swag.Inline]
         func insertWithGap(points: [*] Crossing, count, gap: u64)
@@ -107,25 +120,30 @@ internal impl ScanScratch
             // A few coarse passes move out-of-order crossings before the final insertion pass.
             if line.count > 8
             {
-                for gap in [23'u64, 10, 4] do
+                for gap in [23_u64, 10, 4]
+                {
                     insertWithGap(points, line.count, gap)
+                }
             }
 
             insertWithGap(points, line.count, 1)
             return
         }
 
-        if .reorderLine(line) do
+        if .reorderLine(line)
+        {
             return
 
-        // Sort the original indices by the nonnegative float's unsigned bits.
-        // The indices themselves are payload and do not take part in the sort.
+            // Sort the original indices by the nonnegative float's unsigned bits.
+            // The indices themselves are payload and do not take part in the sort.
+        }
+
         .keys.growResize(line.count)
         .sorted.growResize(line.count)
         .order.resize(line.count)
         .reordered.growResize(line.count)
-        var source = .keys.storage()
-        var target = .sorted.storage()
+        var source    = .keys.storage()
+        var target    = .sorted.storage()
         let crossings = line.storage()
         for index in line.count
         {
@@ -137,9 +155,12 @@ internal impl ScanScratch
         {
             let shift = 32 + digit * 8
             var offsets: [256] u64
-            for index in line.count do
+            for index in line.count
+            {
                 offsets[(source[index] >> shift) & 0xFF] += 1
-            var total = 0'u64
+            }
+
+            var total = 0_u64
             for &offset in offsets
             {
                 let count = offset[]
@@ -149,11 +170,12 @@ internal impl ScanScratch
 
             for index in line.count
             {
-                let key = source[index]
+                let key    = source[index]
                 let bucket = (key >> shift) & 0xFF
                 target[offsets[bucket]] = key
-                offsets[bucket] += 1
+                offsets[bucket]         += 1
             }
+
             swap(&source, &target)
         }
 
@@ -161,38 +183,48 @@ internal impl ScanScratch
         for index in line.count
         {
             let original = cast(u32, source[index] & Swag.U32.Max)
-            .order[index] = original
+            .order[index]  = original
             ordered[index] = crossings[original]
         }
+
         Memory.copy(crossings, ordered, line.count * #sizeof(Crossing))
     }
 
     // Integrates horizontal coverage at four vertical sample positions per device row.
     mtd resolveRow(crossings: [..] ScanSample, row, width: s32, evenOdd, fullRow: bool, sortedRows = false)->{values: [*] f32, first, end: u64}
     {
-        if .coverage.count < cast(u64, width) do
+        if .coverage.count < cast(u64, width)
+        {
             .coverage.resize(cast(u64, width))
+        }
+
         let coverage = .coverage.storage()
         let rowStart = cast(u64, row) * VerticalSamples
         let samples  = crossings[rowStart until rowStart + VerticalSamples]
 
         var low  = cast(f32, width)
-        var high = 0.0'f32
+        var high = 0.0_f32
         for &sample in samples where sample.crossings.count > 1
         {
             let line = &sample.crossings
-            if not sortedRows do
+            if not sortedRows
+            {
                 .sortLine(line)
+            }
+
             low  = Math.min(low, line[0].x)
             high = Math.max(high, line[line.count - 1].x)
         }
 
         // For a sloped edge most of the bounding-box row has no crossings.
         // A texture mask still needs initialized zeros outside the covered interval.
-        let first = fullRow ? 0'u64 : cast(u64, Math.floor(low))
+        let first = fullRow ? 0_u64 : cast(u64, Math.floor(low))
         let end   = fullRow ? cast(u64, width) : cast(u64, Math.ceil(high))
-        if first >= end do
+        if first >= end
+        {
             return {coverage, 0, 0}
+        }
+
         Memory.clear(coverage + first, (end - first) * #sizeof(f32))
         for &line in samples
         {
@@ -213,7 +245,7 @@ internal impl ScanScratch
                     {
                         coverage[start] += cast(f32, start + 1) - previous
                         var column = start + 1
-                        let one    = Math.Simd.splat(1.0'f32)
+                        let one    = Math.Simd.splat(1.0_f32)
                         while last - column >= 4
                         {
                             let pixels = coverage + column
@@ -221,8 +253,11 @@ internal impl ScanScratch
                             column += 4
                         }
 
-                        for tail in column until last do
+                        for tail in column until last
+                        {
                             coverage[tail] += 1
+                        }
+
                         coverage[last] += x - cast(f32, last)
                     }
                 }
@@ -255,27 +290,33 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
     #[Swag.Inline]
     func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
     {
-        if uniform do
+        if uniform
+        {
             return point * transform.m11 - origin
+        }
+
         return transform.transformPoint(point) * density - origin
     }
 
     #[Swag.Inline]
     func sampleRow(point: Vector2, first, limit: f32)->s64
     {
-        if not point.isFinite() do
+        if not point.isFinite()
+        {
             return -1
+        }
+
         return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), first, limit))
     }
 
     func addEdge(rows: [..] ScanSample, a, b: Vector2, aRow, bRow: s64, minimumX, width: f32)
     {
-        let forward = aRow < bRow
-        let top     = forward ? a : b
-        let bottom  = forward ? b : a
-        let start   = cast(u64, forward ? aRow : bRow)
-        let end     = cast(u64, forward ? bRow : aRow)
-        let winding = forward ? 1 : -1
+        let forward   = aRow < bRow
+        let top       = forward ? a : b
+        let bottom    = forward ? b : a
+        let start     = cast(u64, forward ? aRow : bRow)
+        let end       = cast(u64, forward ? bRow : aRow)
+        let winding   = forward ? 1 : -1
         var constantX = top.x
         var constant  = top.x == bottom.x
         if not constant and minimumX > 0 and width <= 1_048_576
@@ -290,11 +331,15 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
                 constantX = low
             }
         }
+
         if constant
         {
             let crossing = Crossing{Math.clamp(constantX, minimumX, width), winding}
-            for row in start until end do
+            for row in start until end
+            {
                 rows[row].crossings.add(crossing)
+            }
+
             return
         }
 
@@ -316,18 +361,24 @@ internal func addScanContour(crossings: [..] ScanSample, points: const [..] Vect
 
     let first = cast(f32, firstRow * VerticalSamples)
     let limit = cast(f32, crossings.count)
-    if points.count < 2 do
+    if points.count < 2
+    {
         return
 
-    // Adjacent edges share the projected vertex and its sample row.
+        // Adjacent edges share the projected vertex and its sample row.
+    }
+
     var previous    = project(points[points.count - 1], transform, density, origin, uniform)
     var previousRow = sampleRow(previous, first, limit)
     for point in points
     {
         let next = project(point, transform, density, origin, uniform)
         let row  = sampleRow(next, first, limit)
-        if previousRow >= 0 and row >= 0 and previousRow != row do
+        if previousRow >= 0 and row >= 0 and previousRow != row
+        {
             addEdge(crossings, previous, next, previousRow, row, minimumX, width)
+        }
+
         previous    = next
         previousRow = row
     }

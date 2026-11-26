@@ -255,7 +255,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     let padding  = (frame[2] & 2) != 0
     let nextSize = cast(u64, packet.byteSize) + (padding ? 0 : 1) - (padding ? 1 : 0)
 
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(frame)
     bytes.resize(NextOffset)
     bytes.add(frame)
@@ -401,18 +401,21 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     const Bytes: [7] u8 = [0xB4, 0x39, 0xC2, 0x67, 0x85, 0xFA, 0x01]
     let payload = Swag.makeSlice(&Bytes[0], Bytes.count)
     var reader  = Mp3.BitReader.create(payload)
-    for start in [3'u64, 31, 5, 53, 57, 16]
+    for start in [3_u64, 31, 5, 53, 57, 16]
     {
         reader.seek(start)
         var position = start
-        for width in [0'u32, 9, 24, 7, 1]
+        for width in [0_u32, 9, 24, 7, 1]
         {
-            var expected = 0'u32
+            var expected = 0_u32
             for width
             {
                 expected <<= 1
-                if position < payload.count * 8 do
+                if position < payload.count * 8
+                {
                     expected |= cast(u32, payload[position >> 3] >> cast(u32, (7 - (position & 7)))) & 1
+                }
+
                 position += 1
             }
 
@@ -427,13 +430,16 @@ private func mp3ChunkTestSound(name: string)->SoundFile
 {
     let path   = audioGetTestDataPath(name)
     let source = expect SoundFile.load(path.toString())
-    var packets: Array'SoundPacket
-    var frames = 0'u64
-    for index in 174'u64
+    var packets: Array!{SoundPacket}
+    var frames = 0_u64
+    for index in 174_u64
     {
         var packet = expect source.packet(index % source.packetCount())
-        if index == 31 or index == 96 do
+        if index == 31 or index == 96
+        {
             packet.byteSize = 0
+        }
+
         packets.add(packet)
         frames += packet.sampleFrameCount
     }
@@ -441,7 +447,7 @@ private func mp3ChunkTestSound(name: string)->SoundFile
     return expect SoundFile.openPacketStream(path.toString(), .Mp3, source.sampleRateHz(), source.numChannels(), frames, packets.toSlice(), source.decoderConfig.toSlice(), {leadingTrimFrames: 123, trailingTrimFrames: 76})
 }
 
-private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64)->{pcm: Array's16, chunks: Array'u64}
+private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64)->{pcm: Array!{s16}, chunks: Array!{u64}}
 {
     let bytes    = expect File.readAllBytes(sound.sourcePath())
     var codec:   Mp3.Codec
@@ -452,7 +458,7 @@ private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64
     let end   = first + frameCount
     var result: #returntype
     var pcm:    [2304] s16
-    var start = 0'u64
+    var start = 0_u64
     for index in sound.packetCount()
     {
         let packet = expect sound.packet(index)
@@ -476,8 +482,11 @@ private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64
             result.chunks.add((finish - from) * channels)
         }
 
-        if next >= end do
+        if next >= end
+        {
             break
+        }
+
         start = next
     }
 
@@ -491,14 +500,14 @@ private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64
     {
         let sound  = mp3ChunkTestSound(name)
         let packet = expect sound.packet(0)
-        let first  = 23'u64 * packet.sampleFrameCount + 39
-        let count  = 147'u64 * packet.sampleFrameCount + 58
+        let first  = 23_u64 * packet.sampleFrameCount + 39
+        let count  = 147_u64 * packet.sampleFrameCount + 58
         let wanted = mp3SerialRange(&sound, first, count)
         let caller = Env.Process.currentThreadId()
-        for lanes in [2'u64, 4]
+        for lanes in [2_u64, 4]
         {
-            var actual: Array's16
-            var sizes:  Array'u64
+            var actual: Array!{s16}
+            var sizes:  Array!{u64}
             expect Mp3.decodeChunks(&sound, first, count, lanes, func|&actual, &sizes, caller|(part)
             {
                 Swag.require(Env.Process.currentThreadId() == caller)
@@ -510,7 +519,7 @@ private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64
             Swag.require(Slice.equals(sizes.toSlice(), wanted.chunks.toSlice()))
         }
 
-        var actual: Array's16
+        var actual: Array!{s16}
         expect sound.decodePcm16(first, count, func|&actual|(part)
         {
             actual.add(part)
@@ -525,7 +534,7 @@ private func mp3SerialRange(sound: const *SoundFile, firstFrame, frameCount: u64
 {
     var sound = mp3ChunkTestSound("mp3-stereo-44100.mp3")
     sound.packets[65].sourceOffset = 0
-    var calls = 0'u64
+    var calls = 0_u64
     expect Mp3.decodeChunks(&sound, 0, sound.sampleFrameCount(), 4, func|&calls|(_)
     {
         calls += 1

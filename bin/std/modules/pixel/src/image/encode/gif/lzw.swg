@@ -37,8 +37,11 @@ impl BitWriter
         if .bitCount >= 32
         {
             let end = .bytes.count + 4
-            if end > .bytes.capacity do
+            if end > .bytes.capacity
+            {
                 .bytes.grow(end)
+            }
+
             cast([*] u32, .bytes.storage() + .bytes.count)[0] = cast #wrap(u32, .curBits)
             .bytes.count = end
             .curBits     >>= 32
@@ -50,8 +53,11 @@ impl BitWriter
     {
         let count  = (.bitCount + 7) >> 3
         let target = .bytes.emplaceAddress(count)
-        for i in count do
+        for i in count
+        {
             target[i] = cast #wrap(u8, .curBits >> (i * 8))
+        }
+
         .curBits  = 0
         .bitCount = 0
     }
@@ -75,8 +81,10 @@ impl LzwEncoder
     #[Inline]
     mtd growCodeSize(nextCode: u32)
     {
-        if nextCode > (1'u32 << .codeSize) and .codeSize < 12 do
+        if nextCode > (1_u32 << .codeSize) and .codeSize < 12
+        {
             .codeSize += 1
+        }
     }
 
     mtd writeCode(code: u16)
@@ -98,7 +106,7 @@ impl Encoder
 
     // When all pixels have the same index, successive dictionary entries describe runs
     // of lengths two, three, and so on. Emit those codes without looking up each pixel.
-    func lzwCompressRepeat(index: u8, count: u64, minCodeSize: u8)->Array'u8
+    func lzwCompressRepeat(index: u8, count: u64, minCodeSize: u8)->Array!{u8}
     {
         var enc: LzwEncoder
         enc.init(minCodeSize)
@@ -107,7 +115,7 @@ impl Encoder
         let firstCode = cast(u32, enc.endCode) + 1
         var nextCode  = firstCode
         var remaining = count
-        var runLength = 1'u32
+        var runLength = 1_u32
         while remaining > runLength
         {
             let prefix = runLength == 1 ? cast(u16, index) : cast(u16, firstCode + runLength - 2)
@@ -134,16 +142,19 @@ impl Encoder
         return enc.bits.bytes
     }
 
-    func lzwCompress(indexes: const [..] u8, minCodeSize: u8, singleIndex: bool)->Array'u8
+    func lzwCompress(indexes: const [..] u8, minCodeSize: u8, singleIndex: bool)->Array!{u8}
     {
-        if singleIndex and indexes.count do
+        if singleIndex and indexes.count
+        {
             return lzwCompressRepeat(indexes[0], indexes.count, minCodeSize)
-        return lzwCompressSelected'false(indexes, minCodeSize, null)
+        }
+
+        return lzwCompressSelected!{false}(indexes, minCodeSize, null)
     }
 
-    func lzwCompressGray(indexes: const [..] u8, literals: const [*] u8)->Array'u8
+    func lzwCompressGray(indexes: const [..] u8, literals: const [*] u8)->Array!{u8}
     {
-        return lzwCompressSelected'true(indexes, 8, literals)
+        return lzwCompressSelected!{true}(indexes, 8, literals)
     }
 
     // Sample a sequence to see whether most indexes have a consistent successor.
@@ -161,11 +172,13 @@ impl Encoder
             {
                 slot[] = expected
             }
-            elif slot[] != expected
+            else if slot[] != expected
             {
                 different += 1
-                if different >= 64 do
+                if different >= 64
+                {
                     return false
+                }
             }
 
             previous = next
@@ -174,14 +187,17 @@ impl Encoder
         return true
     }
 
-    func(RemapLiterals: bool) lzwCompressSelected(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array'u8
+    func(RemapLiterals: bool) lzwCompressSelected(indexes: const [..] u8, minCodeSize: u8, literals: const [*] u8?)->Array!{u8}
     {
         if indexes.count >= 4096 and
            sampleHasConsistentTransitions(indexes.buffer) and
            sampleHasConsistentTransitions(indexes.buffer + indexes.count / 2) and
-           sampleHasConsistentTransitions(indexes.buffer + indexes.count * 3 / 4) do
-            return lzwCompressStream'(RemapLiterals, true)(indexes, minCodeSize, literals)
-        return lzwCompressStream'(RemapLiterals, false)(indexes, minCodeSize, literals)
+           sampleHasConsistentTransitions(indexes.buffer + indexes.count * 3 / 4)
+        {
+            return lzwCompressStream!{RemapLiterals, true}(indexes, minCodeSize, literals)
+        }
+
+        return lzwCompressStream!{RemapLiterals, false}(indexes, minCodeSize, literals)
     }
 
     // Compresses palette indexes into GIF LZW codes.
@@ -237,7 +253,7 @@ impl Encoder
             if search
             {
                 key  = (prefix << 8 | index) << 12
-                slot = ((key >> 12) * #wrap 0x9E3779B9'u32) >> shift
+                slot = ((key >> 12) * #wrap 0x9E3779B9_u32) >> shift
                 var entry = dictionary[slot]
                 while entry and (entry & ~MaxLzwCode) != key
                 {

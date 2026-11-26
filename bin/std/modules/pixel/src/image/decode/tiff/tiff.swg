@@ -175,15 +175,17 @@ private func(REVERSE_ROWS: bool, SHORT_RUNS: bool) unpackBitsRows(dst: [*] u8, e
 
         let header = cast(s32, cast #bit (s8, p[0]))
         p += 1
-        if header == -128 do
+        if header == -128 {
             continue
 
+        }
         let literal     = header >= 0
         let count       = cast(u64, (literal ? header + 1 : 1 - header))
-        let sourceBytes = literal ? count : 1'u64
-        if count > remaining or p + sourceBytes > last do
+        let sourceBytes = literal ? count : 1_u64
+        if count > remaining or p + sourceBytes > last {
             fail InvalidFormatError{"invalid source buffer"}
 
+        }
         #static if REVERSE_ROWS
         {
             let count = cast(u64, (header + 1))
@@ -733,12 +735,13 @@ impl Decoder
         // Large true-color LZW strips cost enough to amortize the worker dispatch.
         const MinParallelLzwBytes = 2 * 1024 * 1024
         const MaxLzwLanes         = 4
-        var lanes = 1'u64
+        var lanes = 1_u64
         if compression == COMPRESSION_LZW and
            samples != 1 and
            stripCount >= MaxLzwLanes and
-           result.byteCount >= MinParallelLzwBytes do
+           result.byteCount >= MinParallelLzwBytes {
             lanes = Math.min(cast(u64, Swag.workerCount()), cast(u64, MaxLzwLanes))
+        }
         if lanes > 1
         {
             var group: Swag.TaskGroup
@@ -825,7 +828,7 @@ impl IImageSetDecoder for Decoder
         let le     = buffer[0] == 0x49
         var offset = rd32(buffer.buffer + 4, le)
         var result:        #returntype
-        var visited:       HashSet'u32
+        var visited:       HashSet!{u32}
         var largestOffset: u32
         while offset
         {

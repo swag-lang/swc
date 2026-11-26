@@ -210,8 +210,8 @@ private impl Codebook
         .usedEntries = 0
 
         var marker, path: [33] u32
-        var previousCodeword = 0'u32
-        var previousDepth    = 0'u32
+        var previousCodeword = 0_u32
+        var previousDepth    = 0_u32
         for length, index in .lengths where length
         {
             let bits  = cast(u32, length)
@@ -290,9 +290,9 @@ private impl Codebook
 
         // Each new bit either descends to a child or repeats a resolved short
         // codeword. Expanding by depth reuses each resolved prefix for both new slots.
-        for depth in 2'u32 until PrefixBits + 1
+        for depth in 2_u32 until PrefixBits + 1
         {
-            let width = 1'u32 << (depth - 1)
+            let width = 1_u32 << (depth - 1)
             for prefix in width
             {
                 let child = .prefixes[prefix]
@@ -400,8 +400,11 @@ private impl Codebook
                 // The two-byte window already contains a ninth bit at every alignment.
                 let next = .children[cast(u64, child) * 2 + ((bits >> PrefixBits) & 1)]
                 reader.bitPos = position + PrefixBits + 1
-                if next <= 0 do
+                if next <= 0
+                {
                     return next < 0 ? -next - 1 : -1
+                }
+
                 return .decodeTree(reader, cast(u32, next), PrefixBits + 1)
             }
         }
@@ -770,7 +773,7 @@ private struct Residue
     classbook:       u32
     stages:          u32     // Passes the cascade of any class needs.
     partitionValues: u64
-    classDigits:     Array'u8
+    classDigits:     Array!{u8}
     books:           [64, 8] s32
 }
 
@@ -987,12 +990,15 @@ private impl Codec
 {
     mtd clearPageWorkers()
     {
-        for index in .pageWorkerCount do
+        for index in .pageWorkerCount
+        {
             if let worker = .pageWorkers[index]
             {
                 Memory.delete(worker)
                 .pageWorkers[index] = null
             }
+        }
+
         .pageWorkerCount = 0
     }
 
@@ -1209,8 +1215,11 @@ private impl Codec
                         let size = cast(u64, page.lacing[index])
 
                         // Count comment laces without copying the unused payload.
-                        if completed != 1 do
+                        if completed != 1
+                        {
                             headers[completed].add(body[at until at + size])
+                        }
+
                         at += size
                         if size < 255
                         {
@@ -1545,8 +1554,11 @@ private impl Codec
     // Multiplies the spectrum of a channel by the piecewise curve its floor 1 posts describe.
     mtd applyFloor1(floor: *Floor, channel: u32, limit: u32)
     {
-        if not limit do
+        if not limit
+        {
             return
+        }
+
         let posts    = .floorPosts[channel].storage()
         let used     = .floorUsed[channel].storage()
         let spectrum = .spectrum[channel].storage()
@@ -1564,8 +1576,11 @@ private impl Codec
             highX = floor.posts[current]
             let highY = Math.clamp(posts[current] * cast(s32, floor.multiplier), 0, 255)
             renderLine(limit, lowX, highX, lowY, highY, spectrum)
-            if highX >= limit do
+            if highX >= limit
+            {
                 return
+            }
+
             lowX = highX
             lowY = highY
         }
@@ -1582,7 +1597,7 @@ private impl Codec
         switch residue.kind
         {
         case 0:
-            try .decodeResidueKind'(0, false, false)(residue, reader, list, half)
+            try .decodeResidueKind!{0, false, false}(residue, reader, list, half)
 
         case 1:
             if .channels >= 3 do
@@ -1591,10 +1606,14 @@ private impl Codec
                 try .decodeResidueKind'(1, false, false)(residue, reader, list, half)
 
         default:
-            if list.count == 2 do
-                try .decodeResidueKind'(2, true, false)(residue, reader, list, half)
-            else do
-                try .decodeResidueKind'(2, false, false)(residue, reader, list, half)
+            if list.count == 2
+            {
+                try .decodeResidueKind!{2, true, false}(residue, reader, list, half)
+            }
+            else
+            {
+                try .decodeResidueKind!{2, false, false}(residue, reader, list, half)
+            }
         }
     }
 
@@ -1627,7 +1646,7 @@ private impl Codec
             vectors = 1
         }
 
-        let width      = Stereo ? 2'u64 : (Kind == 2 ? cast(u64, list.count) : 1)
+        let width      = Stereo ? 2_u64 : (Kind == 2 ? cast(u64, list.count) : 1)
         let actualSize = cast(u64, half) * width
         let limitBegin = Math.min(cast(u64, residue.begin), actualSize)
         let limitEnd   = Math.min(cast(u64, residue.end), actualSize)
@@ -1758,10 +1777,16 @@ private impl Codec
     // The common type 1 surround lookup books store whole pairs or groups of four.
     mtd decodePackedSequential(book: *Codebook, reader: *BitReader, target: [*] f32, count: u32)->bool
     {
-        if book.dimensions == 2 and (count & 1) == 0 do
-            return .decodeWholeVectors'2(book, reader, target, count)
-        if book.dimensions == 4 and (count & 3) == 0 do
-            return .decodeWholeVectors'4(book, reader, target, count)
+        if book.dimensions == 2 and (count & 1) == 0
+        {
+            return .decodeWholeVectors!{2}(book, reader, target, count)
+        }
+
+        if book.dimensions == 4 and (count & 3) == 0
+        {
+            return .decodeWholeVectors!{4}(book, reader, target, count)
+        }
+
         return .decodeSequential(book, reader, target, count)
     }
 
@@ -1881,14 +1906,19 @@ private impl Codec
                 count       += 1
             }
 
-            if not count do
+            if not count
+            {
                 continue
+            }
 
             let residue = &.residues[mapping.submapResidue[submap]]
             let width   = residue.kind == 2 ? count : 1
             let bins    = Math.min(half, (residue.end + width - 1) / width)
-            for channel in list[0 until count] do
+            for channel in list[0 until count]
+            {
                 activeBins[channel] = bins
+            }
+
             try .decodeResidue(residue, &reader, list[0 until count], half)
         }
 
@@ -1903,11 +1933,11 @@ private impl Codec
             activeBins[angleChannel]     = bins
             let magnitudes = .spectrum[magnitudeChannel].storage()
             let angles     = .spectrum[angleChannel].storage()
-            let zero       = Simd.splat(0'f32)
+            let zero       = Simd.splat(0_f32)
 
             // The signs select the reconstructed value and the channel that receives it.
             // At most three extra zero bins finish the last vector inside the block.
-            var line = 0'u32
+            var line = 0_u32
             while line < bins
             {
                 let magnitude = magnitudes[line]
@@ -1989,7 +2019,7 @@ private impl Codec
         let fusedLeft = stereo and .previousSize == n and leftStart == 0 and leftEnd == half
         let left      = .slopes[leftSlope].storage()
         let right     = .slopes[rightSlope].storage()
-        const Reverse = cast(Simd.U32x4, [3'u32, 2, 1, 0])
+        const Reverse = cast(Simd.U32x4, [3_u32, 2, 1, 0])
         for channel in .channels
         {
             .transforms[which].inverse(.spectrum[channel].storage(), time)
@@ -2016,8 +2046,10 @@ private impl Codec
 
             if outputFrames
             {
-                if leftStart do
+                if leftStart
+                {
                     Memory.clear(time, cast(u64, leftStart) * #sizeof(f32))
+                }
 
                 var index = leftStart
                 while index < leftEnd
@@ -2051,7 +2083,7 @@ private impl Codec
                     // The steady overlap covers the entire left window. Multiply and
                     // overlap in one pass while saving this channel's PCM plane.
                     let plane = .spectrum[channel].storage()
-                    var frame = 0'u32
+                    var frame = 0_u32
                     while frame < half
                     {
                         let current = Simd.load(time + frame) * Simd.load(left + frame)
@@ -2059,13 +2091,16 @@ private impl Codec
                         frame += 4
                     }
                 }
-                elif stereo
+                else if stereo
                 {
                     // The spectrum is dead after the inverse transform. Reuse it as one
                     // PCM plane until both channels are ready to interleave.
                     let plane = .spectrum[channel].storage()
-                    if overlapStart do
+                    if overlapStart
+                    {
                         Memory.copy(plane, saved, overlapStart * #sizeof(f32))
+                    }
+
                     if overlapEnd < outputFrames
                     {
                         let tail = cast(u64, cast(s64, overlapEnd) + shift)
@@ -2093,10 +2128,15 @@ private impl Codec
 
             // The right half is only used by the next packet. Apply its window while
             // writing it to the overlap buffer rather than modifying it in timeDomain.
-            if rightStart > half do
+            if rightStart > half
+            {
                 Memory.copy(saved, time + half, cast(u64, rightStart - half) * #sizeof(f32))
-            if rightEnd < n do
+            }
+
+            if rightEnd < n
+            {
                 Memory.clear(saved + (rightEnd - half), cast(u64, n - rightEnd) * #sizeof(f32))
+            }
 
             var index = rightStart
             while index < rightEnd
@@ -2113,16 +2153,16 @@ private impl Codec
             #[Swag.Inline]
             func toPcm32(value: Simd.F32x4)->Simd.S32x4
             {
-                let scaled  = value * 32767.0'f32
-                let biased  = scaled + Math.copysign(Simd.splat(0.5'f32), scaled)
-                let clamped = Math.min(Math.max(biased, Simd.splat(-32768.0'f32)), Simd.splat(32767.0'f32))
+                let scaled  = value * 32767.0_f32
+                let biased  = scaled + Math.copysign(Simd.splat(0.5_f32), scaled)
+                let clamped = Math.min(Math.max(biased, Simd.splat(-32768.0_f32)), Simd.splat(32767.0_f32))
                 return Simd.truncateToS32(clamped)
             }
 
             let left   = .spectrum[0].storage()
             let right  = .spectrum[1].storage()
             let output = cast([*] u16, pcm)
-            var frame  = 0'u64
+            var frame  = 0_u64
             while frame < outputFrames
             {
                 let leftLow   = toPcm32(Simd.load(left + frame))
@@ -2137,15 +2177,15 @@ private impl Codec
             }
         }
 
-        elif .channels == 4 and outputFrames
+        else if .channels == 4 and outputFrames
         {
             .interleaveQuadPcm(pcm, outputFrames)
         }
-        elif .channels == 6 and outputFrames
+        else if .channels == 6 and outputFrames
         {
             .interleaveSurroundPcm(pcm, outputFrames)
         }
-        elif .channels == 8 and outputFrames
+        else if .channels == 8 and outputFrames
         {
             .interleaveEightPcm(pcm, outputFrames)
         }
@@ -2278,25 +2318,25 @@ private impl Codec
 
     mtd interleaveQuadPcm(pcm: [*] s16, outputFrames: u64)
     {
-        let l0 = cast(const [*] u16, .spectrum[0].storage())
-        let l1 = cast(const [*] u16, .spectrum[1].storage())
-        let l2 = cast(const [*] u16, .spectrum[2].storage())
-        let l3 = cast(const [*] u16, .spectrum[3].storage())
+        let l0     = cast(const [*] u16, .spectrum[0].storage())
+        let l1     = cast(const [*] u16, .spectrum[1].storage())
+        let l2     = cast(const [*] u16, .spectrum[2].storage())
+        let l3     = cast(const [*] u16, .spectrum[3].storage())
         let output = cast([*] u16, pcm)
-        var frame = 0'u64
+        var frame  = 0_u64
         while frame < outputFrames
         {
-            let a = Simd.load(l0 + frame)
-            let b = Simd.load(l1 + frame)
-            let c = Simd.load(l2 + frame)
-            let d = Simd.load(l3 + frame)
+            let a          = Simd.load(l0 + frame)
+            let b          = Simd.load(l1 + frame)
+            let c          = Simd.load(l2 + frame)
+            let d          = Simd.load(l3 + frame)
             let firstLow   = cast #bit(Simd.U32x4, Simd.interleaveLow(a, b))
             let secondLow  = cast #bit(Simd.U32x4, Simd.interleaveLow(c, d))
             let firstHigh  = cast #bit(Simd.U32x4, Simd.interleaveHigh(a, b))
             let secondHigh = cast #bit(Simd.U32x4, Simd.interleaveHigh(c, d))
-            let target = output + 4 * frame
-            Simd.store(target,      cast #bit(Simd.U16x8, Simd.interleaveLow(firstLow, secondLow)))
-            Simd.store(target + 8,  cast #bit(Simd.U16x8, Simd.interleaveHigh(firstLow, secondLow)))
+            let target     = output + 4 * frame
+            Simd.store(target, cast #bit(Simd.U16x8, Simd.interleaveLow(firstLow, secondLow)))
+            Simd.store(target + 8, cast #bit(Simd.U16x8, Simd.interleaveHigh(firstLow, secondLow)))
             Simd.store(target + 16, cast #bit(Simd.U16x8, Simd.interleaveLow(firstHigh, secondHigh)))
             Simd.store(target + 24, cast #bit(Simd.U16x8, Simd.interleaveHigh(firstHigh, secondHigh)))
             frame += 8
@@ -2306,8 +2346,10 @@ private impl Codec
     mtd interleaveSurroundPcm(pcm: [*] s16, outputFrames: u64)
     {
         var lanes: [6] PcmPointer
-        for channel in 6 do
+        for channel in 6
+        {
             lanes[ChannelSlots[6, channel]] = cast([*] u16, .spectrum[channel].storage())
+        }
 
         let output = cast([*] u16, pcm)
         let l0     = unwrap lanes[0]
@@ -2316,7 +2358,7 @@ private impl Codec
         let l3     = unwrap lanes[3]
         let l4     = unwrap lanes[4]
         let l5     = unwrap lanes[5]
-        var frame  = 0'u64
+        var frame  = 0_u64
         while frame < outputFrames
         {
             let a      = Simd.load(l0 + frame)
@@ -2335,8 +2377,10 @@ private impl Codec
     mtd interleaveEightPcm(pcm: [*] s16, outputFrames: u64)
     {
         var lanes: [8] PcmPointer
-        for channel in 8 do
+        for channel in 8
+        {
             lanes[ChannelSlots[8, channel]] = cast([*] u16, .spectrum[channel].storage())
+        }
 
         let output = cast([*] u16, pcm)
         let l0     = unwrap lanes[0]
@@ -2347,7 +2391,7 @@ private impl Codec
         let l5     = unwrap lanes[5]
         let l6     = unwrap lanes[6]
         let l7     = unwrap lanes[7]
-        var frame  = 0'u64
+        var frame  = 0_u64
         while frame < outputFrames
         {
             let a      = Simd.load(l0 + frame)
@@ -2369,52 +2413,63 @@ private impl Codec
         }
     }
 
-    mtd(Collect: bool) decodePage(body: const [..] u8, page: const *Ogg.PageHeader,
-                                 headersToSkip: u32)->u64 fail
+    mtd(Collect: bool) decodePage(body: const [..] u8, page: const *Ogg.PageHeader, headersToSkip: u32)->u64 fail
     {
         const Capacity = Collect ? Ogg.MaxSegments : 1
         var packets: [Capacity] PagePacketSpan
-        var produced    = 0'u64
-        var count       = 0'u32
-        var at          = 0'u64
-        var packetStart = 0'u64
+        var produced    = 0_u64
+        var count       = 0_u32
+        var at          = 0_u64
+        var packetStart = 0_u64
         var skip        = headersToSkip
         for segment in page.segments
         {
             let size = page.lacing[segment]
             at += size
-            if size == 255 do
+            if size == 255
+            {
                 continue
 
-            // Borrow complete packets and join only those that span pages.
+                // Borrow complete packets and join only those that span pages.
+            }
+
             let payload = body[packetStart until at]
             if skip
             {
                 skip -= 1
             }
-            elif .packet.count
+            else if .packet.count
             {
                 .packet.add(payload)
                 produced += try .decodeAudioPacket(.packet.toSlice())
             }
-            elif payload.count
+            else if payload.count
             {
                 #static if Collect
                 {
                     packets[count] = {cast(u32, packetStart), cast(u32, at)}
                     count += 1
                 }
-                else do
+                else
+                {
                     produced += try .decodeAudioPacket(payload)
+                }
             }
+
             .packet.clear()
             packetStart = at
         }
 
-        if packetStart < at do
+        if packetStart < at
+        {
             .packet.add(body[packetStart until at])
-        #static if Collect do
+        }
+
+        #static if Collect
+        {
             produced += try .decodeCompletePackets(body, packets[0 until count])
+        }
+
         return produced
     }
 
@@ -2423,23 +2478,28 @@ private impl Codec
     {
         .output.clear()
         .previousSize = 0
-        for span in packets do
+        for span in packets
+        {
             discard try .decodeAudioPacket(body[span.begin until span.end])
+        }
     }
 
     mtd decodeCompletePackets(body: const [..] u8, packets: const [..] PagePacketSpan)->u64 fail
     {
-        var produced = 0'u64
-        let lanes    = Math.min(.pageWorkerCount + 1, Math.max(1'u64, packets.count / 8))
+        var produced = 0_u64
+        let lanes    = Math.min(.pageWorkerCount + 1, Math.max(1_u64, packets.count / 8))
         if lanes == 1
         {
-            for span in packets do
+            for span in packets
+            {
                 produced += try .decodeAudioPacket(body[span.begin until span.end])
+            }
+
             return produced
         }
 
         var errors: [MaxPageWorkers] Swag.Error
-        var jobs: Swag.TaskGroup
+        var jobs:   Swag.TaskGroup
         for index in lanes - 1
         {
             let worker = unwrap .pageWorkers[index]
@@ -2449,18 +2509,25 @@ private impl Codec
             let error  = &errors[index]
             jobs.spawn(func|worker, body, batch, error|()
             {
-                catch worker.decodeWorkerPackets(body, batch) do
+                catch worker.decodeWorkerPackets(body, batch)
+                {
                     error.capture(Swag.err)
+                }
             })
         }
 
-        for span in packets[0 until packets.count / lanes] do
+        for span in packets[0 until packets.count / lanes]
+        {
             produced += try .decodeAudioPacket(body[span.begin until span.end])
+        }
+
         try jobs.join()
 
         // A failed batch is observed in packet order, independently of which thread finished first.
-        for index in lanes - 1 do
+        for index in lanes - 1
+        {
             try errors[index].raise()
+        }
 
         for index in lanes - 1
         {
@@ -2472,8 +2539,11 @@ private impl Codec
         let last = unwrap .pageWorkers[lanes - 2]
         .previousSize = last.previousSize
         let savedBytes = cast(u64, .previousSize) / 2 * #sizeof(f32)
-        for channel in .channels do
+        for channel in .channels
+        {
             Memory.copy(.saved[channel].storage(), last.saved[channel].storage(), savedBytes)
+        }
+
         return produced
     }
 
@@ -2616,16 +2686,16 @@ private func pcmExactLanes(value: Simd.F32x4)->Simd.S32x4
 {
     // A magnitude larger than 1.5 saturates at PCM16 narrowing.
     // Clamping here bounds the correction to a single integer on either side.
-    let magnitude = Math.min(Simd.splat(1.5'f32), Math.abs(value))
-    let scaled    = magnitude * 32768.0'f32
+    let magnitude = Math.min(Simd.splat(1.5_f32), Math.abs(value))
+    let scaled    = magnitude * 32768.0_f32
     let whole     = Math.floor(scaled)
     let fraction  = scaled - whole
-    let half      = Simd.splat(0.5'f32)
-    let one       = Simd.splat(1'u32)
+    let half      = Simd.splat(0.5_f32)
+    let one       = Simd.splat(1_u32)
     let up        = cast #bit(Simd.S32x4, ((fraction - half) >= magnitude) & one)
     let down      = cast #bit(Simd.S32x4, (fraction < (magnitude - half)) & one)
     let level     = Simd.truncateToS32(whole) + up - down
-    return Simd.select(value < Simd.splat(0'f32), -level, level)
+    return Simd.select(value < Simd.splat(0_f32), -level, level)
 }
 
 #[Swag.Inline]
@@ -2636,10 +2706,12 @@ private func pcmExactEight(first, second: Simd.F32x4)->Simd.U16x8
 #[Swag.Inline]
 private func(Add: bool) writePcmSpan(output: [*] u16, source: const [*] f32, frames: u64, other: const [*] f32? = null)
 {
-    #static if not Add do
+    #static if not Add
+    {
         discard other
+    }
 
-    var frame = 0'u64
+    var frame = 0_u64
     while frame < frames
     {
         var first  = Simd.load(source + frame)
@@ -2658,9 +2730,9 @@ private func(Add: bool) writePcmSpan(output: [*] u16, source: const [*] f32, fra
 
 private func writePcmPlane(output: [*] u16, saved, current: const [*] f32, overlapStart, overlapEnd, frames: u64)
 {
-    writePcmSpan'false(output, saved, overlapStart)
-    writePcmSpan'true(output + overlapStart, saved + overlapStart, overlapEnd - overlapStart, current)
-    writePcmSpan'false(output + overlapEnd, current + (overlapEnd - overlapStart), frames - overlapEnd)
+    writePcmSpan!{false}(output, saved, overlapStart)
+    writePcmSpan!{true}(output + overlapStart, saved + overlapStart, overlapEnd - overlapStart, current)
+    writePcmSpan!{false}(output + overlapEnd, current + (overlapEnd - overlapStart), frames - overlapEnd)
 }
 
 // Packs the first six channels of four seven-channel frames.
@@ -2685,12 +2757,12 @@ private func storeFourSurroundFrames(output: [*] u16, a, b, c: Simd.U16x8)
     let x      = cast #bit(Simd.U32x4, a)
     let y      = cast #bit(Simd.U32x4, b)
     let z      = cast #bit(Simd.U32x4, c)
-    let first  = Simd.permute2(x, y, cast(Simd.U32x4, [0'u32, 4, 1, 1]))
-    let middle = Simd.permute2(y, x, cast(Simd.U32x4, [1'u32, 1, 6, 2]))
-    let last   = Simd.permute2(x, y, cast(Simd.U32x4, [3'u32, 3, 7, 3]))
-    Simd.store(output, cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0'u32, 1, 4, 3]))))
-    Simd.store(output + 8, cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0'u32, 5, 2, 3]))))
-    Simd.store(output + 16, cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6'u32, 1, 2, 7]))))
+    let first  = Simd.permute2(x, y, cast(Simd.U32x4, [0_u32, 4, 1, 1]))
+    let middle = Simd.permute2(y, x, cast(Simd.U32x4, [1_u32, 1, 6, 2]))
+    let last   = Simd.permute2(x, y, cast(Simd.U32x4, [3_u32, 3, 7, 3]))
+    Simd.store(output, cast #bit(Simd.U16x8, Simd.permute2(first, z, cast(Simd.U32x4, [0_u32, 1, 4, 3]))))
+    Simd.store(output + 8, cast #bit(Simd.U16x8, Simd.permute2(middle, z, cast(Simd.U32x4, [0_u32, 5, 2, 3]))))
+    Simd.store(output + 16, cast #bit(Simd.U16x8, Simd.permute2(last, z, cast(Simd.U32x4, [6_u32, 1, 2, 7]))))
 }
 
 // Join pairs into four-channel halves, then join two halves into each frame.
@@ -2714,8 +2786,11 @@ private func storeFourEightChannelFrames(output: [*] u16, a, b, c, d: Simd.U16x8
 private func buildFloorReciprocals()->[256] u64
 {
     var result: [256] u64
-    for span in 1'u64 until result.count do
-        result[span] = ((1'u64 << 56) + span - 1) / span
+    for span in 1_u64 until result.count
+    {
+        result[span] = ((1_u64 << 56) + span - 1) / span
+    }
+
     return result
 }
 
@@ -2744,8 +2819,11 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
             line += 4
         }
 
-        for tail in line until end do
+        for tail in line until end
+        {
             target[tail] *= gain
+        }
+
         return
     }
 
@@ -2762,21 +2840,21 @@ private func renderLine(limit: u32, x0, x1: u32, y0, y1: s32, target: [*] f32)
         // Q32 units. For offsets below these small spans, the accumulated error
         // remains less than 1/span, so the table index stays exact.
         let slope = span < FloorReciprocals.count ?
-            ((cast(u64, delta) * FloorReciprocals[span]) >> 24) + 1 :
-            ((cast(u64, delta) << 32) + span - 1) / span
+                    ((cast(u64, delta) * FloorReciprocals[span]) >> 24) + 1 :
+                    ((cast(u64, delta) << 32) + span - 1) / span
         let base       = Simd.splat(y0)
         let direction  = Simd.splat(sign)
         let whole      = Simd.splat(cast(u32, slope >> 32))
         let step       = Simd.splat(cast(u32, slope & 0xFFFFFFFF))
         let amplitudes = cast(const [*] s32, &Floor1InverseDb[0])
-        var offsets    = cast(Simd.U32x4, [0'u32, 1, 2, 3])
+        var offsets    = cast(Simd.U32x4, [0_u32, 1, 2, 3])
         while x + 4 <= end
         {
             let distance = cast #bit(Simd.S32x4, whole * offsets + Simd.mulHigh(offsets, step))
             let indices  = cast #bit(Simd.U32x4, base + distance * direction)
             let gain     = cast #bit(Simd.F32x4, Simd.gather(amplitudes, indices))
             Simd.store(target + x, Simd.load(target + x) * gain)
-            offsets += Simd.splat(4'u32)
+            offsets += Simd.splat(4_u32)
             x       += 4
         }
     }
@@ -2834,18 +2912,26 @@ internal impl DurationProbe
 // Offline Ogg reads can decode two independent batches from a single page.
 internal func enablePageBatches(decoder: IPacketCodec, config: const [..] u8) fail
 {
-    if not (decoder is Codec) or config.count < 4 or config[0] != 'O' or config[1] != 'g' or
-       config[2] != 'g' or config[3] != 'S' do
+    if not (decoder is Codec) or
+       config.count < 4 or
+       config[0] != 'O' or
+       config[1] != 'g' or
+       config[2] != 'g' or
+       config[3] != 'S'
+    {
         return
+    }
 
     let codec = try cast(*Codec, decoder)
-    if codec.pageWorkerCount do
+    if codec.pageWorkerCount
+    {
         return
+    }
 
     codec.pageWorkerCount = Math.min(MaxPageWorkers, cast(u64, Swag.workerCount()))
     for index in codec.pageWorkerCount
     {
-        let worker = Memory.new'Codec()
+        let worker = Memory.new!{Codec}()
         codec.pageWorkers[index] = worker
         try worker.readConfig(config)
     }

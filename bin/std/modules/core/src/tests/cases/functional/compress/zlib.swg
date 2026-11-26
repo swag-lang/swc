@@ -213,7 +213,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     let first  = expect zlib.compress(First)
     var second = expect zlib.compress(Second)
 
-    var output: Array'u8
+    var output: Array!{u8}
     output.add(cast(const [..] u8, Prefix))
     expect zlib.decompress(&output, first.toSlice(), maxOutputSize: First.count)
     Swag.require(Slice.equals(output.toSlice(), cast(const [..] u8, "prefixfirst first first")))

@@ -110,13 +110,13 @@ using Core, Core.Errors, Pixel
 // prefixes and short codes followed by arbitrary bits from the next symbol.
 #test
 {
-    for table in 4'u64
+    for table in 4_u64
     {
-        for lookahead in 65_536'u32
+        for lookahead in 65_536_u32
         {
-            var expected = 68'u64
-            var consumed = 0'u32
-            for symbol in 68'u64
+            var expected = 68_u64
+            var consumed = 0_u32
+            for symbol in 68_u64
             {
                 let offset = table * 68 + symbol
                 let length = cast(u32, H264.CoeffTokenLen[offset])

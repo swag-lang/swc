@@ -102,11 +102,11 @@ private const InitialCabacContexts: [4 * 52 * 1024] u8 = #run buildInitialCabacC
 private func buildInitialCabacContexts()->[4 * 52 * 1024] u8
 {
     var result: #returntype
-    for set in 4'u64
+    for set in 4_u64
     {
-        for qp in 52'u64
+        for qp in 52_u64
         {
-            for index in 1024'u64
+            for index in 1024_u64
             {
                 let base     = set == 0 ? index * 2 : (set - 1) * 2048 + index * 2
                 let m        = cast(s32, set == 0 ? CabacInitI[base] : CabacInitPB[base])

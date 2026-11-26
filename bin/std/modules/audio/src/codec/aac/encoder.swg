@@ -379,17 +379,19 @@ impl Encoder
             .writeBits(0, 4)
         }
 
-        let rateIndex   = .sampleRate == 48_000 ? 3'u32 : 4'u32
+        let rateIndex   = .sampleRate == 48_000 ? 3_u32 : 4_u32
         let isShort     = Adaptive and sequence == .Short
         let offsets     = isShort ? swbShort(rateIndex) : swbLong(rateIndex)
         let lineStride  = isShort ? ShortLines : EncoderFrames
-        let windowCount = isShort ? 8'u64 : 1'u64
+        let windowCount = isShort ? 8_u64 : 1_u64
         var bandCount   = .bandCount
         if isShort
         {
             bandCount = offsets.count - 1
-            while offsets[bandCount] > .lineCount / 8 do
+            while offsets[bandCount] > .lineCount / 8
+            {
                 bandCount -= 1
+            }
         }
 
         for channel in .channels
@@ -405,7 +407,7 @@ impl Encoder
                 {
                     let first = cast(const [*] f32, &transformed[start + offsets[band]])
                     let width = cast(u64, offsets[band + 1] - offsets[band])
-                    var lanes = Simd.splat(0'f32)
+                    var lanes = Simd.splat(0_f32)
                     for index in width / 4
                     {
                         let values = Math.abs(Simd.load(first + 4 * index))
@@ -555,28 +557,31 @@ private impl Encoder
 {
     mtd const prepareRateChoices(spectra: const *[2, FullLines] f32, choices: *RateChoices, initialGain: *[2] s32)->f64
     {
-        let offsets   = swbLong(.sampleRate == 48_000 ? 3'u32 : 4'u32)
-        var strongest = 0'f64
+        let offsets   = swbLong(.sampleRate == 48_000 ? 3_u32 : 4_u32)
+        var strongest = 0_f64
         for channel in .channels
         {
             let spectrum = cast(const [*] f32, &spectra[][channel, 0])
             var peaks: [FullBands] f64
-            var largest  = 0'f64
+            var largest  = 0_f64
             for band in .bandCount
             {
-                var peak = 0'f32
-                for line in offsets[band] until offsets[band + 1] do
+                var peak = 0_f32
+                for line in offsets[band] until offsets[band + 1]
+                {
                     peak = Math.max(peak, Math.abs(spectrum[line]))
+                }
+
                 peaks[band] = 2.0 * cast(f64, peak)
                 largest     = Math.max(largest, peaks[band])
             }
 
             let globalGain = gainForPeak(cast(f32, largest * 0.5))
             initialGain[][channel] = globalGain
-            let minimumGain = Math.max(0's32, globalGain - MaximumBandBoost)
+            let minimumGain = Math.max(0_s32, globalGain - MaximumBandBoost)
 
             // The total 60-step range keeps every scalefactor difference representable.
-            let maximumGain = Math.min(255's32, globalGain + 12)
+            let maximumGain = Math.min(255_s32, globalGain + 12)
             for band in .bandCount
             {
                 let first    = cast(u64, offsets[band])
@@ -586,7 +591,7 @@ private impl Encoder
                 if peak >= largest / 512.0 and peak > 0 do
                     selected = Math.clamp(gainForPeak(cast(f32, peak * 0.5)), minimumGain, globalGain)
 
-                var energy = 0'f64
+                var energy = 0_f64
                 for line in first until end
                 {
                     let value = 2.0 * cast(f64, spectrum[line])
@@ -595,7 +600,7 @@ private impl Encoder
 
                 strongest = Math.max(strongest, energy)
                 let mute: RateChoice = {-1, 0, energy}
-                var previousGain     = -1's32
+                var previousGain     = -1_s32
                 for step in RateGainSteps.count
                 {
                     let gain = Math.clamp(selected + RateGainSteps[step], minimumGain, maximumGain)
@@ -610,14 +615,17 @@ private impl Encoder
                     let peakBits   = cast #bit(u32, cast(f32, peak * 0.5))
                     if peakBits < thresholds[1]
                     {
-                        for rest in step until RateGainSteps.count do
+                        for rest in step until RateGainSteps.count
+                        {
                             choices[][channel, band, rest] = mute
+                        }
+
                         break
                     }
 
                     let reconstructed = cast(const [*] f32, &g_ReconstructedMagnitudes[gain, 0])
-                    var distortion    = 0'f64
-                    var codedBits     = 0'u32
+                    var distortion    = 0_f64
+                    var codedBits     = 0_u32
                     for pair in first / 2 until end / 2
                     {
                         let a  = Math.abs(spectrum[pair * 2])
@@ -649,18 +657,18 @@ private impl Encoder
         // Rank each gain by spectral error plus an approximate bit cost.
         // Count the resulting packet with its exact section lengths and scalefactors.
         let price    = reference * Math.pow(2.0, -0.25 * cast(f64, level))
-        var bitCount = .channels == 2 ? 8'u64 : 7'u64
+        var bitCount = .channels == 2 ? 8_u64 : 7_u64
         for channel in .channels
         {
             bitCount += 22     // Global gain, window information and tool flags.
             var previousGain  = initialGain[][channel]
-            var sectionStart  = 0'u64
+            var sectionStart  = 0_u64
             var sectionActive = false
             for band in .bandCount
             {
                 var best     = choices[][channel, band, RateGainSteps.count].distortion
-                var gain     = -1's32
-                var spectral = 0'u32
+                var gain     = -1_s32
+                var spectral = 0_u32
                 for step in RateGainSteps.count
                 {
                     let option = &choices[][channel, band, step]
@@ -688,7 +696,7 @@ private impl Encoder
                 {
                     sectionActive = active
                 }
-                elif active != sectionActive
+                else if active != sectionActive
                 {
                     bitCount      += 9 + 5 * ((band - sectionStart) / 31)
                     sectionStart  = band
@@ -735,21 +743,37 @@ private impl Encoder
 
         if Adaptive and sequence == .Start
         {
-            for sample in ShortLead do
+            for sample in ShortLead
+            {
                 windowed[EncoderFrames + sample] = cast(f32, samples[sample * .channels + channel])
-            for sample in ShortLines do
+            }
+
+            for sample in ShortLines
+            {
                 windowed[EncoderFrames + ShortLead + sample] = samples[(ShortLead + sample) * .channels + channel] * ShortWindow[ShortLines + sample]
-            for sample in EncoderFrames + ShortLead + ShortLines until 2 * EncoderFrames do
+            }
+
+            for sample in EncoderFrames + ShortLead + ShortLines until 2 * EncoderFrames
+            {
                 windowed[sample] = 0
+            }
         }
-        elif Adaptive and sequence == .Stop
+        else if Adaptive and sequence == .Stop
         {
-            for sample in ShortLead do
+            for sample in ShortLead
+            {
                 windowed[sample] = 0
-            for sample in ShortLines do
+            }
+
+            for sample in ShortLines
+            {
                 windowed[ShortLead + sample] = .previous[channel, ShortLead + sample] * ShortWindow[sample]
-            for sample in ShortLead + ShortLines until EncoderFrames do
+            }
+
+            for sample in ShortLead + ShortLines until EncoderFrames
+            {
                 windowed[sample] = cast(f32, .previous[channel, sample])
+            }
         }
 
         .transform.forward(&windowed[0], transformed)
@@ -760,8 +784,10 @@ private impl Encoder
         // At most 31 bits are pending before a codeword of at most 19 bits.
         .bitWord     = (.bitWord << count) | value
         .pendingBits += count
-        if .pendingBits < 32 do
+        if .pendingBits < 32
+        {
             return
+        }
 
         .pendingBits -= 32
         let next = cast(u32, (.bitWord >> .pendingBits) & 0xFFFF_FFFF)

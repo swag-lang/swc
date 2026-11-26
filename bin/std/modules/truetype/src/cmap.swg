@@ -32,7 +32,7 @@ func lookupCMap0(cmap: const [..] u8, charCode: u32)->u32
     return peekU8(cmap, 6 + cast(u64, charCode))
 }
 
-private const CMap4EndCodes = 14'u64
+private const CMap4EndCodes = 14_u64
 
 private struct CMap4Layout
 {
@@ -55,12 +55,16 @@ private func cmap4Layout(cmap: const [..] u8)->CMap4Layout
 #[Swag.Inline]
 private func cmap4Glyph(cmap: const [..] u8, code, start: u32, delta: s16, rangePosition: u64, rangeOffset: u16)->u32
 {
-    if not rangeOffset do
+    if not rangeOffset
+    {
         return cast(u32, (cast(s32, code) + delta) & 0xFFFF)
+    }
 
     let glyphPosition = rangePosition + rangeOffset + cast(u64, code - start) * 2
-    if glyphPosition + 2 > cmap.count do
+    if glyphPosition + 2 > cmap.count
+    {
         return 0
+    }
 
     let glyph = peekU16(cmap, glyphPosition)
     return glyph ? cast(u32, (cast(s32, glyph) + delta) & 0xFFFF) : 0
@@ -73,20 +77,15 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
         return 0
     }
 
-    let segCount      = peekU16(cmap, 6) / 2
-    let endCodesOff   = 14_u64
-    let startCodesOff = endCodesOff + cast(u64, segCount) * 2 + 2
-    let deltasOff     = startCodesOff + cast(u64, segCount) * 2
-    let rangesOff     = deltasOff + cast(u64, segCount) * 2
+    let layout = cmap4Layout(cmap)
 
-    // endCodes are sorted ascending: binary-search the first segment whose endCode
-    // covers charCode, instead of scanning every segment (fonts have 100s of them).
-    var lo = 0_u32
-    var hi = cast(u32, segCount)
+    // Search the first segment whose end code covers the character.
+    var lo = 0_u64
+    var hi = layout.segmentCount
     while lo < hi
     {
         let mid     = lo + (hi - lo) / 2
-        let endCode = peekU16(cmap, endCodesOff + cast(u64, mid) * 2)
+        let endCode = peekU16(cmap, CMap4EndCodes + mid * 2)
         if charCode > endCode
         {
             lo = mid + 1
@@ -97,39 +96,20 @@ func lookupCMap4(cmap: const [..] u8, charCode: u32)->u32
         }
     }
 
-    if lo >= cast(u32, segCount)
+    if lo >= layout.segmentCount
     {
         return 0
     }
 
-    let idx       = cast(u64, lo)
-    let startCode = peekU16(cmap, startCodesOff + idx * 2)
-    if charCode < startCode
+    let start = peekU16(cmap, layout.startCodes + lo * 2)
+    if charCode < start
     {
         return 0
     }
 
-    let delta = peekS16(cmap, deltasOff + idx * 2)
-    let range = peekU16(cmap, rangesOff + idx * 2)
-    if not range
-    {
-        return cast(u32, ((cast(s32, charCode) + delta) & 0xFFFF))
-    }
-
-    let rangePos = rangesOff + idx * 2
-    let glyphPos = rangePos + range + cast(u64, (charCode - startCode)) * 2
-    if glyphPos + 2 > cmap.count
-    {
-        return 0
-    }
-
-    var glyph = peekU16(cmap, glyphPos)
-    if glyph
-    {
-        glyph = cast(u16, ((cast(s32, glyph) + delta) & 0xFFFF))
-    }
-
-    return glyph
+    let delta = peekS16(cmap, layout.deltas + lo * 2)
+    let range = layout.ranges + lo * 2
+    return cmap4Glyph(cmap, charCode, start, delta, range, peekU16(cmap, range))
 }
 
 // Format 6: one contiguous run of codes, which is how a face covering a single
@@ -457,38 +437,49 @@ func lookupGlyphIndex(faceData: const *FaceImpl, charCode: u32)->u32 fail
 private func(sequential: bool) visitCMapGroups(cmap: const [..] u8, first: u32, visitor: func||(rune, u32)->bool)
 {
     let numGroups = peekU32(cmap, 12)
-    var lower     = 0'u32
+    var lower     = 0_u32
     var upper     = numGroups
     while lower < upper
     {
         let middle = lower + (upper - lower) / 2
-        let end    = peekU32(cmap, 20'u64 + cast(u64, middle) * 12)
-        if end < first do
+        let end    = peekU32(cmap, 20_u64 + cast(u64, middle) * 12)
+        if end < first
+        {
             lower = middle + 1
-        else do
+        }
+        else
+        {
             upper = middle
+        }
     }
 
     for index in lower until numGroups
     {
-        let record = 16'u64 + cast(u64, index) * 12
+        let record = 16_u64 + cast(u64, index) * 12
         let start  = peekU32(cmap, record)
         let end    = peekU32(cmap, record + 4)
         let glyph  = peekU32(cmap, record + 8)
         #static if not sequential
         {
-            if not glyph do
+            if not glyph
+            {
                 continue
+            }
         }
 
         for code in Math.max(first, start) to end
         {
             let character = cast(rune, code)
-            if not Utf8.isValidRune(character) do
+            if not Utf8.isValidRune(character)
+            {
                 continue
+            }
+
             let glyphIndex = sequential ? glyph + (code - start) : glyph
-            if glyphIndex and not visitor(character, glyphIndex) do
+            if glyphIndex and not visitor(character, glyphIndex)
+            {
                 return
+            }
         }
     }
 }
@@ -496,16 +487,21 @@ private func(sequential: bool) visitCMapGroups(cmap: const [..] u8, first: u32, 
 // Stable end codes let the visitor match the first segment that lookup would use.
 private func visitCMap4(cmap: const [..] u8, first, glyphCount: u32, visitor: func||(rune, u32)->bool)->bool
 {
-    if first > 0xFFFF do
+    if first > 0xFFFF
+    {
         return true
+    }
 
     let layout      = cmap4Layout(cmap)
-    var previousEnd = 0'u16
+    var previousEnd = 0_u16
     for index in layout.segmentCount
     {
         let end = peekU16(cmap, CMap4EndCodes + index * 2)
-        if end < previousEnd do
+        if end < previousEnd
+        {
             return false
+        }
+
         previousEnd = end
     }
 
@@ -513,14 +509,18 @@ private func visitCMap4(cmap: const [..] u8, first, glyphCount: u32, visitor: fu
     for index in layout.segmentCount
     {
         let end = cast(u32, peekU16(cmap, CMap4EndCodes + index * 2))
-        if end < nextCode do
+        if end < nextCode
+        {
             continue
+        }
 
         let start = cast(u32, peekU16(cmap, layout.startCodes + index * 2))
         let begin = Math.max(nextCode, start)
         nextCode = end + 1
-        if begin > end do
+        if begin > end
+        {
             continue
+        }
 
         let delta       = peekS16(cmap, layout.deltas + index * 2)
         let range       = layout.ranges + index * 2
@@ -528,11 +528,16 @@ private func visitCMap4(cmap: const [..] u8, first, glyphCount: u32, visitor: fu
         for code in begin to end
         {
             let character = cast(rune, code)
-            if not Utf8.isValidRune(character) do
+            if not Utf8.isValidRune(character)
+            {
                 continue
+            }
+
             let glyph = cmap4Glyph(cmap, code, start, delta, range, rangeOffset)
-            if glyph and glyph < glyphCount and not visitor(character, glyph) do
+            if glyph and glyph < glyphCount and not visitor(character, glyph)
+            {
                 return true
+            }
         }
     }
 
@@ -541,29 +546,35 @@ private func visitCMap4(cmap: const [..] u8, first, glyphCount: u32, visitor: fu
 
 func visitMappedCharacters(faceData: const *FaceImpl, first: u32, visitor: func||(rune, u32)->bool)
 {
-    const ScalarLimit = 0x110000'u64
-    if first >= ScalarLimit do
+    const ScalarLimit = 0x110000_u64
+    if first >= ScalarLimit
+    {
         return
+    }
 
     if not faceData.hasCMap
     {
         let cmap = &faceData.charstringTables().cmap
-        var codes: Array'u32
+        var codes: Array!{u32}
         for code, glyph in cmap[]
         {
             if code >= first and
                code < ScalarLimit and
                glyph and
                glyph < faceData.face.glyphCount and
-               Utf8.isValidRune(cast(rune, code)) do
+               Utf8.isValidRune(cast(rune, code))
+            {
                 codes.add(code)
+            }
         }
 
         codes.sort()
         for code in codes
         {
-            if not visitor(cast(rune, code), cmap.getOrDefault(code, 0)) do
+            if not visitor(cast(rune, code), cmap.getOrDefault(code, 0))
+            {
                 return
+            }
         }
 
         return
@@ -580,8 +591,11 @@ func visitMappedCharacters(faceData: const *FaceImpl, first: u32, visitor: func|
     case 4:
 
         // Preserve lookup behavior for older fonts with an unordered segment array.
-        if visitCMap4(cmap, first, faceData.face.glyphCount, visitor) do
+        if visitCMap4(cmap, first, faceData.face.glyphCount, visitor)
+        {
             return
+        }
+
         limit = 0x10000
 
     case 6:
@@ -595,24 +609,31 @@ func visitMappedCharacters(faceData: const *FaceImpl, first: u32, visitor: func|
         limit = Math.min(ScalarLimit, mapStart + peekU32(cmap, 16))
 
     case 12:
-        visitCMapGroups'true(cmap, first, visitor)
+        visitCMapGroups!{true}(cmap, first, visitor)
         return
 
     case 13:
-        visitCMapGroups'false(cmap, first, visitor)
+        visitCMapGroups!{false}(cmap, first, visitor)
         return
     }
 
-    if start >= limit do
+    if start >= limit
+    {
         return
+    }
 
     for code in start until limit
     {
         let character = cast(rune, code)
-        if not Utf8.isValidRune(character) do
+        if not Utf8.isValidRune(character)
+        {
             continue
+        }
+
         let glyph = catch lookupGlyphIndex(faceData, cast(u32, code)) orelse 0
-        if glyph and not visitor(character, glyph) do
+        if glyph and not visitor(character, glyph)
+        {
             return
+        }
     }
 }

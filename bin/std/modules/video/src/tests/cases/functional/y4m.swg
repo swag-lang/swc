@@ -194,20 +194,25 @@ func y4mAspectBytes(aspect: string)->Array!{u8}
 // The last column and row keep their own chroma sample in an odd 4:2:0 picture.
 #test
 {
-    var bytes: Array'u8
+    var bytes: Array!{u8}
     bytes.add(cast(const [..] u8, "YUV4MPEG2 W9 H3 F1:1 Ip C420jpeg\nFRAME\n"))
-    for 27 do
+    for 27
+    {
         bytes.add(128)
-    bytes.add([16'u8, 240, 16, 240, 16, 240, 16, 240, 16, 240])
-    for 10 do
+    }
+
+    bytes.add([16_u8, 240, 16, 240, 16, 240, 16, 240, 16, 240])
+    for 10
+    {
         bytes.add(128)
+    }
 
     var reader  = expect Reader.openMemory("odd-420.y4m", bytes.toSlice())
     let picture = expect reader.decodeFrame(0)
     Swag.require(picture.pixelFormat == .RGB8 and picture.width == 9 and picture.height == 3)
-    for row in 3'u64
+    for row in 3_u64
     {
-        for column in 9'u64
+        for column in 9_u64
         {
             let offset = ((2 - row) * 9 + column) * 3
             let low    = (column / 2) % 2 == row / 2
@@ -458,11 +463,11 @@ func y4mAspectBytes(aspect: string)->Array!{u8}
     let rate = expect FrameRate.create(30, 1)
     for layout in Layouts
     {
-        var expected: Array'u8
+        var expected: Array!{u8}
         for format in Formats
         {
             var image = Image.create(Width, Height, format)
-            let red   = format == .RGB8 or format == .RGBA8 ? 0'u64 : 2'u64
+            let red   = format == .RGB8 or format == .RGBA8 ? 0_u64 : 2_u64
             let blue  = 2 - red
             for index in Width * Height
             {
@@ -470,17 +475,23 @@ func y4mAspectBytes(aspect: string)->Array!{u8}
                 pixel[red]  = cast(u8, (index * 31 & 255))
                 pixel[1]    = cast(u8, (index * 13 & 255))
                 pixel[blue] = cast(u8, (index * 73 & 255))
-                if image.bytesPerPixel == 4 do
+                if image.bytesPerPixel == 4
+                {
                     pixel[3] = cast(u8, (index * 11 & 255))
+                }
             }
 
             var clip = expect Clip.create(Width, Height, rate)
             expect clip.addFrame(image)
             let encoded = expect clip.encodeToBytes("packed.y4m", Y4m.EncodeOptions{layout})
-            if expected.isEmpty() do
+            if expected.isEmpty()
+            {
                 expected.add(encoded.toSlice())
-            else do
+            }
+            else
+            {
                 Swag.require(encoded.count == expected.count and Memory.compare(encoded.storage(), expected.storage(), expected.count) == 0)
+            }
         }
     }
 }

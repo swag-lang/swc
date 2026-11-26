@@ -1,6 +1,8 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
+using Math
+
 // Size in bytes of a Poly1305 one-time key.
 public const Poly1305KeySize = 32
 
@@ -19,6 +21,53 @@ private const LimbMask = 0x3FF_FFFF'u64
 private func load32Le(data: const [*] u8)->u64
 {
     return Math.littleEndianToNative(cast(const [*] u32, data)[0])
+}
+
+#[Swag.Inline]
+private func(T) poly1305LimbProduct(left, right: T)->T
+{
+    #static if T == u64
+    {
+        return left * right
+    }
+    else
+    {
+        // A limb and its scaled coefficient fit in 32 bits each.
+        const mask = cast(Simd.U64x2, [0xFFFF_FFFF'u64, 0xFFFF_FFFF])
+        return (left & mask) * (right & mask)
+    }
+}
+
+#[Swag.Inline]
+private func(T) poly1305Multiply(h, r, scaled: [5] T, result: *[5] T)
+{
+    result[][0] = poly1305LimbProduct(h[0], r[0]) + poly1305LimbProduct(h[1], scaled[4]) +
+                  poly1305LimbProduct(h[2], scaled[3]) + poly1305LimbProduct(h[3], scaled[2]) + poly1305LimbProduct(h[4], scaled[1])
+    result[][1] = poly1305LimbProduct(h[0], r[1]) + poly1305LimbProduct(h[1], r[0]) +
+                  poly1305LimbProduct(h[2], scaled[4]) + poly1305LimbProduct(h[3], scaled[3]) + poly1305LimbProduct(h[4], scaled[2])
+    result[][2] = poly1305LimbProduct(h[0], r[2]) + poly1305LimbProduct(h[1], r[1]) +
+                  poly1305LimbProduct(h[2], r[0]) + poly1305LimbProduct(h[3], scaled[4]) + poly1305LimbProduct(h[4], scaled[3])
+    result[][3] = poly1305LimbProduct(h[0], r[3]) + poly1305LimbProduct(h[1], r[2]) +
+                  poly1305LimbProduct(h[2], r[1]) + poly1305LimbProduct(h[3], r[0]) + poly1305LimbProduct(h[4], scaled[4])
+    result[][4] = poly1305LimbProduct(h[0], r[4]) + poly1305LimbProduct(h[1], r[3]) +
+                  poly1305LimbProduct(h[2], r[2]) + poly1305LimbProduct(h[3], r[1]) + poly1305LimbProduct(h[4], r[0])
+}
+
+#[Swag.Inline]
+private func poly1305Carry(h, products: *[5] u64)
+{
+    var carry = 0'u64
+    for i in 5
+    {
+        products[][i] += carry
+        carry         = products[][i] >> 26
+        h[][i]        = products[][i] & LimbMask
+    }
+
+    h[][0] += carry * 5
+    carry  = h[][0] >> 26
+    h[][0] &= LimbMask
+    h[][1] += carry
 }
 
 // Authenticates a message under a one-time key, following RFC 8439.
@@ -99,7 +148,20 @@ public impl Poly1305
             .bufferCount = 0
         }
 
-        let blocks = (data.count - offset) / Poly1305BlockSize
+        var blocks = (data.count - offset) / Poly1305BlockSize
+        #static if not BIG_ENDIAN
+        {
+            // Preparing r^2 pays off once the update contains a full run of blocks.
+            const PairedBlockThreshold = 128
+            if blocks >= PairedBlockThreshold
+            {
+                let pairs = blocks / 2
+                .absorbPairs(data.buffer + offset, pairs)
+                offset += pairs * 2 * Poly1305BlockSize
+                blocks &= 1
+            }
+        }
+
         if blocks
         {
             .absorbBlocks(data.buffer + offset, blocks, 1 << 24)
@@ -255,6 +317,59 @@ public impl Poly1305
         .accumulator = h
         secureClear(h)
         secureClear(d)
+        secureClear(scaled)
+    }
+
+    private mtd absorbPairs(blocks: const [*] u8, count: u64)
+    {
+        // Two successive blocks update h as (h + m0) * r^2 + m1 * r.
+        // Keep those products in separate vector lanes until the shared carry.
+        var scaled: [5] u64
+        for i in 1 to 4 do
+            scaled[i] = .r[i] * 5
+        var squared = .r
+        var products: [5] u64
+        poly1305Multiply(.r, .r, scaled, &products)
+        poly1305Carry(&squared, &products)
+
+        var factors, wrapped: [5] Simd.U64x2
+        for i in 5
+        {
+            factors[i] = cast(Simd.U64x2, [squared[i], .r[i]])
+            wrapped[i] = cast(Simd.U64x2, [squared[i] * 5, scaled[i]])
+        }
+
+        var h = .accumulator
+        var message, packedProducts: [5] Simd.U64x2
+        for pair in count
+        {
+            let words  = cast(const [*] u64, blocks + pair * 2 * Poly1305BlockSize)
+            let first  = Simd.load(words)
+            let second = Simd.load(words + 2)
+            let low    = Simd.interleaveLow(first, second)
+            let high   = Simd.interleaveHigh(first, second)
+            message[0] = low & LimbMask
+            message[1] = (low >> 26) & LimbMask
+            message[2] = ((low >> 52) | (high << 12)) & LimbMask
+            message[3] = (high >> 14) & LimbMask
+            message[4] = (high >> 40) | (1'u64 << 24)
+            for i in 5 do
+                message[i] += cast(Simd.U64x2, [h[i], 0'u64])
+
+            poly1305Multiply(message, factors, wrapped, &packedProducts)
+            for i in 5 do
+                products[i] = Simd.sum(packedProducts[i])
+            poly1305Carry(&h, &products)
+        }
+
+        .accumulator = h
+        secureClear(h)
+        secureClear(message)
+        secureClear(packedProducts)
+        secureClear(products)
+        secureClear(factors)
+        secureClear(wrapped)
+        secureClear(squared)
         secureClear(scaled)
     }
 }

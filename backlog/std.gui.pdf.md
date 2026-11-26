@@ -566,6 +566,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   brings the 1200 px indexed stress page from 389 to 55 ms. Palette conversion
   now happens once per entry. The page loads in 20 ms, down from 356 ms.
   PDFium takes 34 ms total. All 43 supported cases retain their bitmap CRC-32.
+- [Sixteen-bit RGB images](../bench/results/swagscope-filesamples/pdf-raster-linux.md#sixteen-bit-rgb-images)
+  take the PDF.js fixture from 130 to 49 ms total at 1200 px. SIMD quantization
+  cuts load from 98 to 18 ms with identical RGB. PDFium takes 20 ms.
 - Measure cached glyph masks for transformed PDF text. Profile the remaining
   stroke coverage and image span composition. Retaining encoded images for
   later zoom levels would let decoding use the requested image size.

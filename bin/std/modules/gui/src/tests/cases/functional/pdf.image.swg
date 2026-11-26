@@ -141,6 +141,48 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     }
 }
 
+// Every sixteen-bit sample agrees with the floating-point color conversion.
+#test
+{
+    var source: [512] u8
+    var actual: [256] u8
+    for high in 256
+    {
+        for low in 256
+        {
+            source[low * 2]     = cast(u8, high)
+            source[low * 2 + 1] = cast(u8, low)
+        }
+
+        quantizeRgb16(actual.buffer, source.buffer, actual.count)
+        for low in 256
+        {
+            let value = cast(f32, high * 256 + low) / 65535.0
+            Swag.require(actual[low] == componentByte(value))
+        }
+    }
+}
+
+// Sixteen-bit RGB quantization consumes a full vector and the row's final samples.
+#test
+{
+    var samples: [42] u8
+    for pixel in 7
+    {
+        samples[pixel * 6 + 0] = 0x00
+        samples[pixel * 6 + 1] = 0x81
+        samples[pixel * 6 + 2] = 0xFF
+        samples[pixel * 6 + 3] = 0x7E
+        samples[pixel * 6 + 4] = 0x80
+        samples[pixel * 6 + 5] = 0x80
+    }
+
+    let document = imageDocument("/Type /XObject /Subtype /Image /Width 7 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 16", samples)
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
+    for pixel in 7 do
+        Swag.require(image.pixelColor(cast(s32, pixel), 0) == Color.fromRgb(1, 254, 128))
+}
+
 // DeviceCMYK uses four-pixel blocks and preserves the final partial block.
 #test
 {

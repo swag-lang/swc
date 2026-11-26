@@ -71,6 +71,46 @@ private func expandGray8(destination: [*] u8, source: const [*] u8, count: u64)
     }
 }
 
+// RGB samples are big endian. Quantization rounds each 16-bit word to the
+// nearest multiple of 257, then keeps its eight-bit quotient.
+private func quantizeRgb16(destination: [*] u8, source: const [*] u8, count: u64)
+{
+    #[Swag.Inline]
+    func quantize8(src: const [*] u8)->Math.Simd.S16x8
+    {
+        let word  = cast #bit(Math.Simd.U16x8, Math.Simd.load(src))
+        let high  = cast #bit(Math.Simd.S16x8, word & 255'u16)
+        let low   = cast #bit(Math.Simd.S16x8, word >> 8)
+        let delta = low - high
+
+        // The word equals high * 257 + delta. Each comparison yields zero
+        // or all ones, so subtracting the upper mask adds one to the result.
+        let above = cast #bit(Math.Simd.S16x8, delta > Math.Simd.splat(128's16))
+        let below = cast #bit(Math.Simd.S16x8, delta < Math.Simd.splat(-128's16))
+        return high - above + below
+    }
+
+    var src  = source
+    var dst  = destination
+    var left = count
+    while left >= 16
+    {
+        Math.Simd.store(dst, Math.Simd.packUnsigned(quantize8(src), quantize8(src + 16)))
+        src  += 32
+        dst  += 16
+        left -= 16
+    }
+
+    while left
+    {
+        let value = (cast(u32, src[0]) << 8) | src[1]
+        dst[] = cast(u8, (value + 128) / 257)
+        src   += 2
+        dst   += 1
+        left  -= 1
+    }
+}
+
 private func expandCmyk8(destination: [*] u8, source: const [*] u8, count: u64)
 {
     var src  = source
@@ -756,9 +796,15 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
         return result
     }
 
-    if depth == 8 and decodeId == InvalidNode and space.kind == .Rgb and space.components == 3
+    if decodeId == InvalidNode and
+       space.kind == .Rgb and
+       space.components == 3 and
+       (depth == 8 or depth == 16)
     {
-        Memory.copy(result.rgb.storage(), bytes.storage(), result.rgb.count)
+        if depth == 16 do
+            quantizeRgb16(result.rgb.storage(), bytes.storage(), result.rgb.count)
+        else do
+            Memory.copy(result.rgb.storage(), bytes.storage(), result.rgb.count)
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }

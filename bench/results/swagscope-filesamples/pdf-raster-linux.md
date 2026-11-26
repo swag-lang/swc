@@ -282,3 +282,27 @@ across engines. Times are milliseconds.
 All 43 supported page cases produced the same Swag bitmap CRC-32. A
 focused test covers two odd-width rows of four-bit samples with a reversed
 Decode range and a raw color key.
+
+## Sixteen-bit RGB images
+
+Big-endian RGB samples with the default Decode range use an exact integer
+conversion in SIMD. Eight-bit components are the rounded quotients of the
+original samples divided by 257. Decode overrides and color-key masks keep
+their existing semantics. The functional suite checks all 65,536 sample
+values against the previous floating-point conversion and covers partial
+vectors.
+
+Release medians on one logical AMD EPYC 7763 CPU, from 11 interleaved
+runs at each size of the PDF.js `perf_images_16bit.pdf` page. Both Swag
+builds use the indexed palette change. PDFium performs the decoding during
+render. Times are milliseconds.
+[Phase timings and corpus checksums](pdf-raster-linux-rgb16.json)
+
+| Long side | Swag before | Swag after | PDFium | Load before | Load after | PDFium load |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1200 | 130.21 | 49.16 | 19.59 | 97.81 | 17.54 | 0.22 |
+| 2400 | 187.29 | 104.84 | 27.10 | 96.36 | 18.25 | 0.27 |
+
+The Swag raster CRC-32 matched at both sizes and on every supported page
+of the 44-case corpus. At 2400 px, 86 ms of the remaining 105 ms are in
+render.

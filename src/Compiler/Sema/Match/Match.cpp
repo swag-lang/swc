@@ -95,8 +95,7 @@ namespace
             return;
 
         MatchContext& lookUpCxt = *lookup.context;
-        lookUpCxt.symMaps.push_back(symMap);
-        lookUpCxt.symMapPriorities.push_back(priority);
+        lookUpCxt.symMaps.push_back({symMap, priority});
 
         if (symMap->isStruct())
         {
@@ -271,7 +270,6 @@ namespace
     Result collect(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef)
     {
         lookUpCxt.symMaps.clear();
-        lookUpCxt.symMapPriorities.clear();
         SymMapLookup lookup{.context = &lookUpCxt};
 
         // A hinted map defines a precise lookup at the highest priority.
@@ -415,12 +413,8 @@ namespace
     {
         lookUpCxt.resetCandidates();
 
-        const auto count = lookUpCxt.symMaps.size();
-        for (size_t i = 0; i < count; ++i)
+        for (const auto& [symMap, priority] : lookUpCxt.symMaps)
         {
-            const SymbolMap* symMap   = lookUpCxt.symMaps[i];
-            const auto&      priority = lookUpCxt.symMapPriorities[i];
-
             lookUpCxt.beginSymMapLookup(priority);
             symMap->lookupAppend(idRef, lookUpCxt);
         }
@@ -491,9 +485,9 @@ void Match::collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::v
     }
 
     std::vector<const Symbol*> symbols;
-    for (const SymbolMap* symMap : lookUpCxt.symMaps)
+    for (const auto& candidateMap : lookUpCxt.symMaps)
     {
-        symMap->getAllSymbols(symbols);
+        candidateMap.symMap->getAllSymbols(symbols);
 
         for (const Symbol* symbol : symbols)
             append(*symbol);

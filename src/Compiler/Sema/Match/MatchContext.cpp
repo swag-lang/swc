@@ -28,7 +28,6 @@ void MatchContext::clear()
 {
     resetCandidates();
     symMaps.clear();
-    symMapPriorities.clear();
     localSymbols.clear();
 
     symMapHint          = nullptr;

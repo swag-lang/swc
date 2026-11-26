@@ -94,8 +94,13 @@ public:
     // Matching only the survivors can turn the original error into a false argument mismatch.
     bool blockedByIgnored() const { return hasIgnoredBestPriority_ && (!hasBestPriority_ || Priority::compare(ignoredBestPriority_, bestPriority_) <= 0); }
 
-    SmallVector<const SymbolMap*> symMaps;
-    SmallVector<Priority>         symMapPriorities;
+    struct SymbolMapCandidate
+    {
+        const SymbolMap* symMap;
+        Priority         priority;
+    };
+
+    SmallVector<SymbolMapCandidate> symMaps;
 
 private:
     SmallVector<const Symbol*> symbols_;

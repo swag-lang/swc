@@ -421,10 +421,10 @@ private impl GroupState
 
     #[Swag.Inline]
     mtd const canDeferPrimitive()->bool =>
-        .hasFill and
+        .drawsShape() and
         not .inDefs and
-        not .hasStroke and
         not .fillPaintId.count and
+        not .strokePaintId.count and
         not .filterId.count
 
     // Definitions keep their own geometry without placing markers on it.
@@ -4687,6 +4687,7 @@ private impl Drawing
     // around them.
     mtd const shapeInkBounds(shape: const *Shape)->Rectangle
     {
+        var result: #returntype
         if shape.deferred != .None
         {
             var min, max: Vector2
@@ -4704,12 +4705,17 @@ private impl Drawing
             }
 
             let size = max - min
-            return Rectangle{min.x, min.y, size.x, size.y}
+            result = Rectangle{min.x, min.y, size.x, size.y}
+        }
+        elif shape.scanFill
+        {
+            return .scanFills[shape.scanFill - 1].bounds
+        }
+        else
+        {
+            result = .pathsFor(shape).controlBounds()
         }
 
-        if shape.scanFill do
-            return .scanFills[shape.scanFill - 1].bounds
-        var result: #returntype = .pathsFor(shape).controlBounds()
         let stroke = .strokeFor(shape)
         if stroke and stroke.enabled
         {

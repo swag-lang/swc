@@ -774,6 +774,39 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     }
 }
 
+// Check both sides of every rounding transition for low and high 32-bit fields.
+#test
+{
+    const Samples = 510
+    var words: [Samples] u32
+    var image = Image.create(Samples, 1, .BGRA8)
+    for bits in 1 until 31
+    {
+        let max = (1'u32 << bits) - 1
+        for high in [false, true]
+        {
+            let shift = high ? 32 - bits : 0
+            let masks = Bmp.Masks{r: Bmp.readMask(max << shift),
+                                  g: Bmp.readMask(high ? 1'u32 : 1'u32 << bits),
+                                  b: Bmp.readMask(high ? 2'u32 : 1'u32 << (bits + 1))}
+            for level in 255
+            {
+                let boundary = cast(u32, ((cast(u64, max) * (2 * level + 1) + 509) / 510))
+                words[2 * level]     = (boundary - 1) << shift
+                words[2 * level + 1] = boundary << shift
+            }
+
+            let src = cast(const [*] u8, &words[0])
+            expect Bmp.decode32(&image, src, src + #sizeof(#typeof(words)), masks, false)
+            for i in Samples
+            {
+                let color = image.pixelColor(cast(s32, i), 0)
+                Swag.require(color.r == Bmp.maskToByte(words[i], masks.r))
+            }
+        }
+    }
+}
+
 // Packed palette rows drop padding and unused trailing bits in both full and short palettes.
 #test
 {

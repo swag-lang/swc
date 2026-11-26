@@ -227,32 +227,42 @@ impl IImageDecoder for SetDecoder
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
-        let multiple: IImageSetDecoder = me
-        let info = try multiple.open(buffer, options)
-        if info.frames.isEmpty() do
+        let background = try .openCanvas(buffer, options)
+        var first: IndexedFrame
+        if not (try .decoder.getFrame(&first)) do
             fail InvalidFormatError{"image container has no representative image"}
 
-        let descriptor = &info.frames[0]
+        // Later frame descriptors still participate in container validation and limits.
+        var count = 1'u64
+        try options.checkFrameCount(count)
+        var skipped: IndexedFrame
+        while try .decoder.getFrame(&skipped)
+        {
+            count += 1
+            try options.checkFrameCount(count)
+        }
+
+        let indexed = &first
+        let format: PixelFormat = options.decodePixels and not indexed.control.transparency ? .RGB8 : .RGBA8
         var result: #returntype
-        result.init(info.canvasWidth, info.canvasHeight, options.decodePixels ? descriptor.pixelFormat : .RGBA8)
+        result.init(.decoder.width, .decoder.height, format)
         if not options.decodePixels do
             return result
 
-        let indexed = &.frames[0]
         try .decoder.decodeIndices(indexed)
         result.allocPixels()
-        if descriptor.width != info.canvasWidth or descriptor.height != info.canvasHeight
+        if indexed.width != .decoder.width or indexed.height != .decoder.height
         {
             // The first transparent frame starts on a transparent black canvas.
             if result.pixelFormat == .RGBA8 do
                 clearTransparentMargins(&result, indexed)
             else do
-                result.fill(info.background)
+                result.fill(background)
         }
 
         // The decoded rectangle can be expanded directly into the final, bottom-up canvas.
-        let bottom = result.height - descriptor.y - descriptor.height
-        let target = result.pixels.storage() + cast(u64, bottom) * result.rowStride + cast(u64, descriptor.x) * result.bytesPerPixel
+        let bottom = result.height - indexed.y - indexed.height
+        let target = result.pixels.storage() + cast(u64, bottom) * result.rowStride + cast(u64, indexed.x) * result.bytesPerPixel
         try .decoder.writePixels(indexed, target, result.rowStride, result.pixelFormat == .RGBA8, clearTransparent: true)
         return result
     }
@@ -262,17 +272,10 @@ impl IImageSetDecoder for SetDecoder
 {
     mtd impl open(buffer: const [..] u8, options: DecodeOptions)->ImageSetInfo fail
     {
-        .frames.clear()
-        try .decoder.init(buffer)
-        try options.checkImage(.decoder.width, .decoder.height, .RGBA8)
         var result: #returntype
+        result.background   = try .openCanvas(buffer, options)
         result.canvasWidth  = .decoder.width
         result.canvasHeight = .decoder.height
-        if .decoder.bgIndex < .decoder.gct.size
-        {
-            let color = cast(const [*] u8, unwrap .decoder.gct.colors) + cast(u32, .decoder.bgIndex) * 3
-            result.background = {r: color[0], g: color[1], b: color[2], a: 255}
-        }
 
         var indexed: IndexedFrame
         while try .decoder.getFrame(&indexed)
@@ -323,6 +326,24 @@ impl IImageSetDecoder for SetDecoder
         }
 
         return result
+    }
+}
+
+impl SetDecoder
+{
+    #[Swag.Inline]
+    private mtd openCanvas(buffer: const [..] u8, options: DecodeOptions)->Color fail
+    {
+        .frames.clear()
+        try .decoder.init(buffer)
+        try options.checkImage(.decoder.width, .decoder.height, .RGBA8)
+        if .decoder.bgIndex < .decoder.gct.size
+        {
+            let color = cast(const [*] u8, unwrap .decoder.gct.colors) + cast(u32, .decoder.bgIndex) * 3
+            return {r: color[0], g: color[1], b: color[2], a: 255}
+        }
+
+        return {a: 0}
     }
 }
 

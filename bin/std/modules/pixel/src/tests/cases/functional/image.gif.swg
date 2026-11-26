@@ -109,6 +109,21 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     assertGifPixelAt(rgba, 0, 0, 0'u8, 0'u8, 0'u8, 0'u8)
 }
 
+// Loading the first GIF image still applies limits and validates the full container.
+#test
+{
+    let path = getTestDataPath("test.gif")
+    var limitError: Swag.Error
+    discard catch Image.load(path, {maxFrames: 1}) as limitError
+    Swag.require(limitError.value() is Errors.UnsupportedFormatError)
+
+    let bytes     = expect File.readAllBytes(path)
+    let truncated = Swag.makeSlice(bytes.storage(), bytes.count - 1)
+    var formatError: Swag.Error
+    discard catch Image.decode("missing-trailer.gif", truncated, {decodePixels: false}) as formatError
+    Swag.require(formatError.value() is Errors.InvalidFormatError)
+}
+
 // Direct decoder exposes frame iteration metadata for animated GIFs.
 #test
 {

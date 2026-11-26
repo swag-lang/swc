@@ -21,6 +21,77 @@ public enum Crc64Kind
     IsoXz       // CRC-64/XZ.
 }
 
+private impl Crc64
+{
+    alias ChecksumRow   = [256] u64
+    alias ChecksumTable = [8] ChecksumRow
+
+    const Ecma182Table = #run buildTable(0x42F0_E1EB_A9EA_3693, reflected: false)
+    const IsoTable     = #run buildTable(0xD800_0000_0000_0000, reflected: true)
+    const XzTable      = #run buildTable(0xC96C_5795_D787_0F42, reflected: true)
+
+    func buildTable(polynomial: u64, reflected: bool)->ChecksumTable
+    {
+        var table: ChecksumTable
+        for index in 256
+        {
+            var value = cast(u64, index)
+            if reflected
+            {
+                for 8 do
+                    value = value & 1 ? (value >> 1) ^ polynomial : value >> 1
+            }
+            else
+            {
+                value <<= 56
+                for 8 do
+                    value = value >> 63 ? (value << 1) ^ polynomial : value << 1
+
+                // Store ECMA-182 with its next byte's index in the low bits as well.
+                value = Swag.byteSwap(value)
+            }
+
+            table[0, index] = value
+        }
+
+        for slice in 1 until 8
+        {
+            for index in 256
+            {
+                let previous = table[slice - 1, index]
+                table[slice, index] = (previous >> 8) ^ table[0, previous & 0xFF]
+            }
+        }
+
+        return table
+    }
+
+    #[ConstExpr, Swag.Safety(.All, false)]
+    func updateTable(bytes: const [*] u8, length, initial: u64, table: const [..] ChecksumRow)->u64
+    {
+        var crc    = initial
+        var offset = 0'u64
+        while length - offset >= 8
+        {
+            let word  = Math.littleEndianToNative(cast(const [*] u64, bytes + offset)[0])
+            let mixed = word ^ crc
+            crc = table[7, mixed & 0xFF] ^
+                  table[6, (mixed >> 8) & 0xFF] ^
+                  table[5, (mixed >> 16) & 0xFF] ^
+                  table[4, (mixed >> 24) & 0xFF] ^
+                  table[3, (mixed >> 32) & 0xFF] ^
+                  table[2, (mixed >> 40) & 0xFF] ^
+                  table[1, (mixed >> 48) & 0xFF] ^
+                  table[0, mixed >> 56]
+            offset += 8
+        }
+
+        for index in offset until length do
+            crc = (crc >> 8) ^ table[0, (crc & 0xFF) ^ bytes[index]]
+        return crc
+    }
+}
+
 public impl Crc64
 {
     // Resets the checksum and selects the algorithm used by subsequent updates.
@@ -39,65 +110,17 @@ public impl Crc64
             return
 
         let bytes = cast(const [*] u8, unwrap data.buffer)
-        var cur   = .currentValue
-        var i     = 0'u64
         switch #complete .kind
         {
         case .Ecma182:
-            const POLY: u64 = 0x42F0_E1EB_A9EA_3693
-            while i < length
-            {
-                cur ^= cast(u64, bytes[i]) << 56
-                for 8
-                {
-                    if cur & 0x8000_0000_0000_0000'u64 do
-                        cur = (cur << 1) ^ POLY
-                    else do
-                        cur <<= 1
-                }
-
-                i += 1
-            }
-
-            .currentValue = cur
+            let crc = updateTable(bytes, length, Swag.byteSwap(.currentValue), Ecma182Table)
+            .currentValue = Swag.byteSwap(crc)
 
         case .Iso:
-            const POLY: u64 = 0xD800_0000_0000_0000
-            cur = ~cur
-            while i < length
-            {
-                cur ^= bytes[i]
-                for 8
-                {
-                    if cur & 1 do
-                        cur = (cur >> 1) ^ POLY
-                    else do
-                        cur >>= 1
-                }
-
-                i += 1
-            }
-
-            .currentValue = ~cur
+            .currentValue = ~updateTable(bytes, length, ~.currentValue, IsoTable)
 
         case .IsoXz:
-            const POLY: u64 = 0xC96C_5795_D787_0F42
-            cur = ~cur
-            while i < length
-            {
-                cur ^= bytes[i]
-                for 8
-                {
-                    if cur & 1 do
-                        cur = (cur >> 1) ^ POLY
-                    else do
-                        cur >>= 1
-                }
-
-                i += 1
-            }
-
-            .currentValue = ~cur
+            .currentValue = ~updateTable(bytes, length, ~.currentValue, XzTable)
         }
     }
 

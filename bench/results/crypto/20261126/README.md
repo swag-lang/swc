@@ -102,3 +102,4 @@ optimizations moved each result.
 - [SHA-512 schedule expansion and round groups](sha512-interleaving.md)
 - [Direct SHA-3 and SHAKE finalization](sha3-finalization.md)
 - [Packed AES key expansion](aes-key-expansion.md)
+- [Bounded Curve25519 field carries](curve25519-bounded-carries.md)

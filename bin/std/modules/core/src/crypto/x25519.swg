@@ -10,6 +10,7 @@ private const FieldLimbBits         = 51
 private const FieldLimbMask         = (1'u64 << FieldLimbBits) - 1
 private const FieldModulus: [5] u64 = [FieldLimbMask - 18, FieldLimbMask, FieldLimbMask, FieldLimbMask, FieldLimbMask]
 
+// Arithmetic keeps every limb below 2^51, with limb 1 allowed another 255.
 internal struct X25519Field
 {
     limbs: [5] u64
@@ -43,26 +44,29 @@ private impl X25519Product
     mtd const carry() => (.low >> FieldLimbBits) | (.high << (64 - FieldLimbBits))
 }
 
+#[Swag.Inline]
+private func x25519FoldCarry(value: *X25519Field, carry: u64)
+{
+    // The low limb can keep its full carry by advancing only to limb 1.
+    // Even the product fold adds less than 128 radix-2^51 units there.
+    value.limbs[0] += carry * 19
+    value.limbs[1] += value.limbs[0] >> FieldLimbBits
+    value.limbs[0] &= FieldLimbMask
+}
+
 private func x25519Normalize(value: X25519Field)->X25519Field
 {
     var result = value
-
-    // The first sweep bounds the folded low limb to 2^51 plus at most a few
-    // multiples of 19. The second carries that excess into the upper limbs.
-    for 2
+    for index in 4
     {
-        for index in 4
-        {
-            let carry = result.limbs[index] >> FieldLimbBits
-            result.limbs[index]     &= FieldLimbMask
-            result.limbs[index + 1] += carry
-        }
-
-        let carry = result.limbs[4] >> FieldLimbBits
-        result.limbs[4] &= FieldLimbMask
-        result.limbs[0] += carry * 19
+        let carry = result.limbs[index] >> FieldLimbBits
+        result.limbs[index]     &= FieldLimbMask
+        result.limbs[index + 1] += carry
     }
 
+    let carry = result.limbs[4] >> FieldLimbBits
+    result.limbs[4] &= FieldLimbMask
+    x25519FoldCarry(&result, carry)
     return result
 }
 
@@ -92,8 +96,8 @@ private func x25519ReduceProducts(products: *[5] X25519Product)->X25519Field
     }
 
     result.limbs[4] = products[][4].low & FieldLimbMask
-    result.limbs[0] += products[][4].carry() * 19
-    return x25519Normalize(result)
+    x25519FoldCarry(&result, products[][4].carry())
+    return result
 }
 
 internal func x25519Multiply(left, right: X25519Field)->X25519Field
@@ -224,22 +228,21 @@ internal func x25519Decode(data: const [..] u8)->X25519Field
 
 internal func x25519Encode(value: X25519Field, destination: [..] u8)
 {
-    // A normalized value is below 2^255 and needs at most one subtraction.
-    // Select the reduced limbs without branching on the borrow.
+    // The extra 19 produces a carry out of bit 255 exactly when the
+    // value is at least 2^255 - 19. Use that carry to subtract the modulus.
     var canonical = value.limbs
-    var difference: [5] u64
-    var borrow    = 0'u64
-    for index in difference.count
-    {
-        let word = canonical[index] - FieldModulus[index] - borrow
-        difference[index] = word & FieldLimbMask
-        borrow = word >> 63
-    }
+    var carry = (canonical[0] + 19) >> FieldLimbBits
+    for index in 1 until canonical.count do
+        carry = (canonical[index] + carry) >> FieldLimbBits
 
-    let selectDifference = 0'u64 - (1 - borrow)
-    for index in canonical.count do
-        canonical[index] = (difference[index] & selectDifference) |
-                           (canonical[index] & ~selectDifference)
+    canonical[0] += 19 * carry
+    for index in 4
+    {
+        carry = canonical[index] >> FieldLimbBits
+        canonical[index]     &= FieldLimbMask
+        canonical[index + 1] += carry
+    }
+    canonical[4] &= FieldLimbMask
 
     let words = cast([*] u64, destination.buffer)
     words[0] = Math.nativeToLittleEndian(canonical[0] | (canonical[1] << 51))

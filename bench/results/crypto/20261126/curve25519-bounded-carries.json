@@ -1,0 +1,793 @@
+{
+  "utc": "2026-11-26T12:40:52.857500+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 1,
+  "affinity": [
+    1
+  ],
+  "workers": {
+    "baseline": 1,
+    "bounded-carries": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "d6f36f4496d0434337b2936a7ff71c55c7ca395d52e0ae4222a2fc5b3d5a5f51",
+  "swag_builds": {
+    "baseline": "7a75a25640cc11fa2c7e2d6d8ab585276508a17e1c163f550e5c4b39b549baae",
+    "bounded-carries": "99caad642058fe42fda6ff369ba0d403a0488d5c61231692046c37ffc0dfc169"
+  },
+  "rounds": 11,
+  "target_ms": 35,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "x25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "82bc2c8f4e75b535a175120445ec22f7265a811b633ced733b9d06869c502c69",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 902,
+          "wall": [
+            0.03345151,
+            0.034274562,
+            0.033678072,
+            0.033023555,
+            0.034609867,
+            0.035069501,
+            0.033949371,
+            0.034204146,
+            0.033440374,
+            0.033158949,
+            0.033584992
+          ],
+          "cpu": [
+            0.033398768,
+            0.034259891,
+            0.033667519,
+            0.033012534,
+            0.034570483,
+            0.035032951,
+            0.033920154,
+            0.034174334,
+            0.033409135,
+            0.032982538,
+            0.033551066
+          ]
+        },
+        "baseline": {
+          "iterations": 150,
+          "wall": [
+            0.036734231,
+            0.035854064,
+            0.03590481,
+            0.035398077,
+            0.036314769,
+            0.035776096,
+            0.037757014,
+            0.03630196,
+            0.037082487,
+            0.03508868,
+            0.037220295
+          ],
+          "cpu": [
+            0.036707737,
+            0.0358366,
+            0.035894445,
+            0.03518627,
+            0.036288382,
+            0.035578995,
+            0.03772292,
+            0.036135763,
+            0.037055554,
+            0.035061194,
+            0.037190694
+          ]
+        },
+        "bounded-carries": {
+          "iterations": 249,
+          "wall": [
+            0.035100078,
+            0.035816517,
+            0.03606362,
+            0.034257146,
+            0.035573131,
+            0.039328614,
+            0.03635516,
+            0.035136732,
+            0.035161389,
+            0.034599252,
+            0.034852524
+          ],
+          "cpu": [
+            0.035084039,
+            0.035657192,
+            0.036032491,
+            0.034238718,
+            0.035556592,
+            0.039311094,
+            0.036330584,
+            0.035106452,
+            0.035135986,
+            0.034570252,
+            0.03482963
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "OpenSSL",
+          "bounded-carries",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "bounded-carries",
+          "baseline"
+        ]
+      ]
+    },
+    {
+      "algorithm": "x25519-shared",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "9cece8f62296730a835add7d412edfd57587a071fb99e1b937693a5159c24d5d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 487,
+          "wall": [
+            0.035582285,
+            0.035768114,
+            0.036391405,
+            0.035158986,
+            0.035628454,
+            0.035099486,
+            0.035825581,
+            0.035439289,
+            0.035177504,
+            0.035528372,
+            0.036485436
+          ],
+          "cpu": [
+            0.035350686,
+            0.035730111,
+            0.036353647,
+            0.035126632,
+            0.035592256,
+            0.034911572,
+            0.035790371,
+            0.035263353,
+            0.035139622,
+            0.035493359,
+            0.0364691
+          ]
+        },
+        "baseline": {
+          "iterations": 145,
+          "wall": [
+            0.034000719,
+            0.033628938,
+            0.034696959,
+            0.034625822,
+            0.034794125,
+            0.036779279,
+            0.034376075,
+            0.034919153,
+            0.035469493,
+            0.035362423,
+            0.035180909
+          ],
+          "cpu": [
+            0.033975787,
+            0.033581658,
+            0.034516935,
+            0.03459599,
+            0.034758084,
+            0.036744551,
+            0.03435271,
+            0.034885581,
+            0.035438195,
+            0.03516464,
+            0.035105619
+          ]
+        },
+        "bounded-carries": {
+          "iterations": 222,
+          "wall": [
+            0.031116048,
+            0.031770005,
+            0.035807563,
+            0.03243706,
+            0.033011477,
+            0.033465302,
+            0.03081302,
+            0.031729403,
+            0.032512795,
+            0.031871347,
+            0.031251332
+          ],
+          "cpu": [
+            0.031099074,
+            0.031722592,
+            0.035748328,
+            0.032403125,
+            0.032980915,
+            0.033436475,
+            0.030785597,
+            0.031703885,
+            0.032476277,
+            0.031823603,
+            0.031176841
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "bounded-carries",
+          "baseline"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "bounded-carries",
+          "baseline"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-public",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "3344782b88b6be16a0976a28edf521b9b260851a6101822efc7a840f23d015d9",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 910,
+          "wall": [
+            0.0365611,
+            0.034901597,
+            0.034536777,
+            0.035660101,
+            0.03441946,
+            0.033892696,
+            0.034190756,
+            0.034093188,
+            0.034209743,
+            0.034189534,
+            0.034265939
+          ],
+          "cpu": [
+            0.03648785,
+            0.034860765,
+            0.034362873,
+            0.035627625,
+            0.034398256,
+            0.03386422,
+            0.034168603,
+            0.034057901,
+            0.034174554,
+            0.034008305,
+            0.03424606
+          ]
+        },
+        "baseline": {
+          "iterations": 259,
+          "wall": [
+            0.03287479,
+            0.032435178,
+            0.031759148,
+            0.032097959,
+            0.031999942,
+            0.031660208,
+            0.032248165,
+            0.032797614,
+            0.033282726,
+            0.033472983,
+            0.032716953
+          ],
+          "cpu": [
+            0.032824973,
+            0.032402844,
+            0.031735152,
+            0.032068078,
+            0.031812567,
+            0.031636976,
+            0.03219066,
+            0.032663496,
+            0.033260702,
+            0.033446548,
+            0.032686879
+          ]
+        },
+        "bounded-carries": {
+          "iterations": 445,
+          "wall": [
+            0.034793014,
+            0.036075168,
+            0.035328381,
+            0.034267851,
+            0.034997082,
+            0.03460531,
+            0.034390567,
+            0.036297733,
+            0.034912524,
+            0.034662057,
+            0.036042999
+          ],
+          "cpu": [
+            0.034625496,
+            0.036053152,
+            0.03530123,
+            0.034244557,
+            0.034961886,
+            0.034570723,
+            0.034369725,
+            0.036116092,
+            0.034881726,
+            0.034639355,
+            0.0360177
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "bounded-carries",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "bounded-carries",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "9c8f8181fbe97f479f7785703ecbc0cab97207354af556437d8555d43db6c3e4",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 447,
+          "wall": [
+            0.034482455,
+            0.034935948,
+            0.032986089,
+            0.032766217,
+            0.032813228,
+            0.033009423,
+            0.032843143,
+            0.033199831,
+            0.03349733,
+            0.033489177,
+            0.03431331
+          ],
+          "cpu": [
+            0.034305667,
+            0.034908724,
+            0.0328162,
+            0.032736652,
+            0.032787089,
+            0.03298284,
+            0.03281575,
+            0.03317258,
+            0.033470845,
+            0.033314123,
+            0.034293799
+          ]
+        },
+        "baseline": {
+          "iterations": 118,
+          "wall": [
+            0.035017372,
+            0.03520847,
+            0.035214328,
+            0.035491557,
+            0.03524863,
+            0.033963703,
+            0.034296105,
+            0.034561284,
+            0.03406175,
+            0.034304968,
+            0.035636196
+          ],
+          "cpu": [
+            0.034978864,
+            0.03516628,
+            0.035147413,
+            0.035459666,
+            0.035195886,
+            0.033937621,
+            0.034269504,
+            0.034357574,
+            0.034043008,
+            0.034281925,
+            0.035613174
+          ]
+        },
+        "bounded-carries": {
+          "iterations": 169,
+          "wall": [
+            0.034574645,
+            0.034500493,
+            0.033606263,
+            0.033421615,
+            0.033369357,
+            0.033263787,
+            0.033733655,
+            0.034933666,
+            0.03406713,
+            0.034142543,
+            0.03428026
+          ],
+          "cpu": [
+            0.034548702,
+            0.03448067,
+            0.033579327,
+            0.03339402,
+            0.033196898,
+            0.03323271,
+            0.03368119,
+            0.034901727,
+            0.034036689,
+            0.034121945,
+            0.03425288
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ],
+        [
+          "baseline",
+          "bounded-carries",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "bounded-carries",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "bounded-carries",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "ed25519-sign",
+      "bytes": 4096,
+      "offset": 0,
+      "input_sha256": "af26928ca7645ec0d0e3eb12ef41f86dcde5c1aaa8e8debc79011d0a002fa71c",
+      "output_sha256": "5fb065a8305f9f8dc739bd71873612b54349bf73a998f162669da4d97f6ee281",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 421,
+          "wall": [
+            0.035386008,
+            0.035463264,
+            0.035054868,
+            0.035218816,
+            0.036472076,
+            0.035398778,
+            0.035350845,
+            0.035027768,
+            0.034928438,
+            0.035120298,
+            0.035027007
+          ],
+          "cpu": [
+            0.035362214,
+            0.035442059,
+            0.035037409,
+            0.035195865,
+            0.03624729,
+            0.035376996,
+            0.035324165,
+            0.034929698,
+            0.034904,
+            0.03495131,
+            0.035006552
+          ]
+        },
+        "baseline": {
+          "iterations": 114,
+          "wall": [
+            0.035804038,
+            0.035234189,
+            0.035678008,
+            0.035403625,
+            0.035594162,
+            0.03540696,
+            0.035331156,
+            0.035152536,
+            0.035152726,
+            0.035554992,
+            0.035506099
+          ],
+          "cpu": [
+            0.035639173,
+            0.035200572,
+            0.035499085,
+            0.035353882,
+            0.035472166,
+            0.035385097,
+            0.035168174,
+            0.035131289,
+            0.035131038,
+            0.035524985,
+            0.035486598
+          ]
+        },
+        "bounded-carries": {
+          "iterations": 161,
+          "wall": [
+            0.035104214,
+            0.035334309,
+            0.035907875,
+            0.036829815,
+            0.03530826,
+            0.035657938,
+            0.035826323,
+            0.035233978,
+            0.03530055,
+            0.035213988,
+            0.035269493
+          ],
+          "cpu": [
+            0.035062035,
+            0.035315634,
+            0.035845804,
+            0.036802448,
+            0.035291357,
+            0.035638313,
+            0.035799955,
+            0.035067603,
+            0.035270397,
+            0.035188334,
+            0.035218039
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "baseline",
+          "OpenSSL"
+        ],
+        [
+          "baseline",
+          "OpenSSL",
+          "bounded-carries"
+        ],
+        [
+          "bounded-carries",
+          "OpenSSL",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "bounded-carries",
+          "baseline"
+        ],
+        [
+          "baseline",
+          "bounded-carries",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "bounded-carries",
+          "baseline"
+        ],
+        [
+          "OpenSSL",
+          "baseline",
+          "bounded-carries"
+        ]
+      ]
+    }
+  ]
+}

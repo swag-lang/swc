@@ -84,6 +84,16 @@ func x25519HexBytes(text: string)->Array'u8
     discard catch Crypto.x25519SharedSecret(privateKey, lowOrder, result) as oneLowOrderError
     Swag.require(oneLowOrderError.value() is Errors.BadParameterError)
 
+    // The encodings p - 1, p and p + 1 reach the same low-order points after reduction.
+    var boundary = x25519HexBytes("ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f")
+    for increment in 3
+    {
+        boundary[0] = cast(u8, (0xEC + increment))
+        var boundaryError: Swag.Error
+        discard catch Crypto.x25519SharedSecret(privateKey, boundary.toSlice(), result) as boundaryError
+        Swag.require(boundaryError.value() is Errors.BadParameterError)
+    }
+
     var shortKey:    [31] u8
     var lengthError: Swag.Error
     discard catch Crypto.x25519PublicKey(shortKey, result) as lengthError

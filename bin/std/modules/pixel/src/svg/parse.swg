@@ -5072,7 +5072,7 @@ impl Drawing
     }
 
     // Paints one text block and returns the drawing-space rectangle its runs covered.
-    private mtd const paintText(painter: *Painter, text: const *SvgText)->Rectangle
+    private mtd const paintText(painter: *Painter, text: const *SvgText, shaped: *ShapedRun, visible: Rectangle, clipRuns: bool)->Rectangle
     {
         // The pen is a point plus a distance along the baseline, because a rotated element
         // runs its text along a direction rather than along the drawing's x axis. With no
@@ -5101,15 +5101,13 @@ impl Drawing
 
             // Shape once: the anchor needs the advance the spacing produces, and drawing
             // the same run keeps the glyphs on the positions that width was measured from.
-            var shaped  = Painter.shapeRun(run.text.toString(), font, letterSpacing: run.letterSpacing, wordSpacing: run.wordSpacing)
-            let metrics = Painter.measureString(&shaped)
+            Painter.shapeRunInto(shaped, run.text.toString(), font, letterSpacing: run.letterSpacing, wordSpacing: run.wordSpacing)
+            let metrics = Painter.measureString(shaped)
             var offset  = advance
             if run.anchor == .Middle do
                 offset -= metrics.width * 0.5
             elif run.anchor == .End do
                 offset -= metrics.width
-
-            var color = run.color.withAlphaF32(run.opacity)
 
             // The run is drawn from `font.ascent` above the baseline; its glyphs can reach a
             // little past the recommended extents either way, so the box takes the larger of
@@ -5119,15 +5117,11 @@ impl Drawing
             let rotated = Math.abs(run.rotation) > 0.0001
             var runBox  = Rectangle{origin.x + offset, origin.y - above, metrics.width, above + below}
             runBox.inflate(run.fontSize * 0.5)
+            var rotation: Transform2
             if rotated
             {
-                // Turning the painter around the baseline origin puts the run on the direction
-                // its element states, and leaves glyph shaping in its own upright space.
-                painter.pushState()
-                var tr = Math.Transform2.createRotation(run.rotation, origin.x, origin.y)
-                runBox = tr.transformBounds(runBox)
-                tr.multiply(painter.transform())
-                painter.setTransform(tr)
+                rotation = Transform2.createRotation(run.rotation, origin.x, origin.y)
+                runBox   = rotation.transformBounds(runBox)
             }
 
             if not hasInked
@@ -5140,10 +5134,27 @@ impl Drawing
                 inked.expandToInclude(runBox)
             }
 
-            painter.drawShapedRun(origin.x + offset, origin.y - font.ascent, &shaped, font, Brush.createSolid(color))
+            advance += metrics.width
+            if clipRuns
+            {
+                var painted = painter.transform().transformBounds(runBox)
+                painted.inflate(InkFringeMargin)
+                if not visible.intersects(painted) do
+                    continue
+            }
+
+            if rotated
+            {
+                // Rotate around the baseline after measuring the upright text run.
+                painter.pushState()
+                rotation.multiply(painter.transform())
+                painter.setTransform(rotation)
+            }
+
+            let color = run.color.withAlphaF32(run.opacity)
+            painter.drawShapedRun(origin.x + offset, origin.y - font.ascent, shaped, font, Brush.createSolid(color))
             if rotated do
                 painter.popState()
-            advance += metrics.width
         }
 
         return inked
@@ -5277,6 +5288,7 @@ impl Drawing
         var candidates: Array'u64
         let useBins      = useBlocks and .collectPaintCandidates(tr, visible, &candidates)
         let useRuns      = useBlocks and not useBins
+        var shapedText: ShapedRun
         var measuredText = false
         for blockIndex in (useRuns ? .paintBlocks.count : 1'u64)
         {
@@ -5332,7 +5344,7 @@ impl Drawing
                     }
 
                 case .Text:
-                    let inked = .paintText(painter, &.texts[item.index])
+                    let inked = .paintText(painter, &.texts[item.index], &shapedText, visible, painter.hasClippingRect())
 
                     // Where the runs landed is what the block covers, and it is the same at every
                     // scale because a run is shaped in its own upright space.

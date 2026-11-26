@@ -68,13 +68,16 @@ func tgaRunLength(src: const [*] u8, index, rowEnd, bytesPerPixel: u64)->u64
         return result
     }
 
-    while result < limit
+    // Short repeats use scalar comparisons; longer ones pay for the vector pattern once.
+    while result < limit and result < 6
     {
-        if not sameTgaPixel(first, first + result * bytesPerPixel, bytesPerPixel) do
-            break
+        if not sameTgaPixel(first, first + result * 3, 3) do
+            return result
         result += 1
     }
 
+    if result < limit do
+        result += PackedPixel.countSame24(first, first + result * 3, limit - result)
     return result
 }
 

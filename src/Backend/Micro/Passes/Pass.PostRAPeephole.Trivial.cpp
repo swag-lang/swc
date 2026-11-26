@@ -963,27 +963,41 @@ namespace PostRaPeephole
         return true;
     }
 
-    // A store reads its vector without changing it, so a second full clear
-    // immediately after that store has no effect and does not change flags.
+    // Plain and indexed register stores leave the vector register file
+    // unchanged. A vector already cleared before those stores needs no
+    // second clear when another part of the object is initialized.
     bool tryEraseRepeatedVectorClear(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
         const auto* clear = inst.ops(*ctx.operands);
-        if (!clear || !clear[0].reg.isFloat() || clear[1].opBits != MicroOpBits::B128)
+        if (!clear || !clear[0].reg.isFloat() || clear[1].opBits != MicroOpBits::B128 || ctx.isClaimed(ref))
             return false;
-        const MicroInstrRef storeRef = ctx.previousRef(ref);
-        const MicroInstr*   store    = ctx.instruction(storeRef);
-        const auto*         storeOps = store ? store->ops(*ctx.operands) : nullptr;
-        if (!store || store->op != MicroInstrOpcode::LoadMemReg || !storeOps || storeOps[1].reg != clear[0].reg)
-            return false;
-        const MicroInstrRef previousRef = ctx.previousRef(storeRef);
-        const MicroInstr*   previous    = ctx.instruction(previousRef);
-        const auto*         previousOps = previous ? previous->ops(*ctx.operands) : nullptr;
-        if (!previous || previous->op != MicroInstrOpcode::ClearReg || !previousOps ||
-            previousOps[0].reg != clear[0].reg || previousOps[1].opBits != MicroOpBits::B128 ||
-            !ctx.claimAll({previousRef, storeRef, ref}))
-            return false;
-        ctx.emitErase(ref);
-        return true;
+
+        SmallVector<MicroInstrRef, 8> proof;
+        proof.push_back(ref);
+        MicroInstrRef previousRef = ctx.previousRef(ref);
+        for (int i = 0; i < K_MAX_LIVENESS_WINDOW; ++i, previousRef = ctx.previousRef(previousRef))
+        {
+            const auto* previous = ctx.instruction(previousRef);
+            if (!previous || ctx.isClaimed(previousRef))
+                return false;
+            if (previous->op == MicroInstrOpcode::ClearReg)
+            {
+                const auto* ops = previous->ops(*ctx.operands);
+                if (proof.size() == 1 || !ops || ops[0].reg != clear[0].reg || ops[1].opBits != MicroOpBits::B128)
+                    return false;
+                proof.push_back(previousRef);
+                if (!ctx.claimAll(proof.span()))
+                    return false;
+                ctx.emitErase(ref);
+                return true;
+            }
+
+            if (previous->op != MicroInstrOpcode::LoadMemReg &&
+                previous->op != MicroInstrOpcode::LoadAmcMemReg && previous->op != MicroInstrOpcode::StoreVecMemReg)
+                return false;
+            proof.push_back(previousRef);
+        }
+        return false;
     }
 
     // A float clear is kept as a rule: it zeroes the lanes a partial write

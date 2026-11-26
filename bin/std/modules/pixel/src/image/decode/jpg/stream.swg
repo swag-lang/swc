@@ -80,17 +80,31 @@ impl Decoder
     #[Swag.NoInline]
     private mtd refillEntropyBits()
     {
-        .entropyBits  |= cast(u64, .readEntropyWord()) << (32 - .entropyCount)
-        .entropyCount += 32
+        let chunk = .readEntropyChunk()
+        .entropyBits  |= (chunk & ~0xFF'u64) >> cast(u32, .entropyCount)
+        .entropyCount += cast(s32, (chunk & 0xFF))
     }
 
     #[Swag.NoInline]
-    mtd readBaselineEntropyWord()->u32 => .readEntropyWord()
+    mtd readBaselineEntropyChunk()->u64 => .readEntropyChunk()
 
+    // Return the data in the high bits and the number of bits in the low byte.
     #[Swag.Inline]
-    private mtd readEntropyWord()->u32
+    private mtd readEntropyChunk()->u64
     {
         let input = unwrap .inBufOfs
+        if .inBufLeft >= 8
+        {
+            let wideWord = cast(const [*] u64, input)[] & 0x0000_FFFF_FFFF_FFFF'u64
+            let lowBits  = wideWord & 0x7F7F_7F7F_7F7F_7F7F'u64
+            if ((lowBits + 0x0101_0101_0101_0101'u64) & wideWord & 0x8080_8080_8080_8080'u64) == 0
+            {
+                .inBufOfs  += 6
+                .inBufLeft -= 6
+                return Math.bigEndianToNative(wideWord) | 48
+            }
+        }
+
         var word: u32
         if .inBufLeft >= 4
         {
@@ -103,14 +117,14 @@ impl Decoder
             {
                 .inBufOfs  += 4
                 .inBufLeft -= 4
-                return Math.bigEndianToNative(word)
+                return (cast(u64, Math.bigEndianToNative(word)) << 32) | 32
             }
         }
 
         word = .getOctet()
         for 3 do
             word = (word << 8) | .getOctet()
-        return word
+        return (cast(u64, word) << 32) | 32
     }
 
     mtd getOctet()->u8
@@ -272,50 +286,6 @@ impl Decoder
         }
     }
 
-    // Marker lookahead holds two whole bytes and the remainder of its current word.
-    // A fully available payload can be read directly without walking those bits one at a time.
-    mtd takeMarkerPayload(count: u32)->const [..] u8?
-    {
-        if .streamLen > InBufSize do
-            return null
-
-        let buffered = 2 + .bitsLeft / 8
-        let offset   = .streamSeek - .inBufLeft - buffered
-
-        // Preserve whether the next marker byte is the first or second byte of a word.
-        let preceding = ((.bitsLeft / 8 + cast(s32, count & 1)) & 1)
-        let skipped   = cast(s32, count) - buffered - preceding
-        if skipped < 0 or
-           skipped > .inBufLeft or
-           .bitSyntheticMask or
-           offset < 0 or
-           count > .streamLen - offset do
-            return null
-
-        let payload = Swag.makeSlice(unwrap .stream + offset, count)
-        .inBufOfs  += skipped
-        .inBufLeft -= skipped
-
-        .primeMarkerBits()
-        if preceding do
-            .getBits1(8)
-        return payload
-    }
-
-    mtd readMarkerBytes(destination: [*] u8, amount: u32)
-    {
-        let payload = .takeMarkerPayload(amount)
-        if payload
-        {
-            Memory.copy(destination, payload.buffer, payload.count)
-        }
-        else
-        {
-            for offset in amount do
-                destination[offset] = cast(u8, .getBits1(8))
-        }
-    }
-
     mtd readDhtMarker() fail
     {
         var huffNumt: [17] u8
@@ -331,9 +301,11 @@ impl Decoder
             var index = .getBits1(8)
             var count = 0
             huffNumt[0] = 0
-            .readMarkerBytes(&huffNumt[1], 16)
-            for i in 1 to 16 do
-                count += huffNumt[i]
+            for i in 1 to 16
+            {
+                huffNumt[i] = cast(u8, .getBits1(8))
+                count       += huffNumt[i]
+            }
 
             if count > 255 do
                 fail InvalidFormatError{"bad dht counts"}
@@ -346,11 +318,12 @@ impl Decoder
             let tableId    = index & 0x0F
             if tableClass > 1 or tableId >= (MaxHuffTables >> 1) do
                 fail InvalidFormatError{"JPEG Huffman table class or identifier is invalid"}
-            .readMarkerBytes(huffValt, cast(u32, count))
-            if tableClass == 0
+            for i in count
             {
-                for i in count where huffValt[i] >= ExtendTest.count do
+                let symbol = .getBits1(8)
+                if tableClass == 0 and symbol >= ExtendTest.count do
                     fail InvalidFormatError{"invalid JPEG DC Huffman symbol"}
+                huffValt[i] = cast(u8, symbol)
             }
 
             index = tableId + tableClass * (MaxHuffTables >> 1)
@@ -379,45 +352,21 @@ impl Decoder
                 fail InvalidFormatError{"bad dqt table"}
 
             .quant[n].resize(64)
-            let qbuf   = .quant[n].storage()
-            let bytes  = prec ? 128'u32 : 64
-            let values = left > bytes ? .takeMarkerPayload(bytes) : null
-            if values
+            let qbuf = .quant[n].storage()
+            for i in 64
             {
-                let input = values.buffer
-                if prec
-                {
-                    let words = cast(const [*] u16, input)
-                    for group in 8
-                    {
-                        let weights = Math.byteSwap(Math.Simd.load(words + group * 8))
-                        Math.Simd.store(qbuf + group * 8, cast #bit(Math.Simd.S16x8, weights))
-                    }
-                }
-                else
-                {
-                    for group in 4
-                    {
-                        let weights = Math.Simd.load(input + group * 16)
-                        Math.Simd.store(qbuf + group * 16, cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(weights)))
-                        Math.Simd.store(qbuf + group * 16 + 8, cast #bit(Math.Simd.S16x8, Math.Simd.widenHigh(weights)))
-                    }
-                }
-            }
-            else
-            {
-                for i in 64
-                {
-                    var value = .getBits1(8)
-                    if prec do
-                        value = (value << 8) + .getBits1(8)
-                    qbuf[i] = cast(s16, value)
-                }
+                var temp = .getBits1(8)
+                if prec do
+                    temp = (temp << 8) + .getBits1(8)
+                qbuf[i] = cast(s16, temp)
             }
 
-            if left <= bytes do
+            var i = 64 + 1
+            if prec do
+                i += 64
+            if left < i do
                 fail InvalidFormatError{"bad dqt length"}
-            left -= bytes + 1
+            left -= i
         }
     }
 

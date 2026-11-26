@@ -134,6 +134,30 @@ was the independent picture reference. [Timing samples](mjpeg-direct-rgb.json)
 | 4:2:2 texture, 720p | 3.363 | 3.054 | −6.4% | 3.174 | 2.659 |
 | 4:4:4, 720p | 1.818 | 1.704 | −4.6% | 8.233 | 1.865 |
 
+### Motion JPEG six-byte entropy refill
+
+Both the baseline register reader and the progressive reader accept six entropy
+bytes at once when eight bytes are readable and the first six contain no marker
+prefix. The short path still handles stuffed bytes, markers and the end of the
+input window. All 216 AVI pictures and 24 MP4 pictures match the previous Swag
+reader byte for byte. The MP4 clips use baseline and progressive 4:4:4 JPEG with
+a restart marker every five MCUs. The maximum RGB differences from FFmpeg 9.1
+are four sample values in AVI and three in MP4. The native Release selection
+passed 47 Pixel and 51 Video tests.
+
+Seven rotating single-CPU runs give the medians below. The confirmation uses
+three passes per Swag AVI observation and eleven per MP4 observation. Textured
+4:2:2 was faster in the initial pass and roughly flat in the confirmation.
+[Pictures and timing samples](mjpeg-entropy-refill.json)
+
+| Stream | Before, ms/picture | Six-byte refill, ms/picture | Paired time change | FFmpeg 9.1 | libjpeg-turbo 3.2.1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 4:2:0, 1080p AVI | 1.852 | 1.781 | −3.8% | 3.410 | 2.905 |
+| 4:2:2 texture, 720p AVI | 2.580 | 2.609 | +0.5% | 2.945 | 2.521 |
+| 4:4:4, 720p AVI | 1.421 | 1.397 | −3.9% | 6.466 | 1.785 |
+| Baseline with restarts, 640×360 MP4 | 0.712 | 0.713 | +0.1% | 1.672 | 0.784 |
+| Progressive with restarts, 640×360 MP4 | 2.070 | 1.945 | −8.3% | 2.296 | 2.219 |
+
 ### Y4M shared chroma correction
 
 The subsampled path computes a colour correction for eight pixels at a time and reuses

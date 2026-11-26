@@ -38,6 +38,32 @@ private const Sha512Constants: [80] u64 = [
     0x28DB77F523047D84, 0x32CAAB7B40C72493, 0x3C9EBE0A15C9BEBC, 0x431D67C49C100D4C,
     0x4CC5D4BECB3E42B6, 0x597F299CFC657E2A, 0x5FCB6FAB3AD6FAEC, 0x6C44198C4A475817]
 
+// Both words depend on earlier pairs, so they can share the packed rotations.
+#[Swag.Inline]
+private func sha512ExtendPair(schedule: [*] u64, index: u64)
+{
+    using Math
+
+    let x        = Simd.load(schedule + index - 15)
+    let y        = Simd.load(schedule + index - 2)
+    let sigma0   = Swag.ror(x, 1'u8) ^ Swag.ror(x, 8'u8) ^ (x >> 7)
+    let sigma1   = Swag.ror(y, 19'u8) ^ Swag.ror(y, 61'u8) ^ (y >> 6)
+    let expanded = Simd.load(schedule + index - 16) + sigma0 + Simd.load(schedule + index - 7) + sigma1
+    Simd.store(schedule + index, expanded)
+}
+
+#[Swag.Inline]
+private func sha512Round(a, b, c: u64, d: *u64, e, f, g: u64, h: *u64, scheduled: u64)
+{
+    let sum1     = Swag.ror(e, 14'u8) ^ Swag.ror(e, 18'u8) ^ Swag.ror(e, 41'u8)
+    let choice   = (e & f) ^ (~e & g)
+    let temp1    = h[] + sum1 + choice + scheduled
+    let sum0     = Swag.ror(a, 28'u8) ^ Swag.ror(a, 34'u8) ^ Swag.ror(a, 39'u8)
+    let majority = (a & b) ^ (a & c) ^ (b & c)
+    d[] += temp1
+    h[] = temp1 + sum0 + majority
+}
+
 private struct Sha512Core
 {
     data:          [Sha512BlockSize] u8
@@ -166,18 +192,6 @@ impl Sha512Core
             Simd.store(schedule + index, Math.bigEndianToNative(Simd.load(input + index)))
         }
 
-        // Both words depend on earlier pairs, so they can share the packed rotations.
-        for pair in 8 until 40
-        {
-            let index    = pair * 2
-            let x        = Simd.load(schedule + index - 15)
-            let y        = Simd.load(schedule + index - 2)
-            let sigma0   = Swag.ror(x, 1'u8) ^ Swag.ror(x, 8'u8) ^ (x >> 7)
-            let sigma1   = Swag.ror(y, 19'u8) ^ Swag.ror(y, 61'u8) ^ (y >> 6)
-            let expanded = Simd.load(schedule + index - 16) + sigma0 + Simd.load(schedule + index - 7) + sigma1
-            Simd.store(schedule + index, expanded)
-        }
-
         var a = .state[0]
         var b = .state[1]
         var c = .state[2]
@@ -187,31 +201,34 @@ impl Sha512Core
         var g = .state[6]
         var h = .state[7]
 
+        // Rotate the roles of the local variables through all eight positions.
         #[Swag.Inline]
-        func round(a, b, c: u64, d: *u64, e, f, g: u64, h: *u64, scheduled: u64)
+        func(Extend: bool) compressGroup(index: u64, schedule: [*] u64, a, b, c, d, e, f, g, h: *u64)
         {
-            let sum1     = Swag.ror(e, 14'u8) ^ Swag.ror(e, 18'u8) ^ Swag.ror(e, 41'u8)
-            let choice   = (e & f) ^ (~e & g)
-            let temp1    = h[] + sum1 + choice + scheduled
-            let sum0     = Swag.ror(a, 28'u8) ^ Swag.ror(a, 34'u8) ^ Swag.ror(a, 39'u8)
-            let majority = (a & b) ^ (a & c) ^ (b & c)
-            d[] += temp1
-            h[] = temp1 + sum0 + majority
+            #static if Extend
+            {
+                sha512ExtendPair(schedule, index)
+                sha512ExtendPair(schedule, index + 2)
+                sha512ExtendPair(schedule, index + 4)
+                sha512ExtendPair(schedule, index + 6)
+            }
+
+            sha512Round(a[], b[], c[], d, e[], f[], g[], h, Sha512Constants[index] + schedule[index])
+            sha512Round(h[], a[], b[], c, d[], e[], f[], g, Sha512Constants[index + 1] + schedule[index + 1])
+            sha512Round(g[], h[], a[], b, c[], d[], e[], f, Sha512Constants[index + 2] + schedule[index + 2])
+            sha512Round(f[], g[], h[], a, b[], c[], d[], e, Sha512Constants[index + 3] + schedule[index + 3])
+            sha512Round(e[], f[], g[], h, a[], b[], c[], d, Sha512Constants[index + 4] + schedule[index + 4])
+            sha512Round(d[], e[], f[], g, h[], a[], b[], c, Sha512Constants[index + 5] + schedule[index + 5])
+            sha512Round(c[], d[], e[], f, g[], h[], a[], b, Sha512Constants[index + 6] + schedule[index + 6])
+            sha512Round(b[], c[], d[], e, f[], g[], h[], a, Sha512Constants[index + 7] + schedule[index + 7])
         }
 
-        // Rotate the roles of the local variables through all eight positions.
-        for group in 10
-        {
-            let index = group * 8
-            round(a, b, c, &d, e, f, g, &h, Sha512Constants[index] + words[index])
-            round(h, a, b, &c, d, e, f, &g, Sha512Constants[index + 1] + words[index + 1])
-            round(g, h, a, &b, c, d, e, &f, Sha512Constants[index + 2] + words[index + 2])
-            round(f, g, h, &a, b, c, d, &e, Sha512Constants[index + 3] + words[index + 3])
-            round(e, f, g, &h, a, b, c, &d, Sha512Constants[index + 4] + words[index + 4])
-            round(d, e, f, &g, h, a, b, &c, Sha512Constants[index + 5] + words[index + 5])
-            round(c, d, e, &f, g, h, a, &b, Sha512Constants[index + 6] + words[index + 6])
-            round(b, c, d, &e, f, g, h, &a, Sha512Constants[index + 7] + words[index + 7])
-        }
+        // The first two groups consume the original sixteen words. Each later
+        // group extends the schedule just before consuming its words.
+        for group in 2 do
+            compressGroup'false(group * 8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
+        for group in 2 until 10 do
+            compressGroup'true(group * 8, schedule, &a, &b, &c, &d, &e, &f, &g, &h)
 
         .state[0]     += a
         .state[1]     += b

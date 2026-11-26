@@ -99,3 +99,4 @@ optimizations moved each result.
 - [Four-round Keccak state alternation](sha3-four-rounds.md)
 - [Full-width unsigned multiplication intrinsic](wide-multiply-instruction.md)
 - [Full-width multiplication in public-key arithmetic](crypto-wide-multiply.md)
+- [SHA-512 schedule expansion and round groups](sha512-interleaving.md)

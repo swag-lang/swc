@@ -389,6 +389,9 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
 - Evidence: [one-bit gray streams](../bench/results/swagscope-filesamples/pdf-write-linux.md#packing-bilevel-image-streams)
   cut save time from 125 to 51 ms on the PDF.js bilevel scan. The output renders
   identically through PDFium.
+- Evidence: [PNG Sub prediction](../bench/results/swagscope-filesamples/pdf-write-linux.md#predicting-large-smooth-image-streams)
+  brings the large smooth RGB case from 135 to 65 ms to save and cuts its size
+  from 1.23 to 0.63 MB. The saved pages retain their PDFium rasters.
 - Next: preserve supported encoded JPEG and indexed image representations.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and

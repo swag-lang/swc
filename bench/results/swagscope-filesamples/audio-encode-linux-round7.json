@@ -1,0 +1,3381 @@
+{
+  "baseline": "6080ba5987",
+  "compiler_source": "acfe1f9c1323e2f1750e0eb58134e545347182b1",
+  "exact_profiles": {
+    "default": [
+      {
+        "input": "filesamples44.pcm",
+        "bandwidth": "full",
+        "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de"
+      },
+      {
+        "input": "mono48.pcm",
+        "bandwidth": "full",
+        "sha256": "92916016032bdeec0b282d6cab82f972ca0dbd8c6aa2cbcd659a5f40b995caab"
+      },
+      {
+        "input": "stereo44.pcm",
+        "bandwidth": "full",
+        "sha256": "d31851d0e1d6371613439d749a16e19273b7fa2fadf6dd74513e64738b983f8c"
+      },
+      {
+        "input": "stereo48.pcm",
+        "bandwidth": "full",
+        "sha256": "774529e44b0c6e781092901f7d48e4d2b5707df8ae5b39e5c23345f859c49e31"
+      },
+      {
+        "input": "noise48.pcm",
+        "bandwidth": "full",
+        "sha256": "1c3a3d7e75735a27ecd7e5b67759293ee954fc21a4b50ef0f0602e2ae93c80e7"
+      },
+      {
+        "input": "mono48.pcm",
+        "bandwidth": "voice",
+        "sha256": "922c4ad7d5b635aae7b14b99bb2502d6d73692ff719be896e6055fd1178ef8b0"
+      },
+      {
+        "input": "filesamples44.pcm",
+        "bandwidth": "voice",
+        "sha256": "c22e86683f58bebcad250a913f330969bc8f59ffa220e10121e6b47e2e5dc772"
+      }
+    ],
+    "adaptive": [
+      {
+        "input": "filesamples44.pcm",
+        "bandwidth": "full",
+        "sha256": "788201a61ad28592eeec73e45d62c58c82b67ba35f27004c501a8076e535697a"
+      },
+      {
+        "input": "mono48.pcm",
+        "bandwidth": "full",
+        "sha256": "e1acf70ef6de5ea2606e7e07d52e0d62de0cd600e5f3761b8b37e7ac1410c8dc"
+      },
+      {
+        "input": "stereo44.pcm",
+        "bandwidth": "full",
+        "sha256": "06f7838c83d9c93149e136a8209a5af0898cc6bf50c2180318fea021f4493f36"
+      },
+      {
+        "input": "stereo48.pcm",
+        "bandwidth": "full",
+        "sha256": "afadc3ed4411fa04d59cf3a6d9a33fd29fbc40a287cda3a15ed58484eacdf7f2"
+      },
+      {
+        "input": "noise48.pcm",
+        "bandwidth": "full",
+        "sha256": "2fd90a8f06ea654bcbadff54dc63ca3e0b9980f54eb408fddb5de1e2c4b075cb"
+      },
+      {
+        "input": "background.pcm",
+        "bandwidth": "full",
+        "sha256": "5a64ffc42346a511e5fbd6329860a04d7cc85be305c226b61375489901b7c969"
+      },
+      {
+        "input": "isolated.pcm",
+        "bandwidth": "full",
+        "sha256": "ee470f316ad38743325f873fccd40fc17727d73f59e5763caf52db4b345dd263"
+      },
+      {
+        "input": "mixed.pcm",
+        "bandwidth": "full",
+        "sha256": "8a2e79b66e4edb7c90d6c07d943cd87a9177af6d2a136c44abff34fa9fa2b28c"
+      }
+    ]
+  },
+  "prefix_budget": {
+    "ffmpeg-filesamples44-128000": {
+      "prefix_budget_bytes_per_access_unit": 371,
+      "largest_access_unit_payload_bytes": 983,
+      "packets": 432
+    },
+    "ffmpeg-filesamples44-192000": {
+      "prefix_budget_bytes_per_access_unit": 557,
+      "largest_access_unit_payload_bytes": 983,
+      "packets": 432
+    },
+    "ffmpeg-filesamples44-96000": {
+      "prefix_budget_bytes_per_access_unit": 278,
+      "largest_access_unit_payload_bytes": 542,
+      "packets": 432
+    },
+    "ffmpeg-mono48-96000": {
+      "prefix_budget_bytes_per_access_unit": 256,
+      "largest_access_unit_payload_bytes": 730,
+      "packets": 470
+    },
+    "ffmpeg-stereo48-128000": {
+      "prefix_budget_bytes_per_access_unit": 341,
+      "largest_access_unit_payload_bytes": 1364,
+      "packets": 470
+    },
+    "fdk-filesamples44-128000": {
+      "prefix_budget_bytes_per_access_unit": 371,
+      "largest_access_unit_payload_bytes": 983,
+      "packets": 432
+    },
+    "fdk-filesamples44-192000": {
+      "prefix_budget_bytes_per_access_unit": 557,
+      "largest_access_unit_payload_bytes": 983,
+      "packets": 432
+    },
+    "fdk-filesamples44-96000": {
+      "prefix_budget_bytes_per_access_unit": 278,
+      "largest_access_unit_payload_bytes": 542,
+      "packets": 432
+    },
+    "fdk-mono48-96000": {
+      "prefix_budget_bytes_per_access_unit": 256,
+      "largest_access_unit_payload_bytes": 730,
+      "packets": 470
+    },
+    "fdk-stereo48-128000": {
+      "prefix_budget_bytes_per_access_unit": 341,
+      "largest_access_unit_payload_bytes": 1364,
+      "packets": 470
+    }
+  },
+  "ffmpeg": {
+    "filesamples44-128000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "ffmpeg": "9.1",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 126284,
+            "actual_bps": 134242.4
+          },
+          {
+            "requested_bps": 118797,
+            "actual_bps": 128211.2
+          },
+          {
+            "requested_bps": 117011,
+            "actual_bps": 125942.4
+          }
+        ],
+        "aac_candidate_cap_bps": 128000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            465.0,
+            9642.5,
+            154.5,
+            10319.5
+          ],
+          "samples_us": [
+            [
+              93,
+              8727,
+              131,
+              8951
+            ],
+            [
+              586,
+              9667,
+              162,
+              10415
+            ],
+            [
+              467,
+              9301,
+              208,
+              9976
+            ],
+            [
+              488,
+              9618,
+              118,
+              10224
+            ],
+            [
+              313,
+              8893,
+              114,
+              9320
+            ],
+            [
+              376,
+              9906,
+              215,
+              10497
+            ],
+            [
+              463,
+              9082,
+              116,
+              9661
+            ],
+            [
+              480,
+              9343,
+              181,
+              10004
+            ],
+            [
+              574,
+              9804,
+              140,
+              10518
+            ],
+            [
+              4625,
+              24156,
+              364,
+              29145
+            ],
+            [
+              98,
+              18574,
+              147,
+              18819
+            ],
+            [
+              104,
+              21277,
+              270,
+              21651
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 160879,
+          "sha256": "fe046129bb523f2cc7e03189fac2fd2ad876c9984bb0c28b84f60e181d1325df",
+          "median_us": [
+            401.5,
+            24156.0,
+            324.0,
+            25088.0
+          ],
+          "samples_us": [
+            [
+              112,
+              23266,
+              295,
+              23673
+            ],
+            [
+              481,
+              23381,
+              283,
+              24145
+            ],
+            [
+              545,
+              23520,
+              358,
+              24423
+            ],
+            [
+              475,
+              24230,
+              508,
+              25213
+            ],
+            [
+              140,
+              27483,
+              310,
+              27933
+            ],
+            [
+              427,
+              24056,
+              391,
+              24874
+            ],
+            [
+              419,
+              23915,
+              629,
+              24963
+            ],
+            [
+              281,
+              24082,
+              501,
+              24864
+            ],
+            [
+              358,
+              26114,
+              331,
+              26803
+            ],
+            [
+              5626,
+              39516,
+              317,
+              45459
+            ],
+            [
+              87,
+              45170,
+              290,
+              45547
+            ],
+            [
+              384,
+              44596,
+              266,
+              45246
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 22.414103965056505,
+            "rms_delta_pcm16": 749.1519660911168,
+            "max_delta_pcm16": 10226
+          },
+          "payload_bytes": 157855,
+          "payload_bps": 126284.0
+        },
+        "ffmpeg": {
+          "setting": 117011,
+          "size_bytes": 160452,
+          "sha256": "08c9845b9525a502658cbc3b998b617b133f93cbf56d5ffc1b3e2671d06d1d7e",
+          "median_us": [
+            562.0,
+            366885.5,
+            1200.0,
+            369490.5
+          ],
+          "samples_us": [
+            [
+              539,
+              326965,
+              1289,
+              328793
+            ],
+            [
+              633,
+              361163,
+              1218,
+              363014
+            ],
+            [
+              565,
+              346521,
+              915,
+              348001
+            ],
+            [
+              559,
+              363258,
+              817,
+              364634
+            ],
+            [
+              506,
+              345057,
+              1319,
+              346882
+            ],
+            [
+              668,
+              366609,
+              2850,
+              370127
+            ],
+            [
+              531,
+              455008,
+              1182,
+              456721
+            ],
+            [
+              459,
+              574182,
+              1319,
+              575960
+            ],
+            [
+              571,
+              570594,
+              856,
+              572021
+            ],
+            [
+              412,
+              376176,
+              863,
+              377451
+            ],
+            [
+              565,
+              367162,
+              1127,
+              368854
+            ],
+            [
+              611,
+              400554,
+              1248,
+              402413
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 14.206304162519432,
+            "rms_delta_pcm16": 1927.347007015407,
+            "max_delta_pcm16": 31291
+          },
+          "payload_bytes": 157428,
+          "payload_bps": 125942.4
+        }
+      }
+    },
+    "filesamples44-192000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "ffmpeg": "9.1",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 158820,
+            "actual_bps": 171512.0
+          },
+          {
+            "requested_bps": 147067,
+            "actual_bps": 156102.4
+          },
+          {
+            "requested_bps": 149140,
+            "actual_bps": 159591.2
+          }
+        ],
+        "aac_candidate_cap_bps": 192000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            458.5,
+            9995.5,
+            141.5,
+            10540.5
+          ],
+          "samples_us": [
+            [
+              92,
+              9354,
+              126,
+              9572
+            ],
+            [
+              565,
+              8742,
+              114,
+              9421
+            ],
+            [
+              467,
+              9386,
+              209,
+              10062
+            ],
+            [
+              731,
+              13647,
+              183,
+              14561
+            ],
+            [
+              419,
+              14224,
+              168,
+              14811
+            ],
+            [
+              508,
+              14130,
+              207,
+              14845
+            ],
+            [
+              517,
+              9821,
+              114,
+              10452
+            ],
+            [
+              430,
+              9061,
+              115,
+              9606
+            ],
+            [
+              450,
+              8782,
+              111,
+              9343
+            ],
+            [
+              476,
+              12021,
+              127,
+              12624
+            ],
+            [
+              311,
+              10480,
+              231,
+              11022
+            ],
+            [
+              303,
+              10170,
+              156,
+              10629
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 201549,
+          "sha256": "cef2027b8de6e8788f31e5687f259e05cfdea94c0ffe94f51fa3602ca054bbc1",
+          "median_us": [
+            419.5,
+            23103.5,
+            307.0,
+            23942.5
+          ],
+          "samples_us": [
+            [
+              92,
+              22642,
+              358,
+              23092
+            ],
+            [
+              720,
+              28066,
+              490,
+              29276
+            ],
+            [
+              777,
+              36168,
+              479,
+              37424
+            ],
+            [
+              512,
+              22964,
+              266,
+              23742
+            ],
+            [
+              398,
+              23324,
+              272,
+              23994
+            ],
+            [
+              419,
+              22694,
+              873,
+              23986
+            ],
+            [
+              398,
+              23082,
+              301,
+              23781
+            ],
+            [
+              420,
+              22977,
+              282,
+              23679
+            ],
+            [
+              404,
+              22707,
+              283,
+              23394
+            ],
+            [
+              558,
+              26512,
+              313,
+              27383
+            ],
+            [
+              330,
+              27077,
+              321,
+              27728
+            ],
+            [
+              488,
+              23125,
+              286,
+              23899
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 25.93538376268118,
+            "rms_delta_pcm16": 499.46600434410436,
+            "max_delta_pcm16": 5937
+          },
+          "payload_bytes": 198525,
+          "payload_bps": 158820.0
+        },
+        "ffmpeg": {
+          "setting": 149140,
+          "size_bytes": 202513,
+          "sha256": "ceaab78c434e911b808000b12d166b9c0d2052933e8ff7ce837b797f3cda9f35",
+          "median_us": [
+            528.0,
+            450481.5,
+            1350.5,
+            452284.5
+          ],
+          "samples_us": [
+            [
+              479,
+              511746,
+              991,
+              513216
+            ],
+            [
+              303,
+              434286,
+              1197,
+              435786
+            ],
+            [
+              641,
+              456471,
+              2635,
+              459747
+            ],
+            [
+              644,
+              466305,
+              918,
+              467867
+            ],
+            [
+              438,
+              440897,
+              1640,
+              442975
+            ],
+            [
+              532,
+              450287,
+              1633,
+              452452
+            ],
+            [
+              525,
+              415248,
+              991,
+              416764
+            ],
+            [
+              819,
+              449794,
+              1504,
+              452117
+            ],
+            [
+              536,
+              470862,
+              1637,
+              473035
+            ],
+            [
+              455,
+              450676,
+              968,
+              452099
+            ],
+            [
+              531,
+              433786,
+              869,
+              435186
+            ],
+            [
+              447,
+              453428,
+              2313,
+              456188
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 17.32052030226742,
+            "rms_delta_pcm16": 1346.6325469026624,
+            "max_delta_pcm16": 20790
+          },
+          "payload_bytes": 199489,
+          "payload_bps": 159591.2
+        }
+      }
+    },
+    "filesamples44-96000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "ffmpeg": "9.1",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 96061,
+            "actual_bps": 99084.0
+          },
+          {
+            "requested_bps": 93130,
+            "actual_bps": 95931.2
+          }
+        ],
+        "aac_candidate_cap_bps": 96000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            382.5,
+            8964.0,
+            132.5,
+            9510.5
+          ],
+          "samples_us": [
+            [
+              89,
+              8510,
+              150,
+              8749
+            ],
+            [
+              387,
+              9203,
+              192,
+              9782
+            ],
+            [
+              377,
+              10347,
+              126,
+              10850
+            ],
+            [
+              501,
+              8450,
+              113,
+              9064
+            ],
+            [
+              377,
+              8442,
+              106,
+              8925
+            ],
+            [
+              439,
+              9136,
+              127,
+              9702
+            ],
+            [
+              566,
+              9145,
+              115,
+              9826
+            ],
+            [
+              348,
+              8912,
+              138,
+              9398
+            ],
+            [
+              379,
+              8414,
+              102,
+              8895
+            ],
+            [
+              514,
+              9145,
+              279,
+              9938
+            ],
+            [
+              386,
+              8885,
+              212,
+              9483
+            ],
+            [
+              375,
+              9016,
+              147,
+              9538
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 123100,
+          "sha256": "2afbea0193e341f9c6f83ab2a0730d1cae83e417a9f362ccb01b33e092de72c4",
+          "median_us": [
+            404.5,
+            30750.0,
+            364.0,
+            31450.0
+          ],
+          "samples_us": [
+            [
+              1495,
+              43200,
+              882,
+              45577
+            ],
+            [
+              86,
+              34112,
+              335,
+              34533
+            ],
+            [
+              375,
+              31406,
+              393,
+              32174
+            ],
+            [
+              438,
+              34581,
+              393,
+              35412
+            ],
+            [
+              150,
+              34498,
+              3255,
+              37903
+            ],
+            [
+              738,
+              48546,
+              444,
+              49728
+            ],
+            [
+              434,
+              29309,
+              297,
+              30040
+            ],
+            [
+              354,
+              29646,
+              313,
+              30313
+            ],
+            [
+              342,
+              30094,
+              290,
+              30726
+            ],
+            [
+              561,
+              29481,
+              285,
+              30327
+            ],
+            [
+              183,
+              29915,
+              281,
+              30379
+            ],
+            [
+              473,
+              28841,
+              521,
+              29835
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 20.072550486595276,
+            "rms_delta_pcm16": 980.9516399003211,
+            "max_delta_pcm16": 13725
+          },
+          "payload_bytes": 120076,
+          "payload_bps": 96060.8
+        },
+        "ffmpeg": {
+          "setting": 93130,
+          "size_bytes": 122938,
+          "sha256": "6de64d24d079c978f8446b05718133305bb52da412f12c1bb06f0c6997a2a0f3",
+          "median_us": [
+            455.5,
+            220657.0,
+            711.5,
+            221808.5
+          ],
+          "samples_us": [
+            [
+              369,
+              222219,
+              705,
+              223293
+            ],
+            [
+              462,
+              219980,
+              718,
+              221160
+            ],
+            [
+              432,
+              224421,
+              572,
+              225425
+            ],
+            [
+              507,
+              221334,
+              616,
+              222457
+            ],
+            [
+              449,
+              225314,
+              640,
+              226403
+            ],
+            [
+              557,
+              236157,
+              819,
+              237533
+            ],
+            [
+              750,
+              219529,
+              830,
+              221109
+            ],
+            [
+              414,
+              214855,
+              660,
+              215929
+            ],
+            [
+              507,
+              217376,
+              657,
+              218540
+            ],
+            [
+              505,
+              211484,
+              813,
+              212802
+            ],
+            [
+              410,
+              212000,
+              890,
+              213300
+            ],
+            [
+              319,
+              253120,
+              2975,
+              256414
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 11.360116253237823,
+            "rms_delta_pcm16": 2674.6644737347815,
+            "max_delta_pcm16": 27923
+          },
+          "payload_bytes": 119914,
+          "payload_bps": 95931.2
+        }
+      }
+    },
+    "mono48-96000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "ffmpeg": "9.1",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 83603,
+            "actual_bps": 100059.2
+          },
+          {
+            "requested_bps": 69853,
+            "actual_bps": 80704.8
+          },
+          {
+            "requested_bps": 71912,
+            "actual_bps": 83144.8
+          }
+        ],
+        "aac_candidate_cap_bps": 96000
+      },
+      "input": {
+        "name": "mono48.pcm",
+        "frames": 480000,
+        "rate": 48000,
+        "channels": 1,
+        "sha256": "cc266e7b3a44741ce060f8dcfec497756296e3657832f5a0d191dc28bdfc9114"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 120250,
+          "sha256": "92916016032bdeec0b282d6cab82f972ca0dbd8c6aa2cbcd659a5f40b995caab",
+          "median_us": [
+            349.0,
+            4136.5,
+            83.0,
+            4568.0
+          ],
+          "samples_us": [
+            [
+              87,
+              4127,
+              90,
+              4304
+            ],
+            [
+              366,
+              4217,
+              83,
+              4666
+            ],
+            [
+              378,
+              4146,
+              194,
+              4718
+            ],
+            [
+              372,
+              4242,
+              89,
+              4703
+            ],
+            [
+              322,
+              4230,
+              83,
+              4635
+            ],
+            [
+              328,
+              4042,
+              83,
+              4453
+            ],
+            [
+              379,
+              4027,
+              95,
+              4501
+            ],
+            [
+              341,
+              4009,
+              76,
+              4426
+            ],
+            [
+              279,
+              4039,
+              75,
+              4393
+            ],
+            [
+              376,
+              4266,
+              85,
+              4727
+            ],
+            [
+              275,
+              4023,
+              79,
+              4377
+            ],
+            [
+              357,
+              4378,
+              79,
+              4814
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.923381244756495,
+            "rms_delta_pcm16": 238.49583855122086,
+            "max_delta_pcm16": 1983
+          },
+          "payload_bytes": 116960,
+          "payload_bps": 93568.0
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 107794,
+          "sha256": "b228ee22d02df2482a86dc93a925821b1b130987788889d00849111a65c84965",
+          "median_us": [
+            286.5,
+            7678.0,
+            128.5,
+            8138.5
+          ],
+          "samples_us": [
+            [
+              72,
+              7625,
+              134,
+              7831
+            ],
+            [
+              272,
+              7745,
+              130,
+              8147
+            ],
+            [
+              368,
+              7816,
+              152,
+              8336
+            ],
+            [
+              409,
+              7627,
+              124,
+              8160
+            ],
+            [
+              282,
+              7919,
+              131,
+              8332
+            ],
+            [
+              273,
+              7729,
+              128,
+              8130
+            ],
+            [
+              301,
+              8087,
+              129,
+              8517
+            ],
+            [
+              200,
+              7603,
+              124,
+              7927
+            ],
+            [
+              261,
+              7601,
+              122,
+              7984
+            ],
+            [
+              363,
+              7763,
+              131,
+              8257
+            ],
+            [
+              291,
+              7575,
+              127,
+              7993
+            ],
+            [
+              302,
+              7578,
+              124,
+              8004
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.736700034989564,
+            "rms_delta_pcm16": 243.67718335433048,
+            "max_delta_pcm16": 5867
+          },
+          "payload_bytes": 104504,
+          "payload_bps": 83603.2
+        },
+        "ffmpeg": {
+          "setting": 71912,
+          "size_bytes": 107221,
+          "sha256": "ab893b2831f0fab4f159e3d7005cbd2b01a534b4251ca8a55c8aa510a3a2c270",
+          "median_us": [
+            449.0,
+            267190.5,
+            1542.0,
+            269906.5
+          ],
+          "samples_us": [
+            [
+              330,
+              260943,
+              1530,
+              262803
+            ],
+            [
+              517,
+              286856,
+              3595,
+              290968
+            ],
+            [
+              2852,
+              266891,
+              1621,
+              271364
+            ],
+            [
+              470,
+              260242,
+              1469,
+              262181
+            ],
+            [
+              396,
+              271159,
+              1459,
+              273014
+            ],
+            [
+              383,
+              260622,
+              1640,
+              262645
+            ],
+            [
+              367,
+              295929,
+              2663,
+              298959
+            ],
+            [
+              2313,
+              270027,
+              1436,
+              273776
+            ],
+            [
+              494,
+              267002,
+              1518,
+              269014
+            ],
+            [
+              428,
+              264260,
+              1528,
+              266216
+            ],
+            [
+              504,
+              267379,
+              1761,
+              269644
+            ],
+            [
+              427,
+              268188,
+              1554,
+              270169
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 20.556203024839906,
+            "rms_delta_pcm16": 624.9420051892815,
+            "max_delta_pcm16": 9518
+          },
+          "payload_bytes": 103931,
+          "payload_bps": 83144.8
+        }
+      }
+    },
+    "stereo48-128000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "ffmpeg": "9.1",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 115942,
+            "actual_bps": 123975.2
+          },
+          {
+            "requested_bps": 108430,
+            "actual_bps": 120437.6
+          },
+          {
+            "requested_bps": 104383,
+            "actual_bps": 112782.4
+          },
+          {
+            "requested_bps": 106054,
+            "actual_bps": 112931.2
+          },
+          {
+            "requested_bps": 107007,
+            "actual_bps": 112422.4
+          }
+        ],
+        "aac_candidate_cap_bps": 128000
+      },
+      "input": {
+        "name": "stereo48.pcm",
+        "frames": 480000,
+        "rate": 48000,
+        "channels": 2,
+        "sha256": "d6b50c85d72f6feec3afadc348c55a3e563e2c9cf66b6beff6ee9ea91701d392"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 238799,
+          "sha256": "774529e44b0c6e781092901f7d48e4d2b5707df8ae5b39e5c23345f859c49e31",
+          "median_us": [
+            357.5,
+            8355.0,
+            115.5,
+            8960.5
+          ],
+          "samples_us": [
+            [
+              95,
+              8171,
+              243,
+              8509
+            ],
+            [
+              382,
+              8292,
+              111,
+              8785
+            ],
+            [
+              443,
+              8399,
+              111,
+              8953
+            ],
+            [
+              510,
+              8661,
+              159,
+              9330
+            ],
+            [
+              350,
+              8631,
+              109,
+              9090
+            ],
+            [
+              358,
+              8771,
+              110,
+              9239
+            ],
+            [
+              477,
+              8311,
+              180,
+              8968
+            ],
+            [
+              351,
+              8155,
+              111,
+              8617
+            ],
+            [
+              301,
+              8042,
+              104,
+              8447
+            ],
+            [
+              428,
+              9738,
+              160,
+              10326
+            ],
+            [
+              357,
+              9639,
+              169,
+              10165
+            ],
+            [
+              207,
+              8300,
+              120,
+              8627
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.79573420208753,
+            "rms_delta_pcm16": 242.04986182258673,
+            "max_delta_pcm16": 1983
+          },
+          "payload_bytes": 235509,
+          "payload_bps": 188407.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 148218,
+          "sha256": "4351bfbaf0c70b1562e2385efcf765bce5950ff4bddfbdfb8495c9cb0bd5c914",
+          "median_us": [
+            381.0,
+            20904.5,
+            341.0,
+            21673.5
+          ],
+          "samples_us": [
+            [
+              79,
+              21936,
+              515,
+              22530
+            ],
+            [
+              369,
+              20716,
+              288,
+              21373
+            ],
+            [
+              393,
+              20901,
+              348,
+              21642
+            ],
+            [
+              475,
+              20884,
+              319,
+              21678
+            ],
+            [
+              338,
+              20908,
+              450,
+              21696
+            ],
+            [
+              396,
+              20704,
+              329,
+              21429
+            ],
+            [
+              536,
+              20877,
+              460,
+              21873
+            ],
+            [
+              363,
+              20874,
+              361,
+              21598
+            ],
+            [
+              422,
+              20948,
+              299,
+              21669
+            ],
+            [
+              453,
+              21168,
+              371,
+              21992
+            ],
+            [
+              303,
+              21086,
+              334,
+              21723
+            ],
+            [
+              351,
+              20951,
+              289,
+              21591
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 23.884602674621362,
+            "rms_delta_pcm16": 426.05082972990635,
+            "max_delta_pcm16": 6606
+          },
+          "payload_bytes": 144928,
+          "payload_bps": 115942.4
+        },
+        "ffmpeg": {
+          "setting": 106054,
+          "size_bytes": 144454,
+          "sha256": "f5df347de8f40a49cdc2315843976f914f270fa25be609241e9d8a8a0b5fffae",
+          "median_us": [
+            452.5,
+            501036.0,
+            3045.5,
+            505617.0
+          ],
+          "samples_us": [
+            [
+              369,
+              530781,
+              3123,
+              534273
+            ],
+            [
+              612,
+              557150,
+              5980,
+              563742
+            ],
+            [
+              2138,
+              465539,
+              2989,
+              470666
+            ],
+            [
+              431,
+              465700,
+              3102,
+              469233
+            ],
+            [
+              512,
+              513600,
+              4958,
+              519070
+            ],
+            [
+              725,
+              476374,
+              2685,
+              479784
+            ],
+            [
+              425,
+              466003,
+              2919,
+              469347
+            ],
+            [
+              449,
+              488472,
+              3243,
+              492164
+            ],
+            [
+              784,
+              474061,
+              2537,
+              477382
+            ],
+            [
+              444,
+              538688,
+              2610,
+              541742
+            ],
+            [
+              456,
+              613884,
+              5217,
+              619557
+            ],
+            [
+              401,
+              531411,
+              2834,
+              534646
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 16.151341326959187,
+            "rms_delta_pcm16": 1037.8258475614618,
+            "max_delta_pcm16": 14382
+          },
+          "payload_bytes": 141164,
+          "payload_bps": 112931.2
+        }
+      }
+    }
+  },
+  "fdk": {
+    "filesamples44-128000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 126284,
+            "actual_bps": 124882.4
+          },
+          {
+            "requested_bps": 127701,
+            "actual_bps": 126307.2
+          }
+        ],
+        "aac_candidate_cap_bps": 128000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            421.0,
+            8490.5,
+            106.5,
+            9097.5
+          ],
+          "samples_us": [
+            [
+              84,
+              9075,
+              121,
+              9280
+            ],
+            [
+              428,
+              8951,
+              117,
+              9496
+            ],
+            [
+              486,
+              8415,
+              103,
+              9004
+            ],
+            [
+              470,
+              8455,
+              106,
+              9031
+            ],
+            [
+              352,
+              8449,
+              103,
+              8904
+            ],
+            [
+              438,
+              8371,
+              104,
+              8913
+            ],
+            [
+              529,
+              8526,
+              109,
+              9164
+            ],
+            [
+              414,
+              8382,
+              102,
+              8898
+            ],
+            [
+              374,
+              8419,
+              102,
+              8895
+            ],
+            [
+              502,
+              8775,
+              129,
+              9406
+            ],
+            [
+              339,
+              9074,
+              107,
+              9520
+            ],
+            [
+              375,
+              9252,
+              116,
+              9743
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 160879,
+          "sha256": "fe046129bb523f2cc7e03189fac2fd2ad876c9984bb0c28b84f60e181d1325df",
+          "median_us": [
+            400.0,
+            23089.5,
+            266.5,
+            23772.0
+          ],
+          "samples_us": [
+            [
+              81,
+              22933,
+              267,
+              23281
+            ],
+            [
+              300,
+              22826,
+              323,
+              23449
+            ],
+            [
+              350,
+              23620,
+              268,
+              24238
+            ],
+            [
+              470,
+              22981,
+              258,
+              23709
+            ],
+            [
+              405,
+              23510,
+              266,
+              24181
+            ],
+            [
+              402,
+              24081,
+              262,
+              24745
+            ],
+            [
+              463,
+              24971,
+              275,
+              25709
+            ],
+            [
+              232,
+              23128,
+              278,
+              23638
+            ],
+            [
+              398,
+              23504,
+              256,
+              24158
+            ],
+            [
+              566,
+              22970,
+              266,
+              23802
+            ],
+            [
+              404,
+              23051,
+              287,
+              23742
+            ],
+            [
+              368,
+              22934,
+              256,
+              23558
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 22.414103965056505,
+            "rms_delta_pcm16": 749.1519660911168,
+            "max_delta_pcm16": 10226
+          },
+          "payload_bytes": 157855,
+          "payload_bps": 126284.0
+        },
+        "fdk_aac": {
+          "setting": 127701,
+          "size_bytes": 160915,
+          "sha256": "ce960f8c32b32bda6ef3988b99159206a3199a7d23b02ea6acf9ad9e0d04abea",
+          "median_us": [
+            523.0,
+            107656.0,
+            823.5,
+            108968.0
+          ],
+          "samples_us": [
+            [
+              142,
+              105699,
+              803,
+              106644
+            ],
+            [
+              592,
+              105312,
+              787,
+              106691
+            ],
+            [
+              509,
+              105075,
+              836,
+              106420
+            ],
+            [
+              567,
+              107265,
+              788,
+              108620
+            ],
+            [
+              487,
+              107885,
+              818,
+              109190
+            ],
+            [
+              537,
+              107427,
+              782,
+              108746
+            ],
+            [
+              381,
+              137120,
+              1625,
+              139126
+            ],
+            [
+              1511,
+              111904,
+              903,
+              114318
+            ],
+            [
+              487,
+              106174,
+              808,
+              107469
+            ],
+            [
+              604,
+              108080,
+              829,
+              109513
+            ],
+            [
+              482,
+              109296,
+              1027,
+              110805
+            ],
+            [
+              542,
+              113741,
+              833,
+              115116
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 443392,
+            "leading_trim_frames": 2048,
+            "snr_db": 24.31785154044857,
+            "rms_delta_pcm16": 601.7035099023424,
+            "max_delta_pcm16": 6238
+          },
+          "payload_bytes": 157884,
+          "payload_bps": 126307.2
+        }
+      }
+    },
+    "filesamples44-192000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 158820,
+            "actual_bps": 157554.4
+          }
+        ],
+        "aac_candidate_cap_bps": 192000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            431.5,
+            8542.0,
+            104.5,
+            9091.0
+          ],
+          "samples_us": [
+            [
+              82,
+              8832,
+              211,
+              9125
+            ],
+            [
+              442,
+              8765,
+              108,
+              9315
+            ],
+            [
+              453,
+              8500,
+              104,
+              9057
+            ],
+            [
+              471,
+              9550,
+              118,
+              10139
+            ],
+            [
+              404,
+              9366,
+              163,
+              9933
+            ],
+            [
+              285,
+              8584,
+              106,
+              8975
+            ],
+            [
+              600,
+              8445,
+              105,
+              9150
+            ],
+            [
+              365,
+              8404,
+              101,
+              8870
+            ],
+            [
+              488,
+              8753,
+              104,
+              9345
+            ],
+            [
+              458,
+              8447,
+              102,
+              9007
+            ],
+            [
+              392,
+              8292,
+              101,
+              8785
+            ],
+            [
+              421,
+              8312,
+              99,
+              8832
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 201549,
+          "sha256": "cef2027b8de6e8788f31e5687f259e05cfdea94c0ffe94f51fa3602ca054bbc1",
+          "median_us": [
+            398.5,
+            22573.0,
+            258.5,
+            23232.5
+          ],
+          "samples_us": [
+            [
+              74,
+              22733,
+              258,
+              23065
+            ],
+            [
+              537,
+              21847,
+              252,
+              22636
+            ],
+            [
+              442,
+              22523,
+              259,
+              23224
+            ],
+            [
+              467,
+              22808,
+              254,
+              23529
+            ],
+            [
+              352,
+              24632,
+              280,
+              25264
+            ],
+            [
+              300,
+              23338,
+              278,
+              23916
+            ],
+            [
+              360,
+              22623,
+              261,
+              23244
+            ],
+            [
+              440,
+              22479,
+              322,
+              23241
+            ],
+            [
+              381,
+              22014,
+              252,
+              22647
+            ],
+            [
+              515,
+              22435,
+              257,
+              23207
+            ],
+            [
+              408,
+              23429,
+              274,
+              24111
+            ],
+            [
+              389,
+              21856,
+              253,
+              22498
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 25.93538376268118,
+            "rms_delta_pcm16": 499.46600434410436,
+            "max_delta_pcm16": 5937
+          },
+          "payload_bytes": 198525,
+          "payload_bps": 158820.0
+        },
+        "fdk_aac": {
+          "setting": 158820,
+          "size_bytes": 199974,
+          "sha256": "5a788ce5f02f318af1f4cdb134d5d738ec672d09c3f33c833544f71c83b294b5",
+          "median_us": [
+            594.5,
+            115888.5,
+            892.5,
+            117378.5
+          ],
+          "samples_us": [
+            [
+              117,
+              112321,
+              874,
+              113312
+            ],
+            [
+              743,
+              115549,
+              890,
+              117182
+            ],
+            [
+              701,
+              117599,
+              960,
+              119260
+            ],
+            [
+              522,
+              115360,
+              903,
+              116785
+            ],
+            [
+              578,
+              155820,
+              1486,
+              157884
+            ],
+            [
+              1098,
+              117916,
+              895,
+              119909
+            ],
+            [
+              608,
+              118833,
+              1213,
+              120654
+            ],
+            [
+              709,
+              118123,
+              909,
+              119741
+            ],
+            [
+              512,
+              116228,
+              835,
+              117575
+            ],
+            [
+              581,
+              113564,
+              880,
+              115025
+            ],
+            [
+              445,
+              114898,
+              884,
+              116227
+            ],
+            [
+              909,
+              113286,
+              874,
+              115069
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 443392,
+            "leading_trim_frames": 2048,
+            "snr_db": 27.39329733926605,
+            "rms_delta_pcm16": 422.289472633736,
+            "max_delta_pcm16": 3974
+          },
+          "payload_bytes": 196943,
+          "payload_bps": 157554.4
+        }
+      }
+    },
+    "filesamples44-96000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 96061,
+            "actual_bps": 94501.6
+          },
+          {
+            "requested_bps": 97646,
+            "actual_bps": 96087.2
+          }
+        ],
+        "aac_candidate_cap_bps": 96000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            420.5,
+            8446.0,
+            104.0,
+            9049.0
+          ],
+          "samples_us": [
+            [
+              129,
+              8774,
+              142,
+              9045
+            ],
+            [
+              418,
+              8527,
+              108,
+              9053
+            ],
+            [
+              437,
+              8705,
+              109,
+              9251
+            ],
+            [
+              503,
+              8506,
+              109,
+              9118
+            ],
+            [
+              374,
+              8374,
+              100,
+              8848
+            ],
+            [
+              369,
+              8998,
+              107,
+              9474
+            ],
+            [
+              532,
+              8460,
+              101,
+              9093
+            ],
+            [
+              428,
+              8376,
+              102,
+              8906
+            ],
+            [
+              2048,
+              8416,
+              103,
+              10567
+            ],
+            [
+              423,
+              8432,
+              105,
+              8960
+            ],
+            [
+              373,
+              8394,
+              102,
+              8869
+            ],
+            [
+              399,
+              8417,
+              102,
+              8918
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 123100,
+          "sha256": "2afbea0193e341f9c6f83ab2a0730d1cae83e417a9f362ccb01b33e092de72c4",
+          "median_us": [
+            350.5,
+            29119.0,
+            266.0,
+            29774.0
+          ],
+          "samples_us": [
+            [
+              74,
+              28908,
+              304,
+              29286
+            ],
+            [
+              268,
+              29825,
+              277,
+              30370
+            ],
+            [
+              356,
+              29123,
+              269,
+              29748
+            ],
+            [
+              401,
+              31374,
+              266,
+              32041
+            ],
+            [
+              279,
+              29593,
+              266,
+              30138
+            ],
+            [
+              345,
+              62175,
+              1102,
+              63622
+            ],
+            [
+              398,
+              29115,
+              287,
+              29800
+            ],
+            [
+              215,
+              28567,
+              260,
+              29042
+            ],
+            [
+              405,
+              28547,
+              252,
+              29204
+            ],
+            [
+              435,
+              28797,
+              264,
+              29496
+            ],
+            [
+              230,
+              29487,
+              264,
+              29981
+            ],
+            [
+              427,
+              28610,
+              255,
+              29292
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 20.072550486595276,
+            "rms_delta_pcm16": 980.9516399003211,
+            "max_delta_pcm16": 13725
+          },
+          "payload_bytes": 120076,
+          "payload_bps": 96060.8
+        },
+        "fdk_aac": {
+          "setting": 97646,
+          "size_bytes": 123140,
+          "sha256": "4e58027699a1fcfb5ebecc76e171bdb860009c327858b17c24cb6a4c2657327f",
+          "median_us": [
+            470.5,
+            99502.0,
+            755.5,
+            100744.0
+          ],
+          "samples_us": [
+            [
+              106,
+              100038,
+              804,
+              100948
+            ],
+            [
+              443,
+              100527,
+              765,
+              101735
+            ],
+            [
+              467,
+              101266,
+              783,
+              102516
+            ],
+            [
+              474,
+              99874,
+              1057,
+              101405
+            ],
+            [
+              426,
+              98495,
+              731,
+              99652
+            ],
+            [
+              482,
+              99492,
+              773,
+              100747
+            ],
+            [
+              390,
+              97474,
+              761,
+              98625
+            ],
+            [
+              525,
+              99026,
+              733,
+              100284
+            ],
+            [
+              480,
+              99909,
+              711,
+              101100
+            ],
+            [
+              479,
+              99512,
+              750,
+              100741
+            ],
+            [
+              457,
+              98880,
+              713,
+              100050
+            ],
+            [
+              516,
+              98900,
+              716,
+              100132
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 443392,
+            "leading_trim_frames": 2048,
+            "snr_db": 20.935955989281464,
+            "rms_delta_pcm16": 888.1315994828694,
+            "max_delta_pcm16": 9217
+          },
+          "payload_bytes": 120109,
+          "payload_bps": 96087.2
+        }
+      }
+    },
+    "mono48-96000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 83603,
+            "actual_bps": 81424.8
+          },
+          {
+            "requested_bps": 85840,
+            "actual_bps": 83674.4
+          }
+        ],
+        "aac_candidate_cap_bps": 96000
+      },
+      "input": {
+        "name": "mono48.pcm",
+        "frames": 480000,
+        "rate": 48000,
+        "channels": 1,
+        "sha256": "cc266e7b3a44741ce060f8dcfec497756296e3657832f5a0d191dc28bdfc9114"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 120250,
+          "sha256": "92916016032bdeec0b282d6cab82f972ca0dbd8c6aa2cbcd659a5f40b995caab",
+          "median_us": [
+            370.5,
+            4547.0,
+            101.5,
+            4959.0
+          ],
+          "samples_us": [
+            [
+              129,
+              4440,
+              148,
+              4717
+            ],
+            [
+              607,
+              4884,
+              102,
+              5593
+            ],
+            [
+              201,
+              4578,
+              219,
+              4998
+            ],
+            [
+              429,
+              4102,
+              81,
+              4612
+            ],
+            [
+              381,
+              4135,
+              87,
+              4603
+            ],
+            [
+              589,
+              4109,
+              101,
+              4799
+            ],
+            [
+              403,
+              4939,
+              157,
+              5499
+            ],
+            [
+              309,
+              4746,
+              93,
+              5148
+            ],
+            [
+              304,
+              4516,
+              100,
+              4920
+            ],
+            [
+              440,
+              4780,
+              102,
+              5322
+            ],
+            [
+              86,
+              4514,
+              93,
+              4693
+            ],
+            [
+              360,
+              4629,
+              106,
+              5095
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.923381244756495,
+            "rms_delta_pcm16": 238.49583855122086,
+            "max_delta_pcm16": 1983
+          },
+          "payload_bytes": 116960,
+          "payload_bps": 93568.0
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 107794,
+          "sha256": "b228ee22d02df2482a86dc93a925821b1b130987788889d00849111a65c84965",
+          "median_us": [
+            394.0,
+            8348.5,
+            171.5,
+            9131.5
+          ],
+          "samples_us": [
+            [
+              82,
+              11303,
+              280,
+              11665
+            ],
+            [
+              376,
+              12936,
+              263,
+              13575
+            ],
+            [
+              416,
+              12944,
+              303,
+              13663
+            ],
+            [
+              382,
+              8073,
+              141,
+              8596
+            ],
+            [
+              174,
+              7996,
+              138,
+              8308
+            ],
+            [
+              286,
+              7849,
+              141,
+              8276
+            ],
+            [
+              406,
+              8075,
+              158,
+              8639
+            ],
+            [
+              2078,
+              8540,
+              171,
+              10789
+            ],
+            [
+              738,
+              8057,
+              172,
+              8967
+            ],
+            [
+              683,
+              9210,
+              585,
+              10478
+            ],
+            [
+              217,
+              8157,
+              152,
+              8526
+            ],
+            [
+              421,
+              8653,
+              222,
+              9296
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.736700034989564,
+            "rms_delta_pcm16": 243.67718335433048,
+            "max_delta_pcm16": 5867
+          },
+          "payload_bytes": 104504,
+          "payload_bps": 83603.2
+        },
+        "fdk_aac": {
+          "setting": 85840,
+          "size_bytes": 107890,
+          "sha256": "228f41ac6547a6f88ac722d4ea146f80b5c1082bccfa26d86691022ea55bc75f",
+          "median_us": [
+            503.0,
+            52621.5,
+            488.0,
+            53735.0
+          ],
+          "samples_us": [
+            [
+              122,
+              50270,
+              467,
+              50859
+            ],
+            [
+              587,
+              50291,
+              485,
+              51363
+            ],
+            [
+              358,
+              50466,
+              492,
+              51316
+            ],
+            [
+              514,
+              50512,
+              491,
+              51517
+            ],
+            [
+              419,
+              50215,
+              479,
+              51113
+            ],
+            [
+              567,
+              50921,
+              471,
+              51959
+            ],
+            [
+              505,
+              54530,
+              476,
+              55511
+            ],
+            [
+              478,
+              84562,
+              697,
+              85737
+            ],
+            [
+              508,
+              76548,
+              714,
+              77770
+            ],
+            [
+              501,
+              64039,
+              474,
+              65014
+            ],
+            [
+              518,
+              59079,
+              540,
+              60137
+            ],
+            [
+              360,
+              54322,
+              2496,
+              57178
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 482304,
+            "leading_trim_frames": 2048,
+            "snr_db": 24.00268967643624,
+            "rms_delta_pcm16": 420.2574141523264,
+            "max_delta_pcm16": 6953
+          },
+          "payload_bytes": 104593,
+          "payload_bps": 83674.4
+        }
+      }
+    },
+    "stereo48-128000": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 4,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          3
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 115942,
+            "actual_bps": 114002.4
+          },
+          {
+            "requested_bps": 117915,
+            "actual_bps": 115981.6
+          }
+        ],
+        "aac_candidate_cap_bps": 128000
+      },
+      "input": {
+        "name": "stereo48.pcm",
+        "frames": 480000,
+        "rate": 48000,
+        "channels": 2,
+        "sha256": "d6b50c85d72f6feec3afadc348c55a3e563e2c9cf66b6beff6ee9ea91701d392"
+      },
+      "engines": {
+        "baseline": {
+          "setting": "full",
+          "size_bytes": 238799,
+          "sha256": "774529e44b0c6e781092901f7d48e4d2b5707df8ae5b39e5c23345f859c49e31",
+          "median_us": [
+            423.0,
+            8463.5,
+            128.0,
+            9019.0
+          ],
+          "samples_us": [
+            [
+              88,
+              8110,
+              284,
+              8482
+            ],
+            [
+              533,
+              8150,
+              125,
+              8808
+            ],
+            [
+              386,
+              8445,
+              126,
+              8957
+            ],
+            [
+              514,
+              8551,
+              119,
+              9184
+            ],
+            [
+              329,
+              8492,
+              122,
+              8943
+            ],
+            [
+              396,
+              8188,
+              124,
+              8708
+            ],
+            [
+              450,
+              8482,
+              217,
+              9149
+            ],
+            [
+              278,
+              10022,
+              560,
+              10860
+            ],
+            [
+              547,
+              9661,
+              130,
+              10338
+            ],
+            [
+              453,
+              8292,
+              126,
+              8871
+            ],
+            [
+              396,
+              10382,
+              236,
+              11014
+            ],
+            [
+              566,
+              8371,
+              144,
+              9081
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.79573420208753,
+            "rms_delta_pcm16": 242.04986182258673,
+            "max_delta_pcm16": 1983
+          },
+          "payload_bytes": 235509,
+          "payload_bps": 188407.2
+        },
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 148218,
+          "sha256": "4351bfbaf0c70b1562e2385efcf765bce5950ff4bddfbdfb8495c9cb0bd5c914",
+          "median_us": [
+            411.0,
+            21333.5,
+            317.0,
+            22128.0
+          ],
+          "samples_us": [
+            [
+              91,
+              21143,
+              312,
+              21546
+            ],
+            [
+              459,
+              25029,
+              318,
+              25806
+            ],
+            [
+              429,
+              21250,
+              374,
+              22053
+            ],
+            [
+              438,
+              21250,
+              315,
+              22003
+            ],
+            [
+              362,
+              22841,
+              347,
+              23550
+            ],
+            [
+              393,
+              21599,
+              342,
+              22334
+            ],
+            [
+              461,
+              21572,
+              355,
+              22388
+            ],
+            [
+              291,
+              22126,
+              332,
+              22749
+            ],
+            [
+              384,
+              21340,
+              301,
+              22025
+            ],
+            [
+              541,
+              21302,
+              316,
+              22159
+            ],
+            [
+              274,
+              21172,
+              296,
+              21742
+            ],
+            [
+              456,
+              21327,
+              314,
+              22097
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 481280,
+            "leading_trim_frames": 1024,
+            "snr_db": 23.884602674621362,
+            "rms_delta_pcm16": 426.05082972990635,
+            "max_delta_pcm16": 6606
+          },
+          "payload_bytes": 144928,
+          "payload_bps": 115942.4
+        },
+        "fdk_aac": {
+          "setting": 117915,
+          "size_bytes": 148274,
+          "sha256": "6f7085f2341d53ae8bb8c7cc05794ace59b3c4d5156138bae0c58132988fe48c",
+          "median_us": [
+            530.0,
+            108083.0,
+            915.0,
+            109542.0
+          ],
+          "samples_us": [
+            [
+              165,
+              103850,
+              902,
+              104917
+            ],
+            [
+              663,
+              104231,
+              924,
+              105818
+            ],
+            [
+              591,
+              103885,
+              913,
+              105389
+            ],
+            [
+              525,
+              106313,
+              896,
+              107734
+            ],
+            [
+              535,
+              104767,
+              884,
+              106186
+            ],
+            [
+              482,
+              109124,
+              1075,
+              110681
+            ],
+            [
+              469,
+              112098,
+              1055,
+              113622
+            ],
+            [
+              439,
+              148920,
+              1416,
+              150775
+            ],
+            [
+              1174,
+              110972,
+              973,
+              113119
+            ],
+            [
+              561,
+              108964,
+              890,
+              110415
+            ],
+            [
+              509,
+              108448,
+              917,
+              109874
+            ],
+            [
+              600,
+              107718,
+              892,
+              109210
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 482304,
+            "leading_trim_frames": 2048,
+            "snr_db": 24.303723467502493,
+            "rms_delta_pcm16": 405.98068853010113,
+            "max_delta_pcm16": 6921
+          },
+          "payload_bytes": 144977,
+          "payload_bps": 115981.6
+        }
+      }
+    }
+  }
+}

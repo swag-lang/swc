@@ -25,6 +25,7 @@ def arguments():
     parser.add_argument("--channels", type=int, required=True)
     parser.add_argument("--bandwidth", choices=("full", "voice"), default="full")
     parser.add_argument("--aac-adaptive", action="store_true", help="enable short-window selection for candidate AAC")
+    parser.add_argument("--aac-rate", type=int, help="candidate AAC payload cap in bits per second")
     parser.add_argument("--compiler", type=Path, required=True)
     parser.add_argument("--library-bin", type=Path, default=WORKLOAD.parents[2] / "bin")
     parser.add_argument("--baseline-bin", type=Path)
@@ -50,6 +51,10 @@ def arguments():
         parser.error("--rounds and --repetitions must be positive")
     if args.exact_baseline and not args.baseline_bin:
         parser.error("--exact-baseline needs --baseline-bin")
+    if args.aac_rate is not None and (args.codec != "aac" or not 1 <= args.aac_rate <= 0xFFFFFFFF):
+        parser.error("--aac-rate needs a positive 32-bit AAC bit rate")
+    if args.aac_rate is not None and args.aac_adaptive:
+        parser.error("Choose one candidate AAC profile")
     if args.aac_adaptive and args.codec != "aac":
         parser.error("--aac-adaptive applies to AAC")
     if args.aac_reference == "fdk" and args.codec != "aac":
@@ -80,6 +85,8 @@ def build_swag(args, name, library):
                "--out-dir", build / "bin", "--work-dir", build / "work"]
     if name == "candidate" and args.aac_adaptive:
         command += ["--tag", "AudioEncodeAdaptive"]
+    if name == "candidate" and args.aac_rate is not None:
+        command += ["--tag", f"AudioEncodeRate: u32 = {args.aac_rate}"]
     env = {**os.environ, "SWAG_PATH": str(library.resolve()),
            "SWAG_RUNTIME_THREADS": "1", "TMPDIR": str(temp)}
     log = build / "build.log"
@@ -258,6 +265,8 @@ def main():
     }
     if args.aac_adaptive:
         report["protocol"]["aac_adaptive_candidate"] = True
+    if args.aac_rate is not None:
+        report["protocol"]["aac_candidate_cap_bps"] = args.aac_rate
     if args.libflac is not None:
         report["protocol"]["libflac"] = subprocess.check_output(
             [sys.executable, binaries["libflac"], "--version"], text=True,

@@ -27,6 +27,8 @@ struct StreamEncoder
         window:         EncodeWindow
         nextShort:      bool
         channels:       u16
+        packetBudget:   u64
+        packetCredit:   u64
         pendingFrames:  u32
         inputFrames:    u64
         emittedPackets: u64
@@ -60,6 +62,22 @@ impl StreamEncoder
         var result = try StreamEncoder.create(sampleRate, channels, bandwidth)
         result.buffered.resize(1_024'u64 * channels)
         result.encoder.prepareShortWindows()
+        return result
+    }
+
+    // Creates an AAC encoder with a bounded payload rate across coded audio.
+    //
+    // The ceiling is rounded down to whole payload bytes per 1024 coded frames.
+    // Unused bytes carry forward up to three access units' worth. The budget includes
+    // packets used for priming and draining. The caller accounts for container headers.
+    // A ceiling below the minimum access unit size fails with [[Core.Errors.BadParameterError]].
+    func createRateLimited(sampleRate: u32, channels: u16, bitsPerSecond: u32, bandwidth: Bandwidth = .Full)->StreamEncoder fail
+    {
+        var result = try StreamEncoder.create(sampleRate, channels, bandwidth)
+        result.packetBudget = cast(u64, bitsPerSecond) * 1_024 / (8 * sampleRate)
+        let minimum = channels == 1 ? 6 : bandwidth == .Voice ? 10 : 11
+        if result.packetBudget < minimum do
+            fail BadParameterError{"AAC payload limit is too small for its channel configuration"}
         return result
     }
 
@@ -252,7 +270,7 @@ private impl StreamEncoder
         case .Short:       sequence = .nextShort or following ? .Short : .Stop
         }
 
-        try .encoder.encodeWindowed'true(input, packet, sequence)
+        try .encoder.encodeWindowed'(true, false)(input, packet, sequence)
         .window         = sequence
         .nextShort      = following
         .lastStart      = .emittedPackets * 1_024
@@ -262,7 +280,18 @@ private impl StreamEncoder
 
     mtd emit(packet: *Array'u8, validFrames: u32) fail
     {
-        try .encoder.encode(Swag.makeSlice(&.pending[0], 1_024'u64 * .channels), packet)
+        let samples = Swag.makeSlice(&.pending[0], 1_024'u64 * .channels)
+        if .packetBudget
+        {
+            let available = .packetBudget + .packetCredit
+            try .encoder.encodeLimited(samples, packet, available)
+            .packetCredit = Math.min(3 * .packetBudget, available - packet.count)
+        }
+        else
+        {
+            try .encoder.encode(samples, packet)
+        }
+
         .lastStart      = .emittedPackets * 1_024
         .lastValid      = validFrames
         .emittedPackets += 1

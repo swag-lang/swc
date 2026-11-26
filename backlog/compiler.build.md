@@ -245,15 +245,15 @@ before relying on them.
   The case verifies dependency retention and later invalidation without an intermittent
   timeout as its oracle.
 
-### compiler.build.004 — The benchmark campaign has no regression threshold on the edit-build loop
+### compiler.build.004 — Detect regressions in the edit-build loop
 
-- Evidence: since benchmark protocol 3, every campaign measures `core_rebuild`, `core_noop`,
-  `core_touch`, `doc_std` and `format_tree` beside the frozen reference compiler and reports
-  each paired ratio with its 95 % interval and verdict. The `core` workloads build in DevMode
-  only, so a Release-only edit-build regression stays invisible.
-- Next: add Release variants of the three `core` workloads to `make_compiler_workloads`.
-- Done when: the edit-build loop is measured in Release and DevMode against the reference, and
-  every result names its mode.
+- Evidence: cold builds, no-op rebuilds and source edits exercise different dependency and
+  cache paths. Release can also spend time in optimization that a DevMode comparison misses.
+- Next: use the existing `Core` module for paired clean, unchanged and private-body-edit builds
+  in Release and DevMode. Stage the same sources and inputs for each compiler revision and
+  establish the comparison's noise floor with an unchanged-compiler control.
+- Done when: each build mode reports reproducible wall time and peak memory for the three
+  scenarios, with compiler identity and cache state recorded.
 - Related: compiler.build.119, compiler.build.005, compiler.build.007, repo.tooling.007.
 
 ### compiler.build.016 — Tool scripts recompile on every invocation
@@ -348,7 +348,7 @@ before relying on them.
 | Other retained Micro buffers | Refresh the census after mask/operand-list compaction, then inspect SSA, generic instruction use/def records, rewrite queues and per-worker high-water capacities. Avoid unconditional shrink/reallocation between functions. |
 | Linker, native emission and caches | At a separate traced peak linker storage was 111.198 MiB and native emission 35.639 MiB. Attribute merged sections, relocations, final image buffers and outstanding record owners after current move/mapping changes before removing another copy or shortening a lifetime. |
 | AST and semantic containers | Count clone pages, node payloads and nested small vector/map capacities by module and phase; page occupancy was already high, so do not infer a saving from smaller pages alone. |
-| Allocator page slack | An exploratory `MI_ENABLE_LARGE_PAGES=0` run initially looked promising, but its baseline and candidate came from different source revisions. A same-source DevMode comparison found no RSS reduction on `doc_std` or `hello_build` and only 4.6% on `core_rebuild`; the default was restored. An immediate-purge trial reduced RSS but increased CPU time by 12–21%. Re-evaluate page slack against the current source on Windows before proposing another allocator default. |
+| Allocator page slack | An exploratory `MI_ENABLE_LARGE_PAGES=0` run initially looked promising, but its baseline and candidate came from different source revisions. A same-source DevMode comparison found no RSS reduction when generating standard-library documentation or building Hello and only 4.6% when rebuilding Core; the default was restored. An immediate-purge trial reduced RSS but increased CPU time by 12–21%. Re-evaluate page slack against the current source on Windows before proposing another allocator default. |
 | Missing ownership coverage | Add small C++ allocations, direct mimalloc allocations and OS/proximity mappings to synchronized accounting, with module/phase/worker identity and shared backing deduplicated. Keep requested bytes, allocator rounding, committed capacity and residency separate. |
 
 - Done when: the dominant retained owners are reduced with preserved behavior and accepted
@@ -418,8 +418,8 @@ before relying on them.
 
 ### compiler.build.119 — Front-end invalidation is module-wide
 
-- Evidence: front-end state is not persisted, so the compiler.build.004 `core_touch` workload
-  rebuilds every file of the module. The AST is not an immutable parse cache. Semantic
+- Evidence: front-end state is not persisted, so editing one private function rebuilds
+  every file of its module. The AST is not an immutable parse cache. Semantic
   analysis replaces expressions and appends generated nodes to the per-file AST, and
   `SourceFile::setContent` rejects a change once an AST owns the source view. Invalidation needs the dependencies each file observed.
   Append-only symbol maps also keep retired declaration ASTs alive.
@@ -429,8 +429,8 @@ before relying on them.
 - Done when: a private-body edit reanalyzes only the changed file and its semantic
   dependents. A public-signature change invalidates every consumer that observed it.
   Adding, removing or renaming a file, or changing configuration or compiler version,
-  invalidates the correct state. `core_touch` lands far below `core_rebuild`, and
-  equivalent-result tests cover clean and incremental workspace builds.
+  invalidates the correct state. Editing one private function is measurably cheaper than a
+  clean module rebuild, and equivalent-result tests cover both builds.
 - Related: compiler.build.120, compiler.build.004, compiler.build.003, compiler.build.016.
 
 ### compiler.build.120 — Replace generated dependency source with a reusable module interface

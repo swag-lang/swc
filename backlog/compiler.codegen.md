@@ -32,15 +32,14 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   what semantic analysis inlined into them, which removes late starts but not this length.
 - Next: bound the growth a caller may receive from last-call auto-inlining and from unrolling
   loops whose bodies contain inlined calls, then compare WebP decoding speed and `pixel` build time
-  before and after with the benchmark harness.
+  before and after with the same existing WebP test images and isolated caches.
 - Done when: no single function's code generation in `bin/std` takes more than a tenth of its
   module's wall time at 16 workers, without a measurable loss in WebP decoding speed.
 - Related: compiler.build.069
 
 ### compiler.codegen.003 — Build shared libraries to identical bytes
 
-- Evidence: executables, static libraries and the benchmark tasks rebuild identically with six
-  workers; `core.dll`, `pixel.dll` and `gui.dll` still differ. Two sources remain. The set of
+- Evidence: executables and static libraries rebuild identically with six workers; `core.dll`, `pixel.dll` and `gui.dll` still differ. Two sources remain. The set of
   generic instances varies: one build of `core.dll` emits one more `Core.Math.max` instance than
   the next, and a shared library emits every instance its analysis created. And `.rdata` holds a
   duplicated 16-byte string constant in some builds only: `Core.Env.showInFileExplorer` reaches
@@ -153,8 +152,9 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   unchanged and enables nbody's cross-group velocity forwarding;
   it is not a general policy for arithmetic temporaries.
 - Next: attribute the extra floating interference and improve residency before expanding
-  eligibility beyond a concrete store-to-load forwarding opportunity. Recheck the deblock
-  consumer and raytrace alongside any broader rule; do not infer a win from renaming alone.
+  eligibility beyond a concrete store-to-load forwarding opportunity. Recheck deblocking
+  and another floating-point consumer under any broader rule, including instruction counts
+  and frame traffic.
 - Done when: independent webs expose the intended hoisting and forwarding without
   worsening the affected hot paths through additional transfers or spill traffic.
 - Related: compiler.codegen.006.
@@ -174,8 +174,8 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   without adding copies, spills, or saved registers. Compare an unrelated unrolled floating
   loop and a case with intervening calls before changing general value numbering or
   allocation.
-- Done when: the repeated clears disappear with no new spill traffic in `intersect`, an
-  unrelated case improves under the same rule, and native/JIT behavior remains correct.
+- Done when: repeated clears disappear in unrolled floating-point arms without spills,
+  an unrelated case improves under the same rule, and native/JIT behavior remains correct.
 
 ### compiler.codegen.011 — Retain the probe mask without increasing spills
 
@@ -230,8 +230,8 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
   Assigning floating arguments by signature position restored mixed-call speed but gave
   up independent floating lanes. The move to transient XMM0-XMM5 has not been timed on
   those signatures.
-- Next: compare the mixed-call signatures and the seven tasks in a paired campaign with
-  the current float bank; isolate any signature or task that regresses.
+- Next: compare the mixed signatures and representative scalar callers with the current
+  float bank. Isolate individual regressions with equivalent source and inputs.
 - Done when: repeated paired runs put the mixed calls at parity or better and the
   six-integer and six-float gains remain.
 
@@ -240,9 +240,9 @@ This file owns lowering, ABI handling, the Micro backend, register allocation, i
 - Evidence: native, JIT, foreign-return and callback dirty-AVX-state probes match
   clean-state results and performance after the boundary fix. The compiler cost of the
   boundary handling remains unmeasured.
-- Next: at a measurement milestone, check the compiler cost of the boundary handling and
-  establish which AVX state reaches the unmodified benchmark. Do not repeat the completed
-  encoding work.
+- Next: check compile time and memory for the boundary analysis on an existing consumer
+  with foreign calls. Inspect whether application callers reach those calls with dirty upper
+  lanes when executing their ordinary input.
 - Done when: the unmodified caller-state question is resolved and compiler cost is assessed.
 - Related: compiler.optimization.121, platform.portability.103.
 

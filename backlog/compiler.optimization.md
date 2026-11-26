@@ -87,7 +87,8 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   loads and stores to an inlined scan. Inspect actual call-site conversions and use a nullable
   scan as a control.
 - Done when: repeated wrappers with nullable value-pointer parameters auto-inline with their
-  flow contract intact and no static per-iteration loss on reachable benchmark hot paths.
+  flow contract intact and the emitted hot paths of representative callers gain no
+  per-iteration work.
 - Related: compiler.codegen.008, compiler.optimization.117.
 
 ### compiler.optimization.020 — Share the remaining frame alias proofs across memory passes
@@ -607,20 +608,17 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
 - Related: compiler.optimization.110, compiler.optimization.114, compiler.optimization.115,
   compiler.optimization.119.
 
-### compiler.optimization.085 — Measure short-key comparison cost against the current winner
+### compiler.optimization.085 — Reduce call overhead in short-key comparisons
 
-- Evidence: `Swag.memcmp`'s fallback compares 8/4/2/1-byte chunks, with no byte loop for
-  wordfreq's 3-8-byte keys. Go, the current wordfreq winner, inlines `compareBytes` into
-  `byteMap.probe`. Swag inlines the probe into its timed `__main_0` but still calls
-  `Swag.memcmp` after the length check. Static listings do not establish a net hot-path
-  gain from inlining it. A `<8`-byte dispatch guard in front of the vector and word loops
-  grew `Swag.memcmp` in all twelve tasks and was rejected.
-- Next: inspect whether a shared fast-path inlining rule can remove caller and callee work
-  for short comparisons without growing the other task hot paths; require a concrete Micro
-  gain before editing.
-- Done when: final short-key code and repeated paired wordfreq measurements establish
-  competitive cost, or isolate a reproducible remaining gap whose implementation can be
-  specified here.
+- Evidence: `Swag.memcmp`'s fallback compares 8/4/2/1-byte chunks. An inlined short-key
+  map probe still calls `Swag.memcmp` after checking equal lengths, while Go can inline
+  its byte comparison into an equivalent probe. A new `<8`-byte entry guard grew
+  `Swag.memcmp` across callers.
+- Next: find a representative existing consumer with short keys and inspect whether an
+  inlining rule can use established length facts to remove caller and callee work.
+  Include equal keys, unequal keys and long comparisons in the control inputs.
+- Done when: emitted code and repeated comparisons establish competitive cost on short
+  keys, or expose a reproducible remaining gap with a concrete implementation path.
 
 ### compiler.optimization.133 — Calibrate optional optimizer work independently of convergence guards
 

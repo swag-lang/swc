@@ -204,9 +204,11 @@ outcomes owned by `core` together.
   kind each; `Regex.Node` and `Regex.Prefilter` are wide structs commented form by form. They sit
   on the hot paths of every regex engine.
 - Next: prototype `Inst` as `next` beside a union tagged by `InstKind`, compare the generated
-  loops of the regex benchmark tasks, and migrate only if layout and loops do not regress.
-- Done when: the regex types state their forms as tagged unions without a benchmark regression,
-  or the measurement rejects the change and this entry is removed.
+  loops in the existing regex engine on representative search inputs. Check instruction
+  counts and data layout before migrating.
+- Done when: the regex types state their forms as tagged unions and paired measurements
+  preserve search performance, or the measurement rejects the change and this entry is
+  removed.
 - Related: language.design.055.
 
 ### std.core.037 — Format.toString ignores arguments its format does not use

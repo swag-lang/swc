@@ -142,11 +142,21 @@ func assertBlake3Output(output: const [..] u8, expected: const [..] string)
         "9a9286c4a56af4de975a9aa4a5c497654914d279bea60bb6d2cf7225a2fa0ff5ef56bbe4b149f3ed15860f78",
         "b4e2ad04e158e375c1e0c0b551cd7dfc82f1b155c11b6b3ed51ec9edb30d133653bb5709d1dbd55f4e1ff6"])
 
-    expect Hash.Blake3.computeKeyed(key, input.toSlice(), digest)
-    assertBlake3Output(digest, [
+    let keyed = [
         "954a2a75420c8d6547e3ba5b98d963e6fa6491addc8c023189cc519821b4a1f5f03228648fd983aef045c2fa",
         "8290934b0866b615f585149587dda2299039965328835a2b18f1d63b7e300fc76ff260b571839fe44876a4ea",
-        "e66cbac8c67694411ed7e09df51068a22c6e67d6d3dd2cca8ff12e3275384006c80f4db68023f24eebba57"])
+        "e66cbac8c67694411ed7e09df51068a22c6e67d6d3dd2cca8ff12e3275384006c80f4db68023f24eebba57"]
+    expect Hash.Blake3.computeKeyed(key, input.toSlice(), digest)
+    assertBlake3Output(digest, keyed)
+
+    for split in [1025'u64, 4096, 4097, 8193]
+    {
+        var hash = expect Hash.Blake3.createKeyed(key)
+        hash.update(input.toSlice()[until split])
+        hash.update(input.toSlice()[split to])
+        expect hash.finalize(digest)
+        assertBlake3Output(digest, keyed)
+    }
 
     expect Hash.Blake3.deriveKey(context, input.toSlice(), digest)
     assertBlake3Output(digest, [

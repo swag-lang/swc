@@ -52,3 +52,4 @@ optimizations moved each result.
 - [CRC-32 on short byte slices](crc32-short.md)
 - [Keccak rounds with fixed lane positions](sha3-round.md)
 - [MD5 wide loads and direct blocks](md5-wide.md)
+- [BLAKE3 four-chunk batches](blake3-four-chunks.md)

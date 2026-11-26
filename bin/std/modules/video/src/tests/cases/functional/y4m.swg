@@ -486,7 +486,11 @@ func y4mAspectBytes(aspect: string)->Array'u8
 {
     Swag.require(Reader.canOpen("clip.y4m") and Reader.canOpen("CLIP.Y4M"))
     Swag.require(Reader.canOpen("clip.avi") and Reader.canOpen("CLIP.AVI"))
-    Swag.require(Reader.canOpen("clip.mp4") and Reader.canOpen("clip.m4v") and Reader.canOpen("clip.mov"))
+    Swag.require(Reader.canOpen("clip.mp4") and
+                 Reader.canOpen("clip.m4v") and
+                 Reader.canOpen("clip.mov") and
+                 Reader.canOpen("clip.3gp") and
+                 Reader.canOpen("clip.f4v"))
     Swag.require(not Reader.canOpen("clip") and not Reader.canOpen(""))
     Swag.require(Writer.canCreate("clip.y4m") and
                  Writer.canCreate("clip.avi") and
@@ -503,6 +507,8 @@ func y4mAspectBytes(aspect: string)->Array'u8
     Swag.require(decodable[0].matches("a.y4m") and
                  decodable[1].matches("a.avi") and
                  decodable[2].matches("a.mp4") and
-                 decodable[2].matches("a.MOV"))
+                 decodable[2].matches("a.MOV") and
+                 decodable[2].matches("a.3gp") and
+                 decodable[2].matches("a.F4V"))
     Swag.require(decodable[3].matches("a.mkv") and not decodable[3].matches("a.webm"))
 }

@@ -234,7 +234,7 @@ func mp4AssertCompositionCountRejected(compositionSamples: u32) fail
     var reader = expect Reader.openMemory("clip.mp4", bytes.toSlice())
     Swag.require(reader.width() == Size and reader.height() == Size)
     Swag.require(reader.frameRate() == rate and reader.frameCount() == 3)
-    Swag.require(reader.streamFormat().extensions == ".mp4;.m4v;.mov")
+    Swag.require(reader.streamFormat().extensions == ".mp4;.m4v;.mov;.3gp;.f4v")
     videoAssertGray((expect reader.decodeFrame(2)).pixelColor(16, 16), 220, tolerance: 8)
     videoAssertGray((expect reader.decodeFrame(0)).pixelColor(16, 16), 40, tolerance: 8)
 

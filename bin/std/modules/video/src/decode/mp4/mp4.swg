@@ -1503,7 +1503,7 @@ struct Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => {"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
+    mtd impl format()->StreamFormat => {"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov;.3gp;.f4v"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {

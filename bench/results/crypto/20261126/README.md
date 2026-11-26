@@ -137,3 +137,4 @@ optimizations moved each result.
 - [Poly1305 four-block folding](poly1305-four-blocks.md)
 - [Packed Curve25519 generator table selection](ed25519-vector-selection.md)
 - [Complete mixed addition for P-256 generator multiplication](p256-complete-addition.md)
+- [Integrated Core crypto validation at 14:26 CET](integrated-validation-1426.md)

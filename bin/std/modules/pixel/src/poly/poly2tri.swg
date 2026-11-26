@@ -73,6 +73,8 @@ public struct Tessellate
         afMiddle:  *Node?             // Node the sweep last searched from.
         afTail:    *Node?             // Node holding 'tail'.
         polyStart: u64                // Index the current polygon starts at in 'points'.
+
+        failedSweep: bool     // A constrained edge could not be inserted safely.
     }
 }
 
@@ -738,7 +740,8 @@ impl Tessellate
     {
         Swag.init(&.basin, 1)
         Swag.init(&.edgeEvent, 1)
-        .polyStart = 0
+        .polyStart   = 0
+        .failedSweep = false
 
         if .head do
             .deletePoint(nnPoint(.head))
@@ -1059,6 +1062,8 @@ impl Tessellate
         .initTriangulation()
         .createAdvancingFront()
         .sweepPoints()
+        if .failedSweep do
+            return
         .finalizationPolygon()
 
         .points.add(nnPoint(.head))
@@ -1067,20 +1072,33 @@ impl Tessellate
         .tail = null
     }
 
+    internal mtd const sweepFailed()->bool => .failedSweep
+
     mtd sweepPoints()
     {
         for i in 1 until .points.count
         {
             let point = .points[i]
             let node  = .pointEvent(point)
-            for e in point.edges do
+            for e in point.edges
+            {
                 .addEdgeEvent2(e, node)
+                if .failedSweep do
+                    return
+            }
         }
     }
 
-    mtd addEdgeEvent(ep, eq: *Point, t: *Triangle, point: *Point)
+    mtd addEdgeEvent(ep, eq: *Point, triangle: *Triangle?, point: *Point)
     {
-        var triangle = t
+        if .failedSweep do
+            return
+        if not triangle
+        {
+            .failedSweep = true
+            return
+        }
+
         if isEdgeSideOfTriangle(triangle, ep, eq) do
             return
 
@@ -1092,8 +1110,7 @@ impl Tessellate
             {
                 triangle.markConstrainedEdge(eq, p1)
                 .edgeEvent.constrainedEdge!.q = p1
-                triangle = nnTriangle(triangle.neighborAcross(point))
-                .addEdgeEvent(ep, p1, triangle, p1)
+                .addEdgeEvent(ep, p1, triangle.neighborAcross(point), p1)
             }
             else
             {
@@ -1111,8 +1128,7 @@ impl Tessellate
             {
                 triangle.markConstrainedEdge(eq, p2)
                 .edgeEvent.constrainedEdge!.q = p2
-                triangle = nnTriangle(triangle.neighborAcross(point))
-                .addEdgeEvent(ep, p2, triangle, p2)
+                .addEdgeEvent(ep, p2, triangle.neighborAcross(point), p2)
             }
             else
             {
@@ -1124,11 +1140,8 @@ impl Tessellate
 
         if o1 == o2
         {
-            if o1 == .CW do
-                triangle = nnTriangle(triangle.neighborCCW(point))
-            else do
-                triangle = nnTriangle(triangle.neighborCW(point))
-            .addEdgeEvent(ep, eq, triangle, point)
+            let neighbor = o1 == .CW ? triangle.neighborCCW(point) : triangle.neighborCW(point)
+            .addEdgeEvent(ep, eq, neighbor, point)
         }
         else
         {
@@ -1139,7 +1152,13 @@ impl Tessellate
     mtd flipEdgeEvent(ep, eq: *Point, tri: *Triangle, p: *Point)
     {
         var t  = tri
-        let ot = nnTriangle(t.neighborAcross(p))
+        let ot = t.neighborAcross(p)
+        if not ot
+        {
+            .failedSweep = true
+            return
+        }
+
         let op = ot.oppositePoint(t, p)
 
         if inScanArea(p, t.pointCCW(p), t.pointCW(p), op)
@@ -1203,7 +1222,13 @@ impl Tessellate
 
     mtd flipScanEdgeEvent(ep, eq: *Point, flipTriangle: *Triangle, t: *Triangle, p: *Point)
     {
-        let ot = nnTriangle(t.neighborAcross(p))
+        let ot = t.neighborAcross(p)
+        if not ot
+        {
+            .failedSweep = true
+            return
+        }
+
         let op = ot.oppositePoint(t, p)
         let p1 = flipTriangle.pointCCW(eq)
         let p2 = flipTriangle.pointCW(eq)
@@ -1241,41 +1266,64 @@ impl Tessellate
     mtd fillRightAboveEdgeEvent(edge: *Edge, n: *Node)
     {
         var node = n
-        while nnNode(node.next).point.x < edge.p.x
+        while not .failedSweep and node.next and node.next.point.x < edge.p.x
         {
-            if orient2d(edge.q, nnNode(node.next).point, edge.p) == .CCW do
+            let adjacent = node.next
+            if orient2d(edge.q, adjacent.point, edge.p) == .CCW
+            {
+                let before = .triangles.count
                 .fillRightBelowEdgeEvent(edge, node)
-            else do
-                node = nnNode(node.next)
+                if .triangles.count == before do
+                    return
+            }
+            else
+            {
+                node = adjacent
+            }
         }
     }
 
     mtd fillRightBelowEdgeEvent(edge: *Edge, node: *Node)
     {
-        if node.point.x < edge.p.x
+        if not .failedSweep and node.point.x < edge.p.x
         {
-            let next = nnNode(node.next)
-            if orient2d(node.point, next.point, nnNode(next.next).point) == .CCW
+            let next = node.next
+            if not next or not next.next
+            {
+                .failedSweep = true
+                return
+            }
+
+            if orient2d(node.point, next.point, next.next.point) == .CCW
             {
                 .fillRightConcaveEdgeEvent(edge, node)
             }
             else
             {
+                let before = .triangles.count
                 .fillRightConvexEdgeEvent(edge, node)
-                .fillRightBelowEdgeEvent(edge, node)
+                if .triangles.count != before do
+                    .fillRightBelowEdgeEvent(edge, node)
             }
         }
     }
 
     mtd fillRightConcaveEdgeEvent(edge: *Edge, node: *Node)
     {
-        .fill(nnNode(node.next))
-        let next = nnNode(node.next)
-        if next.point != edge.p
+        let remove = node.next
+        if not remove or not remove.next
+        {
+            .failedSweep = true
+            return
+        }
+
+        .fill(remove)
+        let next = node.next
+        if next and next.next and next.point != edge.p
         {
             if orient2d(edge.q, next.point, edge.p) == .CCW
             {
-                if orient2d(node.point, next.point, nnNode(next.next).point) == .CCW do
+                if orient2d(node.point, next.point, next.next.point) == .CCW do
                     .fillRightConcaveEdgeEvent(edge, node)
             }
         }
@@ -1283,9 +1331,13 @@ impl Tessellate
 
     mtd fillRightConvexEdgeEvent(edge: *Edge, node: *Node)
     {
-        let next     = nnNode(node.next)
-        let nextNext = nnNode(next.next)
-        if orient2d(next.point, nextNext.point, nnNode(nextNext.next).point) == .CCW
+        let next = node.next
+        if not next do
+            return
+        let nextNext = next.next
+        if not nextNext or not nextNext.next do
+            return
+        if orient2d(next.point, nextNext.point, nextNext.next.point) == .CCW
         {
             .fillRightConcaveEdgeEvent(edge, next)
         }
@@ -1299,37 +1351,57 @@ impl Tessellate
     mtd fillLeftAboveEdgeEvent(edge: *Edge, n: *Node)
     {
         var node = n
-        while nnNode(node.prev).point.x > edge.p.x
+        while not .failedSweep and node.prev and node.prev.point.x > edge.p.x
         {
-            if orient2d(edge.q, nnNode(node.prev).point, edge.p) == .CW do
+            let adjacent = node.prev
+            if orient2d(edge.q, adjacent.point, edge.p) == .CW
+            {
+                let before = .triangles.count
                 .fillLeftBelowEdgeEvent(edge, node)
-            else do
-                node = nnNode(node.prev)
+                if .triangles.count == before do
+                    return
+            }
+            else
+            {
+                node = adjacent
+            }
         }
     }
 
     mtd fillLeftBelowEdgeEvent(edge: *Edge, node: *Node)
     {
-        if node.point.x > edge.p.x
+        if not .failedSweep and node.point.x > edge.p.x
         {
-            let prev = nnNode(node.prev)
-            if orient2d(node.point, prev.point, nnNode(prev.prev).point) == .CW
+            let prev = node.prev
+            if not prev or not prev.prev
+            {
+                .failedSweep = true
+                return
+            }
+
+            if orient2d(node.point, prev.point, prev.prev.point) == .CW
             {
                 .fillLeftConcaveEdgeEvent(edge, node)
             }
             else
             {
+                let before = .triangles.count
                 .fillLeftConvexEdgeEvent(edge, node)
-                .fillLeftBelowEdgeEvent(edge, node)
+                if .triangles.count != before do
+                    .fillLeftBelowEdgeEvent(edge, node)
             }
         }
     }
 
     mtd fillLeftConvexEdgeEvent(edge: *Edge, node: *Node)
     {
-        let prev     = nnNode(node.prev)
-        let prevPrev = nnNode(prev.prev)
-        if orient2d(prev.point, prevPrev.point, nnNode(prevPrev.prev).point) == .CW
+        let prev = node.prev
+        if not prev do
+            return
+        let prevPrev = prev.prev
+        if not prevPrev or not prevPrev.prev do
+            return
+        if orient2d(prev.point, prevPrev.point, prevPrev.prev.point) == .CW
         {
             .fillLeftConcaveEdgeEvent(edge, prev)
         }
@@ -1342,13 +1414,20 @@ impl Tessellate
 
     mtd fillLeftConcaveEdgeEvent(edge: *Edge, node: *Node)
     {
-        .fill(nnNode(node.prev))
-        let prev = nnNode(node.prev)
-        if prev.point != edge.p
+        let remove = node.prev
+        if not remove or not remove.prev
+        {
+            .failedSweep = true
+            return
+        }
+
+        .fill(remove)
+        let prev = node.prev
+        if prev and prev.prev and prev.point != edge.p
         {
             if orient2d(edge.q, prev.point, edge.p) == .CW
             {
-                if orient2d(node.point, prev.point, nnNode(prev.prev).point) == .CW do
+                if orient2d(node.point, prev.point, prev.prev.point) == .CW do
                     .fillLeftConcaveEdgeEvent(edge, node)
             }
         }

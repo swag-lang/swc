@@ -320,3 +320,36 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
     let result = tess.takeResult()
     Swag.require(result.triangleCount() == 1)
 }
+
+// The fallback keeps the hole empty and joins the same edges across unrelated heights.
+#test
+{
+    var contours: Pixel.LinePathList
+    contours.newPath().setRectCornersRaw(0, 0, 10, 10)
+    let hole = contours.newPath()
+    hole.start(3, 3)
+    hole.lineTo(3, 7)
+    hole.lineTo(7, 7)
+    hole.lineTo(7, 3)
+    hole.close()
+    contours.newPath().setRectCornersRaw(15, 2, 17, 8)
+    contours.flatten()
+
+    var filled: Pixel.LinePath
+    Pixel.tessellateFillSlabs(&filled, contours.toSlice(), [0'u64, 1'u64, 2'u64], outward: 1)
+    let triangles = filled.triangles.vertices.toSlice()
+    Swag.require(triangles.count == 30)
+    Swag.require(filled.triangleOffsets.count == triangles.count)
+    var area: f32
+    for i in triangles.count / 3
+    {
+        let a        = triangles[i * 3]
+        let b        = triangles[i * 3 + 1]
+        let c        = triangles[i * 3 + 2]
+        let centroid = (a + b + c) / 3
+        Swag.require(centroid.x <= 3 or centroid.x >= 7 or centroid.y <= 3 or centroid.y >= 7)
+        area += (b - a).cross(c - a) * 0.5
+    }
+
+    Swag.require(Math.isEqualEpsilon(area, 96, 0.001))
+}

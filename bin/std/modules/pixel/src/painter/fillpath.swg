@@ -108,6 +108,182 @@ private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *Lin
     }
 }
 
+private struct FillVertex
+{
+    position, direction: Vector2
+}
+
+private struct FillEdge
+{
+    first, last: FillVertex
+    pairedWith:  u64
+    openedAt:    f32
+}
+
+private struct FillCrossing
+{
+    x:    f64
+    edge: u64
+}
+
+private func pointOnFillEdge(edge: const *FillEdge, y: f32)->FillVertex
+{
+    if y == edge.first.position.y do
+        return edge.first
+    if y == edge.last.position.y do
+        return edge.last
+
+    let first = edge.first.position
+    let last  = edge.last.position
+    let t     = (cast(f64, y) - first.y) / (cast(f64, last.y) - first.y)
+    let x     = cast(f32, first.x + (cast(f64, last.x) - first.x) * t)
+
+    // Use the edge's miter offsets at the new vertex so the solid still meets its antialias band.
+    return FillVertex{Vector2{x, y}, edge.first.direction + (edge.last.direction - edge.first.direction) * cast(f32, t)}
+}
+
+private func appendFillTriangle(path: *LinePath, a, b, c: FillVertex)
+{
+    path.triangles.vertices.add(a.position)
+    path.triangles.vertices.add(b.position)
+    path.triangles.vertices.add(c.position)
+    path.triangleOffsets.add(a.direction)
+    path.triangleOffsets.add(b.direction)
+    path.triangleOffsets.add(c.direction)
+}
+
+private func closeFillInterval(path: *LinePath, edges: [..] FillEdge, index: u64, upper: f32)
+{
+    let left = &edges[index]
+    if not left.pairedWith do
+        return
+
+    let right = &edges[left.pairedWith - 1]
+    let lower = left.openedAt
+    left.pairedWith = 0
+    if upper <= lower do
+        return
+
+    let a = pointOnFillEdge(left, lower)
+    let b = pointOnFillEdge(right, lower)
+    let c = pointOnFillEdge(right, upper)
+    let d = pointOnFillEdge(left, upper)
+    if b.position.x > a.position.x do
+        appendFillTriangle(path, a, b, c)
+    if c.position.x > d.position.x do
+        appendFillTriangle(path, a, c, d)
+}
+
+// Decomposes a normalized region into horizontal trapezoids when the constrained sweep
+// cannot follow an edge. A slab contains no contour endpoints, so intersections stay in
+// left-to-right order and successive pairs enclose its filled intervals.
+internal func tessellateFillSlabs(path: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, outward: f32)
+{
+    var edges:   Array'FillEdge
+    var heights: Array'f32
+    path.triangleOffsets.clear()
+    for index in contours
+    {
+        let contour    = paths[index]
+        let points     = contour.polygon.points.toSlice()
+        let directions = contour.offsetDirections()
+        let count      = points.count
+        for i in count
+        {
+            let j = i + 1 == count ? 0 : i + 1
+            let a = points[i]
+            let b = points[j]
+            if a.y == b.y or not a.isFinite() or not b.isFinite() do
+                continue
+
+            let start = FillVertex{a, directions[i] * outward}
+            let end   = FillVertex{b, directions[j] * outward}
+            edges.add(a.y < b.y ? FillEdge{first: start, last: end} : FillEdge{first: end, last: start})
+            heights.add(a.y)
+            heights.add(b.y)
+        }
+    }
+
+    if edges.count < 2 do
+        return
+
+    func byStart(a, b: FillEdge)->s32
+    {
+        return a.first.position.y < b.first.position.y ? -1 : (a.first.position.y > b.first.position.y ? 1 : 0)
+    }
+
+    func byCrossing(a, b: FillCrossing)->s32
+    {
+        return a.x < b.x ? -1 : (a.x > b.x ? 1 : 0)
+    }
+
+    edges.sort(&byStart)
+    heights.sort()
+    let spans    = edges.toSlice()
+    var active: Array'FillCrossing
+    var nextEdge = 0'u64
+    var lower    = heights[0]
+    for upper, index in heights where index
+    {
+        if upper == lower do
+            continue
+
+        let mid  = (cast(f64, lower) + upper) * 0.5
+        var live = 0'u64
+        for crossing in active
+        {
+            if spans[crossing.edge].last.position.y <= lower
+            {
+                closeFillInterval(path, spans, crossing.edge, lower)
+                continue
+            }
+
+            active[live] = crossing
+            live         += 1
+        }
+
+        active.resize(live)
+
+        while nextEdge < edges.count and edges[nextEdge].first.position.y <= lower
+        {
+            active.add(FillCrossing{edge: nextEdge})
+            nextEdge += 1
+        }
+
+        for &crossing in active
+        {
+            let edge = &edges[crossing.edge]
+            let lo   = edge.first.position
+            let hi   = edge.last.position
+            crossing.x = lo.x + (cast(f64, hi.x) - lo.x) * ((mid - lo.y) / (cast(f64, hi.y) - lo.y))
+        }
+
+        active.sort(&byCrossing)
+
+        // Keep an interval open while its two boundary edges remain paired. Vertex
+        // events on unrelated contours do not need to split it into more triangles.
+        for interval in active.count / 2
+        {
+            let leftIndex  = active[interval * 2].edge
+            let rightIndex = active[interval * 2 + 1].edge
+            closeFillInterval(path, spans, rightIndex, lower)
+            let left = &spans[leftIndex]
+            if left.pairedWith == rightIndex + 1 do
+                continue
+            closeFillInterval(path, spans, leftIndex, lower)
+            left.pairedWith = rightIndex + 1
+            left.openedAt   = lower
+        }
+
+        if active.count & 1 do
+            closeFillInterval(path, spans, active[active.count - 1].edge, lower)
+        lower = upper
+    }
+
+    for crossing in active do
+        closeFillInterval(path, spans, crossing.edge, lower)
+}
+
 // Triangulates the contours already given to `tess` and caches the result on the region.
 //
 // The tessellation is kept on the last contour of the region rather than on the list, because
@@ -115,9 +291,13 @@ private func buildTriangleOffsets(directions: *HashTable'(u64, Vector2), p: *Lin
 private func buildRegionTessellation(tess: *Poly2Tri.Tessellate, directions: *HashTable'(u64, Vector2), flush: *LinePath, paths: const [..] *LinePath, contours: const [..] u64, ruled: bool)
 {
     tess.triangulate()
+    let fallback = tess.sweepFailed()
     flush.triangles = tess.takeResult()
-    tess.clear()
-    buildTriangleOffsets(directions, flush, paths, contours, regionOutward(paths, contours, ruled))
+    let outward = regionOutward(paths, contours, ruled)
+    if fallback do
+        tessellateFillSlabs(flush, paths, contours, outward)
+    else do
+        buildTriangleOffsets(directions, flush, paths, contours, outward)
 }
 
 public impl Painter

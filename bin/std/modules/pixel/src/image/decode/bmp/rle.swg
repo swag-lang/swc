@@ -9,9 +9,11 @@ using Core, Core.Errors
 
 func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) fail
 {
+    let entries = makePackedPalette(palette, paletteEntrySize, paletteCount)
+    let colors  = cast(const [*] u32, &entries[0])
     var x: s32
     var y: s32
-    var p = src
+    var p       = src
 
     while p < last and y < result.height
     {
@@ -27,12 +29,9 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if value >= paletteCount do
                 fail InvalidFormatError{"BMP RLE8 index exceeds its palette"}
 
-            var dst = cast([*] u8, result.pixels.storage()) + cast(u64, y) * result.rowStride + cast(u64, x) * 3
-            for count
-            {
-                writePalettePixel(dst, palette, paletteEntrySize, value)
-                dst += 3
-            }
+            let dst   = result.pixels.storage() + cast(u64, y) * result.rowStride + cast(u64, x) * 3
+            let entry = palette + cast(u64, value) * paletteEntrySize
+            PackedPixel.fillBgr24Row(entry, dst, count)
 
             x += count
             continue
@@ -62,15 +61,11 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if x + absoluteCount > result.width do
                 fail InvalidFormatError{"invalid source buffer"}
 
-            for i in absoluteCount where p[i] >= paletteCount do
+            if paletteCount < 256 and not palette8RowFits(p, absoluteCount, paletteCount) do
                 fail InvalidFormatError{"BMP RLE8 index exceeds its palette"}
 
-            var dst = cast([*] u8, result.pixels.storage()) + cast(u64, y) * result.rowStride + cast(u64, x) * 3
-            for i in absoluteCount
-            {
-                writePalettePixel(dst, palette, paletteEntrySize, p[i])
-                dst += 3
-            }
+            let dst = result.pixels.storage() + cast(u64, y) * result.rowStride + cast(u64, x) * 3
+            decodePalette8Row(p, dst, absoluteCount, colors)
 
             p += absoluteCount
             if padding do
@@ -89,11 +84,32 @@ func decodeRle8(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
 
 func rle4Index(value: u8, index: u32)->u32 => cast(u32, ((index & 1) ? (value & 0x0F) : (value >> 4)))
 
+private func fillPalettePair(destination: [*] u8, count: u64, pair: u64)
+{
+    const RepeatPair = cast(Math.Simd.U8x16, [0'u8, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 128, 128, 128, 128])
+    let block = Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, Math.Simd.splat(pair)), RepeatPair)
+    var dst   = destination
+    for count / 4
+    {
+        Image.storeLow12(dst, block)
+        dst += 12
+    }
+
+    for i in count & 3
+    {
+        let color = i & 1 ? pair >> 24 : pair & 0xFF_FFFF
+        writePackedBgr(dst + i * 3, cast(u32, color))
+    }
+}
+
 func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, paletteEntrySize, paletteCount: u32) fail
 {
+    let entries = makePackedPalette(palette, paletteEntrySize, paletteCount)
+    let colors  = cast(const [*] u32, &entries[0])
+    let pairs   = makePalettePairs(colors)
     var x: s32
     var y: s32
-    var p = src
+    var p       = src
 
     while p < last and y < result.height
     {
@@ -110,12 +126,8 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
                (count > 1 and rle4Index(value, 1) >= paletteCount) do
                 fail InvalidFormatError{"BMP RLE4 index exceeds its palette"}
 
-            var dst = cast([*] u8, result.pixels.storage()) + cast(u64, y) * result.rowStride + cast(u64, x) * 3
-            for i in count
-            {
-                writePalettePixel(dst, palette, paletteEntrySize, rle4Index(value, i))
-                dst += 3
-            }
+            let dst = result.pixels.storage() + cast(u64, y) * result.rowStride + cast(u64, x) * 3
+            fillPalettePair(dst, count, pairs[value])
 
             x += count
             continue
@@ -146,15 +158,11 @@ func decodeRle4(result: *Image, src, last: const [*] u8, palette: const [*] u8, 
             if x + pixelCount > result.width do
                 fail InvalidFormatError{"invalid source buffer"}
 
-            for i in pixelCount where rle4Index(p[i / 2], i) >= paletteCount do
+            if paletteCount < 16 and not palette4RowFits(p, pixelCount, paletteCount) do
                 fail InvalidFormatError{"BMP RLE4 index exceeds its palette"}
 
-            var dst = cast([*] u8, result.pixels.storage()) + cast(u64, y) * result.rowStride + cast(u64, x) * 3
-            for i in pixelCount
-            {
-                writePalettePixel(dst, palette, paletteEntrySize, rle4Index(p[i / 2], i))
-                dst += 3
-            }
+            let dst = result.pixels.storage() + cast(u64, y) * result.rowStride + cast(u64, x) * 3
+            decodePalette4Row(p, dst, pixelCount, colors, cast(const [*] u64, &pairs[0]))
 
             p += byteCount
             if padding do

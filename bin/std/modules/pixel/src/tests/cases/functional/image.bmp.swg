@@ -715,6 +715,135 @@ private func requireBmpDecodeFails(bytes: const [..] u8)
     Swag.require(errorOutcome.value() != null)
 }
 
+// Exercise whole vector blocks and tails in byte, mixed-width and wide bitfields.
+#test
+{
+    const Width  = 7
+    const Height = 2
+    const Bytes  = Width * Height * 4
+    const Layouts: [5] [4] u32 = [[0x00FF0000, 0x0000FF00, 0x000000FF, 0],
+                                  [0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000],
+                                  [0x3FF00000, 0x000FFC00, 0x000003FF, 0xC0000000],
+                                  [0x00FFFFFF, 0x0F000000, 0xF0000000, 0],
+                                  [0x3FFFFFFF, 0x40000000, 0x80000000, 0]]
+
+    func pixelWord(x, y: s32)->u32 => cast(u32, (y * Width + x + 1)) * #wrap 0x9E37_79B9'u32
+
+    func scale(pixel, mask: u32)->u8
+    {
+        if not mask do
+            return 255
+        let shift = Math.trailingZeros(mask)
+        let max   = cast(u64, mask >> shift)
+        let value = cast(u64, ((pixel & mask) >> shift))
+        return cast(u8, ((value * 255 + max / 2) / max))
+    }
+
+    for layout in Layouts
+    {
+        var cb: ConcatBuffer
+        cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 70 + Bytes, bfOffBits: 70})
+        cb.addStruct(Bmp.Header{biSize: 56, biWidth: Width, biHeight: -Height, biPlanes: 1,
+                                biBitCount: 32, biCompression: Bmp.BI_BITFIELDS, biSizeImage: Bytes})
+        for mask in layout do
+            cb.addNative(mask)
+        for y in Height do
+            for x in Width do
+                cb.addNative(pixelWord(cast(s32, x), cast(s32, y)))
+
+        let image = expect Image.decode("masked-rows.bmp", nnBytes(cb.toSlice()))
+        for y in Height
+        {
+            for x in Width
+            {
+                let word = pixelWord(cast(s32, x), cast(s32, y))
+                let want = Color.fromArgb(scale(word, layout[3]), scale(word, layout[0]), scale(word, layout[1]), scale(word, layout[2]))
+                Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == want)
+            }
+        }
+    }
+}
+
+// Packed palette rows drop padding and unused trailing bits in both full and short palettes.
+#test
+{
+    const Width  = 33
+    const Height = 17
+    for depth in [1'u16, 4, 8]
+    {
+        let full          = 1'u32 << depth
+        let short         = depth == 1 ? 1'u32 : (depth == 4 ? 7'u32 : 43'u32)
+        let pixelsPerByte = 8'u32 / depth
+        let dataBytes     = (cast(u32, Width) + pixelsPerByte - 1) / pixelsPerByte
+        let stride        = (dataBytes + 3) & ~3'u32
+        for paletteCount in [short, full]
+        {
+            let offset = 54 + 4 * paletteCount
+            var cb: ConcatBuffer
+            cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: offset + stride * Height, bfOffBits: offset})
+            cb.addStruct(Bmp.Header{biSize: 40, biWidth: Width, biHeight: -Height, biPlanes: 1,
+                                    biBitCount: depth, biSizeImage: stride * Height, biClrUsed: paletteCount})
+            for color in paletteCount
+            {
+                let index = cast(u8, color)
+                addBmpPaletteColor(&cb, index, index ^ 0xA5, 255 - index)
+            }
+
+            for y in Height
+            {
+                for byte in dataBytes
+                {
+                    var packed: u8
+                    for slot in pixelsPerByte
+                    {
+                        let x     = byte * pixelsPerByte + slot
+                        let index = x < Width ? (x * 5 + cast(u32, y) * 17) % paletteCount : full - 1
+                        packed |= cast(u8, (index << ((pixelsPerByte - slot - 1) * depth)))
+                    }
+
+                    cb.addNative(packed)
+                }
+
+                for stride - dataBytes do
+                    cb.addNative(0xFD'u8)
+            }
+
+            cb.makeLinear()
+            let image = expect Image.decode("indexed-rows.bmp", nnBytes(cb.toSlice()))
+            for y in Height
+            {
+                for x in Width
+                {
+                    let index = cast(u8, (cast(u32, x * 5 + y * 17) % paletteCount))
+                    let want  = Color.fromArgb(255'u8, 255 - index, index ^ 0xA5, index)
+                    Swag.require(image.pixelColor(cast(s32, x), cast(s32, y)) == want)
+                }
+            }
+        }
+    }
+}
+
+// Odd RLE4 runs and absolute packets leave deltas and unused low nibbles untouched.
+#test
+{
+    const Packed: [18] u8 = [5, 0x01, 0, 2, 2, 0, 0, 5, 0x10, 0x10, 0x1F, 0xA5, 1, 0x0F, 0, 0, 0, 1]
+    const First           = 0xFF020100'u32
+    const Second          = 0xFF2C2B2A'u32
+    const Clear           = 0xFF000000'u32
+    const Expected        = [First, Second, First, Second, First, Clear, Clear, Second, First, Second, First, Second, First]
+    var cb: ConcatBuffer
+    cb.addStruct(BmpFH{bfType: 0x4D42, bfSize: 62 + cast(u32, Packed.count), bfOffBits: 62})
+    cb.addStruct(Bmp.Header{biSize: 40, biWidth: 13, biHeight: 1, biPlanes: 1,
+                            biBitCount: 4, biCompression: Bmp.BI_RLE4, biSizeImage: cast(u32, Packed.count), biClrUsed: 2})
+    addBmpPaletteColor(&cb, 0, 1, 2)
+    addBmpPaletteColor(&cb, 42, 43, 44)
+    cb.addBytes(Packed)
+
+    let image = expect Image.decode("rle4-mixed.bmp", nnBytes(cb.toSlice()))
+    for color, x in Expected do
+        Swag.require(image.pixelColor(cast(s32, x), 0).argb == color)
+}
+
 // Error: BI_RLE8 stream ending without an end-of-bitmap marker must fail.
 #test
 {

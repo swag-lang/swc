@@ -1,0 +1,806 @@
+{
+  "audio_source": "2ce1dc8ee8ee1a1f0010b87013e376087285df55",
+  "compiler_and_sdk": "b768af2f8996e03f94fe2460715b753b48140f1e",
+  "cases": {
+    "aac": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 3,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          4
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 221531,
+            "actual_bps": 220431.2
+          }
+        ]
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 279938,
+          "sha256": "4e560642d79d7feefd5f25c7171a4bf807406692071ca439d4ec2005f34759de",
+          "median_us": [
+            343,
+            8189,
+            113,
+            8667
+          ],
+          "samples_us": [
+            [
+              121,
+              8466,
+              137,
+              8724
+            ],
+            [
+              343,
+              9703,
+              134,
+              10180
+            ],
+            [
+              508,
+              8418,
+              107,
+              9033
+            ],
+            [
+              464,
+              8398,
+              125,
+              8987
+            ],
+            [
+              289,
+              8067,
+              107,
+              8463
+            ],
+            [
+              414,
+              8133,
+              120,
+              8667
+            ],
+            [
+              401,
+              8039,
+              113,
+              8553
+            ],
+            [
+              249,
+              8189,
+              109,
+              8547
+            ],
+            [
+              325,
+              8018,
+              105,
+              8448
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 28.448239402588143,
+            "rms_delta_pcm16": 373.9927228244202,
+            "max_delta_pcm16": 2091
+          },
+          "payload_bytes": 276914,
+          "payload_bps": 221531.2
+        },
+        "fdk_aac": {
+          "setting": 221531,
+          "size_bytes": 278570,
+          "sha256": "6fbbbe1dbb0d0c8806a665532c3ef11ccb607eb3ae1fd6cd5d5eb7c35495c9de",
+          "median_us": [
+            580,
+            115186,
+            905,
+            116684
+          ],
+          "samples_us": [
+            [
+              198,
+              131926,
+              1064,
+              133188
+            ],
+            [
+              566,
+              113691,
+              885,
+              115142
+            ],
+            [
+              635,
+              122546,
+              893,
+              124074
+            ],
+            [
+              494,
+              114632,
+              984,
+              116110
+            ],
+            [
+              588,
+              115042,
+              903,
+              116533
+            ],
+            [
+              719,
+              119797,
+              905,
+              121421
+            ],
+            [
+              580,
+              114315,
+              900,
+              115795
+            ],
+            [
+              513,
+              115186,
+              985,
+              116684
+            ],
+            [
+              659,
+              119021,
+              951,
+              120631
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 443392,
+            "leading_trim_frames": 2048,
+            "snr_db": 32.50543880959478,
+            "rms_delta_pcm16": 234.4245987906145,
+            "max_delta_pcm16": 3006
+          },
+          "payload_bytes": 275539,
+          "payload_bps": 220431.2
+        }
+      }
+    },
+    "cap128": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 3,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          4
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "fdk_aac": "FDK AAC 2.0.3",
+        "codec": "aac",
+        "calibration": [
+          {
+            "requested_bps": 126284,
+            "actual_bps": 124882.4
+          },
+          {
+            "requested_bps": 127701,
+            "actual_bps": 126307.2
+          }
+        ],
+        "aac_candidate_cap_bps": 128000
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 160879,
+          "sha256": "fe046129bb523f2cc7e03189fac2fd2ad876c9984bb0c28b84f60e181d1325df",
+          "median_us": [
+            231,
+            21717,
+            322,
+            22399
+          ],
+          "samples_us": [
+            [
+              78,
+              21717,
+              369,
+              22164
+            ],
+            [
+              231,
+              22266,
+              256,
+              22753
+            ],
+            [
+              323,
+              21936,
+              436,
+              22695
+            ],
+            [
+              389,
+              21688,
+              322,
+              22399
+            ],
+            [
+              150,
+              21936,
+              346,
+              22432
+            ],
+            [
+              222,
+              21671,
+              312,
+              22205
+            ],
+            [
+              416,
+              21760,
+              252,
+              22428
+            ],
+            [
+              177,
+              21516,
+              329,
+              22022
+            ],
+            [
+              376,
+              21663,
+              308,
+              22347
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 442368,
+            "leading_trim_frames": 1024,
+            "snr_db": 22.414103965056505,
+            "rms_delta_pcm16": 749.1519660911168,
+            "max_delta_pcm16": 10226
+          },
+          "payload_bytes": 157855,
+          "payload_bps": 126284.0
+        },
+        "fdk_aac": {
+          "setting": 127701,
+          "size_bytes": 160915,
+          "sha256": "ce960f8c32b32bda6ef3988b99159206a3199a7d23b02ea6acf9ad9e0d04abea",
+          "median_us": [
+            474,
+            106608,
+            808,
+            107721
+          ],
+          "samples_us": [
+            [
+              149,
+              107443,
+              826,
+              108418
+            ],
+            [
+              430,
+              107664,
+              808,
+              108902
+            ],
+            [
+              472,
+              106200,
+              778,
+              107450
+            ],
+            [
+              493,
+              144031,
+              4902,
+              149426
+            ],
+            [
+              2669,
+              122708,
+              804,
+              126181
+            ],
+            [
+              499,
+              105592,
+              799,
+              106890
+            ],
+            [
+              542,
+              105780,
+              816,
+              107138
+            ],
+            [
+              261,
+              106608,
+              852,
+              107721
+            ],
+            [
+              474,
+              105172,
+              798,
+              106444
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 443392,
+            "leading_trim_frames": 2048,
+            "snr_db": 24.31785154044857,
+            "rms_delta_pcm16": 601.7035099023424,
+            "max_delta_pcm16": 6238
+          },
+          "payload_bytes": 157884,
+          "payload_bps": 126307.2
+        }
+      }
+    },
+    "flac": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 3,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          4
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "ffmpeg": "9.1",
+        "codec": "flac",
+        "calibration": [],
+        "libflac": "1.5.0"
+      },
+      "input": {
+        "name": "filesamples44-8bit.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "0a5b85faa5794f27c8b6c4094af1ca3d2eec151bd79cd2649e868bcaa66055fc"
+      },
+      "engines": {
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 379104,
+          "sha256": "6ac1941c45c17b723db88a53a9a3f9e536fd6915d00fe6fa350fca5b0ef19f1d",
+          "median_us": [
+            489,
+            7378,
+            96,
+            7993
+          ],
+          "samples_us": [
+            [
+              180,
+              7008,
+              118,
+              7306
+            ],
+            [
+              584,
+              7055,
+              117,
+              7756
+            ],
+            [
+              535,
+              7603,
+              96,
+              8234
+            ],
+            [
+              517,
+              7283,
+              119,
+              7919
+            ],
+            [
+              489,
+              7515,
+              96,
+              8100
+            ],
+            [
+              468,
+              7431,
+              94,
+              7993
+            ],
+            [
+              625,
+              7378,
+              91,
+              8094
+            ],
+            [
+              336,
+              7578,
+              145,
+              8059
+            ],
+            [
+              297,
+              7079,
+              90,
+              7466
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 441000,
+            "leading_trim_frames": 0,
+            "pcm_exact": true
+          }
+        },
+        "ffmpeg": {
+          "setting": 0,
+          "size_bytes": 405064,
+          "sha256": "0c2b57d4cd227a4f83e8d75a8822cc56365f153f8a0f8c8c1438d1f583aea54a",
+          "median_us": [
+            529,
+            9633,
+            90,
+            10333
+          ],
+          "samples_us": [
+            [
+              2011,
+              9633,
+              107,
+              11751
+            ],
+            [
+              619,
+              9450,
+              143,
+              10212
+            ],
+            [
+              445,
+              9590,
+              77,
+              10112
+            ],
+            [
+              1840,
+              10038,
+              206,
+              12084
+            ],
+            [
+              529,
+              9547,
+              85,
+              10161
+            ],
+            [
+              415,
+              9952,
+              86,
+              10453
+            ],
+            [
+              2576,
+              9911,
+              85,
+              12572
+            ],
+            [
+              441,
+              9319,
+              117,
+              9877
+            ],
+            [
+              506,
+              9737,
+              90,
+              10333
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 441000,
+            "leading_trim_frames": 0,
+            "pcm_exact": true
+          }
+        },
+        "libflac": {
+          "setting": 0,
+          "size_bytes": 379484,
+          "sha256": "da68973c49c7ab393075da33644b6585d339366808da090cc4984dd1479bb1eb",
+          "median_us": [
+            604,
+            8749,
+            93,
+            9414
+          ],
+          "samples_us": [
+            [
+              124,
+              9045,
+              150,
+              9319
+            ],
+            [
+              640,
+              8901,
+              118,
+              9659
+            ],
+            [
+              604,
+              8720,
+              90,
+              9414
+            ],
+            [
+              717,
+              8705,
+              104,
+              9526
+            ],
+            [
+              637,
+              8752,
+              94,
+              9483
+            ],
+            [
+              552,
+              8549,
+              93,
+              9194
+            ],
+            [
+              774,
+              8530,
+              90,
+              9394
+            ],
+            [
+              531,
+              8967,
+              92,
+              9590
+            ],
+            [
+              574,
+              8749,
+              91,
+              9414
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 441000,
+            "leading_trim_frames": 0,
+            "pcm_exact": true
+          }
+        }
+      }
+    },
+    "wav": {
+      "protocol": {
+        "units": "microseconds",
+        "sample_fields": [
+          "open",
+          "feed",
+          "finish",
+          "total"
+        ],
+        "rounds": 3,
+        "repetitions": 3,
+        "threads": 1,
+        "affinity": [
+          4
+        ],
+        "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+        "codec": "wav",
+        "calibration": [],
+        "libsndfile": "libsndfile-1.2.2"
+      },
+      "input": {
+        "name": "filesamples44.pcm",
+        "frames": 441000,
+        "rate": 44100,
+        "channels": 2,
+        "sha256": "da6825c53a3660702ea48e8d79844c5015c4f4ba8c445ca4cb88c64fbc84908e"
+      },
+      "engines": {
+        "candidate": {
+          "setting": "full",
+          "size_bytes": 1764044,
+          "sha256": "e0d9cc6b75f4de4578ee462ac2c888bf19544b557a2fb1dff01ee98a74052d79",
+          "median_us": [
+            797,
+            636,
+            100,
+            1464
+          ],
+          "samples_us": [
+            [
+              158,
+              2880,
+              440,
+              3478
+            ],
+            [
+              1293,
+              1949,
+              161,
+              3403
+            ],
+            [
+              1010,
+              2022,
+              188,
+              3220
+            ],
+            [
+              1136,
+              636,
+              100,
+              1872
+            ],
+            [
+              800,
+              567,
+              97,
+              1464
+            ],
+            [
+              749,
+              614,
+              94,
+              1457
+            ],
+            [
+              797,
+              414,
+              167,
+              1378
+            ],
+            [
+              681,
+              680,
+              92,
+              1453
+            ],
+            [
+              690,
+              451,
+              93,
+              1234
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 441000,
+            "leading_trim_frames": 0,
+            "pcm_exact": true
+          }
+        },
+        "libsndfile": {
+          "setting": 0,
+          "size_bytes": 1764044,
+          "sha256": "e0d9cc6b75f4de4578ee462ac2c888bf19544b557a2fb1dff01ee98a74052d79",
+          "median_us": [
+            966,
+            1673,
+            120,
+            2621
+          ],
+          "samples_us": [
+            [
+              192,
+              1976,
+              178,
+              2346
+            ],
+            [
+              1144,
+              2176,
+              127,
+              3447
+            ],
+            [
+              1069,
+              1878,
+              116,
+              3063
+            ],
+            [
+              966,
+              1510,
+              113,
+              2589
+            ],
+            [
+              854,
+              1824,
+              138,
+              2816
+            ],
+            [
+              1310,
+              1673,
+              120,
+              3103
+            ],
+            [
+              1031,
+              1452,
+              138,
+              2621
+            ],
+            [
+              952,
+              1251,
+              111,
+              2314
+            ],
+            [
+              953,
+              1357,
+              109,
+              2419
+            ]
+          ],
+          "quality": {
+            "decoded_frames": 441000,
+            "leading_trim_frames": 0,
+            "pcm_exact": true
+          }
+        }
+      }
+    }
+  }
+}

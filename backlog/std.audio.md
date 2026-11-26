@@ -215,13 +215,17 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   a stream slaved to a clock drifting 100 ppm stays within one millisecond over four hours.
 - Related: std.audio.011, app.capture.013
 
-### std.audio.017 — Compressed audio decode still trails native FFmpeg on FileSamples
+### std.audio.017 — Single-core audio decode gaps remain on selected fixtures
 
-- Evidence: native Linux Release timings cover opening and materializing the first
-  ten seconds of PCM16. Against FFmpeg 9.1, FileSamples AAC, FLAC and OGA lead
-  on the measured single core. DTS and Vorbis are close on that core. AC-3,
-  MP3 and Opus still trail there. MP3 leads by about 3 ms with four cores.
-  [Full FileSamples comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#full-ninth-pass-comparison)
+- Evidence: native Linux Release compares opening and materializing ten seconds
+  of PCM16 on nine FileSamples and 38 generated inputs. Against FFmpeg 9.1,
+  Swag has the lower median on 9 FileSamples inputs on CPU 0,
+  8 on CPU 1 and 9 on four cores. The corpus exposes
+  the remaining channel-layout and single-core issues. libsndfile leads on
+  FileSamples WAV decoding in the independent library comparison.
+  [Final native FFmpeg comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#final-filesamples-and-generated-audio-comparison)
+  · [Independent native codec libraries](../bench/results/swagscope-filesamples/audio-decode-linux.md#independent-native-codec-libraries)
+  · [Full FileSamples comparison](../bench/results/swagscope-filesamples/audio-decode-linux.md#full-ninth-pass-comparison)
   · [Vorbis output follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#tenth-optimization-pass)
   · [AAC, AC-3 and Opus follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#eleventh-optimization-pass)
   · [MP3 synthesis follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twelfth-optimization-pass)
@@ -249,9 +253,11 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [AAC refill, Dolby and MP3 synthesis, Vorbis trees, and FLAC job storage](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-first-optimization-pass)
   · [AAC escapes, Dolby allocation, MP3 tails and odd-channel Vorbis](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-second-optimization-pass)
   · [Native FLAC workers and MP3, Dolby and Matroska Vorbis follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-third-optimization-pass)
+  · [Dolby dither traversal](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-fourth-optimization-pass)
+  · [Sequential PCM16 reads](../bench/results/swagscope-filesamples/audio-decode-linux.md#forty-fifth-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
-- Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
-  AAC spectral decoding, and Opus CELT allocation.
+- Next: reduce one-core Dolby and generated AAC decode time and the PCM WAV
+  materialization gap against libsndfile.
 - Done when: Swag opens and materializes the same PCM16 windows faster than native
   FFmpeg on all eight compressed inputs on one core, with format validation and
   PCM tolerances intact. Repeat the four-core comparison to track scaling.

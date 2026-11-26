@@ -407,3 +407,41 @@ is a separate run and has exact PCM checks.
 Swag leads on encoding time in these runs. On FileSamples, libFLAC level 8
 uses 863,620 bytes versus 1,051,716 for Swag. On generated 5.1, it uses
 1,797,398 versus 2,344,299 bytes.
+
+## WAV encoding with libsndfile
+
+The three inputs use the same interleaved PCM16. Both engines open,
+write in blocks of up to 4,096 sample frames, and finalize their files.
+Medians use 40 observations per engine on one pinned core with the
+output on the overlay filesystem. libsndfile is at version 1.2.2.
+
+[Raw WAV encoding samples and PCM checks](audio-native-library-references-linux.json)
+
+| WAV input | Swag (ms) | libsndfile (ms) |
+| --- | ---: | ---: |
+| `filesamples44.pcm` | 1.36 | 2.18 |
+| `mono48.pcm` | 0.80 | 1.38 |
+| `stereo48.pcm` | 1.16 | 2.26 |
+
+Both engines write the same byte count and restore the input samples exactly.
+
+## Final encoding checks
+
+The native Release build uses audio sources from `2ce1dc8ee8` and the
+compiler and SDK from `b768af2f89`. It processes the same ten seconds of
+PCM16. Medians use nine observations per engine on CPU 4. Every Swag
+output matches the earlier campaign's compressed bytes. The WAV and
+FLAC outputs restore the submitted PCM exactly.
+
+[Raw stage timings, hashes, and PCM checks](audio-encode-linux-final.json)
+
+| Input | Swag (ms) | Reference | Reference (ms) |
+| --- | ---: | --- | ---: |
+| AAC FileSamples regular | 8.67 | FDK 2.0.3 | 116.68 |
+| AAC FileSamples 128 kb/s ceiling | 22.40 | FDK 2.0.3 | 107.72 |
+| FLAC FileSamples with eight significant bits | 7.99 | FFmpeg 9.1 level 0 | 10.33 |
+| FLAC FileSamples with eight significant bits | 7.99 | libFLAC 1.5.0 level 0 | 9.41 |
+| WAV FileSamples PCM16 | 1.46 | libsndfile 1.2.2 | 2.62 |
+
+At 126.28 kb/s of AAC payload on FileSamples, FDK retains a
+1.90 dB waveform SNR advantage.

@@ -741,6 +741,10 @@ AstNodeRef Parser::lowerSwagIntrinsicCall(const AstNodeRef nodeExpr, const SpanR
                     numRequiredArgs = 3;
                     break;
 
+                case TokenId::IntrinsicVecClmul2XorPair:
+                    numRequiredArgs = 5;
+                    break;
+
                 default:
                     break;
             }

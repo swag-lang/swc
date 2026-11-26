@@ -743,6 +743,26 @@ namespace
         return Result::Continue;
     }
 
+    Result codeGenVecClmulXorPair(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
+    {
+        const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
+        SWC_ASSERT(children.size() == 5);
+
+        SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[3]));
+        SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[4]));
+        const SemaNodeView firstView  = codeGen.viewTypeConstant(children[3]);
+        const SemaNodeView secondView = codeGen.viewTypeConstant(children[4]);
+        const auto first             = static_cast<uint8_t>(firstView.cst()->getIntLike().as64());
+        const auto second            = static_cast<uint8_t>(secondView.cst()->getIntLike().as64());
+
+        const MicroReg value  = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[0]), MicroOpBits::B64);
+        const MicroReg factor = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[1]), MicroOpBits::B64);
+        const MicroReg addend = materializeIntrinsicIntArgReg(codeGen, codeGen.payload(children[2]), MicroOpBits::B64);
+        SWC_RESULT(CodeGenSafety::emitValueBorrowWrite(codeGen, value, 4 * sizeof(uint64_t)));
+        codeGen.builder().emitVecClmulXorPair(value, factor, addend, first, second);
+        return Result::Continue;
+    }
+
     Result codeGenX64CpuId(CodeGen& codeGen, const AstIntrinsicCallExpr& node)
     {
         const auto children = codeGen.ast().nodeRefs(node.spanChildrenRef);
@@ -2831,6 +2851,9 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMemCmpIntrinsic(codeGen, *this);
         case TokenId::IntrinsicPrefetch:
             return codeGenPrefetch(codeGen, *this);
+        case TokenId::IntrinsicVecClmul2XorPair:
+            return codeGenVecClmulXorPair(codeGen, *this);
+
         case TokenId::IntrinsicX64CpuId:
             return codeGenX64CpuId(codeGen, *this);
 

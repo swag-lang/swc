@@ -141,3 +141,4 @@ optimizations moved each result.
 - [Poly1305 parallel tiles](poly1305-worker-tiles.md)
 - [Portable GHASH with wide integer products](ghash-wide-integer.md)
 - [MD5 direct block batches](md5-block-batches.md)
+- [Paired 256-bit carry-less multiplication](wide-carryless-instruction.md)

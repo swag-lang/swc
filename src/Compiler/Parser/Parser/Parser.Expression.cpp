@@ -1005,6 +1005,9 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecSha256Rounds2:
             return parseIntrinsicCallExpr(3);
 
+        case TokenId::IntrinsicVecClmul2XorPair:
+            return parseIntrinsicCallExpr(5);
+
         case TokenId::NumberInteger:
         case TokenId::NumberBin:
         case TokenId::NumberHex:

@@ -1201,6 +1201,14 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
     if (!ops)
         return;
 
+    if (inst.op == MicroInstrOpcode::VecClmulXorPair)
+    {
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm0));
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm1));
+        info.addDef(x64RegToMicroReg(X64Reg::Xmm2));
+        return;
+    }
+
     if (inst.op == MicroInstrOpcode::VecGatherS32)
     {
         // VPGATHERDD destroys its mask. XMM15 is a late encoder scratch, and
@@ -2658,6 +2666,47 @@ void X64Encoder::encodeVecShuffleRegRegImm(MicroReg regDst, MicroReg regSrc, uin
     emitCpuOp(store_, 0x70);
     emitModRm(store_, regDst, regSrc);
     emitValue(store_, control, MicroOpBits::B8);
+}
+
+void X64Encoder::encodeVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second)
+{
+    SWC_ASSERT(value.isInt() && factor.isInt() && addend.isInt());
+    constexpr MicroReg ymm0 = MicroReg::floatReg(0);
+    constexpr MicroReg ymm1 = MicroReg::floatReg(1);
+    constexpr MicroReg ymm2 = MicroReg::floatReg(2);
+
+    const auto loadWide = [this](MicroReg dst, MicroReg src) {
+        emitVex(store_, 0xF3, VEX_MAP_0F, microRegToX64Reg(dst), X64Reg::Rax, microRegToX64Reg(src), false, false, true);
+        emitCpuOp(store_, 0x6F);
+        emitMemoryOperand(store_, 0, dst, src);
+    };
+    const auto multiplyWide = [this](MicroReg dst, MicroReg lhs, MicroReg rhs, uint8_t selector) {
+        emitVex(store_, 0x66, VEX_MAP_0F3A, microRegToX64Reg(dst), microRegToX64Reg(lhs), microRegToX64Reg(rhs), false, false, true);
+        emitCpuOp(store_, 0x44);
+        emitModRm(store_, dst, rhs);
+        store_.pushU8(selector);
+    };
+
+    loadWide(ymm0, value);
+    loadWide(ymm1, factor);
+    multiplyWide(ymm2, ymm0, ymm1, second);
+    multiplyWide(ymm0, ymm0, ymm1, first);
+    emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Xmm0, X64Reg::Xmm2, false, false, true);
+    emitCpuOp(store_, 0xEF);
+    emitModRm(store_, ymm0, ymm2);
+
+    emitVex(store_, 0x66, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Xmm0, microRegToX64Reg(addend), false, false, true);
+    emitCpuOp(store_, 0xEF);
+    emitMemoryOperand(store_, 0, ymm0, addend);
+    emitVex(store_, 0xF3, VEX_MAP_0F, X64Reg::Xmm0, X64Reg::Rax, microRegToX64Reg(value), false, false, true);
+    emitCpuOp(store_, 0x7F);
+    emitMemoryOperand(store_, 0, ymm0, value);
+
+    // No upper halves are live outside this instruction. End the wide run
+    // before the next potential call or legacy SSE instruction.
+    store_.pushU8(0xC5);
+    store_.pushU8(0xF8);
+    store_.pushU8(0x77);
 }
 
 void X64Encoder::encodeStoreZero32MemReg(MicroReg memReg, uint64_t memOffset, MicroReg zeroReg, bool finishRun)

@@ -141,6 +141,7 @@ public:
     void emitNop();
     void emitBreakpoint();
     void emitCpuId();
+    void emitVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second);
     void emitTrap();
     void emitPrefetch(MicroReg addrReg);
     void emitSanityInvalidate(MicroReg addrReg, uint64_t sizeInBytes);

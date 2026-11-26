@@ -54,6 +54,7 @@ protected:
     void encodeNopPadding(uint32_t numBytes) override;
     void encodeBreakpoint() override;
     void encodeCpuId() override;
+    void encodeVecClmulXorPair(MicroReg value, MicroReg factor, MicroReg addend, uint8_t first, uint8_t second) override;
     void encodeTrap() override;
     void encodePrefetch(MicroReg memReg) override;
     void encodeRet() override;

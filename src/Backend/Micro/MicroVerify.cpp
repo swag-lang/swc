@@ -273,6 +273,7 @@ namespace
 
             case MicroInstrOpcode::OpBinaryRegRegImm:
             case MicroInstrOpcode::VecUnaryRegMem:
+            case MicroInstrOpcode::VecClmulXorPair:
                 return 5;
 
             case MicroInstrOpcode::LoadSignedExtRegMem:

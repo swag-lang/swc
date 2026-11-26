@@ -231,6 +231,27 @@ up the four partial products of their halves.
 }
 
 /**
+# Carry-less Pairs
+
+'Swag.vecCarrylessMul2XorPair' selects halves of two 32-byte inputs and computes
+two carry-less products per 128-bit lane. Each lane is updated with both products
+and the matching lane of the addend combined by XOR. Use the runtime
+'.WideCarrylessMultiply' feature check before calling it.
+*/
+#test
+{
+    if Swag.hasCpuFeature(.WideCarrylessMultiply)
+    {
+        var value: [4] u64 = [1, 2, 4, 8]
+        let factor: [4] u64 = [4, 8, 16, 32]
+        let addend: [4] u64 = [1, 2, 3, 4]
+        Swag.vecCarrylessMul2XorPair(&value, &factor, &addend, 0x00, 0x11)
+        Swag.require(value[0] == (1 ^ 4 ^ 16) and value[1] == 2)
+        Swag.require(value[2] == (3 ^ 64 ^ 256) and value[3] == 4)
+    }
+}
+
+/**
 # Lane Permutation
 
 'Swag.vecShuffle' rearranges the lanes of a vector: result lane 'i' takes the lane

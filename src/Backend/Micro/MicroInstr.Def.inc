@@ -82,6 +82,15 @@ SWC_MICRO_INSTR_DEF(
     MicroInstrDef{
         .flags = MicroInstrFlagsE::EncoderRegUseDef,
     })
+// Loads two 128-bit lanes from each source, updates them in encoder scratch, then
+// stores both lanes through the first pointer. All source and destination ranges
+// may overlap, so the optimizer must treat the memory effect as opaque.
+SWC_MICRO_INSTR_DEF(
+    VecClmulXorPair,
+    MicroInstrDef{
+        .regModes = {MicroInstrRegMode::Use, MicroInstrRegMode::Use, MicroInstrRegMode::Use},
+        .flags    = MicroInstrFlagsE::WritesMemory | MicroInstrFlagsE::EncoderRegUseDef,
+    })
 // Cache hint for the line holding [op0.reg]. It never faults and has no observable effect, so it
 // carries no memory flag: passes neither order it against stores nor read it as a load, and it
 // survives dead-code elimination only because it defines nothing.

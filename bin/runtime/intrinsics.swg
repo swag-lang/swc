@@ -426,6 +426,13 @@ func atomicStore(addr: *u64, value: u64)
     // CRC folding is made of.
     func vecCarrylessMul(value1, value2: #simd [2] u64, selector: u8)->#simd [2] u64
 
+    // Updates each 128-bit lane of `value` with two carry-less products XORed with `addend`.
+    //
+    // The two constant selectors choose halves of `value` and `factor` as in [[vecCarrylessMul]].
+    // Each pointer names 32 bytes and may be unaligned. The other ranges may overlap `value`.
+    // Call only when [[hasCpuFeature]] reports `.WideCarrylessMultiply`.
+    func vecCarrylessMul2XorPair(value: *[4] u64, factor, addend: const *[4] u64, first, second: u8)
+
     // Starts extending four SHA-1 message words from the first two message vectors.
     //
     // Each vector holds its earlier words in higher-numbered lanes. Call only when

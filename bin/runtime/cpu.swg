@@ -6,6 +6,7 @@ public enum CpuFeature: u32
     Aes = 1     // AES block rounds and round-key operations.
     CarrylessMultiply = 2     // Carry-less multiplication of polynomial coefficients.
     Sha = 4     // SHA-1 and SHA-256 compression instructions.
+    WideCarrylessMultiply = 8     // 256-bit carry-less multiplication with independent 128-bit lanes.
 }
 
 private
@@ -38,6 +39,8 @@ private
             Swag.__x64CpuId(&registers, 7, 0)
             if registers[1] & (1'u32 << 29) do
                 bits |= cast(u32, CpuFeature.Sha)
+            if registers[2] & (1'u32 << 10) do
+                bits |= cast(u32, CpuFeature.WideCarrylessMultiply)
         }
 
         Swag.atomicStore(&cpuFeatureBits, bits)

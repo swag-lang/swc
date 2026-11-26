@@ -554,6 +554,43 @@ private func renderCpuFontOnThread(thread: const *Threading.Thread)
     Swag.require(source.pixelColor(0, 0) == Color.fromRgb(34, 79, 212))
 }
 
+// The grayscale downscaler keeps the same quantized RGB interpolation.
+#test
+{
+    var gray = Image.create(201, 149, .Gray8)
+    for y in gray.height
+    {
+        for x in gray.width do
+            gray.pixels[y * gray.width + x] = cast(u8, (x * 13 + y * 37 + x * y) & 255)
+    }
+
+    let rgb = gray.convertedTo(.RGB8)
+    var cpu: RenderCpu
+    cpu.begin(121, 83)
+    let render: IRenderer = &cpu
+    defer render.end()
+
+    var results: [2] Image
+    for index in results.count
+    {
+        let source = index == 0 ? &gray : &rgb
+        var texture = cpu.addBorrowedImage(source)
+        var painter = Painter.createScanline(&cpu)
+        painter.begin()
+        painter.setColorMaskFull()
+        painter.clear(Color.fromRgb(81, 90, 45))
+        painter.setColorMaskColor()
+        painter.setInterpolationMode(.Linear)
+        painter.drawTexture({0.375, 0.25, 119.75, 81.625}, texture)
+        painter.end()
+        expect render.draw(&painter)
+        results[index] = cpu.surfaceImage()
+        render.removeTexture(&texture)
+    }
+
+    Swag.require(Slice.equals(results[0].pixels.toSlice(), results[1].pixels.toSlice()))
+}
+
 // Each SIMD bilinear lane selects and quantizes its own four texels.
 #test
 {

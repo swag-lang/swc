@@ -1101,15 +1101,21 @@ private impl Decoder
 private const Bgr24ToRgb  = cast(Math.Simd.U8x16, [2'u8, 1, 0, 5, 4, 3, 8, 7, 6, 11, 10, 9, 128, 128, 128, 128])
 private const Bgra32ToRgb = cast(Math.Simd.U8x16, [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128, 128, 128])
 
-private const PackRgb24 = cast(Math.Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 128, 128, 128, 128])
-
 #[Swag.Inline]
-private func rgb555ToRgb24(pixels: Math.Simd.U32x4)->Math.Simd.U8x16
+private func storeRgb5558(target: [*] u8, pixels: Math.Simd.U16x8)
 {
-    // Each lane gets three channel bytes. Replicate the top bits in each byte before packing.
-    let expanded = ((pixels & 0x7C00'u32) >> 7) | ((pixels & 0x03E0'u32) << 6) | ((pixels & 0x1F'u32) << 19)
-    let rgb      = expanded | ((expanded >> 5) & 0x070707'u32)
-    return Math.Simd.shuffle(cast #bit(Math.Simd.U8x16, rgb), PackRgb24)
+    using Math.Simd
+    const LowRg  = cast(U8x16, [0'u8, 8, 128, 1, 9, 128, 2, 10, 128, 3, 11, 128, 4, 12, 128, 5])
+    const LowB   = cast(U8x16, [128'u8, 128, 0, 128, 128, 1, 128, 128, 2, 128, 128, 3, 128, 128, 4, 128])
+    const HighRg = cast(U8x16, [13'u8, 128, 6, 14, 128, 7, 15, 128, 128, 128, 128, 128, 128, 128, 128, 128])
+    const HighB  = cast(U8x16, [128'u8, 5, 128, 128, 6, 128, 128, 7, 128, 128, 128, 128, 128, 128, 128, 128])
+    let red   = ((pixels >> 7) & 248) | ((pixels >> 12) & 7)
+    let green = ((pixels >> 2) & 248) | ((pixels >> 7) & 7)
+    let blue  = ((pixels << 3) & 248) | ((pixels >> 2) & 7)
+    let rg    = packUnsigned(cast #bit(S16x8, red), cast #bit(S16x8, green))
+    let b     = packUnsigned(cast #bit(S16x8, blue), cast #bit(S16x8, blue))
+    store(target, shuffle(rg, LowRg) | shuffle(b, LowB))
+    storeLow8(target + 16, shuffle(rg, HighRg) | shuffle(b, HighB))
 }
 
 private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Image, sourceStride: u64, topDown: bool, firstRow, rows: u64)
@@ -1125,13 +1131,10 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
 
         #static if PIXEL_BYTES == 2
         {
-            // Eight input pixels fit in one load. Two extra pixels leave room for the
-            // last four bytes of the overlapping stores, which the next writes replace.
-            while count >= 10
+            while count >= 8
             {
                 let packed = Math.Simd.load(cast(const [*] u16, source))
-                Math.Simd.store(destination, rgb555ToRgb24(Math.Simd.widenLow(packed)))
-                Math.Simd.store(destination + 12, rgb555ToRgb24(Math.Simd.widenHigh(packed)))
+                storeRgb5558(destination, packed)
                 source      += 16
                 destination += 24
                 count       -= 8
@@ -1141,9 +1144,19 @@ private func(PIXEL_BYTES: u64) copyBitmapRows(pixels: const [*] u8, target: *Ima
         {
             let shuffle = PIXEL_BYTES == 3 ? Bgr24ToRgb : Bgra32ToRgb
 
-            // Six pixels leave room for both 16-byte operations. The next iteration or
-            // scalar tail overwrites the four bytes beyond the four converted pixels.
-            while count >= 6
+            // Two remaining pixels cover the overlap of the second load and store.
+            while count >= 10
+            {
+                let low  = Math.Simd.load(source)
+                let high = Math.Simd.load(source + 4 * PIXEL_BYTES)
+                Math.Simd.store(destination, Math.Simd.shuffle(low, shuffle))
+                Math.Simd.store(destination + 12, Math.Simd.shuffle(high, shuffle))
+                source      += 8 * PIXEL_BYTES
+                destination += 24
+                count       -= 8
+            }
+
+            if count >= 6
             {
                 let packed = Math.Simd.load(source)
                 Math.Simd.store(destination, Math.Simd.shuffle(packed, shuffle))

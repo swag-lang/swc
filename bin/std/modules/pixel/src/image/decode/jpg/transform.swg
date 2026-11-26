@@ -110,10 +110,10 @@ private
     }
 
     // Corrections of eight chroma samples, one per pixel.
-    func chromaBias8(cb, cr: const [*] u8)->ChromaBias
+    func chromaBias8Samples(cb, cr: Math.Simd.U8x16)->ChromaBias
     {
-        let blues = Math.Simd.widenLow(Math.Simd.load(cb))
-        let reds  = Math.Simd.widenLow(Math.Simd.load(cr))
+        let blues = Math.Simd.widenLow(cb)
+        let reds  = Math.Simd.widenLow(cr)
 
         let kbLow  = centeredChromaLow(blues)
         let kbHigh = centeredChromaHigh(blues)
@@ -127,6 +127,8 @@ private
         return result
     }
 
+    func chromaBias8(cb, cr: const [*] u8)->ChromaBias => chromaBias8Samples(Math.Simd.load(cb), Math.Simd.load(cr))
+
     // Writes the twenty-four bytes of eight interleaved BGR pixels.
     func storeTriplets(destination: [*] u8, blueGreen, red: Math.Simd.U8x16)
     {
@@ -138,13 +140,15 @@ private
     //
     // The saturating narrowing is the clamp the conversion needs: a corrected sample outside the
     // byte range lands on its nearest end.
-    func storeBgr(destination: [*] u8, luma: const [*] u8, bias: ChromaBias)
+    func storeBgrSamples(destination: [*] u8, luma: Math.Simd.U8x16, bias: ChromaBias)
     {
-        let y         = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(Math.Simd.load(luma)))
+        let y         = cast #bit(Math.Simd.S16x8, Math.Simd.widenLow(luma))
         let blueGreen = Math.Simd.packUnsigned(y + bias.bc, y + bias.gc)
         let red       = Math.Simd.packUnsigned(y + bias.rc, y + bias.rc)
         storeTriplets(destination, blueGreen, red)
     }
+
+    func storeBgr(destination: [*] u8, luma: const [*] u8, bias: ChromaBias) => storeBgrSamples(destination, Math.Simd.load(luma), bias)
 }
 
 // The transform coefficients, paired the way a multiply-add of adjacent lanes consumes them.
@@ -508,41 +512,54 @@ impl Decoder
         }
     }
 
-    #[Swag.Inline]
-    mtd componentSample(mcu: const [*] u8, component, blockBase, pixelX, pixelY, maxSamplingH, maxSamplingV: s32)->u8
-    {
-        let componentX = pixelX * .compSampH[component] / maxSamplingH
-        let componentY = pixelY * .compSampV[component] / maxSamplingV
-        let block      = blockBase + (componentY >> 3) * .compSampH[component] + (componentX >> 3)
-        return mcu[block * 64 + (componentY & 7) * 8 + (componentX & 7)]
-    }
-
-    // Converts any legal three-component sampling layout not covered by the SIMD specializations.
-    // The entropy stream keeps every block in MCU component order; these ratios map one output
-    // sample back to the exact component block and sample that covers it.
+    // For each group of eight output pixels, load the component block that covers it and
+    // repeat its samples according to the horizontal ratio. The frame validated that every
+    // ratio divides the MCU sampling grid, so a group never spans two component blocks.
     mtd convertGeneric(output: [*] u8)
     {
-        let row          = .maxMcuSizeY - .mcuLinesLeft
+        using Math.Simd
+
+        let row = .maxMcuSizeY - .mcuLinesLeft
         let maxSamplingH = .maxMcuSizeX / 8
         let maxSamplingV = .maxMcuSizeY / 8
-        let cbBase       = .compSampH[0] * .compSampV[0]
-        let crBase       = cbBase + .compSampH[1] * .compSampV[1]
-        var destination  = output
-        var mcu          = cast(const [*] u8, .safeSampleBuf())
-        for .maxMcusPerRow
+        const MaxSampling = 4
+        var offsets:   [MaxSampling][3] s32
+        var indices:   [MaxSampling][3] U8x16
+        var blockBase: s32
+        for component in 3
         {
-            for x in .maxMcuSizeX
+            let samplingH       = .compSampH[component]
+            let samplingV       = .compSampV[component]
+            let horizontalRatio = maxSamplingH / samplingH
+            let componentY      = row * samplingV / maxSamplingV
+            let rowOffset       = (blockBase + (componentY >> 3) * samplingH) * 64 + (componentY & 7) * 8
+            for group in maxSamplingH
             {
-                let y  = cast(s32, .componentSample(mcu, 0, 0, x, row, maxSamplingH, maxSamplingV))
-                let cb = cast(s32, .componentSample(mcu, 1, cbBase, x, row, maxSamplingH, maxSamplingV)) * 2 - 256
-                let cr = cast(s32, .componentSample(mcu, 2, crBase, x, row, maxSamplingH, maxSamplingV)) * 2 - 256
-                destination[0] = clamp(y + ((FixCbToB * cb + (1 << 15)) >> 16))
-                destination[1] = clamp(y + ((FixCrToG * cr + FixCbToG * cb + (1 << 15)) >> 16))
-                destination[2] = clamp(y + ((FixCrToR * cr + (1 << 15)) >> 16))
-                destination    += 3
+                let x = group * 8
+                offsets[group][component] = rowOffset + ((x / horizontalRatio) >> 3) * 64
+                var lanes: [16] u8
+                for lane in 8 do
+                    lanes[lane] = cast(u8, (((x + lane) / horizontalRatio) & 7))
+                indices[group][component] = cast #bit(U8x16, lanes)
             }
 
-            mcu += .maxBlocksPerMcu * 64
+            blockBase += samplingH * samplingV
+        }
+
+        var destination = output
+        var mcu         = cast(const [*] u8, .safeSampleBuf())
+        for .maxMcusPerRow
+        {
+            for group in maxSamplingH
+            {
+                let y  = shuffle(load(mcu + offsets[group][0]), indices[group][0])
+                let cb = shuffle(load(mcu + offsets[group][1]), indices[group][1])
+                let cr = shuffle(load(mcu + offsets[group][2]), indices[group][2])
+                storeBgrSamples(destination, y, chromaBias8Samples(cb, cr))
+                destination += 24
+            }
+
+            mcu += blockBase * 64
         }
     }
 }

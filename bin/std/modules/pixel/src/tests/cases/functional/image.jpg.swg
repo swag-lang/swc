@@ -152,6 +152,14 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     assertLoadedJpg("h2v2.jpg", 1024, 768, 30'u8, 26'u8, 25'u8)
 }
 
+// Cb has the widest sampling grid and Cr the tallest. Both axes use ratios of three.
+#test
+{
+    let image = expect Image.load(getTestDataPath("sampling-thirds.jpg"))
+    Swag.require(image.width == 43 and image.height == 35 and image.pixelFormat == .BGR8)
+    Swag.require(Hash.Crc64.compute(image.pixels.toSlice()) == 14265801161445841991'u64)
+}
+
 // Pillow 12.3.0 baseline JPEG of one gray sample at 128, saved at quality 77.
 // The short scan reaches the end of the input window during marker lookahead.
 #test

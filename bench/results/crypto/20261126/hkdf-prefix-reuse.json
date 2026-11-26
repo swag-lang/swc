@@ -1,0 +1,3180 @@
+{
+  "utc": "2026-11-26T13:03:30.971205+00:00",
+  "system": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpu": 4,
+  "affinity": [
+    4
+  ],
+  "workers": {
+    "prefix-per-block": 1,
+    "prefix-reuse": 1
+  },
+  "processor": {
+    "model name": "AMD EPYC 9V74 80-Core Processor",
+    "microcode": "0x1000065",
+    "flags": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext cpuid_fault vmmcall fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves avx512_bf16 clzero xsaveerptr arat npt nrip_save tsc_scale vmcb_clean flushbyasid pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm arch_capabilities"
+  },
+  "reference_build": "OpenSSL 3.5.7 9 Jun 2026 | zlib 1.3.1 | BLAKE3 1.8.7 | libdeflate 1.26 | ISA-L 2.32.1 | liblzma 5.8.1",
+  "reference_sha256": "2deeb8ec39929aa223ad41ee20c9e21d9ae5819e87400e989062357d0ba4f4c6",
+  "swag_builds": {
+    "prefix-per-block": "6e9179ae29c7fbffb03bfa767f9ca5ce3f2af2441f55124693d8435859c40de0",
+    "prefix-reuse": "ba682e5ed0c53266d176a4fa7537d174d9444914e4caf9b80a55e1348b3b8704"
+  },
+  "rounds": 15,
+  "target_ms": 25,
+  "clock": "cpu",
+  "rows": [
+    {
+      "algorithm": "hkdf-sha224",
+      "bytes": 28,
+      "offset": 0,
+      "input_sha256": "6729d04d7679b70e8cbbde6cf955e13fba1106e38fc0a5a70b1e1d70f2130d8a",
+      "output_sha256": "f3182e47034151f92e34666f357b163de80f603fa160f322786663bf4b956cc1",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 13660,
+          "wall": [
+            0.025740891,
+            0.024860925,
+            0.025489373,
+            0.043917745,
+            0.047915474,
+            0.025009068,
+            0.024721355,
+            0.04693708,
+            0.044292741,
+            0.046229712,
+            0.053231493,
+            0.074516774,
+            0.060922982,
+            0.07827417,
+            0.096809155
+          ],
+          "cpu": [
+            0.02565725,
+            0.024859001,
+            0.025486666,
+            0.024977397,
+            0.024835425,
+            0.024944298,
+            0.024719774,
+            0.026565363,
+            0.025345505,
+            0.025285536,
+            0.025036155,
+            0.025541719,
+            0.025880291,
+            0.025661645,
+            0.025396591
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 38457,
+          "wall": [
+            0.024654303,
+            0.025337473,
+            0.046720542,
+            0.024628294,
+            0.025493048,
+            0.043365623,
+            0.027976153,
+            0.024775636,
+            0.074756074,
+            0.071760557,
+            0.069312265,
+            0.050555126,
+            0.064538615,
+            0.069167066,
+            0.087130328
+          ],
+          "cpu": [
+            0.024574677,
+            0.025103324,
+            0.027698387,
+            0.024626434,
+            0.025491002,
+            0.024419767,
+            0.026965282,
+            0.024773604,
+            0.028423929,
+            0.024706524,
+            0.024846093,
+            0.025035823,
+            0.024524883,
+            0.024843207,
+            0.025374369
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 40132,
+          "wall": [
+            0.040556716,
+            0.026733238,
+            0.02586529,
+            0.025453738,
+            0.025007135,
+            0.026209238,
+            0.044767306,
+            0.026857906,
+            0.060826497,
+            0.070358132,
+            0.068438437,
+            0.076734609,
+            0.05380668,
+            0.055167773,
+            0.077732374
+          ],
+          "cpu": [
+            0.025609549,
+            0.026617781,
+            0.025862696,
+            0.025451693,
+            0.025005178,
+            0.026206988,
+            0.028573322,
+            0.026855814,
+            0.032582604,
+            0.025341869,
+            0.025907182,
+            0.025768585,
+            0.025593185,
+            0.026777058,
+            0.025436323
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha224",
+      "bytes": 112,
+      "offset": 0,
+      "input_sha256": "73f4656c41f1793ccb23c803e258926b0cb1e8989c7786a018998c5eddf2013e",
+      "output_sha256": "0cccd37db782ef8f4284fa791b5f573b208ca5e49784b61d250edde7c3ce4a53",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 10141,
+          "wall": [
+            0.052267188,
+            0.068794935,
+            0.060169506,
+            0.048687048,
+            0.099872084,
+            0.053169849,
+            0.05215583,
+            0.069987273,
+            0.057235541,
+            0.068253529,
+            0.049859346,
+            0.046693392,
+            0.092594719,
+            0.068023481,
+            0.071441926
+          ],
+          "cpu": [
+            0.025038677,
+            0.024719535,
+            0.024009767,
+            0.023835648,
+            0.039799299,
+            0.024503894,
+            0.023920264,
+            0.024130757,
+            0.024890976,
+            0.025194942,
+            0.024147099,
+            0.023940945,
+            0.029799592,
+            0.023953173,
+            0.02379149
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 13841,
+          "wall": [
+            0.0431514,
+            0.04600988,
+            0.043501277,
+            0.045242704,
+            0.060386233,
+            0.076081925,
+            0.057547251,
+            0.044639985,
+            0.046138725,
+            0.068368061,
+            0.062381402,
+            0.063130902,
+            0.092683822,
+            0.066385702,
+            0.06570887
+          ],
+          "cpu": [
+            0.022943506,
+            0.023605296,
+            0.023033551,
+            0.023492776,
+            0.023263159,
+            0.038307177,
+            0.023141404,
+            0.0232275,
+            0.023391014,
+            0.023401662,
+            0.023184518,
+            0.022845272,
+            0.036423223,
+            0.023022897,
+            0.023245718
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 18930,
+          "wall": [
+            0.053040475,
+            0.053941072,
+            0.083717951,
+            0.06424972,
+            0.065827199,
+            0.059957977,
+            0.054439865,
+            0.046160107,
+            0.060955872,
+            0.045851342,
+            0.081041315,
+            0.049870543,
+            0.052735595,
+            0.048317661,
+            0.044413003
+          ],
+          "cpu": [
+            0.025159519,
+            0.025676749,
+            0.029161844,
+            0.025197364,
+            0.024154502,
+            0.029523987,
+            0.023487628,
+            0.023928595,
+            0.023724322,
+            0.023822737,
+            0.03238746,
+            0.025554096,
+            0.024370144,
+            0.024727444,
+            0.024471353
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha224",
+      "bytes": 896,
+      "offset": 0,
+      "input_sha256": "46f5655ab8f2f49ecf1f20b1d9c47578c8b3fb0bdd8c61812df03829c0607760",
+      "output_sha256": "e5328d1fde254f0a5468f68f07758b78078de36cefe7e27e318c5f8c17f63011",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3448,
+          "wall": [
+            0.052981154,
+            0.052779931,
+            0.066537659,
+            0.054606156,
+            0.077186029,
+            0.069235028,
+            0.070468017,
+            0.052302851,
+            0.067837279,
+            0.069395399,
+            0.082442157,
+            0.077668696,
+            0.054983143,
+            0.074506888,
+            0.051046656
+          ],
+          "cpu": [
+            0.025953019,
+            0.025523159,
+            0.026192806,
+            0.025874283,
+            0.026077907,
+            0.025050576,
+            0.025645253,
+            0.026238588,
+            0.025457986,
+            0.027884314,
+            0.025289514,
+            0.02571157,
+            0.025706042,
+            0.02586656,
+            0.02547672
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 2218,
+          "wall": [
+            0.069600771,
+            0.055985506,
+            0.051989269,
+            0.075030899,
+            0.069277231,
+            0.075835161,
+            0.072665732,
+            0.09216519,
+            0.050813034,
+            0.073173828,
+            0.087593986,
+            0.058278404,
+            0.072620725,
+            0.050040339,
+            0.072863449
+          ],
+          "cpu": [
+            0.027006276,
+            0.026463291,
+            0.025370492,
+            0.025106168,
+            0.027263502,
+            0.026568796,
+            0.024662008,
+            0.02635028,
+            0.024959709,
+            0.026843056,
+            0.025082004,
+            0.026448449,
+            0.025009667,
+            0.025041813,
+            0.025526122
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 3677,
+          "wall": [
+            0.049922892,
+            0.048510923,
+            0.067119438,
+            0.068224903,
+            0.048695772,
+            0.058441159,
+            0.05423231,
+            0.064937517,
+            0.069715853,
+            0.051426649,
+            0.079185875,
+            0.073706962,
+            0.076976974,
+            0.072059607,
+            0.07146389
+          ],
+          "cpu": [
+            0.02581214,
+            0.025054532,
+            0.024862075,
+            0.025645572,
+            0.024901654,
+            0.027092136,
+            0.026286717,
+            0.025521677,
+            0.025276232,
+            0.025306277,
+            0.02514859,
+            0.024646363,
+            0.025360107,
+            0.026127791,
+            0.026300217
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha224",
+      "bytes": 7140,
+      "offset": 0,
+      "input_sha256": "c0c8231b855b977309e567e1dc006583477fd1dad0d73ad13cdea8f095405b94",
+      "output_sha256": "04cf606f55c33c67634b61648e7ca30e5329be4e534bd1eb82df4e5ec86df777",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 519,
+          "wall": [
+            0.044172239,
+            0.030806451,
+            0.077380701,
+            0.043890594,
+            0.024257454,
+            0.038221775,
+            0.03415742,
+            0.024601604,
+            0.031919239,
+            0.031648071,
+            0.02449319,
+            0.043740438,
+            0.024595314,
+            0.025016829,
+            0.078073747
+          ],
+          "cpu": [
+            0.025231857,
+            0.029349378,
+            0.028994601,
+            0.024930207,
+            0.024255081,
+            0.038218005,
+            0.027109743,
+            0.024599424,
+            0.02498564,
+            0.024616699,
+            0.024473476,
+            0.024717971,
+            0.024313088,
+            0.024906492,
+            0.032289277
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 286,
+          "wall": [
+            0.024996789,
+            0.028061472,
+            0.029310456,
+            0.026000403,
+            0.02482552,
+            0.034441573,
+            0.02565442,
+            0.032709121,
+            0.02531575,
+            0.025376322,
+            0.027076275,
+            0.051729536,
+            0.026665205,
+            0.042486857,
+            0.06816927
+          ],
+          "cpu": [
+            0.024646649,
+            0.025257625,
+            0.028424754,
+            0.025998228,
+            0.024823408,
+            0.034370256,
+            0.025054963,
+            0.025756778,
+            0.025313537,
+            0.025304305,
+            0.025467557,
+            0.025840593,
+            0.025166403,
+            0.025002985,
+            0.03341226
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 501,
+          "wall": [
+            0.07772357,
+            0.027571011,
+            0.032442579,
+            0.025144282,
+            0.060102725,
+            0.044668287,
+            0.026780049,
+            0.027223497,
+            0.027426684,
+            0.0256276,
+            0.026961963,
+            0.050218608,
+            0.040880354,
+            0.026042156,
+            0.07068183
+          ],
+          "cpu": [
+            0.025232939,
+            0.025756227,
+            0.025485274,
+            0.025141943,
+            0.025913907,
+            0.025750067,
+            0.026714774,
+            0.027151324,
+            0.027353907,
+            0.025625061,
+            0.026902334,
+            0.025941955,
+            0.025760618,
+            0.025970536,
+            0.025644889
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha256",
+      "bytes": 32,
+      "offset": 0,
+      "input_sha256": "2404657934fda9253c9d38499cb12ebdbbed5a27f47746fb93ed5d1b676bd395",
+      "output_sha256": "81dfb404a5c073c0fefb0f315843b0b3cb704d33542ed486aba7b0782f3725a6",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 13255,
+          "wall": [
+            0.056825223,
+            0.06603524,
+            0.088347362,
+            0.059309409,
+            0.043176087,
+            0.023967497,
+            0.023864993,
+            0.054949933,
+            0.071070085,
+            0.065781309,
+            0.041449964,
+            0.041905561,
+            0.035605198,
+            0.047494964,
+            0.071527134
+          ],
+          "cpu": [
+            0.027091434,
+            0.024497935,
+            0.027354772,
+            0.024013983,
+            0.024196986,
+            0.023948253,
+            0.0238453,
+            0.024497363,
+            0.023961173,
+            0.024312475,
+            0.023842138,
+            0.024310884,
+            0.024512027,
+            0.024449844,
+            0.028413282
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 29178,
+          "wall": [
+            0.057193387,
+            0.048319113,
+            0.021562199,
+            0.021364121,
+            0.022061032,
+            0.040514142,
+            0.040540121,
+            0.042574439,
+            0.057887524,
+            0.04072509,
+            0.061768327,
+            0.040178836,
+            0.024013706,
+            0.03994299,
+            0.034579031
+          ],
+          "cpu": [
+            0.022276062,
+            0.025524884,
+            0.021549642,
+            0.021350134,
+            0.022048324,
+            0.021479188,
+            0.021582151,
+            0.021588691,
+            0.022439508,
+            0.022009377,
+            0.021778944,
+            0.021517155,
+            0.023540638,
+            0.025927431,
+            0.022290002
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 32276,
+          "wall": [
+            0.070201575,
+            0.075427527,
+            0.025576243,
+            0.024118194,
+            0.023118997,
+            0.023989759,
+            0.023754425,
+            0.023777821,
+            0.034506772,
+            0.062491227,
+            0.051522845,
+            0.061651019,
+            0.06969412,
+            0.030804789,
+            0.061402004
+          ],
+          "cpu": [
+            0.027265884,
+            0.023942758,
+            0.025554997,
+            0.023943338,
+            0.023101555,
+            0.023970757,
+            0.023726464,
+            0.023708508,
+            0.023416248,
+            0.024849826,
+            0.025030468,
+            0.024062896,
+            0.024872219,
+            0.023368234,
+            0.025140721
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha256",
+      "bytes": 128,
+      "offset": 0,
+      "input_sha256": "c3f1487055db249295bd5ea4794ac64a5da6402ef281912f92512675957310ff",
+      "output_sha256": "9089e06bae22233762039be1c625d79b821aeb0151d72fed35feaa4124530464",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 10623,
+          "wall": [
+            0.033224277,
+            0.027155535,
+            0.024391376,
+            0.024482294,
+            0.024769216,
+            0.058173286,
+            0.043820478,
+            0.025282069,
+            0.026594378,
+            0.025425866,
+            0.025256159,
+            0.024668694,
+            0.024513099,
+            0.024849747,
+            0.024495242
+          ],
+          "cpu": [
+            0.024912819,
+            0.027056763,
+            0.024389571,
+            0.024423243,
+            0.024747867,
+            0.025257355,
+            0.024847805,
+            0.024836587,
+            0.02595947,
+            0.025237248,
+            0.025237295,
+            0.024552644,
+            0.024494187,
+            0.024797268,
+            0.024477974
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 12922,
+          "wall": [
+            0.061714697,
+            0.073651459,
+            0.025556073,
+            0.039803951,
+            0.073595916,
+            0.047988405,
+            0.02441975,
+            0.024432248,
+            0.029326229,
+            0.031493137,
+            0.035051062,
+            0.026756392,
+            0.024253437,
+            0.025829485,
+            0.024789266
+          ],
+          "cpu": [
+            0.027043402,
+            0.028550117,
+            0.025520666,
+            0.024699984,
+            0.024634749,
+            0.025292595,
+            0.024211846,
+            0.024411847,
+            0.026300143,
+            0.024516703,
+            0.034992673,
+            0.02673794,
+            0.024238708,
+            0.025808253,
+            0.024768467
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 17555,
+          "wall": [
+            0.040385888,
+            0.02538152,
+            0.046233479,
+            0.024717809,
+            0.067324177,
+            0.025977048,
+            0.030117782,
+            0.03190698,
+            0.028572521,
+            0.023884031,
+            0.034661876,
+            0.031957457,
+            0.024016361,
+            0.024132175,
+            0.023871212
+          ],
+          "cpu": [
+            0.024468606,
+            0.025378775,
+            0.030379041,
+            0.024688578,
+            0.028035229,
+            0.0259595,
+            0.024402181,
+            0.024824362,
+            0.028546382,
+            0.023871819,
+            0.03435984,
+            0.031934608,
+            0.023999451,
+            0.0241134,
+            0.023852043
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha256",
+      "bytes": 1024,
+      "offset": 0,
+      "input_sha256": "d1342d558fb88c39242e391978e9f86e44d2f00a04038d5e8711ab29980a4eef",
+      "output_sha256": "546d5865d568a49c788bca77c36f119f5560deff55fbebb82d16a39888e5b45d",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 3224,
+          "wall": [
+            0.024064474,
+            0.023110243,
+            0.022912796,
+            0.023078886,
+            0.023073788,
+            0.022916572,
+            0.029496125,
+            0.032996894,
+            0.023417218,
+            0.023104885,
+            0.023106868,
+            0.023502536,
+            0.022791953,
+            0.02340662,
+            0.023025336
+          ],
+          "cpu": [
+            0.024044187,
+            0.023094514,
+            0.022889095,
+            0.023061032,
+            0.023052451,
+            0.022901506,
+            0.028378039,
+            0.025754745,
+            0.023396602,
+            0.023084708,
+            0.023088344,
+            0.023485705,
+            0.022775088,
+            0.023391988,
+            0.023009296
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 1949,
+          "wall": [
+            0.024249953,
+            0.025761581,
+            0.025173976,
+            0.025218192,
+            0.02418796,
+            0.027772284,
+            0.024547502,
+            0.039356115,
+            0.025305684,
+            0.027355216,
+            0.027300624,
+            0.024943178,
+            0.024020517,
+            0.023974959,
+            0.024752961
+          ],
+          "cpu": [
+            0.024225086,
+            0.025741134,
+            0.025160529,
+            0.02508739,
+            0.024173971,
+            0.027714724,
+            0.024530581,
+            0.026653154,
+            0.025285336,
+            0.027336099,
+            0.027269168,
+            0.024914995,
+            0.024005619,
+            0.023949736,
+            0.024728135
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 3320,
+          "wall": [
+            0.022744702,
+            0.022498762,
+            0.022328315,
+            0.022856782,
+            0.02394361,
+            0.023603928,
+            0.023086368,
+            0.023863599,
+            0.022788188,
+            0.022204778,
+            0.023008691,
+            0.023116273,
+            0.023158578,
+            0.024062259,
+            0.024641243
+          ],
+          "cpu": [
+            0.022723612,
+            0.022487478,
+            0.022309816,
+            0.022839884,
+            0.023922516,
+            0.023589319,
+            0.023070136,
+            0.022284934,
+            0.02239514,
+            0.022188114,
+            0.022983136,
+            0.023096035,
+            0.023143805,
+            0.024047513,
+            0.024621679
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha256",
+      "bytes": 8160,
+      "offset": 0,
+      "input_sha256": "d5fee1444e2d5ff276e4ba9d8208111a37bd96e3a6356d6db452b6a34abd2f9a",
+      "output_sha256": "7593b10400b0ff29e88554a2f6ee2cb9645e694f97872c9771e8cf27ad7d8a12",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 555,
+          "wall": [
+            0.02544883,
+            0.025042238,
+            0.025259956,
+            0.024984511,
+            0.028910236,
+            0.025594069,
+            0.025058351,
+            0.025060104,
+            0.025982265,
+            0.026481719,
+            0.026110409,
+            0.025864988,
+            0.025029639,
+            0.026334575,
+            0.025049509
+          ],
+          "cpu": [
+            0.025429249,
+            0.025027471,
+            0.025237493,
+            0.024967522,
+            0.028880355,
+            0.025574985,
+            0.025046358,
+            0.025037087,
+            0.025963116,
+            0.026455059,
+            0.026093529,
+            0.025842576,
+            0.025014262,
+            0.02630281,
+            0.025035213
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 263,
+          "wall": [
+            0.026865288,
+            0.031737365,
+            0.02627084,
+            0.025681441,
+            0.026379114,
+            0.03911414,
+            0.025336641,
+            0.025292555,
+            0.026139433,
+            0.025825909,
+            0.025713901,
+            0.025553228,
+            0.026479045,
+            0.025300807,
+            0.025360386
+          ],
+          "cpu": [
+            0.026831037,
+            0.031646018,
+            0.026251754,
+            0.025655507,
+            0.026357222,
+            0.039085648,
+            0.025316332,
+            0.025279698,
+            0.026124186,
+            0.02575126,
+            0.025670729,
+            0.025536812,
+            0.02646282,
+            0.025281789,
+            0.025346306
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 486,
+          "wall": [
+            0.023992414,
+            0.024681454,
+            0.024797569,
+            0.025167457,
+            0.035362832,
+            0.024405367,
+            0.025283196,
+            0.024368801,
+            0.02398357,
+            0.028649507,
+            0.025510002,
+            0.023988599,
+            0.023965593,
+            0.024619541,
+            0.023994477
+          ],
+          "cpu": [
+            0.023971387,
+            0.024668156,
+            0.024650389,
+            0.025155723,
+            0.035339136,
+            0.024389212,
+            0.025261104,
+            0.024354428,
+            0.023961646,
+            0.028629876,
+            0.02547638,
+            0.02397217,
+            0.023941925,
+            0.024600926,
+            0.023980203
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha384",
+      "bytes": 48,
+      "offset": 0,
+      "input_sha256": "5d0cb663f3e716828d4391f7b8f72c264a641cdf286a5df899ef1cf8644e574d",
+      "output_sha256": "a62490bf77a1bba915eb48bae0e00e5f3651858fedbb212cdac60567880a5308",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 8393,
+          "wall": [
+            0.02512283,
+            0.025323341,
+            0.024802686,
+            0.026147505,
+            0.026109206,
+            0.024809257,
+            0.024917499,
+            0.025891389,
+            0.024800163,
+            0.026163758,
+            0.024949158,
+            0.025039422,
+            0.02475142,
+            0.024674582,
+            0.024842607
+          ],
+          "cpu": [
+            0.025088782,
+            0.025075643,
+            0.024800934,
+            0.026145116,
+            0.026107339,
+            0.024807373,
+            0.024894233,
+            0.025889565,
+            0.024798,
+            0.024912772,
+            0.024947402,
+            0.025037577,
+            0.024749247,
+            0.024673003,
+            0.024840543
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 10520,
+          "wall": [
+            0.036167406,
+            0.024183492,
+            0.025858379,
+            0.025437123,
+            0.027985705,
+            0.025261808,
+            0.0260783,
+            0.024684788,
+            0.026423351,
+            0.02530229,
+            0.024836497,
+            0.024162982,
+            0.025168438,
+            0.024535333,
+            0.024694994
+          ],
+          "cpu": [
+            0.026438415,
+            0.024175592,
+            0.025855875,
+            0.025434689,
+            0.027983784,
+            0.025259667,
+            0.026076314,
+            0.024682999,
+            0.026421127,
+            0.025300428,
+            0.024833723,
+            0.024161262,
+            0.0251206,
+            0.024533876,
+            0.024693003
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 10602,
+          "wall": [
+            0.025437203,
+            0.026739467,
+            0.025551145,
+            0.02430145,
+            0.024276784,
+            0.025517524,
+            0.025502392,
+            0.024423805,
+            0.026025089,
+            0.024977189,
+            0.024764308,
+            0.024404766,
+            0.025598045,
+            0.024905051,
+            0.024853843
+          ],
+          "cpu": [
+            0.025419777,
+            0.026402439,
+            0.025549178,
+            0.024299628,
+            0.02427469,
+            0.025515168,
+            0.025500506,
+            0.02442231,
+            0.026023244,
+            0.024861704,
+            0.024762156,
+            0.02440196,
+            0.025596078,
+            0.024903487,
+            0.024852041
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha384",
+      "bytes": 192,
+      "offset": 0,
+      "input_sha256": "febcc6b104f25f88c894fea3fbc39a7c7a88c77386b19c48f608e54639d5d280",
+      "output_sha256": "230f73f5de18fd6a58b431b3764903ca7b6a31205ff8179853979862555adbbd",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 6015,
+          "wall": [
+            0.02592635,
+            0.024963308,
+            0.025455061,
+            0.026134074,
+            0.025381709,
+            0.024925351,
+            0.024929307,
+            0.02509725,
+            0.025040655,
+            0.026839658,
+            0.025171513,
+            0.02490465,
+            0.025287468,
+            0.024935797,
+            0.025227878
+          ],
+          "cpu": [
+            0.02589886,
+            0.024961453,
+            0.025453326,
+            0.026125417,
+            0.025379506,
+            0.024923597,
+            0.024927723,
+            0.025095283,
+            0.025038939,
+            0.025059569,
+            0.025169483,
+            0.024902836,
+            0.025285896,
+            0.024934022,
+            0.025225737
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 4349,
+          "wall": [
+            0.025414769,
+            0.025107327,
+            0.024922416,
+            0.026026121,
+            0.025438115,
+            0.024923098,
+            0.025610555,
+            0.024997309,
+            0.024852311,
+            0.02672158,
+            0.026848056,
+            0.025052673,
+            0.025430423,
+            0.024721594,
+            0.025778228
+          ],
+          "cpu": [
+            0.025412905,
+            0.025105457,
+            0.024915385,
+            0.026024005,
+            0.025420507,
+            0.024903657,
+            0.025426927,
+            0.024995775,
+            0.024850378,
+            0.025009704,
+            0.026625486,
+            0.025050646,
+            0.025428709,
+            0.024719723,
+            0.025771109
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 6158,
+          "wall": [
+            0.025665177,
+            0.025072402,
+            0.024780603,
+            0.024859873,
+            0.024824309,
+            0.025493507,
+            0.026126031,
+            0.024782065,
+            0.025599438,
+            0.037824044,
+            0.02508336,
+            0.025377252,
+            0.02517652,
+            0.024789747,
+            0.024907464
+          ],
+          "cpu": [
+            0.025663579,
+            0.025070225,
+            0.024779122,
+            0.024848145,
+            0.024822136,
+            0.025491933,
+            0.026123904,
+            0.024780243,
+            0.025597241,
+            0.027023096,
+            0.025081642,
+            0.025350132,
+            0.025174771,
+            0.024787885,
+            0.024905309
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha384",
+      "bytes": 1536,
+      "offset": 0,
+      "input_sha256": "37dfe221d3c8de6121b9d000d4162e5f8f3b04bb261c43ba73ed2dae7b32d293",
+      "output_sha256": "7a6e60da0c35873fe14da5549d18986ed26f5bb504962905373fe15d50f577b4",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1616,
+          "wall": [
+            0.024922728,
+            0.025031691,
+            0.025360597,
+            0.025208448,
+            0.025022048,
+            0.02500366,
+            0.025168708,
+            0.026924847,
+            0.024915117,
+            0.025130361,
+            0.025020284,
+            0.025124372,
+            0.025266536,
+            0.025230442,
+            0.024968918
+          ],
+          "cpu": [
+            0.024921184,
+            0.025030096,
+            0.025358945,
+            0.025206128,
+            0.025020261,
+            0.025002024,
+            0.02516721,
+            0.026922654,
+            0.024912981,
+            0.025128703,
+            0.025017908,
+            0.025122223,
+            0.025264725,
+            0.025221881,
+            0.024966371
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 638,
+          "wall": [
+            0.024965973,
+            0.024687023,
+            0.02366433,
+            0.024812782,
+            0.024967585,
+            0.023655056,
+            0.023733575,
+            0.027050457,
+            0.023648065,
+            0.024191034,
+            0.024434201,
+            0.02382357,
+            0.025093355,
+            0.024240168,
+            0.02369136
+          ],
+          "cpu": [
+            0.024963827,
+            0.024668367,
+            0.023657702,
+            0.024810398,
+            0.02496558,
+            0.023652383,
+            0.023732123,
+            0.027048341,
+            0.023646656,
+            0.024189083,
+            0.024432185,
+            0.023821746,
+            0.025078638,
+            0.024238377,
+            0.023689169
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 1249,
+          "wall": [
+            0.024797809,
+            0.025243452,
+            0.024875076,
+            0.057796598,
+            0.026756674,
+            0.024688555,
+            0.024663397,
+            0.024780664,
+            0.02473851,
+            0.026065641,
+            0.024655465,
+            0.02679379,
+            0.025118513,
+            0.024928517,
+            0.02476482
+          ],
+          "cpu": [
+            0.024779452,
+            0.02524133,
+            0.024873472,
+            0.025794274,
+            0.026754273,
+            0.024673634,
+            0.024661667,
+            0.024778832,
+            0.024736829,
+            0.026063033,
+            0.024653545,
+            0.026791739,
+            0.025117095,
+            0.024926381,
+            0.024763028
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha384",
+      "bytes": 12240,
+      "offset": 0,
+      "input_sha256": "d165097eba860eb93a51eeec4f37ac0d8de7e357ee612088f8fc149ca43193cc",
+      "output_sha256": "827434966fc5377e0e6ea8060d8eac013735dd3a60d2c78fa331d94a3ecbb0b0",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 234,
+          "wall": [
+            0.024591878,
+            0.025369261,
+            0.030137382,
+            0.029456386,
+            0.029123333,
+            0.024934395,
+            0.025341578,
+            0.026118741,
+            0.024791258,
+            0.025153505,
+            0.024892771,
+            0.024624746,
+            0.024777227,
+            0.024674973,
+            0.025076477
+          ],
+          "cpu": [
+            0.024590271,
+            0.025367037,
+            0.028755463,
+            0.028465952,
+            0.027458313,
+            0.02493221,
+            0.025329222,
+            0.026115492,
+            0.024762847,
+            0.024909497,
+            0.024877209,
+            0.024610841,
+            0.024764598,
+            0.024656218,
+            0.025053422
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 87,
+          "wall": [
+            0.025734853,
+            0.02522954,
+            0.025042478,
+            0.037134736,
+            0.042175447,
+            0.025253846,
+            0.026777133,
+            0.025486035,
+            0.02644392,
+            0.026160413,
+            0.025491214,
+            0.025525897,
+            0.025127414,
+            0.025609952,
+            0.02517016
+          ],
+          "cpu": [
+            0.02568525,
+            0.025226698,
+            0.02503988,
+            0.027719872,
+            0.027313105,
+            0.025251385,
+            0.026775164,
+            0.025483912,
+            0.026424223,
+            0.026139919,
+            0.025473305,
+            0.025505664,
+            0.02510772,
+            0.025588978,
+            0.025151086
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 171,
+          "wall": [
+            0.025205093,
+            0.025276472,
+            0.026462781,
+            0.029165686,
+            0.036747812,
+            0.025337213,
+            0.025492536,
+            0.034769736,
+            0.025946811,
+            0.027862721,
+            0.025069247,
+            0.025556512,
+            0.025114145,
+            0.024824809,
+            0.024958681
+          ],
+          "cpu": [
+            0.025202843,
+            0.02526837,
+            0.026460797,
+            0.028165035,
+            0.027902583,
+            0.025334789,
+            0.025490611,
+            0.034766996,
+            0.02592014,
+            0.027841452,
+            0.02505336,
+            0.025531704,
+            0.024929676,
+            0.024806324,
+            0.024940163
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha512",
+      "bytes": 64,
+      "offset": 0,
+      "input_sha256": "28f0a1a9fae78b5247ebe5b1919541c009f78cc2b79d276352a9c46251a02522",
+      "output_sha256": "50d1555923d2820394268a33026683fd3bca2e4338917c3b4e96f25d43a6135f",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 8448,
+          "wall": [
+            0.025500498,
+            0.025281277,
+            0.025253836,
+            0.025128356,
+            0.025378735,
+            0.040537725,
+            0.025206094,
+            0.02591946,
+            0.025646488,
+            0.025522702,
+            0.031470581,
+            0.02612579,
+            0.025313175,
+            0.036614959,
+            0.024978571
+          ],
+          "cpu": [
+            0.025484862,
+            0.025264043,
+            0.025198448,
+            0.025109472,
+            0.025354008,
+            0.025642638,
+            0.025171087,
+            0.025904489,
+            0.025514167,
+            0.025504191,
+            0.031440171,
+            0.026107058,
+            0.025287959,
+            0.026542408,
+            0.024957467
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 10511,
+          "wall": [
+            0.025729583,
+            0.02407617,
+            0.024556855,
+            0.024647762,
+            0.025088285,
+            0.028201201,
+            0.025160074,
+            0.024402873,
+            0.024105664,
+            0.025711345,
+            0.030479402,
+            0.025301297,
+            0.025258593,
+            0.03488526,
+            0.025070068
+          ],
+          "cpu": [
+            0.025715207,
+            0.024062404,
+            0.024532346,
+            0.024629579,
+            0.025072639,
+            0.024230755,
+            0.025134022,
+            0.024387769,
+            0.02408583,
+            0.025683146,
+            0.030460207,
+            0.025286108,
+            0.025241991,
+            0.026999042,
+            0.025054651
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 10839,
+          "wall": [
+            0.024835094,
+            0.026360904,
+            0.025685177,
+            0.025035256,
+            0.025569733,
+            0.025213134,
+            0.026913018,
+            0.025544795,
+            0.025275058,
+            0.025833961,
+            0.034854765,
+            0.025359905,
+            0.028453561,
+            0.029812461,
+            0.026017276
+          ],
+          "cpu": [
+            0.024794314,
+            0.02633676,
+            0.025320157,
+            0.025013702,
+            0.025546154,
+            0.025193739,
+            0.026877055,
+            0.025376523,
+            0.02522699,
+            0.02581146,
+            0.034831171,
+            0.025337765,
+            0.027435141,
+            0.028824575,
+            0.025995103
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-per-block",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha512",
+      "bytes": 256,
+      "offset": 0,
+      "input_sha256": "f20d918c9f7e63430deddbbb8cea4d79972eafb79603e7f4d9725182a5d6ed88",
+      "output_sha256": "de2e6c7bf4617f5d1c4a80035a65f532d9235b96ea6f6d3d5d0392361a96d246",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 5326,
+          "wall": [
+            0.024849767,
+            0.024866221,
+            0.025357602,
+            0.025098022,
+            0.025596984,
+            0.025027886,
+            0.024915116,
+            0.025222861,
+            0.026069738,
+            0.02487177,
+            0.025167497,
+            0.025499617,
+            0.025269752,
+            0.025444144,
+            0.026125391
+          ],
+          "cpu": [
+            0.024832811,
+            0.02485128,
+            0.025340968,
+            0.02508071,
+            0.025160899,
+            0.025008953,
+            0.024894182,
+            0.02522082,
+            0.02606748,
+            0.024869406,
+            0.025165918,
+            0.025487777,
+            0.02526758,
+            0.0254151,
+            0.026106448
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 3825,
+          "wall": [
+            0.02427522,
+            0.027599402,
+            0.024882337,
+            0.024857799,
+            0.024903509,
+            0.024650187,
+            0.024490635,
+            0.024330024,
+            0.024501963,
+            0.025656895,
+            0.025785009,
+            0.025703635,
+            0.024538388,
+            0.024287259,
+            0.025040265
+          ],
+          "cpu": [
+            0.024257834,
+            0.027570578,
+            0.0248657,
+            0.024837156,
+            0.024884308,
+            0.024567947,
+            0.024291896,
+            0.024328371,
+            0.024500437,
+            0.025655297,
+            0.025782476,
+            0.025701826,
+            0.024527988,
+            0.024270537,
+            0.025015744
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 5235,
+          "wall": [
+            0.024800171,
+            0.029313619,
+            0.025703615,
+            0.025554219,
+            0.026106904,
+            0.025397845,
+            0.02627716,
+            0.02472545,
+            0.025783886,
+            0.026339303,
+            0.025675272,
+            0.025014537,
+            0.025086855,
+            0.025531966,
+            0.025135338
+          ],
+          "cpu": [
+            0.024758511,
+            0.02927633,
+            0.025685902,
+            0.025537122,
+            0.025778135,
+            0.025378374,
+            0.026260027,
+            0.024722888,
+            0.025781785,
+            0.026337432,
+            0.025673804,
+            0.025012579,
+            0.025085017,
+            0.025513376,
+            0.025112206
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha512",
+      "bytes": 2048,
+      "offset": 0,
+      "input_sha256": "04f8399a4c911a956d835f2d4da1b4adde3f44ee670db84fa3a0030a5b84d2fd",
+      "output_sha256": "c59dce93d1914c3f134e0b10c6a9c5e20b05bedb23455dfe1b6ef9f416fb44c1",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 1202,
+          "wall": [
+            0.02451974,
+            0.024590466,
+            0.025006153,
+            0.024418016,
+            0.024810849,
+            0.024502413,
+            0.024722035,
+            0.029246249,
+            0.024556655,
+            0.024469664,
+            0.024616104,
+            0.024669786,
+            0.024447451,
+            0.024416184,
+            0.024492069
+          ],
+          "cpu": [
+            0.024500997,
+            0.024574857,
+            0.024985609,
+            0.024402851,
+            0.024796489,
+            0.024482,
+            0.024700276,
+            0.027606406,
+            0.024537331,
+            0.024451144,
+            0.024587156,
+            0.024645802,
+            0.02442876,
+            0.024397296,
+            0.024474539
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 553,
+          "wall": [
+            0.024952873,
+            0.024796857,
+            0.024753983,
+            0.025231282,
+            0.024666972,
+            0.024532309,
+            0.024590536,
+            0.024737758,
+            0.024993795,
+            0.02483122,
+            0.024655123,
+            0.024544248,
+            0.024656055,
+            0.02453985,
+            0.024539009
+          ],
+          "cpu": [
+            0.02479847,
+            0.024777328,
+            0.02473741,
+            0.025207379,
+            0.024652282,
+            0.024513285,
+            0.024570891,
+            0.024699994,
+            0.0249723,
+            0.024811428,
+            0.024628096,
+            0.024528238,
+            0.024639133,
+            0.024499685,
+            0.024518553
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 925,
+          "wall": [
+            0.025326086,
+            0.025284213,
+            0.025141578,
+            0.025121758,
+            0.024941997,
+            0.0265491,
+            0.025473679,
+            0.054208114,
+            0.027476139,
+            0.025509533,
+            0.025228699,
+            0.025132945,
+            0.025852259,
+            0.025394759,
+            0.02495801
+          ],
+          "cpu": [
+            0.025277942,
+            0.025261822,
+            0.025124226,
+            0.025101342,
+            0.02492604,
+            0.026526386,
+            0.025448,
+            0.030211621,
+            0.027451774,
+            0.025487849,
+            0.025184095,
+            0.02511252,
+            0.025834144,
+            0.025375489,
+            0.024940311
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ]
+      ]
+    },
+    {
+      "algorithm": "hkdf-sha512",
+      "bytes": 16320,
+      "offset": 0,
+      "input_sha256": "68955b6f6945fa39f52b880f8164d47e66961eb3cd7b54db28bdc3ea257120ac",
+      "output_sha256": "54d6cea54ec40bbe3a9bc4853c00aeb564fe089086188dc3c59e75314de8e643",
+      "samples": {
+        "OpenSSL": {
+          "iterations": 166,
+          "wall": [
+            0.025065492,
+            0.025006924,
+            0.02489066,
+            0.025088608,
+            0.024980705,
+            0.024855315,
+            0.045060994,
+            0.025688301,
+            0.025957718,
+            0.025664066,
+            0.024841535,
+            0.043161164,
+            0.063326987,
+            0.024158615,
+            0.041996687
+          ],
+          "cpu": [
+            0.025048893,
+            0.024989255,
+            0.024873703,
+            0.025070568,
+            0.024957306,
+            0.024839572,
+            0.03009399,
+            0.025559743,
+            0.025929616,
+            0.025532766,
+            0.024821888,
+            0.024210876,
+            0.044370418,
+            0.024101724,
+            0.027045076
+          ]
+        },
+        "prefix-per-block": {
+          "iterations": 71,
+          "wall": [
+            0.024815245,
+            0.025553239,
+            0.036423452,
+            0.025513779,
+            0.036044231,
+            0.024935277,
+            0.045260205,
+            0.041915194,
+            0.02617109,
+            0.035966464,
+            0.025906802,
+            0.025323302,
+            0.032226097,
+            0.024615584,
+            0.024699611
+          ],
+          "cpu": [
+            0.024797789,
+            0.025537592,
+            0.025478333,
+            0.0254957,
+            0.025071847,
+            0.024909757,
+            0.029803987,
+            0.026965307,
+            0.026150084,
+            0.02501417,
+            0.025884107,
+            0.025307439,
+            0.032212989,
+            0.024613826,
+            0.02469767
+          ]
+        },
+        "prefix-reuse": {
+          "iterations": 115,
+          "wall": [
+            0.023760005,
+            0.024157664,
+            0.023800625,
+            0.03963151,
+            0.024713772,
+            0.034902279,
+            0.039654415,
+            0.025966703,
+            0.036946582,
+            0.024590656,
+            0.02477864,
+            0.024246087,
+            0.038063546,
+            0.023629287,
+            0.023479571
+          ],
+          "cpu": [
+            0.023465096,
+            0.024139439,
+            0.023786594,
+            0.024682569,
+            0.024569319,
+            0.023953082,
+            0.039626642,
+            0.025943978,
+            0.025974822,
+            0.024570691,
+            0.024755296,
+            0.024233228,
+            0.038036306,
+            0.023618784,
+            0.023477784
+          ]
+        }
+      },
+      "round_order": [
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-per-block",
+          "prefix-reuse",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-per-block",
+          "OpenSSL",
+          "prefix-reuse"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "prefix-per-block",
+          "OpenSSL"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "prefix-reuse",
+          "OpenSSL",
+          "prefix-per-block"
+        ],
+        [
+          "OpenSSL",
+          "prefix-reuse",
+          "prefix-per-block"
+        ]
+      ]
+    }
+  ]
+}

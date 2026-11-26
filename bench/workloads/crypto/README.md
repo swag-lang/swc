@@ -105,4 +105,14 @@ as Swag does. The P-256 comparator uses OpenSSL's fixed-base EC multiplication w
 the group and scratch containers allocated before timing. P-256 signing enables
 RFC 6979 nonces in OpenSSL and exports the two 32-byte signature components.
 
+## HKDF
+
+Select `hkdf-sha224`, `hkdf-sha256`, `hkdf-sha384` or `hkdf-sha512` with
+`--algorithm`. The byte count denotes output length. The input file supplies
+up to 48 bytes of deterministic `info`, with a fixed 32-byte key and 12-byte
+salt. The default profiles derive 1, 4, 32 and 255 digest blocks. The report
+gives complete derivations per second, including extract and expand. OpenSSL
+selects the provider and digest before timing and receives key, salt and info
+for each call.
+
 [Recorded comparison](../../results/crypto/20261126/README.md).

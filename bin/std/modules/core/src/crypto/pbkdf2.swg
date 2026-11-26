@@ -4,7 +4,7 @@
 using Core.Errors
 
 #[Swag.Inline]
-private func(T) restorePbkdf2Hmac(hmac: *T, prefix: const *T)
+internal func(T) restoreHmacPrefix(hmac: *T, prefix: const *T)
 {
     hmac.inner       = prefix.inner
     hmac.outer       = prefix.outer
@@ -123,7 +123,7 @@ private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, 
     // the keyed pads, while each output block starts with the salted prefix.
     let keyed = Hmac.create(password)
     var salted: Hmac
-    restorePbkdf2Hmac(&salted, &keyed)
+    restoreHmacPrefix(&salted, &keyed)
     salted.update(salt)
 
     var hmac: Hmac
@@ -131,7 +131,7 @@ private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, 
     for block in 1 to blockCount
     {
         let suffix = Math.nativeToBigEndian(cast(u32, block))
-        restorePbkdf2Hmac(&hmac, &salted)
+        restoreHmacPrefix(&hmac, &salted)
         hmac.update(Swag.makeSlice(cast(const [*] u8, &suffix), #sizeof(u32)))
         var current = hmac.finalize()
         var result  = current

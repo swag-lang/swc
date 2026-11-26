@@ -91,6 +91,18 @@ func p256Public(input: const [..] u8, output: [..] u8) =>
 func p256Sign(input: const [..] u8, output: [..] u8) =>
     expect Crypto.p256EcdsaSign(Key, input, output)
 
+func hkdfSha224(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.hkdfSha224(Nonce, Key, input[until Math.min(input.count, 48)], output)
+
+func hkdfSha256(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.hkdfSha256(Nonce, Key, input[until Math.min(input.count, 48)], output)
+
+func hkdfSha384(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.hkdfSha384(Nonce, Key, input[until Math.min(input.count, 48)], output)
+
+func hkdfSha512(input: const [..] u8, output: [..] u8) =>
+    expect Crypto.hkdfSha512(Nonce, Key, input[until Math.min(input.count, 48)], output)
+
 func selectOperation(name: string, size: u64)->{operation: Operation, outputSize: u64}
 {
     switch name
@@ -124,6 +136,10 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "ed25519-sign":      return {&ed25519Sign, 64}
     case "p256-public":       return {&p256Public, 65}
     case "p256-sign":         return {&p256Sign, 64}
+    case "hkdf-sha224":       return {&hkdfSha224, size}
+    case "hkdf-sha256":       return {&hkdfSha256, size}
+    case "hkdf-sha384":       return {&hkdfSha384, size}
+    case "hkdf-sha512":       return {&hkdfSha512, size}
     default:                  unreachable
     }
 }

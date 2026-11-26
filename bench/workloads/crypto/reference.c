@@ -8,6 +8,7 @@
 #include <openssl/crypto.h>
 #include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/kdf.h>
 #include <openssl/param_build.h>
 #include <zlib.h>
 
@@ -37,6 +38,8 @@ static EVP_MD_CTX *digest_context;
 static EVP_CIPHER *cipher;
 static EVP_CIPHER_CTX *cipher_context;
 static EVP_MAC *mac;
+static EVP_KDF *hkdf;
+static EVP_KDF_CTX *hkdf_context;
 static EVP_MAC_CTX *mac_context;
 static size_t mac_size;
 static int authenticated;
@@ -279,6 +282,20 @@ static void p256_sign(const unsigned char *p, size_t n, unsigned char *out)
     EVP_PKEY_free(private_key);
 }
 
+static void hkdf_evp(const unsigned char *p, size_t n, unsigned char *out)
+{
+    if (n == 0)
+        return;
+    const size_t info_size = n < 48 ? n : 48;
+    OSSL_PARAM params[] = {
+        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_SALT, (void *)nonce, sizeof(nonce) - 1),
+        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_KEY, (void *)key, sizeof(key) - 1),
+        OSSL_PARAM_construct_octet_string(OSSL_KDF_PARAM_INFO, (void *)p, info_size),
+        OSSL_PARAM_construct_end(),
+    };
+    require(EVP_KDF_derive(hkdf_context, out, n, params), "OpenSSL HKDF derive failed");
+}
+
 static operation select_operation(const char *name, size_t input_size, size_t *result_size)
 {
     static const struct { const char *name; operation run; size_t size; } direct[] = {
@@ -326,6 +343,23 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         prepare_p256_sign();
         *result_size = 64;
         return p256_sign;
+    }
+
+    if (!strcmp(name, "hkdf-sha224") || !strcmp(name, "hkdf-sha256") ||
+        !strcmp(name, "hkdf-sha384") || !strcmp(name, "hkdf-sha512")) {
+        char hash_name[] = "SHA000";
+        memcpy(hash_name + 3, name + 8, 3);
+        hkdf = EVP_KDF_fetch(NULL, "HKDF", NULL);
+        require(hkdf != NULL, "OpenSSL could not fetch HKDF");
+        hkdf_context = EVP_KDF_CTX_new(hkdf);
+        require(hkdf_context != NULL, "OpenSSL could not allocate an HKDF context");
+        OSSL_PARAM params[] = {
+            OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST, hash_name, 0),
+            OSSL_PARAM_construct_end(),
+        };
+        require(EVP_KDF_CTX_set_params(hkdf_context, params), "OpenSSL could not set the HKDF digest");
+        *result_size = input_size;
+        return hkdf_evp;
     }
 
     const int poly1305 = !strcmp(name, "poly1305");
@@ -459,6 +493,8 @@ int main(int argc, char **argv)
     EVP_MD_free(digest);
     EVP_CIPHER_CTX_free(cipher_context);
     EVP_CIPHER_free(cipher);
+    EVP_KDF_CTX_free(hkdf_context);
+    EVP_KDF_free(hkdf);
     EVP_MAC_CTX_free(mac_context);
     EVP_MAC_free(mac);
     EVP_PKEY_CTX_free(p256_import_context);

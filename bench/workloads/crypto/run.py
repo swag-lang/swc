@@ -52,7 +52,11 @@ PUBLIC_KEY_SIZES = {
     "p256-public": (32,),
     "p256-sign": (64, 4096),
 }
-REFERENCES.update({name: {"OpenSSL": name} for name in PUBLIC_KEY_SIZES})
+HKDF_DIGEST_BYTES = {f"hkdf-sha{bits}": bits // 8 for bits in (224, 256, 384, 512)}
+HKDF_SIZES = {name: (size, 4 * size, 32 * size, 255 * size)
+              for name, size in HKDF_DIGEST_BYTES.items()}
+OPERATION_SIZES = {**PUBLIC_KEY_SIZES, **HKDF_SIZES}
+REFERENCES.update({name: {"OpenSSL": name} for name in OPERATION_SIZES})
 
 
 def program(value):
@@ -145,8 +149,8 @@ def summarize(rows, swag_labels, clock):
              "Comparator rate | Paired speed ratio (95% CI) |",
              "| --- | ---: | ---: | --- | --- | --- | ---: | ---: | ---: |"]
     for row in rows:
-        public_key = row["algorithm"] in PUBLIC_KEY_SIZES
-        unit, scale = ("ops/s", 1) if public_key else ("GB/s", row["bytes"] / 1e9)
+        operation_rate = row["algorithm"] in OPERATION_SIZES
+        unit, scale = ("ops/s", 1) if operation_rate else ("GB/s", row["bytes"] / 1e9)
         rates = {label: [scale * series["iterations"] / elapsed
                         for elapsed in series[clock]]
                  for label, series in row["samples"].items()}
@@ -209,7 +213,7 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
 
     algorithms = args.algorithm or default_algorithms
     offsets = args.offset or [0]
-    sizes = {name: args.size or PUBLIC_KEY_SIZES.get(name, (64, 4096, 65536, 1048576))
+    sizes = {name: args.size or OPERATION_SIZES.get(name, (64, 4096, 65536, 1048576))
              for name in algorithms}
     labels = [label for label, _ in args.swag]
     if (len(set(labels)) != len(labels) or
@@ -225,6 +229,9 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     for name in PUBLIC_KEY_SIZES:
         if name in sizes and not name.endswith("-sign") and any(size != 32 for size in sizes[name]):
             parser.error(f"{name} requires a 32-byte input")
+    for name, digest_bytes in HKDF_DIGEST_BYTES.items():
+        if name in sizes and any(size > 255 * digest_bytes for size in sizes[name]):
+            parser.error(f"{name} output exceeds 255 digest blocks")
     if any(offset < 0 for offset in offsets):
         parser.error("offsets must be nonnegative")
     if args.rounds < 6 or args.target_ms < 1:

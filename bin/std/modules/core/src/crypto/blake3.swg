@@ -201,40 +201,85 @@ private const Blake3WordsPerCv     = Blake3KeySize / #sizeof(u32)
 private const Blake3ParallelBytes  = 64 * 1024
 private const Blake3BlocksPerChunk = Blake3ChunkSize / Blake3BlockSize
 
-// When the final block stays buffered, return the last lane's chaining value before it.
-private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32, keepLastInput = false)->[Blake3ChunksPerBatch][8] u32
+#[Swag.Mixin]
+private func blake3MixChunk(a, b, c, d: *Blake3Vector, x, y: Blake3Vector)
 {
-    // Each lane keeps one chunk's chaining value across all sixteen blocks.
+    a[] += b[] + x
+    d[] = Math.ror(d[] ^ a[], 16)
+    c[] += d[]
+    b[] = Math.ror(b[] ^ c[], 12)
+    a[] += b[] + y
+    d[] = Math.ror(d[] ^ a[], 8)
+    c[] += d[]
+    b[] = Math.ror(b[] ^ c[], 7)
+}
+
+#[Swag.Mixin]
+private func(Round: u64) blake3MixChunkRound(a0, a1, a2, a3, b0, b1, b2, b3,
+                                            c0, c1, c2, c3, d0, d1, d2, d3: *Blake3Vector,
+                                            message: const *[16] Blake3Vector)
+{
+    scope
+    {
+        const Schedule = Blake3MessageSchedule[Round]
+        blake3MixChunk(a0, b0, c0, d0, message[][Schedule[0]], message[][Schedule[1]])
+        blake3MixChunk(a1, b1, c1, d1, message[][Schedule[2]], message[][Schedule[3]])
+        blake3MixChunk(a2, b2, c2, d2, message[][Schedule[4]], message[][Schedule[5]])
+        blake3MixChunk(a3, b3, c3, d3, message[][Schedule[6]], message[][Schedule[7]])
+        blake3MixChunk(a0, b1, c2, d3, message[][Schedule[8]], message[][Schedule[9]])
+        blake3MixChunk(a1, b2, c3, d0, message[][Schedule[10]], message[][Schedule[11]])
+        blake3MixChunk(a2, b3, c0, d1, message[][Schedule[12]], message[][Schedule[13]])
+        blake3MixChunk(a3, b0, c1, d2, message[][Schedule[14]], message[][Schedule[15]])
+    }
+}
+
+// When the final block stays buffered, return the last lane's chaining value before it.
+private func(Parent: bool) blake3FourCvs(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32, keepLastInput = false)->[Blake3ChunksPerBatch][8] u32
+{
+    // A leaf lane covers sixteen message blocks, while a parent combines two native chaining values.
+    const Blocks        = Parent ? 1 : Blake3BlocksPerChunk
+    const CounterStride = Parent ? 0'u64 : 1
+    const InputStride   = Parent ? Blake3BlockSize : Blake3ChunkSize
     var cv: [8] Blake3Vector
     for index in 8 do
         cv[index] = Math.Simd.splat(key[index])
 
-    let low = cast(Blake3Vector, [cast(u32, firstChunk), cast(u32, (firstChunk + 1)),
-                                  cast(u32, (firstChunk + 2)), cast(u32, (firstChunk + 3))])
-    let high = cast(Blake3Vector, [cast(u32, (firstChunk >> 32)), cast(u32, ((firstChunk + 1) >> 32)),
-                                   cast(u32, ((firstChunk + 2) >> 32)), cast(u32, ((firstChunk + 3) >> 32))])
+    let low = cast(Blake3Vector, [cast(u32, firstChunk), cast(u32, (firstChunk + 1 * CounterStride)),
+                                  cast(u32, (firstChunk + 2 * CounterStride)), cast(u32, (firstChunk + 3 * CounterStride))])
+    let high = cast(Blake3Vector, [cast(u32, (firstChunk >> 32)), cast(u32, ((firstChunk + 1 * CounterStride) >> 32)),
+                                   cast(u32, ((firstChunk + 2 * CounterStride) >> 32)), cast(u32, ((firstChunk + 3 * CounterStride) >> 32))])
     let blockSize = Math.Simd.splat(cast(u32, Blake3BlockSize))
-    for blockIndex in Blake3BlocksPerChunk
+    for blockIndex in Blocks
     {
         let base = input + blockIndex * Blake3BlockSize
         var message: [16] Blake3Vector
         for group in 4
         {
             let bytes = cast(const [*] u32, base + group * #sizeof(Blake3Vector))
-            const WordStride = Blake3ChunkSize / #sizeof(u32)
+            const WordStride = InputStride / #sizeof(u32)
             var rows: [4] Blake3Vector = [
                 Math.Simd.load(bytes), Math.Simd.load(bytes + WordStride),
                 Math.Simd.load(bytes + WordStride * 2), Math.Simd.load(bytes + WordStride * 3)]
             Math.Simd.transpose4x4(&rows)
-            for index in 4 do
-                message[group * 4 + index] = Math.littleEndianToNative(rows[index])
+            for index in 4
+            {
+                #static if Parent do
+                    message[group * 4 + index] = rows[index]
+                else do
+                    message[group * 4 + index] = Math.littleEndianToNative(rows[index])
+            }
         }
 
         var blockFlags = flags
-        if blockIndex == 0 do
-            blockFlags |= Blake3ChunkStart
-        if blockIndex == Blake3BlocksPerChunk - 1 do
-            blockFlags |= Blake3ChunkEnd
+        #static if Parent do
+            blockFlags |= Blake3Parent
+        else
+        {
+            if blockIndex == 0 do
+                blockFlags |= Blake3ChunkStart
+            if blockIndex == Blake3BlocksPerChunk - 1 do
+                blockFlags |= Blake3ChunkEnd
+        }
         // Keep the round state in separate vector locals so mixes can reuse registers.
         var a0 = cv[0]
         var a1 = cv[1]
@@ -253,46 +298,24 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
         var d2 = blockSize
         var d3 = Math.Simd.splat(blockFlags)
 
-        #[Swag.Mixin]
-        func mix(a, b, c, d: *Blake3Vector, x, y: Blake3Vector)
-        {
-            a[] += b[] + x
-            d[] = Math.ror(d[] ^ a[], 16)
-            c[] += d[]
-            b[] = Math.ror(b[] ^ c[], 12)
-            a[] += b[] + y
-            d[] = Math.ror(d[] ^ a[], 8)
-            c[] += d[]
-            b[] = Math.ror(b[] ^ c[], 7)
-        }
+        blake3MixChunkRound'0(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound'1(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound'2(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound'3(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound'4(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound'5(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
+        blake3MixChunkRound'6(&a0, &a1, &a2, &a3, &b0, &b1, &b2, &b3,
+                               &c0, &c1, &c2, &c3, &d0, &d1, &d2, &d3, &message)
 
-        #[Swag.Mixin]
-        func(Round: u64) mixRound()
-        {
-            scope
-            {
-                const Schedule = Blake3MessageSchedule[Round]
-                mix(&a0, &b0, &c0, &d0, message[Schedule[0]], message[Schedule[1]])
-                mix(&a1, &b1, &c1, &d1, message[Schedule[2]], message[Schedule[3]])
-                mix(&a2, &b2, &c2, &d2, message[Schedule[4]], message[Schedule[5]])
-                mix(&a3, &b3, &c3, &d3, message[Schedule[6]], message[Schedule[7]])
-                mix(&a0, &b1, &c2, &d3, message[Schedule[8]], message[Schedule[9]])
-                mix(&a1, &b2, &c3, &d0, message[Schedule[10]], message[Schedule[11]])
-                mix(&a2, &b3, &c0, &d1, message[Schedule[12]], message[Schedule[13]])
-                mix(&a3, &b0, &c1, &d2, message[Schedule[14]], message[Schedule[15]])
-            }
-        }
-
-        mixRound'0()
-        mixRound'1()
-        mixRound'2()
-        mixRound'3()
-        mixRound'4()
-        mixRound'5()
-        mixRound'6()
         var next: [8] Blake3Vector = [a0 ^ c0, a1 ^ c1, a2 ^ c2, a3 ^ c3,
                                        b0 ^ d0, b1 ^ d1, b2 ^ d2, b3 ^ d3]
-        if keepLastInput and blockIndex == Blake3BlocksPerChunk - 1
+        if not Parent and keepLastInput and blockIndex == Blake3BlocksPerChunk - 1
         {
             const RetainLast = cast(Blake3Vector, [0'u32, 0, 0, Swag.U32.Max])
             for index in 8 do
@@ -314,13 +337,46 @@ private func blake3FourChunkCvs(input: const [*] u8, firstChunk: u64, key: [8] u
     return result
 }
 
+private const Blake3SubtreeChunks = 2 * Blake3ChunksPerBatch
+
+private func blake3EightChunkSubtreeCv(children: const [*] u32, key: [8] u32, flags: u32)->[8] u32
+{
+    let parents   = blake3FourCvs'true(cast(const [*] u8, children), 0, key, flags)
+    let left      = blake3OutputCv(blake3ParentOutput(key, parents[0], parents[1], flags))
+    let right     = blake3OutputCv(blake3ParentOutput(key, parents[2], parents[3], flags))
+    return blake3OutputCv(blake3ParentOutput(key, left, right, flags))
+}
+
+private func blake3HashCompleteSubtree(input: const [*] u8, firstChunk: u64, key: [8] u32, flags: u32)->[8] u32
+{
+    const BatchSize = Blake3ChunksPerBatch * Blake3ChunkSize
+    var leaves: [Blake3SubtreeChunks][8] u32
+    for batch in 2
+    {
+        let cvs = blake3FourCvs'false(input + batch * BatchSize,
+                                    firstChunk + batch * Blake3ChunksPerBatch, key, flags)
+        Swag.memcpy(&leaves[batch * Blake3ChunksPerBatch][0], &cvs[0][0], #sizeof(cvs))
+    }
+    return blake3EightChunkSubtreeCv(&leaves[0][0], key, flags)
+}
+
 private func blake3HashBatches(input: const [*] u8, output: [*] u32, batches, firstChunk: u64, key: [8] u32, flags: u32)
 {
     parallel for |input, output, firstChunk, key, flags| batch in batches
     {
         let chunk = batch * Blake3ChunksPerBatch
-        let cvs   = blake3FourChunkCvs(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
+        let cvs   = blake3FourCvs'false(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
         Swag.memcpy(output + chunk * Blake3WordsPerCv, &cvs[0][0], #sizeof(cvs))
+    }
+}
+
+private func blake3HashSubtrees(input: const [*] u8, output: [*] u32, subtrees, firstChunk: u64, key: [8] u32, flags: u32)
+{
+    parallel for |input, output, firstChunk, key, flags| subtree in subtrees
+    {
+        let chunk = subtree * Blake3SubtreeChunks
+        let cv = blake3HashCompleteSubtree(input + chunk * Blake3ChunkSize, firstChunk + chunk, key, flags)
+        Swag.memcpy(output + subtree * Blake3WordsPerCv, &cv[0], #sizeof(cv))
     }
 }
 
@@ -392,7 +448,7 @@ public impl Blake3
                 if .blocksCompressed == Blake3BlocksPerChunk - 1
                 {
                     let output = .chunkOutput()
-                    .pushChunkCv(blake3OutputCv(output))
+                    .pushSubtreeCv(blake3OutputCv(output), .chunkCounter + 1)
                     .chunkCounter     += 1
                     .chunkCv          = .key
                     .blocksCompressed = 0
@@ -420,12 +476,21 @@ public impl Blake3
                     continue
                 }
 
+                if remaining > 2 * BatchBytes and .chunkCounter % Blake3SubtreeChunks == 0
+                {
+                    let cv = blake3HashCompleteSubtree(input + offset, .chunkCounter, .key, .flags)
+                    .pushSubtreeCv(cv, .chunkCounter / Blake3SubtreeChunks + 1)
+                    .chunkCounter += Blake3SubtreeChunks
+                    offset        += 2 * BatchBytes
+                    continue
+                }
+
                 let retainLast     = remaining == BatchBytes
-                let cvs            = blake3FourChunkCvs(input + offset, .chunkCounter, .key, .flags, retainLast)
+                let cvs            = blake3FourCvs'false(input + offset, .chunkCounter, .key, .flags, retainLast)
                 let completeChunks = retainLast ? Blake3ChunksPerBatch - 1 : Blake3ChunksPerBatch
                 for chunk in completeChunks
                 {
-                    .pushChunkCv(cvs[chunk])
+                    .pushSubtreeCv(cvs[chunk], .chunkCounter + 1)
                     .chunkCounter += 1
                 }
 
@@ -560,50 +625,59 @@ public impl Blake3
             return
         }
 
-        const WordsPerCv = Blake3WordsPerCv
-        var chainingValues: Array'u32
-        chainingValues.resize((chunkCount - 1) * WordsPerCv)
-        let input  = data.buffer
-        let output = unwrap chainingValues.buffer
-
-        let batchCount = (chunkCount - 1) / Blake3ChunksPerBatch
-        blake3HashBatches(input, output, batchCount, 0, key, flags)
-        for chunkIndex in batchCount * Blake3ChunksPerBatch until chunkCount - 1
-        {
-            let chunk = Swag.makeSlice(input + chunkIndex * Blake3ChunkSize, Blake3ChunkSize)
-            let cv    = blake3OutputCv(blake3ChunkOutput(chunk, chunkIndex, key, flags))
-            Swag.memcpy(output + chunkIndex * WordsPerCv, &cv[0], #sizeof(cv))
-        }
-
         var hash = Blake3.createWithKeyAndFlags(key, flags)
-        hash.pushChunkCvs(chainingValues.toSlice())
-        let finalOffset = (chunkCount - 1) * Blake3ChunkSize
-        hash.updateChunks(data[finalOffset to], false)
+        const BatchBytes = Blake3ChunksPerBatch * Blake3ChunkSize
+        let batches = (chunkCount - 1) / Blake3ChunksPerBatch
+        hash.pushParallelBatches(data.buffer, batches)
+        hash.updateChunks(data[batches * BatchBytes to], false)
         try hash.finalize(destination)
     }
 
     private mtd pushParallelBatches(input: const [*] u8, batches: u64)
     {
+        if batches >= 2 and .chunkCounter % Blake3SubtreeChunks == 0
+        {
+            let subtrees = batches / 2
+            var chainingValues: Array'u32
+            chainingValues.resize(subtrees * Blake3WordsPerCv)
+            let output = unwrap chainingValues.buffer
+            blake3HashSubtrees(input, output, subtrees, .chunkCounter, .key, .flags)
+            for subtree in subtrees
+            {
+                var cv: [Blake3WordsPerCv] u32
+                Swag.memcpy(&cv[0], output + subtree * Blake3WordsPerCv, #sizeof(cv))
+                .pushSubtreeCv(cv, .chunkCounter / Blake3SubtreeChunks + 1)
+                .chunkCounter += Blake3SubtreeChunks
+            }
+            if batches % 2 != 0
+            {
+                let cvs = blake3FourCvs'false(input + subtrees * Blake3SubtreeChunks * Blake3ChunkSize,
+                                            .chunkCounter, .key, .flags)
+                for cv in cvs
+                {
+                    .pushSubtreeCv(cv, .chunkCounter + 1)
+                    .chunkCounter += 1
+                }
+            }
+            return
+        }
+
         var chainingValues: Array'u32
         chainingValues.resize(batches * Blake3ChunksPerBatch * Blake3WordsPerCv)
-        blake3HashBatches(input, unwrap chainingValues.buffer, batches, .chunkCounter, .key, .flags)
-        .pushChunkCvs(chainingValues.toSlice())
-    }
-
-    private mtd pushChunkCvs(words: const [..] u32)
-    {
-        for chunk in words.count / Blake3WordsPerCv
+        let output = unwrap chainingValues.buffer
+        blake3HashBatches(input, output, batches, .chunkCounter, .key, .flags)
+        for chunk in batches * Blake3ChunksPerBatch
         {
             var cv: [Blake3WordsPerCv] u32
-            Swag.memcpy(&cv[0], words.buffer + chunk * Blake3WordsPerCv, #sizeof(cv))
-            .pushChunkCv(cv)
+            Swag.memcpy(&cv[0], output + chunk * Blake3WordsPerCv, #sizeof(cv))
+            .pushSubtreeCv(cv, .chunkCounter + 1)
             .chunkCounter += 1
         }
     }
 
-    private mtd pushChunkCv(cv: [8] u32)
+    private mtd pushSubtreeCv(cv: [8] u32, totalSubtrees: u64)
     {
-        var totalChunks = .chunkCounter + 1
+        var totalChunks = totalSubtrees
         var merged      = cv
         while (totalChunks & 1) == 0
         {

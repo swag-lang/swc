@@ -73,3 +73,4 @@ optimizations moved each result.
 - [Four-product reciprocal GHASH](aes-reciprocal.md)
 - [CityHash32 word loads and state rotation](cityhash32.md)
 - [P-256 field inversion addition chain](p256-inverse.md)
+- [PBKDF2-HMAC prefix reuse](pbkdf2.md)

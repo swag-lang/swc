@@ -3,19 +3,73 @@
 
 using Core.Errors
 
-private func pbkdf2AccumulateDigest(result, current: [*] u8, digestSize: u64)
+#[Swag.Inline]
+private func(T) restorePbkdf2Hmac(hmac: *T, prefix: const *T)
 {
-    const VectorSize = #sizeof(Math.Simd.U8x16)
-    let vectorCount = digestSize / VectorSize
-    for index in vectorCount
+    hmac.inner       = prefix.inner
+    hmac.outer       = prefix.outer
+    hmac.initialized = true
+}
+
+#[Swag.Inline]
+private func(DigestSize: u64) pbkdf2AccumulateDigest(result, current: [*] u8)
+{
+    const VectorSize  = #sizeof(Math.Simd.U8x16)
+    const VectorCount = DigestSize / VectorSize
+    for index in VectorCount
     {
         let offset = index * VectorSize
         Math.Simd.store(result + offset, Math.Simd.load(result + offset) ^ Math.Simd.load(current + offset))
     }
 
-    let offset = vectorCount * VectorSize
-    for index in offset until digestSize do
+    const TailOffset = VectorCount * VectorSize
+    for index in TailOffset until DigestSize do
         result[index] ^= current[index]
+}
+
+private func(Hmac, DigestSize: u64) derivePbkdf2(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
+{
+    if not iterations do
+        fail BadParameterError{"PBKDF2 needs at least one iteration"}
+    if not destination.count do
+        return
+    if salt.count > Swag.U64.Max - 4 do
+        fail OverflowError{"PBKDF2 salt is too large"}
+
+    let blockCount = ((destination.count - 1) / DigestSize) + 1
+    if blockCount > Swag.U32.Max do
+        fail OverflowError{"PBKDF2 output exceeds its maximum length"}
+
+    // Capture both inputs before any output write. Later iterations only need
+    // the keyed pads, while each output block starts with the salted prefix.
+    let keyed = Hmac.create(password)
+    var salted: Hmac
+    restorePbkdf2Hmac(&salted, &keyed)
+    salted.update(salt)
+
+    var hmac: Hmac
+    var outputOffset = 0'u64
+    for block in 1 to blockCount
+    {
+        let suffix = Math.nativeToBigEndian(cast(u32, block))
+        restorePbkdf2Hmac(&hmac, &salted)
+        hmac.update(Swag.makeSlice(cast(const [*] u8, &suffix), #sizeof(u32)))
+        var current = hmac.finalize()
+        var result  = current
+        for iterations - 1
+        {
+            restorePbkdf2Hmac(&hmac, &keyed)
+            hmac.update(current)
+            current = hmac.finalize()
+            pbkdf2AccumulateDigest'DigestSize(result.buffer, current.buffer)
+        }
+
+        let count = Math.min(destination.count - outputOffset, DigestSize)
+        Swag.memcpy(destination.buffer + outputOffset, result.buffer, count)
+        outputOffset += count
+        secureClear(current)
+        secureClear(result)
+    }
 }
 
 // Derives a key from `password` and `salt` with PBKDF2-HMAC-SHA-256 and fills `destination` with it.
@@ -25,69 +79,7 @@ private func pbkdf2AccumulateDigest(result, current: [*] u8, digestSize: u64)
 // `password` may overlap `destination`; its original bytes are preserved for every output block.
 func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
-    #[Swag.Inline]
-    func accumulateDigest(result, current: [*] u8)
-    {
-        const VectorSize = #sizeof(Math.Simd.U8x16)
-        Math.Simd.store(result, Math.Simd.load(result) ^ Math.Simd.load(current))
-        Math.Simd.store(result + VectorSize, Math.Simd.load(result + VectorSize) ^ Math.Simd.load(current + VectorSize))
-    }
-
-    if not iterations do
-        fail BadParameterError{"PBKDF2 needs at least one iteration"}
-    if not destination.count do
-        return
-    if salt.count > Swag.U64.Max - 4 do
-        fail OverflowError{"PBKDF2 salt is too large"}
-
-    // A destination write for one block must not change the password used for later blocks.
-    var passwordCopy: Array'u8
-    var passwordInput    = password
-    let passwordStart    = cast(u64, password.buffer)
-    let destinationStart = cast(u64, destination.buffer)
-    if passwordStart < destinationStart + destination.count and
-       destinationStart < passwordStart + password.count
-    {
-        passwordCopy.add(password)
-        passwordInput = passwordCopy.toSlice()
-    }
-
-    defer secureClear(passwordCopy.toSlice())
-
-    const DigestSize = #sizeof(HmacSha256Digest)
-    let blockCount = ((destination.count - 1) / DigestSize) + 1
-    if blockCount > Swag.U32.Max do
-        fail OverflowError{"PBKDF2 output exceeds its maximum length"}
-
-    var input: Array'u8
-    input.reserve(salt.count + 4)
-    input.add(salt)
-    input.resize(salt.count + 4)
-
-    var outputOffset = 0'u64
-    for block in 1 to blockCount
-    {
-        let blockIndex = cast(u32, block)
-        let suffix     = input.count - 4
-        input[suffix + 0] = Math.byteAt(blockIndex, 3)
-        input[suffix + 1] = Math.byteAt(blockIndex, 2)
-        input[suffix + 2] = Math.byteAt(blockIndex, 1)
-        input[suffix + 3] = Math.byteAt(blockIndex, 0)
-
-        var current = HmacSha256.compute(passwordInput, input.toSlice())
-        var result  = current
-        for iterations - 1
-        {
-            current = HmacSha256.compute(passwordInput, current)
-            accumulateDigest(result.buffer, current.buffer)
-        }
-
-        let count = Math.min(destination.count - outputOffset, DigestSize)
-        Swag.memcpy(destination.buffer + outputOffset, &result[0], count)
-        outputOffset += count
-        secureClear(current)
-        secureClear(result)
-    }
+    try derivePbkdf2'(HmacSha256, #sizeof(HmacSha256Digest))(password, salt, iterations, destination)
 }
 
 // Derives a key from `password` and `salt` with PBKDF2-HMAC-SHA-224 and fills `destination` with it.
@@ -96,58 +88,7 @@ func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destinatio
 // `destination` succeeds without writing. Intermediate digests are cleared before returning.
 func pbkdf2HmacSha224(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
-    if not iterations do
-        fail BadParameterError{"PBKDF2 needs at least one iteration"}
-    if not destination.count do
-        return
-    if salt.count > Swag.U64.Max - 4 do
-        fail OverflowError{"PBKDF2 salt is too large"}
-
-    var passwordCopy: Array'u8
-    var passwordInput = password
-    let passwordStart = cast(u64, password.buffer)
-    let outputStart   = cast(u64, destination.buffer)
-    if passwordStart < outputStart + destination.count and outputStart < passwordStart + password.count
-    {
-        passwordCopy.add(password)
-        passwordInput = passwordCopy.toSlice()
-    }
-
-    defer secureClear(passwordCopy.toSlice())
-
-    const DigestSize = #sizeof(HmacSha224Digest)
-    let blockCount = ((destination.count - 1) / DigestSize) + 1
-    if blockCount > Swag.U32.Max do
-        fail OverflowError{"PBKDF2 output exceeds its maximum length"}
-
-    var input: Array'u8
-    input.reserve(salt.count + 4)
-    input.add(salt)
-    input.resize(salt.count + 4)
-    var outputOffset = 0'u64
-    for block in 1 to blockCount
-    {
-        let blockIndex = cast(u32, block)
-        let suffix     = input.count - 4
-        input[suffix + 0] = Math.byteAt(blockIndex, 3)
-        input[suffix + 1] = Math.byteAt(blockIndex, 2)
-        input[suffix + 2] = Math.byteAt(blockIndex, 1)
-        input[suffix + 3] = Math.byteAt(blockIndex, 0)
-
-        var current = HmacSha224.compute(passwordInput, input.toSlice())
-        var result  = current
-        for iterations - 1
-        {
-            current = HmacSha224.compute(passwordInput, current)
-            pbkdf2AccumulateDigest(result.buffer, current.buffer, DigestSize)
-        }
-
-        let count = Math.min(destination.count - outputOffset, DigestSize)
-        Swag.memcpy(destination.buffer + outputOffset, &result[0], count)
-        outputOffset += count
-        secureClear(current)
-        secureClear(result)
-    }
+    try derivePbkdf2'(HmacSha224, #sizeof(HmacSha224Digest))(password, salt, iterations, destination)
 }
 
 // Derives a key from `password` and `salt` with PBKDF2-HMAC-SHA-384 and fills `destination` with it.
@@ -156,58 +97,7 @@ func pbkdf2HmacSha224(password, salt: const [..] u8, iterations: u32, destinatio
 // `destination` succeeds without writing. Intermediate digests are cleared before returning.
 func pbkdf2HmacSha384(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
-    if not iterations do
-        fail BadParameterError{"PBKDF2 needs at least one iteration"}
-    if not destination.count do
-        return
-    if salt.count > Swag.U64.Max - 4 do
-        fail OverflowError{"PBKDF2 salt is too large"}
-
-    var passwordCopy: Array'u8
-    var passwordInput = password
-    let passwordStart = cast(u64, password.buffer)
-    let outputStart   = cast(u64, destination.buffer)
-    if passwordStart < outputStart + destination.count and outputStart < passwordStart + password.count
-    {
-        passwordCopy.add(password)
-        passwordInput = passwordCopy.toSlice()
-    }
-
-    defer secureClear(passwordCopy.toSlice())
-
-    const DigestSize = #sizeof(HmacSha384Digest)
-    let blockCount = ((destination.count - 1) / DigestSize) + 1
-    if blockCount > Swag.U32.Max do
-        fail OverflowError{"PBKDF2 output exceeds its maximum length"}
-
-    var input: Array'u8
-    input.reserve(salt.count + 4)
-    input.add(salt)
-    input.resize(salt.count + 4)
-    var outputOffset = 0'u64
-    for block in 1 to blockCount
-    {
-        let blockIndex = cast(u32, block)
-        let suffix     = input.count - 4
-        input[suffix + 0] = Math.byteAt(blockIndex, 3)
-        input[suffix + 1] = Math.byteAt(blockIndex, 2)
-        input[suffix + 2] = Math.byteAt(blockIndex, 1)
-        input[suffix + 3] = Math.byteAt(blockIndex, 0)
-
-        var current = HmacSha384.compute(passwordInput, input.toSlice())
-        var result  = current
-        for iterations - 1
-        {
-            current = HmacSha384.compute(passwordInput, current)
-            pbkdf2AccumulateDigest(result.buffer, current.buffer, DigestSize)
-        }
-
-        let count = Math.min(destination.count - outputOffset, DigestSize)
-        Swag.memcpy(destination.buffer + outputOffset, &result[0], count)
-        outputOffset += count
-        secureClear(current)
-        secureClear(result)
-    }
+    try derivePbkdf2'(HmacSha384, #sizeof(HmacSha384Digest))(password, salt, iterations, destination)
 }
 
 // Derives a key from `password` and `salt` with PBKDF2-HMAC-SHA-512 and fills `destination` with it.
@@ -216,56 +106,5 @@ func pbkdf2HmacSha384(password, salt: const [..] u8, iterations: u32, destinatio
 // `destination` succeeds without writing. Intermediate digests are cleared before returning.
 func pbkdf2HmacSha512(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
-    if not iterations do
-        fail BadParameterError{"PBKDF2 needs at least one iteration"}
-    if not destination.count do
-        return
-    if salt.count > Swag.U64.Max - 4 do
-        fail OverflowError{"PBKDF2 salt is too large"}
-
-    var passwordCopy: Array'u8
-    var passwordInput = password
-    let passwordStart = cast(u64, password.buffer)
-    let outputStart   = cast(u64, destination.buffer)
-    if passwordStart < outputStart + destination.count and outputStart < passwordStart + password.count
-    {
-        passwordCopy.add(password)
-        passwordInput = passwordCopy.toSlice()
-    }
-
-    defer secureClear(passwordCopy.toSlice())
-
-    const DigestSize = #sizeof(HmacSha512Digest)
-    let blockCount = ((destination.count - 1) / DigestSize) + 1
-    if blockCount > Swag.U32.Max do
-        fail OverflowError{"PBKDF2 output exceeds its maximum length"}
-
-    var input: Array'u8
-    input.reserve(salt.count + 4)
-    input.add(salt)
-    input.resize(salt.count + 4)
-    var outputOffset = 0'u64
-    for block in 1 to blockCount
-    {
-        let blockIndex = cast(u32, block)
-        let suffix     = input.count - 4
-        input[suffix + 0] = Math.byteAt(blockIndex, 3)
-        input[suffix + 1] = Math.byteAt(blockIndex, 2)
-        input[suffix + 2] = Math.byteAt(blockIndex, 1)
-        input[suffix + 3] = Math.byteAt(blockIndex, 0)
-
-        var current = HmacSha512.compute(passwordInput, input.toSlice())
-        var result  = current
-        for iterations - 1
-        {
-            current = HmacSha512.compute(passwordInput, current)
-            pbkdf2AccumulateDigest(result.buffer, current.buffer, DigestSize)
-        }
-
-        let count = Math.min(destination.count - outputOffset, DigestSize)
-        Swag.memcpy(destination.buffer + outputOffset, &result[0], count)
-        outputOffset += count
-        secureClear(current)
-        secureClear(result)
-    }
+    try derivePbkdf2'(HmacSha512, #sizeof(HmacSha512Digest))(password, salt, iterations, destination)
 }

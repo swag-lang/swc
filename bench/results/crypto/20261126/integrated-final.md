@@ -38,4 +38,7 @@ ISA-L 2.32.1, liblzma 5.8.1, libb2 0.98.1 and libsodium 1.0.22. The table uses t
 by this workload. Worker scaling, additional references and hardware-disabled
 runs are in the independent campaigns.
 
+The separately reproduced CRC-64/ECMA-182 checkpoint variation is
+documented with the [linked code placement measurements](crc64-ecma-code-placement.md).
+
 [All measured sizes](integrated-final-sizes.md) · [Raw paired trials](integrated-final.json) · [Integrated validation](integrated-validation-final.md) · [Reproduction](../../../workloads/crypto/README.md).

@@ -1,0 +1,58 @@
+{
+  "bd4cfab5c1": {
+    "matching_region": true,
+    "region_virtual_address": "0x4689e0",
+    "loop_virtual_address": "0x468a10",
+    "loop_offset_mod64": 16,
+    "crosses_64_byte_boundary": false
+  },
+  "86cfe53193": {
+    "matching_region": true,
+    "region_virtual_address": "0x4689e0",
+    "loop_virtual_address": "0x468a10",
+    "loop_offset_mod64": 16,
+    "crosses_64_byte_boundary": false
+  },
+  "23f91fc6e2": {
+    "matching_region": true,
+    "region_virtual_address": "0x46bb00",
+    "loop_virtual_address": "0x46bb30",
+    "loop_offset_mod64": 48,
+    "crosses_64_byte_boundary": true
+  },
+  "8dbfcb0eeb": {
+    "matching_region": true,
+    "region_virtual_address": "0x468900",
+    "loop_virtual_address": "0x468930",
+    "loop_offset_mod64": 48,
+    "crosses_64_byte_boundary": true
+  },
+  "5f68346f72": {
+    "matching_region": true,
+    "region_virtual_address": "0x468900",
+    "loop_virtual_address": "0x468930",
+    "loop_offset_mod64": 48,
+    "crosses_64_byte_boundary": true
+  },
+  "91d8444346": {
+    "matching_region": true,
+    "region_virtual_address": "0x46c300",
+    "loop_virtual_address": "0x46c330",
+    "loop_offset_mod64": 48,
+    "crosses_64_byte_boundary": true
+  },
+  "fe1474ed3f": {
+    "matching_region": true,
+    "region_virtual_address": "0x470860",
+    "loop_virtual_address": "0x470890",
+    "loop_offset_mod64": 16,
+    "crosses_64_byte_boundary": false
+  },
+  "10bf72c650": {
+    "matching_region": true,
+    "region_virtual_address": "0x470780",
+    "loop_virtual_address": "0x4707b0",
+    "loop_offset_mod64": 48,
+    "crosses_64_byte_boundary": true
+  }
+}

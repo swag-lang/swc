@@ -197,6 +197,8 @@ SIMD work is owned by the compiler, platform, or consuming module according to t
   modulo-32 alignment (candidate `5d3338007`, not on master) recovered 5.10% on `fannkuch`
   but cost 4.50% on `binarytrees` and grew text by 3.32%, so it fails the performance gate
   ([evidence](../bench/disassembly/generated-code/20261005-runtime-layout/README.md)).
+  The [CRC-64/ECMA-182 placement panel](../bench/results/crypto/20261126/crc64-ecma-code-placement.md)
+  shows a 15% throughput difference with identical loop bytes across eight linked builds.
 - Next: investigate selective alignment and repeat independent quiet blocks across native
   execution, compiler time/memory, and binary size with unchanged-binary controls. Then retain
   layout metadata through object/cache boundaries and reorder functions by weighted

@@ -236,3 +236,6 @@ optimizations moved each result.
 - [RSA and P-256 window width comparisons](modular-window-widths.md)
 - [Eight-lane AVX2 ChaCha20 experiment](chacha20-native-width.md)
 - [Frozen-source KDF and HMAC replay](kdf-frozen-replay.md)
+- [BLAKE3 final streaming and guard-page checks](blake3-integrated-edges.md)
+- [Final CRC-64 worker and portable tail comparison](crc64-512-workers-final.md)
+- [CRC-64/ECMA-182 throughput and linked code placement](crc64-ecma-code-placement.md)

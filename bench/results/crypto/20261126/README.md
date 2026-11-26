@@ -39,6 +39,8 @@ optimizations moved each result.
 [Full table for all four sizes](baseline.md) · [Raw timings and output fingerprints](baseline.json) ·
 [Reproduction commands and methodology](../../../workloads/crypto/README.md).
 
+[Integrated comparison on the original 19 operations](integrated-checkpoint.md).
+
 ## Optimization campaigns
 
 - [CRC-64 portable slicing-by-eight](crc64-portable.md)

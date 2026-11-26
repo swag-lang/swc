@@ -32,6 +32,8 @@ def fixtures():
          [*HEVC, "-pix_fmt", "yuv420p10le", "-x265-params", f"{HEVC_OPTIONS}:pools=none:wpp=0:keyint=60"]),
         ("mpeg4-simple-720p.avi", "1280x720", 120, None,
          [*MPEG4, "-bf", "0", "-g", "60"]),
+        ("mpeg4-weighted-720p.avi", "1280x720", 120, None,
+         [*MPEG4, "-bf", "0", "-g", "60", "-mpeg_quant", "1"]),
         ("mpeg4-intra-texture.avi", "640x360", 90, TEXTURE,
          [*MPEG4, "-bf", "0", "-g", "1"]),
         ("mpeg4-bvop-matrix.mkv", "960x540", 90, None,

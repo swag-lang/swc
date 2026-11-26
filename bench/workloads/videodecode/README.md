@@ -42,7 +42,7 @@ reference timestamps and individual run logs.
 Generate additional inputs with `generate.py`. The corpus covers gradient fades for weighted
 AVC prediction, temporal texture for CAVLC, AVC High 4:4:4, HEVC Main with WPP, and Main10
 intra-only and textured inter pictures. The MPEG-4 inputs include Simple Profile at 720p,
-textured intra pictures, and B pictures with MPEG quantization matrices.
+textured intra pictures, and both P and B pictures with MPEG quantization matrices.
 The manifest records each command and input hash.
 
 ```sh
@@ -52,7 +52,7 @@ python3 bench/workloads/videodecode/compare.py \
     --output /tmp/swag-video-expanded-quality /tmp/swag-video-expanded/*.mp4
 
 taskset -c 4 python3 bench/workloads/videodecode/compare.py \
-    --compiler /absolute/build/release/swc --mpeg4-max-sample-difference 3 \
+    --compiler /absolute/build/release/swc --mpeg4-max-sample-difference 4 \
     --output /tmp/swag-video-mpeg4 /tmp/swag-video-expanded/*.avi
 ```
 

@@ -47,22 +47,32 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
 {
     if not layer.quantType
     {
-        // The H.263 method, clause 7.4.4.2.
-        let odd = (quant & 1) != 0
-        for index in 64'u64
+        // The H.263 method, clause 7.4.4.2. Preserve the intra DC outside the AC scaling.
+        let dc    = block[][0]
+        let step  = Simd.splat(cast(s32, quant) * 2)
+        let bias  = Simd.splat(cast(s32, quant) - (quant & 1 ? 0 : 1))
+        let zero  = Simd.splat(0's32)
+        let lower = Simd.splat(CoefficientFloor)
+        let upper = Simd.splat(CoefficientCeil)
+        for index in 16'u64
         {
-            if intra and not index do
-                continue
-            let level = block[][index]
-            if not level
-            {
-                continue
-            }
-
-            let magnitude = cast(s32, quant) * (2 * Math.abs(level) + 1) - (odd ? 0 : 1)
-            block[][index] = Math.clamp(level < 0 ? -magnitude : magnitude, CoefficientFloor, CoefficientCeil)
+            let levels    = Simd.load(&block[][index * 4])
+            let sign      = levels >> 31'u32
+            let magnitude = Math.abs(levels) * step + bias
+            let scaled    = ((magnitude ^ sign) - sign) & cast #bit(Simd.S32x4, levels != zero)
+            Simd.store(&block[][index * 4], Math.clamp(scaled, lower, upper))
         }
 
+        if intra do
+            block[][0] = dc
+
+        return
+    }
+
+    // For the ordinary five-bit quantizer the weighted intermediate fits in signed 32 bits.
+    if quant <= 31
+    {
+        dequantiseWeighted(block, layer, quant, intra)
         return
     }
 
@@ -98,6 +108,39 @@ func dequantise(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
     // predicted blocks only, and a stream encoded against one of those reconstructs wrongly if
     // an intra block is repaired as well.
     if not intra and not (sum & 1) do
+        block[][63] ^= 1
+}
+
+// Divide the weighted magnitude before restoring its sign to round toward zero.
+private func dequantiseWeighted(block: *[64] s32, layer: const *Layer, quant: u32, intra: bool)
+{
+    let weights: const [..] u8 = intra ? layer.intraMatrix : layer.interMatrix
+    let dc    = block[][0]
+    let step  = Simd.splat(cast(s32, quant))
+    let bias  = Simd.splat(intra ? 0's32 : 1's32)
+    let zero  = Simd.splat(0's32)
+    let lower = Simd.splat(CoefficientFloor)
+    let upper = Simd.splat(CoefficientCeil)
+    var parity:  Simd.U32x4
+    for index in 16'u64
+    {
+        let offset  = index * 4
+        let bytes   = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u32, weights.buffer + offset)[0]))
+        let weight  = cast #bit(Simd.S32x4, Simd.widenLow(Simd.widenLow(bytes)))
+        let levels  = Simd.load(&block[][offset])
+        let sign    = levels >> 31'u32
+        let product = ((Math.abs(levels) * 2 + bias) * weight * step) >> 4'u32
+        let scaled  = ((product ^ sign) - sign) & cast #bit(Simd.S32x4, levels != zero)
+        let result  = Math.clamp(scaled, lower, upper)
+
+        // The low bit of an XOR matches the low bit of the sum.
+        parity ^= cast #bit(Simd.U32x4, result)
+        Simd.store(&block[][offset], result)
+    }
+
+    if intra do
+        block[][0] = Math.clamp(dc, CoefficientFloor, CoefficientCeil)
+    elif not (Simd.bitwiseXor(parity) & 1) do
         block[][63] ^= 1
 }
 

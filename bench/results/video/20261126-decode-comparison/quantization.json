@@ -1,0 +1,732 @@
+{
+  "swag_baseline_commit": "9a5108a037",
+  "compiler": "Swag 0.1.1180 Release",
+  "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "mpeg4_max_sample_difference": 4,
+  "results": [
+    {
+      "fixture_sha256": "76043eb71c33eb65e088fb7e3e0a587a2d4db72994c5203e20cdf507a254258d",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/30"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "7d3e432346d3042d1a1af70e0f112c2e2184f2996abb745e202f0435430e0fa8",
+          "different_samples": 1427838,
+          "different_frames": 120,
+          "max_difference": 3,
+          "psnr_db": 68.67189349664685
+        },
+        "baseline": {
+          "sha256": "7d3e432346d3042d1a1af70e0f112c2e2184f2996abb745e202f0435430e0fa8",
+          "different_samples": 1427838,
+          "different_frames": 120,
+          "max_difference": 3,
+          "psnr_db": 68.67189349664685
+        }
+      },
+      "timed_frames": 90,
+      "warmup_frames": 30,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            1.5645711333333334,
+            1.5588161555555557,
+            1.5720713555555557,
+            1.685339777777778,
+            1.9444449999999998
+          ],
+          "median": 1.5720713555555557
+        },
+        "baseline": {
+          "samples": [
+            1.9938719111111112,
+            1.8793930888888892,
+            1.7973605333333333,
+            1.9270098,
+            1.975073977777778
+          ],
+          "median": 1.9270098
+        },
+        "ffmpeg": {
+          "samples": [
+            0.5357216444444445,
+            0.537509011111111,
+            0.5365422666666666,
+            0.5497741777777777,
+            0.7090824666666666
+          ],
+          "median": 0.537509011111111
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            0.882239311111111,
+            0.8486789,
+            0.8619608333333334,
+            0.8518731666666666,
+            0.8407391333333334
+          ],
+          "median": 0.8518731666666666
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.5356616555555556,
+          0.536564,
+          0.5364959,
+          0.5497278999999999,
+          0.7089598111111111
+        ],
+        "ffmpeg_no_simd": [
+          0.882193511111111,
+          0.8474018222222223,
+          0.8619124888888889,
+          0.8518215111111112,
+          0.8406939777777778
+        ]
+      },
+      "fixture": "mpeg4-simple-720p.avi"
+    },
+    {
+      "fixture_sha256": "d02b3393ae670c3762b5600806db2d28055c584c81d0b47cd1bfa7f60719253b",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/30"
+      },
+      "frames": 90,
+      "quality": {
+        "candidate": {
+          "sha256": "98fb672a0b7c00c51fc7167bc7af7d3216ae80cc88debde1655372babbf94834",
+          "different_samples": 496507,
+          "different_frames": 90,
+          "max_difference": 1,
+          "psnr_db": 66.0997122834222
+        },
+        "baseline": {
+          "sha256": "98fb672a0b7c00c51fc7167bc7af7d3216ae80cc88debde1655372babbf94834",
+          "different_samples": 496507,
+          "different_frames": 90,
+          "max_difference": 1,
+          "psnr_db": 66.0997122834222
+        }
+      },
+      "timed_frames": 60,
+      "warmup_frames": 30,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            2.2193362166666666,
+            2.07201995,
+            2.945814466666667,
+            2.240602,
+            2.4389174833333334
+          ],
+          "median": 2.240602
+        },
+        "baseline": {
+          "samples": [
+            2.437074183333334,
+            2.6377225166666665,
+            2.3477716666666666,
+            3.1340912499999996,
+            2.4666932666666668
+          ],
+          "median": 2.4666932666666668
+        },
+        "ffmpeg": {
+          "samples": [
+            0.6526273666666668,
+            0.8308814333333333,
+            0.6066890500000001,
+            0.6856464333333333,
+            0.6165714666666666
+          ],
+          "median": 0.6526273666666668
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            1.2846424833333332,
+            1.2476132666666666,
+            1.2899793333333334,
+            1.28250395,
+            1.3145885166666669
+          ],
+          "median": 1.2846424833333332
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.6525526166666666,
+          0.8308080833333332,
+          0.6066169,
+          0.6855792666666667,
+          0.6162520333333333
+        ],
+        "ffmpeg_no_simd": [
+          1.2840205833333334,
+          1.2475106999999999,
+          1.2898963166666666,
+          1.2823805,
+          1.31401415
+        ]
+      },
+      "fixture": "mpeg4-intra-texture.avi"
+    },
+    {
+      "fixture_sha256": "e6a4da6a2edc335ea9f1139f2da9d535a4a8821a636dc23b5e5b0b39102d89ae",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 960,
+        "height": 540,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/1000"
+      },
+      "frames": 90,
+      "quality": {
+        "candidate": {
+          "sha256": "c9d0c189f6282d6372469c81876fde375029679a5babb4a600bfdd220676fa76",
+          "different_samples": 287324,
+          "different_frames": 90,
+          "max_difference": 2,
+          "psnr_db": 71.94940460511486
+        },
+        "baseline": {
+          "sha256": "c9d0c189f6282d6372469c81876fde375029679a5babb4a600bfdd220676fa76",
+          "different_samples": 287324,
+          "different_frames": 90,
+          "max_difference": 2,
+          "psnr_db": 71.94940460511486
+        }
+      },
+      "timed_frames": 60,
+      "warmup_frames": 30,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            0.8758027,
+            0.9141989,
+            0.9426730333333333,
+            0.8971560666666666,
+            0.8918045666666666
+          ],
+          "median": 0.8971560666666666
+        },
+        "baseline": {
+          "samples": [
+            1.0723144666666664,
+            1.1331699333333334,
+            1.1156366833333335,
+            1.07817785,
+            1.0644578166666665
+          ],
+          "median": 1.07817785
+        },
+        "ffmpeg": {
+          "samples": [
+            0.35204006666666665,
+            0.3584192,
+            0.3628393833333333,
+            0.3418641333333333,
+            0.3968296833333333
+          ],
+          "median": 0.3584192
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            1.0581285666666667,
+            0.8747767999999999,
+            0.8221315499999999,
+            0.8337866333333334,
+            0.9946538666666667
+          ],
+          "median": 0.8747767999999999
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.35197866666666666,
+          0.35812111666666663,
+          0.3627706833333333,
+          0.3418142166666667,
+          0.39663013333333336
+        ],
+        "ffmpeg_no_simd": [
+          1.0573884500000001,
+          0.8747121166666666,
+          0.82205925,
+          0.8335019,
+          0.9945558000000001
+        ]
+      },
+      "fixture": "mpeg4-bvop-matrix.mkv"
+    },
+    {
+      "fixture_sha256": "d3cc1e715fe9219453addbbed547a900293288d026b35622e7f9bf78eca73d7e",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/30"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "6284bb2d9de93901b54ff67cf44e1118b76ccef809955d23d05f38bece2ce1d9",
+          "different_samples": 1412453,
+          "different_frames": 120,
+          "max_difference": 4,
+          "psnr_db": 68.71630374661027
+        },
+        "baseline": {
+          "sha256": "6284bb2d9de93901b54ff67cf44e1118b76ccef809955d23d05f38bece2ce1d9",
+          "different_samples": 1412453,
+          "different_frames": 120,
+          "max_difference": 4,
+          "psnr_db": 68.71630374661027
+        }
+      },
+      "timed_frames": 90,
+      "warmup_frames": 30,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            1.4027079,
+            1.4054892333333333,
+            1.3516207111111112,
+            1.3043444777777777,
+            1.422950288888889
+          ],
+          "median": 1.4027079
+        },
+        "baseline": {
+          "samples": [
+            1.6816195555555553,
+            1.6976562333333334,
+            1.6659055888888887,
+            1.6158244222222224,
+            1.9893099777777778
+          ],
+          "median": 1.6816195555555553
+        },
+        "ffmpeg": {
+          "samples": [
+            0.7648257777777778,
+            0.5245203555555555,
+            0.5478513222222223,
+            0.5248886333333334,
+            0.6131948777777778
+          ],
+          "median": 0.5478513222222223
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            1.213945911111111,
+            1.2561196333333333,
+            1.4853214333333336,
+            1.1871488,
+            1.2907993333333334
+          ],
+          "median": 1.2561196333333333
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.7643882000000001,
+          0.5243668777777778,
+          0.5478093777777778,
+          0.5248496,
+          0.6131419777777778
+        ],
+        "ffmpeg_no_simd": [
+          1.208950988888889,
+          1.2559916444444446,
+          1.4847781,
+          1.1870043888888888,
+          1.2903529
+        ]
+      },
+      "fixture": "mpeg4-weighted-720p.avi"
+    }
+  ],
+  "timing_logical_cpu": 2,
+  "initial_h263_quantization_trial": [
+    {
+      "fixture_sha256": "76043eb71c33eb65e088fb7e3e0a587a2d4db72994c5203e20cdf507a254258d",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/30"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "7d3e432346d3042d1a1af70e0f112c2e2184f2996abb745e202f0435430e0fa8",
+          "different_samples": 1427838,
+          "different_frames": 120,
+          "max_difference": 3,
+          "psnr_db": 68.67189349664685
+        },
+        "baseline": {
+          "sha256": "7d3e432346d3042d1a1af70e0f112c2e2184f2996abb745e202f0435430e0fa8",
+          "different_samples": 1427838,
+          "different_frames": 120,
+          "max_difference": 3,
+          "psnr_db": 68.67189349664685
+        }
+      },
+      "timed_frames": 90,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            1.6153089,
+            1.5057247333333332,
+            1.6037714777777776,
+            1.5767437000000002
+          ],
+          "median": 1.590257588888889
+        },
+        "baseline": {
+          "samples": [
+            1.8434087444444445,
+            1.8954394444444445,
+            2.2328523555555555,
+            1.8410774222222221
+          ],
+          "median": 1.8694240944444445
+        },
+        "ffmpeg": {
+          "samples": [
+            0.5933823777777777,
+            0.5904233555555555,
+            0.5548907666666666,
+            0.5306732444444444
+          ],
+          "median": 0.572657061111111
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            0.8647238999999999,
+            0.9359116222222224,
+            1.0048998111111112,
+            0.8617391555555555
+          ],
+          "median": 0.9003177611111111
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.5933329888888889,
+          0.5903694888888888,
+          0.5548428222222223,
+          0.5302861222222222
+        ],
+        "ffmpeg_no_simd": [
+          0.8646717,
+          0.9349085333333333,
+          1.0048409111111112,
+          0.8607946111111112
+        ]
+      },
+      "fixture": "mpeg4-simple-720p.avi"
+    },
+    {
+      "fixture_sha256": "d02b3393ae670c3762b5600806db2d28055c584c81d0b47cd1bfa7f60719253b",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 640,
+        "height": 360,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/30"
+      },
+      "frames": 90,
+      "quality": {
+        "candidate": {
+          "sha256": "98fb672a0b7c00c51fc7167bc7af7d3216ae80cc88debde1655372babbf94834",
+          "different_samples": 496507,
+          "different_frames": 90,
+          "max_difference": 1,
+          "psnr_db": 66.0997122834222
+        },
+        "baseline": {
+          "sha256": "98fb672a0b7c00c51fc7167bc7af7d3216ae80cc88debde1655372babbf94834",
+          "different_samples": 496507,
+          "different_frames": 90,
+          "max_difference": 1,
+          "psnr_db": 66.0997122834222
+        }
+      },
+      "timed_frames": 60,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            2.1932582333333333,
+            2.237119383333334,
+            2.2780262333333336,
+            2.837365183333333
+          ],
+          "median": 2.2575728083333337
+        },
+        "baseline": {
+          "samples": [
+            2.7559325666666665,
+            2.48559305,
+            3.45244315,
+            2.469977483333333
+          ],
+          "median": 2.620762808333333
+        },
+        "ffmpeg": {
+          "samples": [
+            0.8220688500000001,
+            0.6188313500000001,
+            0.6735007,
+            0.6453567166666667
+          ],
+          "median": 0.6594287083333333
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            1.3946092166666666,
+            1.3633492333333332,
+            1.3695420833333332,
+            1.3872379333333333
+          ],
+          "median": 1.3783900083333331
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.822013,
+          0.6187692666666667,
+          0.6734492333333333,
+          0.6452828166666666
+        ],
+        "ffmpeg_no_simd": [
+          1.3900554333333333,
+          1.3632634666666665,
+          1.3689734666666666,
+          1.3871643166666667
+        ]
+      },
+      "fixture": "mpeg4-intra-texture.avi"
+    }
+  ],
+  "initial_mpeg_quantization_trial_against_vector_h263": [
+    {
+      "fixture_sha256": "e6a4da6a2edc335ea9f1139f2da9d535a4a8821a636dc23b5e5b0b39102d89ae",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 960,
+        "height": 540,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/1000"
+      },
+      "frames": 90,
+      "quality": {
+        "candidate": {
+          "sha256": "c9d0c189f6282d6372469c81876fde375029679a5babb4a600bfdd220676fa76",
+          "different_samples": 287324,
+          "different_frames": 90,
+          "max_difference": 2,
+          "psnr_db": 71.94940460511486
+        },
+        "baseline": {
+          "sha256": "c9d0c189f6282d6372469c81876fde375029679a5babb4a600bfdd220676fa76",
+          "different_samples": 287324,
+          "different_frames": 90,
+          "max_difference": 2,
+          "psnr_db": 71.94940460511486
+        }
+      },
+      "timed_frames": 60,
+      "warmup_frames": 30,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            0.906112,
+            1.2689653333333333,
+            0.92640155,
+            1.3132668166666666,
+            0.8999398666666667
+          ],
+          "median": 0.92640155
+        },
+        "baseline": {
+          "samples": [
+            1.0596261666666666,
+            1.0579796666666668,
+            1.1156024,
+            1.0718949833333333,
+            1.0693592666666665
+          ],
+          "median": 1.0693592666666665
+        },
+        "ffmpeg": {
+          "samples": [
+            0.4691216833333333,
+            0.3431112,
+            0.52180365,
+            0.36209593333333334,
+            0.3463367833333333
+          ],
+          "median": 0.36209593333333334
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            0.7501816833333332,
+            1.0342649333333334,
+            0.7773580166666666,
+            0.7868389833333332,
+            0.8069224666666666
+          ],
+          "median": 0.7868389833333332
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.4662932833333333,
+          0.3430570833333333,
+          0.52174265,
+          0.36135441666666673,
+          0.3456390833333333
+        ],
+        "ffmpeg_no_simd": [
+          0.7501370833333333,
+          1.0341532833333333,
+          0.7772940833333333,
+          0.7867550666666666,
+          0.8068591666666667
+        ]
+      },
+      "fixture": "mpeg4-bvop-matrix.mkv"
+    },
+    {
+      "fixture_sha256": "d3cc1e715fe9219453addbbed547a900293288d026b35622e7f9bf78eca73d7e",
+      "stream": {
+        "codec_name": "mpeg4",
+        "width": 1280,
+        "height": 720,
+        "pix_fmt": "yuv420p",
+        "time_base": "1/30"
+      },
+      "frames": 120,
+      "quality": {
+        "candidate": {
+          "sha256": "6284bb2d9de93901b54ff67cf44e1118b76ccef809955d23d05f38bece2ce1d9",
+          "different_samples": 1412453,
+          "different_frames": 120,
+          "max_difference": 4,
+          "psnr_db": 68.71630374661027
+        },
+        "baseline": {
+          "sha256": "6284bb2d9de93901b54ff67cf44e1118b76ccef809955d23d05f38bece2ce1d9",
+          "different_samples": 1412453,
+          "different_frames": 120,
+          "max_difference": 4,
+          "psnr_db": 68.71630374661027
+        }
+      },
+      "timed_frames": 90,
+      "warmup_frames": 30,
+      "wall_ms_per_frame": {
+        "candidate": {
+          "samples": [
+            1.6665418777777776,
+            1.3321955222222222,
+            1.3857504555555555,
+            1.4251823777777777,
+            1.4004386222222223
+          ],
+          "median": 1.4004386222222223
+        },
+        "baseline": {
+          "samples": [
+            1.6697084333333334,
+            1.7283675222222223,
+            1.6767459,
+            1.6367400111111112,
+            1.7064842333333334
+          ],
+          "median": 1.6767459
+        },
+        "ffmpeg": {
+          "samples": [
+            0.5676256222222222,
+            0.5332355666666666,
+            0.5363653555555555,
+            0.6282666888888889,
+            0.5575546777777778
+          ],
+          "median": 0.5575546777777778
+        },
+        "ffmpeg_no_simd": {
+          "samples": [
+            1.2405426222222222,
+            1.2086456444444444,
+            1.2212645666666666,
+            1.2263563444444445,
+            1.3922496111111111
+          ],
+          "median": 1.2263563444444445
+        }
+      },
+      "ffmpeg_cpu_ms_per_frame": {
+        "ffmpeg": [
+          0.5675847444444444,
+          0.5331997777777778,
+          0.5363184222222223,
+          0.6053764222222222,
+          0.5575095666666667
+        ],
+        "ffmpeg_no_simd": [
+          1.240482488888889,
+          1.206762622222222,
+          1.221209088888889,
+          1.2262009333333332,
+          1.3910920999999998
+        ]
+      },
+      "fixture": "mpeg4-weighted-720p.avi"
+    }
+  ],
+  "new_fixture_generation": [
+    "ffmpeg",
+    "-nostdin",
+    "-v",
+    "error",
+    "-filter_threads",
+    "1",
+    "-f",
+    "lavfi",
+    "-i",
+    "testsrc2=size=1280x720:rate=30",
+    "-frames:v",
+    "120",
+    "-an",
+    "-threads",
+    "1",
+    "-c:v",
+    "mpeg4",
+    "-q:v",
+    "4",
+    "-bf",
+    "0",
+    "-g",
+    "60",
+    "-mpeg_quant",
+    "1",
+    "mpeg4-weighted-720p.avi"
+  ],
+  "native_tests_passed": 82
+}

@@ -5,39 +5,37 @@
 #global namespace RealVideo
 #global internal
 
-using Core
+using Core, Core.Math
 
 func clipped(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
+#[Swag.Inline]
+private func transformColumns(rows: *[4] Simd.U32x4, scale, rounding: s32, shift: u32)
+{
+    let row0 = cast #bit(Simd.S32x4, rows[][0])
+    let row1 = cast #bit(Simd.S32x4, rows[][1])
+    let row2 = cast #bit(Simd.S32x4, rows[][2])
+    let row3 = cast #bit(Simd.S32x4, rows[][3])
+    let a    = (row0 + row2) * (13 * scale) + rounding
+    let b    = (row0 - row2) * (13 * scale) + rounding
+    let c    = row1 * (7 * scale) - row3 * (17 * scale)
+    let d    = row1 * (17 * scale) + row3 * (7 * scale)
+    rows[][0] = cast #bit(Simd.U32x4, (a + d) >> shift)
+    rows[][1] = cast #bit(Simd.U32x4, (b + c) >> shift)
+    rows[][2] = cast #bit(Simd.U32x4, (b - c) >> shift)
+    rows[][3] = cast #bit(Simd.U32x4, (a - d) >> shift)
+}
+
 func inverseTransform(block: *[16] s32, dc: bool)
 {
-    var temp: [16] s32
-    for i in 4's32
-    {
-        let a = 13 * (block[][i] + block[][i + 8])
-        let b = 13 * (block[][i] - block[][i + 8])
-        let c = 7 * block[][i + 4] - 17 * block[][i + 12]
-        let d = 17 * block[][i + 4] + 7 * block[][i + 12]
-        temp[i * 4]     = a + d
-        temp[i * 4 + 1] = b + c
-        temp[i * 4 + 2] = b - c
-        temp[i * 4 + 3] = a - d
-    }
-
-    for i in 4's32
-    {
-        let scale    = dc ? 3 : 1
-        let rounding = dc ? 0 : 512
-        let shift    = dc ? 11'u32 : 10'u32
-        let a        = 13 * scale * (temp[i] + temp[i + 8]) + rounding
-        let b        = 13 * scale * (temp[i] - temp[i + 8]) + rounding
-        let c        = scale * (7 * temp[i + 4] - 17 * temp[i + 12])
-        let d        = scale * (17 * temp[i + 4] + 7 * temp[i + 12])
-        block[][i * 4]     = (a + d) >> shift
-        block[][i * 4 + 1] = (b + c) >> shift
-        block[][i * 4 + 2] = (b - c) >> shift
-        block[][i * 4 + 3] = (a - d) >> shift
-    }
+    let rows = cast(*[4] Simd.U32x4, block)
+    transformColumns(rows, 1, 0, 0)
+    Simd.transpose4x4(rows)
+    if dc do
+        transformColumns(rows, 3, 0, 11)
+    else do
+        transformColumns(rows, 1, 512, 10)
+    Simd.transpose4x4(rows)
 }
 
 func addResidual(dst: [*] u8, stride: s32, block: *[16] s32)
@@ -45,8 +43,12 @@ func addResidual(dst: [*] u8, stride: s32, block: *[16] s32)
     inverseTransform(block, false)
     for y in 4's32
     {
-        for x in 4's32 do
-            dst[y * stride + x] = clipped(cast(s32, dst[y * stride + x]) + block[][y * 4 + x])
+        let row        = dst + y * stride
+        let bytes      = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u32, row)[0]))
+        let prediction = cast #bit(Simd.S32x4, Simd.widenLow(Simd.widenLow(bytes)))
+        let values     = Simd.load(&block[][y * 4]) + prediction
+        let samples    = Simd.packSigned(values, values)
+        Simd.storeLow4(row, Simd.packUnsigned(samples, samples))
     }
 }
 
@@ -195,6 +197,23 @@ private func filterMotion(a, b, c, d, e, f: s32, filter: MotionFilter)->u8
 }
 
 #[Swag.Inline]
+private func motionTaps(source: const [*] u8)->Simd.S16x8
+{
+    let bytes = cast #bit(Simd.U8x16, Simd.splat(cast(const [*] u64, source)[0]))
+    return cast #bit(Simd.S16x8, Simd.widenLow(bytes))
+}
+
+#[Swag.Inline]
+private func filterMotionRow(a, b, c, d, e, f: Simd.S16x8, filter: MotionFilter)->Simd.U8x16
+{
+    // The largest positive tap sum is 74 and every input is a byte.
+    let sum = a + f - (b + e) * 5's16 +
+              c * cast(s16, filter.centerLeft) + d * cast(s16, filter.centerRight) + cast(s16, filter.bias)
+    let samples = sum >> filter.shift
+    return Simd.packUnsigned(samples, samples)
+}
+
+#[Swag.Inline]
 private func rowSample(row: const [*] u8, x, width: s32)->s32
 {
     return cast(s32, row[Math.clamp(x, 0, width - 1)])
@@ -216,15 +235,11 @@ private func horizontalMotion(into: [*] u8, source: const [*] u8, x, size, width
     }
 
     let filter = MotionFilters[fraction]
-    if x >= 2 and x + size + 3 <= width
+    if size == 8 and x >= 2 and x + size + 3 <= width
     {
         let first = source + x - 2
-        for i in size
-        {
-            let tap = first + i
-            into[i] = filterMotion(tap[0], tap[1], tap[2], tap[3], tap[4], tap[5], filter)
-        }
-
+        let row   = filterMotionRow(motionTaps(first), motionTaps(first + 1), motionTaps(first + 2), motionTaps(first + 3), motionTaps(first + 4), motionTaps(first + 5), filter)
+        Simd.storeLow8(into, row)
         return
     }
 
@@ -291,6 +306,7 @@ func predictMotion(into: [*] u8, stride: s32, plane: const *Plane, x, y, size: s
     }
 
     // Each horizontal result is clipped before it contributes to the vertical filter.
+    // Chroma has already taken its interpolation path, so these rows are eight luma samples.
     var horizontal: [13, 8] u8
     for row in size + 5 do
         horizontalMotion(&horizontal[row, 0], plane.referenceRow(sy + row - 2), sx, size, plane.width, fx)
@@ -298,14 +314,13 @@ func predictMotion(into: [*] u8, stride: s32, plane: const *Plane, x, y, size: s
     let filter = MotionFilters[fy]
     for row in size
     {
-        let dst = into + row * stride
-        for column in size do
-            dst[column] = filterMotion(horizontal[row, column],
-                                       horizontal[row + 1, column],
-                                       horizontal[row + 2, column],
-                                       horizontal[row + 3, column],
-                                       horizontal[row + 4, column],
-                                       horizontal[row + 5, column],
-                                       filter)
+        let values = filterMotionRow(motionTaps(&horizontal[row, 0]),
+                                     motionTaps(&horizontal[row + 1, 0]),
+                                     motionTaps(&horizontal[row + 2, 0]),
+                                     motionTaps(&horizontal[row + 3, 0]),
+                                     motionTaps(&horizontal[row + 4, 0]),
+                                     motionTaps(&horizontal[row + 5, 0]),
+                                     filter)
+        Simd.storeLow8(into + row * stride, values)
     }
 }

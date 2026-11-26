@@ -229,6 +229,30 @@ compiler confirmed 43–54% lower process CPU time on the three clips using moti
 The intra-only result was within a few percent in both series.
 [Raw timings, hashes and repeat command](realvideo-motion.json).
 
+## RealVideo packed filters and reconstruction
+
+The luma motion filter operates on eight samples per row through its two passes.
+The inverse transform applies four column transforms together and transposes the
+packed values between passes. Four residuals are added to their prediction bytes
+and clipped together. A focused test covers both transform modes, mixed signs
+and the coefficient limits.
+
+The medians compare against `dc11f27d57` with one logical CPU. The long I/P/B
+stream uses seven repetitions, and the short clips use nine. Times are in
+milliseconds per picture.
+
+| RealVideo stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Repeated I/P/B, 720 pictures | 0.156 | 0.132 | 0.040 | -15.0% | 3.34× |
+| Intra | 0.163 | 0.156 | 0.064 | -4.5% | 2.42× |
+| I/P/B | 0.137 | 0.110 | 0.042 | -19.6% | 2.65× |
+| Adaptive | 0.141 | 0.112 | 0.031 | -20.1% | 3.60× |
+| Multiple slices | 0.130 | 0.108 | 0.038 | -16.9% | 2.86× |
+
+All 762 pictures still matched FFmpeg, and 46 native Release tests passed.
+In the new I/P/B profile, deblocking accounted for 111 of 492 samples.
+[Raw timings, quality and isolated trials](realvideo-simd.json).
+
 ## Reproduce
 
 The [workload](../../../workloads/videodecode/README.md) contains the benchmark and generation

@@ -93,6 +93,23 @@ func realVideoCompare(name: string)
         Swag.require(sample == Chroma[index])
 }
 
+// Both transform passes retain the coefficient orientation and signed rounding.
+#test
+{
+    const Block:   [16] s32 = [1024, -237, -2048, 13, -53, 2047, -69, 1, -32768, 0, 32767, -317, 30, 7, 223, -18]
+    const Samples: [16] s32 = [327, -10038, -10607, -673, -18, 11366, 11366, -451, -363, 11096, 11464, 156, -821, -10491, -10100, 491]
+    const Dc:      [16] s32 = [489, -15057, -15911, -1009, -28, 17048, 17049, -676, -545, 16643, 17195, 234, -1232, -15736, -15150, 735]
+    var samples = Block
+    RealVideo.inverseTransform(&samples, false)
+    for actual, index in samples do
+        Swag.require(actual == Samples[index])
+
+    var dc = Block
+    RealVideo.inverseTransform(&dc, true)
+    for actual, index in dc do
+        Swag.require(actual == Dc[index])
+}
+
 // Every table edge preserves either its target row or its decoded leaf value.
 #test
 {

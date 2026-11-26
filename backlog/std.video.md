@@ -73,13 +73,14 @@ the sampling layouts used by ffmpeg's 4:2:0, 4:2:2, and 4:4:4 Motion JPEG output
 - Done when: the same fixtures approach the single-threaded FFmpeg time while preserving
   the measured sample-error bounds and the MPEG-4 conformance tests.
 
-### std.video.040 — Reduce the remaining RealVideo motion cost
+### std.video.040 — Reduce the remaining RealVideo filter cost
 
-- Evidence: [the motion-partition comparison](../bench/results/video/20261126-decode-comparison/README.md#realvideo-motion-partitions)
-  measures the longer RealVideo I/P/B stream at 4.09× single-threaded FFmpeg. The two
-  luma filter passes and the bidirectional blend still process samples individually.
-- Next: isolate packed interpolation and residual reconstruction. Measure both the
-  extended I/P/B fixture and the original short clips with a file-backed reader.
+- Evidence: [the packed-filter comparison](../bench/results/video/20261126-decode-comparison/README.md#realvideo-packed-filters-and-reconstruction)
+  measures the longer RealVideo I/P/B stream at 3.34× single-threaded FFmpeg. The
+  post-change profile assigns 23% of samples to deblocking and 9% to bilinear
+  motion interpolation.
+- Next: measure packed deblocking across the independent samples of each edge.
+  Use both the extended I/P/B stream and the original short clips.
 - Done when: the same benchmarks show a repeatable reduction and all reference planes
   remain exact, including motion vectors outside the visible picture.
 

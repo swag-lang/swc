@@ -1627,3 +1627,28 @@ FileSamples drops by 0.37 ms on CPU 0. In the other cohorts it takes
 0.15 ms longer on CPU 1 and 0.21 ms longer on four cores. The four-core
 median remains 1.29 ms ahead of FFmpeg. Generated 44.1 kHz stereo gains
 0.28 ms on CPU 0 and is close to the FFmpeg median on that core.
+
+## Forty-fifth optimization pass
+
+File-backed contiguous PCM16 seeks once and reads sequential chunks into
+a reserved buffer. The callback keeps its 256 KiB maximum for these inputs,
+and the two test files produce exactly the same PCM bytes across engines.
+
+[Raw WAV timings, paired medians, and PCM digests](audio-decode-linux-round45.json)
+
+| WAV input | Cohort | Before (ms) | Swag (ms) | libsndfile 1.2.2 (ms) |
+| --- | --- | ---: | ---: | ---: |
+| `sample3.wav` | CPU 4 | 0.882 | 0.791 | 0.126 |
+| `wav-48k-stereo-24.wav` | CPU 4 | 0.611 | 0.608 | 0.530 |
+| `sample3.wav` | CPU 2 repeat | 1.046 | 1.021 | 0.156 |
+| `wav-48k-stereo-24.wav` | CPU 2 repeat | 0.733 | 0.721 | 0.694 |
+| `sample3.wav` | CPU 2 confirmation | 0.880 | 0.799 | 0.122 |
+| `wav-48k-stereo-24.wav` | CPU 2 confirmation | 0.615 | 0.616 | 0.534 |
+
+
+The cohort medians use 98, 98, and 126 observations per engine. Paired
+cohort medians put the FileSamples gain between 0.089 and 0.161 ms.
+The generated PCM24 control varies by less than 0.02 ms in paired
+medians. libsndfile remains faster on FileSamples at about 0.12 ms
+in the confirmation run. Native Release and Release-safe each pass
+342 audio tests.

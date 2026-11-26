@@ -58,6 +58,12 @@ impl SoundFile
             return
         }
 
+        if .encoding == .Pcm16 and .packets.isEmpty() and not .isDataPreloaded()
+        {
+            try .decodeFilePcm16(firstFrame, frameCount, consumer)
+            return
+        }
+
         var bytesPerSample: u64
         switch .encoding
         {
@@ -144,6 +150,33 @@ impl SoundFile
             if contiguous do
                 try source.skip(wantedBytes)
             byteOffset += wantedBytes
+        }
+    }
+
+    #[Swag.NoInline]
+    private mtd const decodeFilePcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
+    {
+        let bytesPerFrame = .channelCount * #sizeof(s16)
+        let chunkFrames   = Math.max(1'u64, SoundDecodeReadSize / bytesPerFrame)
+        var remaining     = frameCount
+        var offset        = firstFrame * bytesPerFrame
+        var stream        = try File.open(.path.toString(), .Open, .Read, .ReadWrite)
+        try stream.seek(.Begin, .dataOffset + offset)
+
+        var pcm: Array's16
+        pcm.reserve(Math.min(frameCount, chunkFrames) * .channelCount)
+        while remaining
+        {
+            let frames = Math.min(remaining, chunkFrames)
+            let bytes  = frames * bytesPerFrame
+            if offset >= .dataSize or bytes > .dataSize - offset or
+               not (try stream.readExact(Swag.makeSlice(cast([*] u8, pcm.storage()), bytes))) do
+                fail InvalidFormatError{"sound payload is truncated"}
+            if not consumer(Swag.makeSlice(pcm.storage(), frames * .channelCount)) do
+                return
+
+            remaining -= frames
+            offset    += bytes
         }
     }
 }

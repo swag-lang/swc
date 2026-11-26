@@ -697,3 +697,26 @@ The compound fixture, original bitmaps and thumbnails, synthetic controls
 and thirteen public SVGs retain their CRC-64s. The scan-band regression
 clips the same contours on both horizontal sides and compares the raster
 with individual draws.
+
+## Indexing projected contours by scan band
+
+Short contours now enter only their intersecting scan bands, in drawing
+order. Each worker reads the shared index. The renderer falls back to
+checking bounds per band if the index would require more than eight
+references per contour on average.
+
+Thirteen interleaved Release runs on `dense-colored` used the Scope options.
+Median parse-plus-raster times are in milliseconds under matching CPU affinities.
+
+| CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| One logical CPU | 61.78 | 54.19 | 50.11 |
+| Two logical CPUs | 52.00 | 46.31 | 49.87 |
+| Four logical CPUs | 44.15 | 37.47 | 51.01 |
+
+The generated `tall-bands` fixture drives the fallback with two overlapping
+fills of tall contours. Its CRC-64 matches at one, two and four workers.
+Timings on that fallback varied across worker counts. The original bitmaps
+and thumbnails, generated controls and thirteen public fixtures retain their
+CRC-64s. The scan-band regression compares a clipped compound path containing
+short contours and one contour spanning all bands with the individual fills.

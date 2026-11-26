@@ -186,7 +186,11 @@ ships; history lives in Git, not here.
 - Evidence: [horizontal contour rejection](../bench/workloads/svgraster/resvg-comparison.md#rejecting-contours-outside-the-horizontal-clip)
   reduces the colored compound fill from 99 to 64 ms at one worker and from 48 to
   39 ms at four workers with matching pixels.
-- Next: measure contour lookup and stroke fragment recording. Rerun the original
+- Evidence: [contour lookup by scan band](../bench/workloads/svgraster/resvg-comparison.md#indexing-projected-contours-by-scan-band)
+  reduces the short-contour compound fill from 62 to 54 ms at one worker and from
+  44 to 37 ms at four workers. The tall-contour fallback retains its pixels.
+- Next: measure work outside narrow masks and compare alternate path parsing and
+  curve preparation on the original SVGs. Rerun the original
   Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.

@@ -123,6 +123,21 @@ def fixtures(scratch, filesamples):
         svg.write('</svg>\n')
     yield path, width, height
 
+    path = scratch / "tall-bands.svg"
+    with path.open("w", encoding="ascii", newline="\n") as svg:
+        svg.write(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">\n')
+        for color in ("#305778", "#823830"):
+            svg.write(f'<path fill="{color}" fill-opacity=".48" fill-rule="evenodd" d="\n')
+            for index in range(760):
+                x = (31 * index) % 1240 + 10
+                svg.write(f'M{x}.125 6.125l4.25 71.25 -5.875 100.125 7.125 73.5 -3.125 82.375 6.5 130.25 '
+                          '-2.75 76.75 4.125 90 -4.375 79.125 2.375 77.125 -3.375 53.125 -1.5 0 '
+                          '2.375 -53.125 -1.375 -77.125 3.375 -79.125 -3.125 -90 1.75 -76.75 -5.5 -130.25 '
+                          '2.125 -82.375 -6.125 -73.5 4.875 -100.125 -3.25 -71.25Z\n')
+            svg.write('"/>\n')
+        svg.write('</svg>\n')
+    yield path, width, height
+
 
 def public_fixtures(scratch):
     manifest = json.loads((HERE / "public-fixtures.json").read_text(encoding="utf-8"))

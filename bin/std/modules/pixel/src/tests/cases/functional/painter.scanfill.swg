@@ -156,7 +156,7 @@ using Core
     Swag.require(image.pixelColor(12, 21).argb == 0xFF00_0000)
 }
 
-// A compound fill keeps fractional coverage when its contours span several clipped scan bands.
+// A compound fill keeps fractional coverage for short contours and one contour crossing every band.
 #test
 {
     const Width  = 80
@@ -178,6 +178,13 @@ using Core
         painter.setTransform(Math.Transform2.createTranslation(0.25, 0.25))
 
         var contours: LinePathList
+        contours.newPath().setRectRaw(22, 0, 1.5, Height)
+        if draw
+        {
+            painter.fillPath(&contours, ink, .EvenOdd)
+            contours.clear()
+        }
+
         for row in 104
         {
             for column in 12
@@ -200,6 +207,7 @@ using Core
 
     Swag.require(images[0].pixelColor(10, 8).argb != 0xFFFF_FFFF)
     Swag.require(images[0].pixelColor(2, 8).argb == 0xFFFF_FFFF)
+    Swag.require(images[0].pixelColor(22, 209).argb != 0xFFFF_FFFF)
     for byte, index in images[0].pixels do
         Swag.require(byte == images[1].pixels[index])
 }

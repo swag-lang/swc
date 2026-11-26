@@ -373,3 +373,23 @@ const PackedFormats: [18] PixelFormat = [
         assertImage(destination, 3, 3, format)
     }
 }
+
+// Splitting a large image into alpha batches preserves the whole packed buffer.
+#test
+{
+    var image = Image.create(4097, 4097, .BGRA8, alphaMode: .Premultiplied)
+    let words = cast([*] u32, image.pixels.storage())
+    let count = image.byteCount / 4
+    var state = 0x7892B1FD'u32
+    for index in count
+    {
+        state = state * #wrap 1664525 + #wrap 1013904223
+        words[index] = state
+    }
+
+    var expected = image.pixels
+    PackedPixel.writeStraightAlpha8(expected.storage(), expected.storage(), count, false)
+    image.convertAlphaTo(.Straight)
+    Swag.require(image.alphaMode == .Straight)
+    Swag.require(Memory.compare(image.pixels.storage(), expected.storage(), image.byteCount) == 0)
+}

@@ -128,3 +128,4 @@ optimizations moved each result.
 - [Reusable Argon2id lane-segment workspace](argon2-workspace.md)
 - [Register-local BLAKE3 vector state](blake3-vector-locals.md)
 - [AES-CCM hardware CBC-MAC and CTR](aes-ccm-hardware.md)
+- [P-256 generator comb with four tables](p256-generator-tables.md)

@@ -251,6 +251,18 @@ enum class MicroOp : uint8_t
     VecAesDecryptRound,
     VecAesDecryptLastRound,
 
+    // Legacy two-operand SHA extensions. Rounds2 also reads XMM0.
+    VecSha1NextE,
+    VecSha1Schedule1,
+    VecSha1Schedule2,
+    VecSha256Rounds2,
+    VecSha256Schedule1,
+    VecSha256Schedule2,
+    VecSha1Rounds4Phase0,
+    VecSha1Rounds4Phase1,
+    VecSha1Rounds4Phase2,
+    VecSha1Rounds4Phase3,
+
     // Packed unary forms, non-destructive (VecUnaryRegReg). The widen forms
     // extend the low eight/four/two lanes to double width; the movemask forms
     // write the lane sign bits into an integer register.
@@ -357,6 +369,11 @@ inline bool isScalarShiftOp(const MicroOp op)
 inline bool isVecMicroOp(const MicroOp op)
 {
     return op >= MicroOp::VecAdd32;
+}
+
+inline bool isShaMicroOp(const MicroOp op)
+{
+    return op >= MicroOp::VecSha1NextE && op <= MicroOp::VecSha1Rounds4Phase3;
 }
 
 inline bool isPackedFloatBinaryMicroOp(const MicroOp op)

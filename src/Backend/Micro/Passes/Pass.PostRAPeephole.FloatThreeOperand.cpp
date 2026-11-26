@@ -52,7 +52,7 @@ namespace PostRaPeephole
         bool foldableIntoThreeOperand(const MicroOp op, const MicroOpBits opBits)
         {
             if (opBits == MicroOpBits::B128)
-                return isVecMicroOp(op);
+                return isVecMicroOp(op) && !isShaMicroOp(op);
             return (opBits == MicroOpBits::B32 || opBits == MicroOpBits::B64) && hasThreeOperandForm(op);
         }
 

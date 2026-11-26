@@ -974,6 +974,11 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecInterleaveHi:
         case TokenId::IntrinsicVecAvgR:
         case TokenId::IntrinsicVecMadd:
+        case TokenId::IntrinsicVecSha1Schedule1:
+        case TokenId::IntrinsicVecSha1Schedule2:
+        case TokenId::IntrinsicVecSha1NextE:
+        case TokenId::IntrinsicVecSha256Schedule1:
+        case TokenId::IntrinsicVecSha256Schedule2:
         case TokenId::IntrinsicVecMaddUBS:
         case TokenId::IntrinsicVecSad:
         case TokenId::IntrinsicVecMulHi:
@@ -995,6 +1000,8 @@ AstNodeRef Parser::parsePrimaryExpression()
         case TokenId::IntrinsicVecAlign:
         case TokenId::IntrinsicVecSelect:
         case TokenId::IntrinsicVecClmul:
+        case TokenId::IntrinsicVecSha1Rounds4:
+        case TokenId::IntrinsicVecSha256Rounds2:
             return parseIntrinsicCallExpr(3);
 
         case TokenId::NumberInteger:

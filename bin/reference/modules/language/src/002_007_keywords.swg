@@ -140,6 +140,8 @@ Swag.vecInterleaveHi  Swag.vecInterleaveLo  Swag.vecMask  Swag.vecMulAddPairs
 Swag.vecMulAddPairsSat  Swag.vecMulHigh  Swag.vecNarrowSatS  Swag.vecNarrowSatU  Swag.vecPermute
 Swag.vecReduceAdd  Swag.vecReduceAnd  Swag.vecReduceMax  Swag.vecReduceMin  Swag.vecReduceOr
 Swag.vecReduceXor  Swag.vecSatAdd  Swag.vecSatSub  Swag.vecSelect  Swag.vecShuffle  Swag.vecShuffle2
+Swag.vecSha1NextE  Swag.vecSha1Rounds4  Swag.vecSha1Schedule1  Swag.vecSha1Schedule2
+Swag.vecSha256Rounds2  Swag.vecSha256Schedule1  Swag.vecSha256Schedule2
 Swag.vecSplat  Swag.vecSumAbsDiff  Swag.vecTruncToS32  Swag.vecWidenHi  Swag.vecWidenLo
 ```
 

@@ -1273,6 +1273,9 @@ void X64Encoder::updateRegUseDef(const MicroInstr& inst, const MicroInstrOperand
             if (shiftUsesFixedCount)
                 info.addUse(x64RegToMicroReg(X64Reg::Rcx));
             break;
+        case MicroOp::VecSha256Rounds2:
+            info.addUse(x64RegToMicroReg(X64Reg::Xmm0));
+            break;
         case MicroOp::MultiplySigned:
         {
             // B8 signed multiply uses one-operand IMUL (no two-operand 8-bit form exists),
@@ -3282,6 +3285,30 @@ void X64Encoder::encodeOpBinaryRegReg(MicroReg regDst, MicroReg regSrc, MicroOp 
     SWC_ASSERT(op != MicroOp::ConvertUIntToFloat64);
 
     ///////////////////////////////////////////
+    if (isShaMicroOp(op))
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && regDst.isFloat() && regSrc.isFloat());
+        emitRex(store_, MicroOpBits::Zero, regDst, regSrc);
+        emitCpuOp(store_, 0x0F);
+
+        if (op >= MicroOp::VecSha1Rounds4Phase0)
+        {
+            emitCpuOp(store_, 0x3A);
+            emitCpuOp(store_, 0xCC);
+            emitModRm(store_, regDst, regSrc);
+            emitValue(store_, static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecSha1Rounds4Phase0), MicroOpBits::B8);
+        }
+        else
+        {
+            // The six register-only SHA opcodes follow the MicroOp order above.
+            emitCpuOp(store_, 0x38);
+            emitCpuOp(store_, static_cast<uint8_t>(0xC8 + static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecSha1NextE)));
+            emitModRm(store_, regDst, regSrc);
+        }
+
+        return;
+    }
+
     // Keep two-operand Micro operations in VEX form too: a caller may leave
     // the volatile upper YMM halves dirty, even when this function uses only XMM.
     if (isVecMicroOp(op))

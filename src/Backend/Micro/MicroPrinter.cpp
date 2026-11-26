@@ -471,6 +471,26 @@ namespace
                 return "vec.alignr";
             case MicroOp::VecClmul:
                 return "vec.clmul";
+            case MicroOp::VecSha1NextE:
+                return "vec.sha1nexte";
+            case MicroOp::VecSha1Schedule1:
+                return "vec.sha1schedule1";
+            case MicroOp::VecSha1Schedule2:
+                return "vec.sha1schedule2";
+            case MicroOp::VecSha256Rounds2:
+                return "vec.sha256rounds2";
+            case MicroOp::VecSha256Schedule1:
+                return "vec.sha256schedule1";
+            case MicroOp::VecSha256Schedule2:
+                return "vec.sha256schedule2";
+            case MicroOp::VecSha1Rounds4Phase0:
+                return "vec.sha1rounds4phase0";
+            case MicroOp::VecSha1Rounds4Phase1:
+                return "vec.sha1rounds4phase1";
+            case MicroOp::VecSha1Rounds4Phase2:
+                return "vec.sha1rounds4phase2";
+            case MicroOp::VecSha1Rounds4Phase3:
+                return "vec.sha1rounds4phase3";
             case MicroOp::VecShiftLeftV16:
                 return "vec.shlv16";
             case MicroOp::VecShiftLeftV32:

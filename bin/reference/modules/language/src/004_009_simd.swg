@@ -387,6 +387,35 @@ and take the corresponding untransformed round key.
 }
 
 /**
+# SHA Rounds
+
+The SHA extensions process SHA-1 and SHA-256 state in four-word vectors.
+Call the operations only when 'Swag.hasCpuFeature(.Sha)' succeeds.
+'Swag.vecSha1Rounds4' takes a constant phase number and executes four rounds.
+The SHA-1 message word for the earliest round occupies the highest lane.
+'Swag.vecSha256Rounds2' takes two packed state halves and a message vector.
+Its two lowest lanes hold the message words with their round constants added.
+*/
+#test
+{
+    if not Swag.hasCpuFeature(.Sha) do
+        return
+
+    let abcd  = cast(#simd [4] u32, [0x10325476, 0x98BADCFE, 0xEFCDAB89, 0x67452301])
+    let first = cast(#simd [4] u32, [0, 0, 0, 0xC3D2E1F0])
+    let sha1  = cast([4] u32, Swag.vecSha1Rounds4(abcd, first, 0))
+    Swag.require(sha1[0] == 0xE7ED262C and sha1[1] == 0x1750F8E0)
+    Swag.require(sha1[2] == 0x158D3162 and sha1[3] == 0xCDED3AFD)
+
+    let cdgh   = cast(#simd [4] u32, [0x5BE0CD19, 0x1F83D9AB, 0xA54FF53A, 0x3C6EF372])
+    let abef   = cast(#simd [4] u32, [0x9B05688C, 0x510E527F, 0xBB67AE85, 0x6A09E667])
+    let rounds = cast(#simd [4] u32, [0x428A2F98, 0x71374491, 0, 0])
+    let sha256 = cast([4] u32, Swag.vecSha256Rounds2(cdgh, abef, rounds))
+    Swag.require(sha256[0] == 0x98C7E2A2 and sha256[1] == 0x9DF1B216)
+    Swag.require(sha256[2] == 0xFC08884D and sha256[3] == 0x7AD96290)
+}
+
+/**
 # Boundaries
 
 A vector crosses module boundaries in the Swag calling convention only: a

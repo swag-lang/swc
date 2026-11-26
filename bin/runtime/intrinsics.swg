@@ -423,6 +423,42 @@ func atomicStore(addr: *u64, value: u64)
     // CRC folding is made of.
     func vecCarrylessMul(value1, value2: #simd [2] u64, selector: u8)->#simd [2] u64
 
+    // Starts extending four SHA-1 message words from the first two message vectors.
+    //
+    // Each vector holds its earlier words in higher-numbered lanes. Call only when
+    // [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1Schedule1(older, newer: #simd [4] u32)->#simd [4] u32
+
+    // Finishes extending four SHA-1 message words after they are combined with the third vector.
+    // Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1Schedule2(partial, newest: #simd [4] u32)->#simd [4] u32
+
+    // Adds the next SHA-1 E state derived from the previous ABCD vector to the first message word.
+    // Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1NextE(previous, words: #simd [4] u32)->#simd [4] u32
+
+    // Applies four SHA-1 rounds to the ABCD vector.
+    //
+    // The input message includes E in its highest lane. The low two bits of the constant `phase`
+    // select the SHA-1 round function and constant. Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha1Rounds4(state, words: #simd [4] u32, phase: u8)->#simd [4] u32
+
+    // Starts extending four SHA-256 message words from the first two message vectors.
+    //
+    // Each vector holds its earlier words in lower-numbered lanes. Call only when
+    // [[hasCpuFeature]] reports `.Sha`.
+    func vecSha256Schedule1(older, newer: #simd [4] u32)->#simd [4] u32
+
+    // Finishes extending four SHA-256 message words after they are combined with the third vector.
+    // Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha256Schedule2(partial, newest: #simd [4] u32)->#simd [4] u32
+
+    // Applies two SHA-256 rounds and returns the new ABEF vector.
+    //
+    // State words are in reverse lane order within each vector. The two low message words include
+    // their round constants. Call only when [[hasCpuFeature]] reports `.Sha`.
+    func vecSha256Rounds2(cdgh, abef, words: #simd [4] u32)->#simd [4] u32
+
     // Applies SubBytes, ShiftRows, MixColumns and AddRoundKey to an AES state.
     //
     // Bytes follow AES column order. Call only when [[Swag.hasCpuFeature]] reports `.Aes`.

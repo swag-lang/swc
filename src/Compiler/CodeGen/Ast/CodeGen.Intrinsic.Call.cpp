@@ -2396,6 +2396,46 @@ namespace
                 return Result::Continue;
             }
 
+            case TokenId::IntrinsicVecSha1Schedule1:
+            case TokenId::IntrinsicVecSha1Schedule2:
+            case TokenId::IntrinsicVecSha1NextE:
+            case TokenId::IntrinsicVecSha1Rounds4:
+            case TokenId::IntrinsicVecSha256Schedule1:
+            case TokenId::IntrinsicVecSha256Schedule2:
+            case TokenId::IntrinsicVecSha256Rounds2:
+            {
+                MicroOp shaOp;
+                switch (tokId)
+                {
+                    case TokenId::IntrinsicVecSha1NextE:     shaOp = MicroOp::VecSha1NextE; break;
+                    case TokenId::IntrinsicVecSha1Schedule1: shaOp = MicroOp::VecSha1Schedule1; break;
+                    case TokenId::IntrinsicVecSha1Schedule2: shaOp = MicroOp::VecSha1Schedule2; break;
+                    case TokenId::IntrinsicVecSha256Schedule1: shaOp = MicroOp::VecSha256Schedule1; break;
+                    case TokenId::IntrinsicVecSha256Schedule2: shaOp = MicroOp::VecSha256Schedule2; break;
+                    case TokenId::IntrinsicVecSha256Rounds2: shaOp = MicroOp::VecSha256Rounds2; break;
+                    case TokenId::IntrinsicVecSha1Rounds4:
+                    {
+                        SWC_RESULT(SemaCheck::isConstant(codeGen.sema(), children[2]));
+                        const SemaNodeView phaseView = codeGen.viewTypeConstant(children[2]);
+                        const uint8_t      phase     = static_cast<uint8_t>(phaseView.cst()->getIntLike().as64()) & 3;
+                        shaOp = static_cast<MicroOp>(static_cast<uint8_t>(MicroOp::VecSha1Rounds4Phase0) + phase);
+                        break;
+                    }
+                    default: SWC_UNREACHABLE();
+                }
+
+                const MicroReg      leftReg       = loadArg(0);
+                const MicroReg      rightReg      = loadArg(1);
+                CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
+                resultPayload.reg                 = codeGen.nextVirtualFloatRegister();
+                if (shaOp == MicroOp::VecSha256Rounds2)
+                    builder.emitLoadRegReg(MicroReg::floatReg(0), loadArg(2), MicroOpBits::B128);
+                builder.emitLoadRegReg(resultPayload.reg, leftReg, MicroOpBits::B128);
+                builder.emitOpBinaryRegReg(resultPayload.reg, rightReg, shaOp, MicroOpBits::B128);
+                outHandled = true;
+                return Result::Continue;
+            }
+
             case TokenId::IntrinsicVecSad:
             {
                 const MicroReg      leftReg       = loadArg(0);

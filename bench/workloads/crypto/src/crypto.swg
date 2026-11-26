@@ -3,6 +3,7 @@ using Core
 alias Operation = func(const [..] u8, [..] u8)
 
 const Key   = "0123456789abcdefghijklmnopqrstuv"
+const HmacLongKey    = "0123456789abcdefghijklmnopqrstuv0123456789abcdefghijklmnopqrstuv0123456789abcdefghijklmnopqrstuv0123456789abcdefghijklmnopqrstuvabc"
 const Nonce = "0123456789ab"
 const AssociatedData = "swag-crypto-1"
 const DualAesKey = "0123456789abcdefghijklmnopqrstuvvutsrqponmlkjihgfedcba9876543210"
@@ -41,6 +42,30 @@ func sha3(input: const [..] u8, output: [..] u8)    => expect Hash.Sha3.compute(
 func blake2b(input: const [..] u8, output: [..] u8) => expect Hash.Blake2b.compute(input, output)
 func blake2s(input: const [..] u8, output: [..] u8) => expect Hash.Blake2s.compute(input, output)
 func blake3(input: const [..] u8, output: [..] u8)  => expect Hash.Blake3.compute(input, output)
+
+func(Hmac, MacKey: string) hmacSha2(input: const [..] u8, output: [..] u8)
+{
+    let tag = Hmac.compute(MacKey, input)
+    Memory.copy(output.buffer, tag.buffer, tag.count)
+}
+
+func hmacSha224(input: const [..] u8, output: [..] u8) =>
+    hmacSha2'(Crypto.HmacSha224, Key)(input, output)
+
+func hmacSha224Empty(input: const [..] u8, output: [..] u8) =>
+    hmacSha2'(Crypto.HmacSha224, "")(input, output)
+
+func hmacSha224Long(input: const [..] u8, output: [..] u8) =>
+    hmacSha2'(Crypto.HmacSha224, HmacLongKey)(input, output)
+
+func hmacSha256(input: const [..] u8, output: [..] u8) =>
+    hmacSha2'(Crypto.HmacSha256, Key)(input, output)
+
+func hmacSha256Empty(input: const [..] u8, output: [..] u8) =>
+    hmacSha2'(Crypto.HmacSha256, "")(input, output)
+
+func hmacSha256Long(input: const [..] u8, output: [..] u8) =>
+    hmacSha2'(Crypto.HmacSha256, HmacLongKey)(input, output)
 
 func hmacSha384(input: const [..] u8, output: [..] u8)
 {
@@ -170,6 +195,12 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "blake2b-512":       return {&blake2b, 64}
     case "blake2s-256":       return {&blake2s, 32}
     case "blake3":            return {&blake3, 32}
+    case "hmac-sha224":         return {&hmacSha224, 28}
+    case "hmac-sha224-empty":   return {&hmacSha224Empty, 28}
+    case "hmac-sha224-long":    return {&hmacSha224Long, 28}
+    case "hmac-sha256":         return {&hmacSha256, 32}
+    case "hmac-sha256-empty":   return {&hmacSha256Empty, 32}
+    case "hmac-sha256-long":    return {&hmacSha256Long, 32}
     case "hmac-sha384":       return {&hmacSha384, 48}
     case "hmac-sha512":       return {&hmacSha512, 64}
     case "poly1305":          return {&poly1305, 16}
@@ -230,8 +261,11 @@ func processTicks()->u64
         if name == "p256-verify-reject" do
             p256VerifySignature[63] ^= 1
     }
-    elif name == "p256-ecdh" do
+    elif name == "p256-ecdh"
+    {
         expect Crypto.p256PublicKey(input, p256EcdhPeer)
+    }
+
     var output: Array'u8
     output.resize(selected.outputSize)
     var destination = output.toSlice()
@@ -255,6 +289,7 @@ func processTicks()->u64
         Swag.require(destination[0] == cast(u8, name == "p256-verify"))
         Swag.memcpy(destination.buffer + 1, p256VerifySignature.buffer, 64)
     }
+
     discard expect File.writeAllBytes(args[3], destination)
     Console.println(wallElapsed, " ", cpuElapsed, " ", Time.monotonicFrequency())
 }

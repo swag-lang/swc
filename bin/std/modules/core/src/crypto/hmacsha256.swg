@@ -13,19 +13,33 @@ struct HmacSha256
     initialized: bool
 }
 
-private func sha256Bytes(digest: Hash.Sha256.Digest)->HmacSha256Digest
+#[Swag.Inline]
+internal func(Words: u64) sha2HmacDigestBytes(digest: [Words] u32)->[Words * #sizeof(u32)] u8
 {
     var result: #returntype
-    for i in 8
+    let destination = cast([*] u32, result.buffer)
+    Math.Simd.store(destination, Math.nativeToBigEndian(Math.Simd.load(digest.buffer)))
+    #static if Words == 8 do
+        Math.Simd.store(destination + 4, Math.nativeToBigEndian(Math.Simd.load(digest.buffer + 4)))
+    else
     {
-        let word = digest[i]
-        result[i * 4 + 0] = Math.byteAt(word, 3)
-        result[i * 4 + 1] = Math.byteAt(word, 2)
-        result[i * 4 + 2] = Math.byteAt(word, 1)
-        result[i * 4 + 3] = Math.byteAt(word, 0)
+        for index in 4 until Words do
+            destination[index] = Math.nativeToBigEndian(digest[index])
     }
 
     return result
+}
+
+#[Swag.Inline]
+internal func(Mask: u8) xorSha2HmacPad(pad: [*] u8)
+{
+    let mask = Math.Simd.splat(Mask)
+    const Width = #sizeof(Math.Simd.U8x16)
+    for group in 64 / Width
+    {
+        let block = pad + group * Width
+        Math.Simd.store(block, Math.Simd.load(block) ^ mask)
+    }
 }
 
 impl HmacSha256
@@ -41,37 +55,33 @@ impl HmacSha256
     // Replaces any previous keyed state and starts a new sequence for `key`.
     mtd reset(key: const [..] u8)
     {
-        .clear()
+        if .initialized do
+            .clear()
 
-        var normalized: [64] u8
+        var pad: [64] u8
         if key.count > 64
         {
-            var hashed = sha256Bytes(Hash.Sha256.compute(key))
-            Swag.memcpy(&normalized[0], &hashed[0], #sizeof(hashed))
+            var hashed = sha2HmacDigestBytes'8(Hash.Sha256.compute(key))
+            Swag.memcpy(&pad[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
         elif key.count
         {
-            Swag.memcpy(&normalized[0], key.buffer, key.count)
-        }
-
-        var innerPad: [64] u8
-        var outerPad: [64] u8
-        for i in 64
-        {
-            innerPad[i] = normalized[i] ^ 0x36
-            outerPad[i] = normalized[i] ^ 0x5C
+            Swag.memcpy(&pad[0], key.buffer, key.count)
         }
 
         .inner.reset()
+        xorSha2HmacPad'0x36(pad.buffer)
+        .inner.update(pad)
+
         .outer.reset()
-        .inner.update(innerPad)
-        .outer.update(outerPad)
+
+        // Convert the inner pad into the outer pad in the same buffer.
+        xorSha2HmacPad'(0x36 ^ 0x5C)(pad.buffer)
+        .outer.update(pad)
         .initialized = true
 
-        secureClear(normalized)
-        secureClear(innerPad)
-        secureClear(outerPad)
+        secureClear(pad)
     }
 
     // Includes `data` in the running authentication code.
@@ -87,9 +97,9 @@ impl HmacSha256
     mtd finalize()->HmacSha256Digest
     {
         Swag.assert(.initialized, "HMAC-SHA-256 needs an initialized sequence")
-        var innerHash = sha256Bytes(.inner.finalize())
+        var innerHash = sha2HmacDigestBytes'8(.inner.finalize())
         .outer.update(innerHash)
-        let result = sha256Bytes(.outer.finalize())
+        let result = sha2HmacDigestBytes'8(.outer.finalize())
         secureClear(innerHash)
         .clear()
         return result
@@ -98,21 +108,14 @@ impl HmacSha256
     // Clears all keyed state held by this value.
     mtd clear()
     {
-        secureClear(.inner.data)
-        secureClear(.inner.state)
-        secureClear(.outer.data)
-        secureClear(.outer.state)
-        .inner.dataLength = 0
-        .inner.bitLength  = 0
-        .outer.dataLength = 0
-        .outer.bitLength  = 0
-        .initialized      = false
+        secureClear(Swag.makeSlice(cast([*] u8, me), #sizeof(HmacSha256)))
     }
 
     // Clears keyed state when this value leaves scope.
     mtd opDrop()
     {
-        .clear()
+        if .initialized do
+            .clear()
     }
 
     // Computes HMAC-SHA-256 for `data` in one operation.

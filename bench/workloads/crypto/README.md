@@ -70,6 +70,17 @@ Select HMAC with `--algorithm hmac-sha384` or `--algorithm hmac-sha512`. The
 one-shot operations use a deterministic 32-byte key. Include `--size 111 --size 112`
 to compare the payloads on either side of the SHA-384/512 padding boundary.
 
+Select `hmac-sha224` or `hmac-sha256` for the same 32-byte key.
+Their default sizes include both sides of the 55/56-byte SHA-224/256
+padding boundary. Append `-empty` or `-long` to use a 0- or 131-byte key.
+The three variants report complete MAC operations per second.
+
+To add Nettle, install its development package, build the reference with
+`-DSWAG_BENCH_HMAC_NETTLE` and `$(pkg-config --cflags --libs nettle)`, and
+pass `--hmac-nettle-reference` to the runner. Both library references set
+the key for each timed operation. Swag`s public call also clears its
+keyed state before returning.
+
 ## BLAKE2 references
 
 Install the libb2 and libsodium development packages. To include their one-shot

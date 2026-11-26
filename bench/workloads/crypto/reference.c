@@ -18,6 +18,11 @@
 #include <sodium.h>
 #endif
 
+#ifdef SWAG_BENCH_HMAC_NETTLE
+#include <nettle/hmac.h>
+#include <nettle/version.h>
+#endif
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +34,10 @@ extern uint64_t lzma_crc64(const uint8_t *, size_t, uint64_t);
 extern const char *lzma_version_string(void);
 
 static const unsigned char key[] = "0123456789abcdefghijklmnopqrstuv";
+static const unsigned char hmac_long_key[] = "0123456789abcdefghijklmnopqrstuv"
+                                             "0123456789abcdefghijklmnopqrstuv"
+                                             "0123456789abcdefghijklmnopqrstuv"
+                                             "0123456789abcdefghijklmnopqrstuvabc";
 static const unsigned char nonce[] = "0123456789ab";
 static const unsigned char dual_aes_key[] = "0123456789abcdefghijklmnopqrstuv"
                                            "vutsrqponmlkjihgfedcba9876543210";
@@ -45,6 +54,8 @@ static EVP_MAC *mac;
 static EVP_KDF *hkdf;
 static EVP_KDF_CTX *hkdf_context;
 static EVP_MAC_CTX *mac_context;
+static const unsigned char *mac_key = key;
+static size_t mac_key_size = sizeof(key) - 1;
 static size_t mac_size;
 static int authenticated;
 static int use_aes_ctr;
@@ -157,11 +168,29 @@ static void digest_evp(const unsigned char *p, size_t n, unsigned char *out)
 static void mac_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
     size_t length = 0;
-    require(EVP_MAC_init(mac_context, key, sizeof(key) - 1, NULL) &&
+    require(EVP_MAC_init(mac_context, mac_key, mac_key_size, NULL) &&
             EVP_MAC_update(mac_context, p, n) &&
             EVP_MAC_final(mac_context, out, &length, mac_size) && length == mac_size,
             "OpenSSL MAC failed");
 }
+
+#ifdef SWAG_BENCH_HMAC_NETTLE
+static void hmac_nettle224(const unsigned char *p, size_t n, unsigned char *out)
+{
+    struct hmac_sha224_ctx context;
+    hmac_sha224_set_key(&context, mac_key_size, mac_key);
+    hmac_sha224_update(&context, n, p);
+    hmac_sha224_digest(&context, mac_size, out);
+}
+
+static void hmac_nettle256(const unsigned char *p, size_t n, unsigned char *out)
+{
+    struct hmac_sha256_ctx context;
+    hmac_sha256_set_key(&context, mac_key_size, mac_key);
+    hmac_sha256_update(&context, n, p);
+    hmac_sha256_digest(&context, mac_size, out);
+}
+#endif
 
 static void encrypt_evp(const unsigned char *p, size_t n, unsigned char *out)
 {
@@ -511,24 +540,53 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         return hkdf_evp;
     }
 
+    const char *hmac_name = name;
+#ifdef SWAG_BENCH_HMAC_NETTLE
+    const int use_nettle = !strncmp(name, "nettle-", 7);
+    if (use_nettle)
+        hmac_name += 7;
+#endif
+    const int hmac224 = !strncmp(hmac_name, "hmac-sha224", 11);
+    const int hmac256 = !strncmp(hmac_name, "hmac-sha256", 11);
+    if (hmac224 || hmac256) {
+        const char *key_profile = hmac_name + 11;
+        if (!strcmp(key_profile, "-empty")) {
+            mac_key_size = 0;
+        } else if (!strcmp(key_profile, "-long")) {
+            mac_key = hmac_long_key;
+            mac_key_size = sizeof(hmac_long_key) - 1;
+        } else {
+            require(!*key_profile, "Invalid HMAC key profile");
+        }
+#ifdef SWAG_BENCH_HMAC_NETTLE
+        if (use_nettle) {
+            mac_size = hmac224 ? 28 : 32;
+            *result_size = mac_size;
+            return hmac224 ? hmac_nettle224 : hmac_nettle256;
+        }
+#endif
+    }
+
     const int poly1305 = !strcmp(name, "poly1305");
     const int hmac384 = !strcmp(name, "hmac-sha384");
     const int hmac512 = !strcmp(name, "hmac-sha512");
-    if (poly1305 || hmac384 || hmac512) {
+    if (poly1305 || hmac224 || hmac256 || hmac384 || hmac512) {
         mac = EVP_MAC_fetch(NULL, poly1305 ? "POLY1305" : "HMAC", NULL);
         require(mac != NULL, "OpenSSL could not fetch MAC");
         mac_context = EVP_MAC_CTX_new(mac);
         require(mac_context != NULL, "OpenSSL could not allocate a MAC context");
         if (!poly1305) {
-            char sha384[] = "SHA384";
-            char sha512[] = "SHA512";
+            char hash_name[] = "SHA000";
+            memcpy(hash_name + 3, name + 8, 3);
             OSSL_PARAM params[] = {
-                OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, hmac384 ? sha384 : sha512, 0),
+                OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, hash_name, 0),
                 OSSL_PARAM_construct_end(),
             };
             require(EVP_MAC_CTX_set_params(mac_context, params), "OpenSSL could not set HMAC digest");
+            mac_size = (size_t)atoi(hash_name + 3) / 8;
+        } else {
+            mac_size = 16;
         }
-        mac_size = poly1305 ? 16 : hmac384 ? 48 : 64;
         *result_size = mac_size;
         return mac_evp;
     }
@@ -672,6 +730,9 @@ int main(int argc, char **argv)
                LIBDEFLATE_VERSION_STRING, isal_get_version_str(), lzma_version_string());
 #ifdef SWAG_BENCH_BLAKE2_REFERENCES
         printf(" | libb2 | libsodium %s", sodium_version_string());
+#endif
+#ifdef SWAG_BENCH_HMAC_NETTLE
+        printf(" | Nettle %d.%d", nettle_version_major(), nettle_version_minor());
 #endif
         putchar('\n');
         return EXIT_SUCCESS;

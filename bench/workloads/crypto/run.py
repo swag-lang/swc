@@ -53,6 +53,9 @@ BLAKE2_REFERENCES = {
     "blake2s-256": {"libb2": "blake2s-libb2"},
 }
 REFERENCES.update({name: {"OpenSSL": name} for name in ("hmac-sha384", "hmac-sha512")})
+NARROW_HMAC_SIZES = {f"hmac-sha{bits}{profile}": (16, 55, 56, 128, 4096)
+                     for bits in (224, 256) for profile in ("", "-empty", "-long")}
+REFERENCES.update({name: {"OpenSSL": name} for name in NARROW_HMAC_SIZES})
 PUBLIC_KEY_SIZES = {
     "x25519-public": (32,),
     "x25519-shared": (32,),
@@ -67,7 +70,7 @@ PUBLIC_KEY_SIZES = {
 HKDF_DIGEST_BYTES = {f"hkdf-sha{bits}": bits // 8 for bits in (224, 256, 384, 512)}
 HKDF_SIZES = {name: (size, 4 * size, 32 * size, 255 * size)
               for name, size in HKDF_DIGEST_BYTES.items()}
-OPERATION_SIZES = {**PUBLIC_KEY_SIZES, **HKDF_SIZES}
+OPERATION_SIZES = {**PUBLIC_KEY_SIZES, **HKDF_SIZES, **NARROW_HMAC_SIZES}
 REFERENCES.update({name: {"OpenSSL": name} for name in OPERATION_SIZES})
 
 
@@ -220,6 +223,8 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     parser.add_argument("--algorithm", action="append", choices=references)
     parser.add_argument("--blake2-references", action="store_true",
                         help="include libb2 and libsodium with a matching reference build")
+    parser.add_argument("--hmac-nettle-reference", action="store_true",
+                        help="include Nettle for HMAC-SHA-224 and HMAC-SHA-256")
     parser.add_argument("--size", action="append", type=int)
     parser.add_argument("--offset", action="append", type=int)
     parser.add_argument("--rounds", type=int, default=11)
@@ -232,6 +237,10 @@ def main(references=REFERENCES, default_algorithms=DEFAULT_ALGORITHMS):
     args = parser.parse_args()
     if args.blake2_references:
         references = {name: {**libraries, **BLAKE2_REFERENCES.get(name, {})}
+                      for name, libraries in references.items()}
+    if args.hmac_nettle_reference:
+        references = {name: {**libraries, "Nettle": f"nettle-{name}"}
+                      if name in NARROW_HMAC_SIZES else libraries
                       for name, libraries in references.items()}
 
     algorithms = args.algorithm or default_algorithms

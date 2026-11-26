@@ -41,3 +41,39 @@ using Swag
     Swag.require(updateBeforeReset.raised and updateBeforeReset.message() == "HMAC-SHA-256 needs an initialized sequence")
     Swag.require(finalizeBeforeReset.raised and finalizeBeforeReset.message() == "HMAC-SHA-256 needs an initialized sequence")
 }
+
+func(Hmac) verifyNarrowHmacLifecycle()
+{
+    var longKey: [131] u8
+    Memory.set(longKey.buffer, 0xAA'u8, longKey.count)
+    let message  = cast(const [..] u8, "Test Using Larger Than Block-Size Key - Hash Key First")
+    let shortKey = cast(const [..] u8, "Jefe")
+
+    var hmac = Hmac.create(longKey)
+    hmac.update(message)
+    hmac.update(message)
+    hmac.reset(shortKey)
+    hmac.update(message[until 7])
+    hmac.update(message[7 until message.count])
+    Swag.require(Crypto.constantTimeEqual(hmac.finalize(), Hmac.compute(shortKey, message)))
+
+    let storage = Swag.makeSlice(cast(const [*] u8, &hmac), #sizeof(Hmac))
+    for byte in storage do
+        Swag.require(byte == 0)
+
+    hmac.reset(longKey)
+    hmac.update(message)
+    hmac.clear()
+    for byte in storage do
+        Swag.require(byte == 0)
+
+    hmac.reset(longKey)
+    hmac.update(message)
+    Swag.require(Crypto.constantTimeEqual(hmac.finalize(), Hmac.compute(longKey, message)))
+}
+
+#test
+{
+    verifyNarrowHmacLifecycle'Crypto.HmacSha224()
+    verifyNarrowHmacLifecycle'Crypto.HmacSha256()
+}

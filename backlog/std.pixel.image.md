@@ -93,6 +93,45 @@ ships; history lives in Git, not here.
   stated resampling tolerance.
 - Related: std.pixel.image.038, std.pixel.019
 
+### std.pixel.image.057 — SVG CPU rasterization is far slower than resvg
+
+- Evidence: a Release benchmark measured `Svg.Drawing.parse` and `Svg.Drawing.rasterize(..., 1)`
+  separately on the four Filesamples SVGs. It used the same output dimensions as Scope's pixel
+  image path, capped at 2048 px on the longest side, and compared against [resvg 0.50.0](https://github.com/linebender/resvg/releases/tag/v0.50.0)
+  with `--perf`. Both engines ran on the CPU; seven repetitions were summarized by their medians.
+  File reading, PNG saving, GUI startup, and presentation were excluded. The totals below are
+  medians of each run's parse-plus-raster time, so they need not equal the sum of the two phase
+  medians.
+
+  | SVG source | Output px | SwagScope parse / raster / total ms | resvg parse / render / total ms | Total ratio |
+  | --- | ---: | ---: | ---: | ---: |
+  | `sample_640×426.svg` (119,951 B) | 640 × 426 | 10.106 / 128.033 / 138.530 | 1.970 / 5.530 / 7.540 | 18.4× |
+  | `sample_1280×853.svg` (453,031 B) | 1280 × 853 | 35.700 / 2104.275 / 2146.360 | 7.580 / 21.340 / 28.620 | 75.0× |
+  | `sample_1920×1280.svg` (1,067,956 B) | 1920 × 1280 | 21.591 / 502.368 / 526.270 | 19.180 / 47.450 / 66.890 | 7.9× |
+  | `sample_5184×3456.svg` (7,905,340 B) | 2048 × 1365 | 182.785 / 4431.484 / 4619.600 | 150.440 / 254.660 / 406.530 | 11.4× |
+
+  The largest phase gaps are rasterization: 23×, 99×, 11×, and 17× respectively. Source byte
+  size alone does not predict the cost; the 453 KiB sample takes about 2.1 s to rasterize, while
+  the 1.07 MiB sample takes about 0.50 s. The four inputs contain no `<text>`, `<image>`, or
+  `<filter>` elements, so these timings isolate geometric SVG work and do not cover those paths.
+  This is a direct Pixel API benchmark of the parse and CPU raster operations used by Scope when
+  pixels are needed, not a measurement of GUI open time; Scope's normal vector view is not
+  rasterized to a full-size bitmap. The source files are in the sibling
+  `filesamples/samples/image/svg` corpus. SHA-256 fingerprints, in table order:
+  `6c080cb0dcdb660db9e2865e0d3349f3263183e58c9345cc6122a4130ea3c8a5`,
+  `00d622cf6ab0ef73e48d203d90adeab659776b6d3b1958dc71042a836694fa6a`,
+  `d6012d46eab66404f9c2c450942dc8874ba6fe057774a38ba19b9fa570062a2d`,
+  `bf29681a8b952f06b8d5a61a4ac5a18e0194e9f6a207e57ab6ab9b32f4e64801`.
+  Benchmark host: Windows 11 x64, Intel Core Ultra 9 185H. The comparison measures this corpus
+  and these output sizes only; it does not establish whole-format correctness or universal speed.
+- Next: verify fixture provenance and license, then preserve this corpus or minimized equivalents
+  in a repeatable Release benchmark. Profile parsing and rasterization separately, starting with
+  the 453 KiB and 7.9 MiB samples, and optimize the dominant geometry and fill paths.
+- Done when: a maintained benchmark reproduces separate parse, raster, and combined timings for
+  representative simple, complex, and large SVGs; agreed performance budgets are met without
+  changing the renderer's verified output behavior.
+- Related: std.pixel.image.039, app.scope.image.010
+
 ### std.pixel.image.026 — No AVIF codec
 
 - Evidence: AVIF 1.2 covers SDR, HDR/WCG, alpha, image sequences, progressive layers, auxiliary

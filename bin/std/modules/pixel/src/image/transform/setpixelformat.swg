@@ -5,6 +5,31 @@ private const DropSwap   = [2'u8, 1, 0, 6, 5, 4, 10, 9, 8, 14, 13, 12, 128, 128,
 private const ExpandKeep = [0'u8, 1, 2, 128, 3, 4, 5, 128, 6, 7, 8, 128, 9, 10, 11, 128]
 private const ExpandSwap = [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128]
 
+internal func expandRgb8Alpha(source: const [*] u8, target: [*] u8, count: u64, swapColors: bool)
+{
+    using Math.Simd
+    let table = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
+    let channels = load(table)
+    const Opaque = splat(0xFF000000'u32)
+    let output   = cast([*] u32, target)
+    var x: u64
+    while count - x >= 6
+    {
+        let words = cast #bit(U32x4, shuffle(load(source + x * 3), channels))
+        store(output + x, words | Opaque)
+        x += 4
+    }
+
+    let first = swapColors ? 2 : 0
+    let last  = 2 - first
+    for i in x until count
+    {
+        let pixel = source + i * 3
+        output[i] = 0xFF000000'u32 | cast(u32, pixel[first]) |
+                    (cast(u32, pixel[1]) << 8) | (cast(u32, pixel[last]) << 16)
+    }
+}
+
 internal func(HALF: bool) expandRgb16Alpha(source: const [*] u8, target: [*] u8, count: u64)
 {
     using Math.Simd
@@ -158,16 +183,8 @@ impl Image
             }
             elif dst.bytesPerPixel == 4
             {
-                let table     = swapColors ? ExpandSwap.buffer : ExpandKeep.buffer
-                let shuffle   = Math.Simd.load(table)
-                let alphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
-                while src.width - x >= 6
-                {
-                    let source = srcRow + cast(u64, x) * 3
-                    let target = dstRow + cast(u64, x) * 4
-                    Math.Simd.store(target, Math.Simd.shuffle(Math.Simd.load(source), shuffle) | alphaMask)
-                    x += 4
-                }
+                expandRgb8Alpha(srcRow, dstRow, cast(u64, src.width), swapColors)
+                x = src.width
             }
             else
             {

@@ -106,13 +106,48 @@ private func permuteKeccak(state: *[25] u64)
     Crypto.secureClear(buffer)
 }
 
-private func absorbKeccak(state: *[25] u64, data: const [*] u8, rate: u64)
+#[Swag.Inline]
+private func absorbKeccakWords(state: *[25] u64, data: const [*] u8, count: u64)
 {
     let words = cast(const [*] u64, data)
-    for lane in rate / 8 do
+    for lane in count do
         state[][lane] ^= Math.littleEndianToNative(words[lane])
+}
 
+private func absorbKeccak(state: *[25] u64, data: const [*] u8, rate: u64)
+{
+    absorbKeccakWords(state, data, rate / 8)
     permuteKeccak(state)
+}
+
+private func finalizeKeccak(state: *[25] u64, tail: const [..] u8, rate: u64, suffix: u8)
+{
+    let complete = tail.count / 8
+    absorbKeccakWords(state, tail.buffer, complete)
+
+    // Pack the last partial lane and apply the two padding markers in little-endian lane order.
+    let remaining = tail.count % 8
+    var last: u64
+    for index in remaining do
+        last |= cast(u64, tail[complete * 8 + index]) << cast(u32, index * 8)
+    last |= cast(u64, suffix) << cast(u32, remaining * 8)
+    state[][complete]     ^= last
+    state[][rate / 8 - 1] ^= 0x8000000000000000
+    permuteKeccak(state)
+}
+
+#[Swag.Inline]
+private func absorbFullKeccakBlocks(state: *[25] u64, rate: u64, data: const [..] u8)->const [..] u8
+{
+    let input  = data.buffer
+    var offset = 0'u64
+    while data.count - offset >= rate
+    {
+        absorbKeccak(state, input + offset, rate)
+        offset += rate
+    }
+
+    return data[offset to]
 }
 
 private func updateKeccak(state: *[25] u64, buffer: *[Sha3MaxRate] u8, buffered: *u64, rate: u64, data: const [..] u8)
@@ -135,16 +170,11 @@ private func updateKeccak(state: *[25] u64, buffer: *[Sha3MaxRate] u8, buffered:
         buffered[] = 0
     }
 
-    while data.count - offset >= rate
+    let tail = absorbFullKeccakBlocks(state, rate, data[offset to])
+    if tail.count
     {
-        absorbKeccak(state, input + offset, rate)
-        offset += rate
-    }
-
-    if offset < data.count
-    {
-        buffered[] = data.count - offset
-        Swag.memcpy(buffer[].buffer, input + offset, buffered[])
+        buffered[] = tail.count
+        Swag.memcpy(buffer[].buffer, tail.buffer, tail.count)
     }
 }
 
@@ -168,6 +198,28 @@ private func squeezeKeccak(state: *[25] u64, rate: u64, destination: [..] u8)
     }
 }
 
+private func computeKeccak(data: const [..] u8, rate: u64, suffix: u8, destination: [..] u8)
+{
+    var state: [25] u64
+    let tail = absorbFullKeccakBlocks(&state, rate, data)
+    finalizeKeccak(&state, tail, rate, suffix)
+    squeezeKeccak(&state, rate, destination)
+    Crypto.secureClear(state)
+}
+
+private func sha3Rate(digestSize: u64)->u64 fail
+{
+    switch digestSize
+    {
+    case 28: return 144
+    case 32: return 136
+    case 48: return 104
+    case 64: return 72
+    }
+
+    fail Errors.BadParameterError{"SHA-3 digest size must be 28, 32, 48, or 64 bytes"}
+}
+
 public impl Sha3
 {
     // Creates a SHA-3 sequence for one of the standard digest sizes: 28, 32, 48, or 64 bytes.
@@ -181,18 +233,7 @@ public impl Sha3
     // Replaces prior state and starts a SHA-3 sequence for a supported digest size.
     mtd reset(digestSize: u64) fail
     {
-        var rate: u64
-        switch digestSize
-        {
-        case 28: rate = 144
-        case 32: rate = 136
-        case 48: rate = 104
-        case 64: rate = 72
-        default: rate = 0
-        }
-
-        if not rate do
-            fail Errors.BadParameterError{"SHA-3 digest size must be 28, 32, 48, or 64 bytes"}
+        let rate = try sha3Rate(digestSize)
 
         .clear()
         .rate       = rate
@@ -214,10 +255,7 @@ public impl Sha3
         if destination.count != .digestSize do
             fail Errors.BadParameterError{"SHA-3 destination length must match the configured digest size"}
 
-        .buffer[.bufferSize] = 0x06
-        Swag.memset(.buffer.buffer + .bufferSize + 1, 0, .rate - .bufferSize - 1)
-        .buffer[.rate - 1] |= 0x80
-        absorbKeccak(&.state, .buffer.buffer, .rate)
+        finalizeKeccak(&.state, .buffer[until .bufferSize], .rate, 0x06)
         squeezeKeccak(&.state, .rate, destination)
         .clear()
     }
@@ -237,9 +275,8 @@ public impl Sha3
     // `destination.count` selects the standard digest size: 28, 32, 48, or 64 bytes.
     func compute(data: const [..] u8, destination: [..] u8) fail
     {
-        var digest = try Sha3.create(destination.count)
-        digest.update(data)
-        try digest.finalize(destination)
+        let rate = try sha3Rate(destination.count)
+        computeKeccak(data, rate, 0x06, destination)
     }
 
     // Clears state when this value leaves scope.
@@ -260,6 +297,13 @@ public struct Shake
     bufferSize: u64
     rate:       u64
     suffix:     u8
+}
+
+private func shakeRate(securityBits: u64)->u64 fail
+{
+    if securityBits != 128 and securityBits != 256 do
+        fail Errors.BadParameterError{"SHAKE security strength must be 128 or 256 bits"}
+    return securityBits == 128 ? 168 : 136
 }
 
 public impl Shake
@@ -285,11 +329,9 @@ public impl Shake
     // Replaces prior state and selects SHAKE128 or SHAKE256 with 128 or 256 security bits.
     mtd reset(securityBits: u64) fail
     {
-        if securityBits != 128 and securityBits != 256 do
-            fail Errors.BadParameterError{"SHAKE security strength must be 128 or 256 bits"}
-
+        let rate = try shakeRate(securityBits)
         .clear()
-        .rate   = securityBits == 128 ? 168 : 136
+        .rate   = rate
         .suffix = 0x1F
     }
 
@@ -317,10 +359,7 @@ public impl Shake
         if not .rate do
             fail Errors.BadParameterError{"SHAKE needs an initialized sequence"}
 
-        .buffer[.bufferSize] = .suffix
-        Swag.memset(.buffer.buffer + .bufferSize + 1, 0, .rate - .bufferSize - 1)
-        .buffer[.rate - 1] |= 0x80
-        absorbKeccak(&.state, .buffer.buffer, .rate)
+        finalizeKeccak(&.state, .buffer[until .bufferSize], .rate, .suffix)
         squeezeKeccak(&.state, .rate, destination)
         .clear()
     }
@@ -340,9 +379,8 @@ public impl Shake
     // `securityBits` selects SHAKE128 or SHAKE256; destination length selects the output length.
     func compute(data: const [..] u8, securityBits: u64, destination: [..] u8) fail
     {
-        var shake = try Shake.create(securityBits)
-        shake.update(data)
-        try shake.finalize(destination)
+        let rate = try shakeRate(securityBits)
+        computeKeccak(data, rate, 0x1F, destination)
     }
 
     // Clears state when this value leaves scope.

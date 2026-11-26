@@ -100,3 +100,4 @@ optimizations moved each result.
 - [Full-width unsigned multiplication intrinsic](wide-multiply-instruction.md)
 - [Full-width multiplication in public-key arithmetic](crypto-wide-multiply.md)
 - [SHA-512 schedule expansion and round groups](sha512-interleaving.md)
+- [Direct SHA-3 and SHAKE finalization](sha3-finalization.md)

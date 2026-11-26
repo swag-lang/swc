@@ -133,3 +133,18 @@ func assertShake(data: const [..] u8, securityBits: u64, expected: string)
     discard catch Hash.Shake.create(192) as bad
     Swag.require(bad.value() is Errors.BadParameterError)
 }
+
+#test
+{
+    const Rate     = 136
+    const Expected = [
+        "13cd5fd4d7feff75baa52e91c0032b5756571928c34f80e7e1a83e50e3df148d",
+        "77cbe913361279b31c7a689ae5f130d16ef69cf6b3b0c55962a264d13df12a45",
+        "37a597ce7ddc39aaf8cd156338eda5180f7609396093f0e70d6affa0d44cffb9"]
+
+    var input: [Rate + 2] u8
+    for index in input.count do
+        input[index] = cast(u8, (index * 37 + 11) & 0xFF)
+    for expected, index in Expected do
+        assertSha3(input[1 until Rate + index], expected)
+}

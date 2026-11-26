@@ -887,3 +887,33 @@ baseline `5d5866d322` and resvg 0.50.0. Times cover rasterization.
 All 15 generated and 13 public SVG rasters match. All 52 supported PDF
 corpus checksums match too. The 981 Pixel tests cover a valid reused
 order, a local swap and a full-sort fallback.
+
+## Parallelizing the single-ink bitmap path
+
+The largest original has 21,066 path elements, including two compound paths
+with 14,488 and 9,953 subpaths. Each of the small paths owns its flattened
+geometry. Adjacent eligible paths prepare that geometry in parallel, then
+composite in drawing order inside disjoint row ranges. The large compounds
+can rasterize their existing tiles in parallel after preparing their contours.
+
+The original 5184 × 3456 SVG was rendered with Scope's bitmap size limit and
+thumbnail settings. Interleaved Release runs reported these median
+parse-plus-raster times in milliseconds. The one-CPU and resvg measurements
+come from the 13-run comparison. The two- and four-CPU Swag measurements use
+the final tile threshold and nine runs.
+
+| Output and CPU budget | Swag before | Swag after | resvg 0.50.0 |
+| --- | ---: | ---: | ---: |
+| Bitmap, one logical CPU | 220.25 | 219.37 | 248.17 |
+| Bitmap, two logical CPUs | 199.30 | 155.82 | 267.68 |
+| Bitmap, four logical CPUs | 203.42 | 151.93 | 244.67 |
+| Thumbnail, four logical CPUs | 147.60 | 126.40 | |
+
+Tile parallelism requires at least one and a half tiles on an axis.
+This keeps the earlier row-band split for the 1280 × 853 dense control,
+which measures 29.98 ms before and 29.66 ms after on four logical CPUs.
+
+The prototype's peak resident memory for the largest bitmap at four workers
+rose from 94,456 to 95,460 KiB. The original bitmaps and thumbnails, generated
+and public controls retain their CRC-64s. A regression compares the row groups
+against the same translucent layers split by invisible compound paths.

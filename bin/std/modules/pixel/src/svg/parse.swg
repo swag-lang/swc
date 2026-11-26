@@ -6433,6 +6433,123 @@ impl Drawing
         return ink
     }
 
+    struct ScanFillWork
+    {
+        scan:    const *ScanFill
+        paths:   *LinePathList
+        tile:    Rectangle
+        color:   Color
+        evenOdd: bool
+    }
+
+    private mtd const blendScanShapesInRows(result: *Image, transform: Transform2, tileSide: s32, items: const [..] DrawingItem)->bool
+    {
+        let workers = Math.min(cast(u64, Swag.workerCount()), 8'u64)
+        if workers < 2 or items.count < 512 or result.height < 64 or
+           result.width > 16_777_216 or result.height > 16_777_216 do
+            return false
+
+        let allocator = Swag.getContext().allocator
+        let allocatorType: typeinfo = Swag.Allocator
+        if not allocator or Swag.kindOf(allocator) != allocatorType do
+            return false
+
+        var work: Array'ScanFillWork
+        work.reserve(items.count)
+        let imageBounds = Rectangle{0, 0, cast(f32, result.width), cast(f32, result.height)}
+        var previous: u64
+        for item in items
+        {
+            let shape = &.shapes[item.index]
+            // Each geometry list belongs to a single shape preparation job.
+            if shape.deferred != .None or shape.geometry <= previous do
+                return false
+
+            previous = shape.geometry
+            if not shape.fillColor.a do
+                continue
+
+            let scan = &.scanFills[shape.scanFill - 1]
+            var area = transform.transformBounds(scan.bounds)
+            area.intersect(imageBounds)
+            if area.isEmpty() do
+                continue
+            let left   = Math.floor(area.x)
+            let top    = Math.floor(area.y)
+            let right  = Math.ceil(area.right())
+            let bottom = Math.ceil(area.bottom())
+            if not Math.isFinite(left) or not Math.isFinite(top) or not Math.isFinite(right) or not Math.isFinite(bottom) do
+                return false
+            if right - left > cast(f32, tileSide) or bottom - top > cast(f32, tileSide) do
+                return false
+
+            let paths = .pathsFor(shape)
+            if paths.paths.count >= 1024 do
+                return false
+            for path in paths.paths
+            {
+                if path.polygon.points.allocator and path.polygon.points.allocator != allocator do
+                    return false
+            }
+            work.add({scan, paths, {left, top, right - left, bottom - top}, shape.fillColor, shape.evenOdd})
+        }
+
+        if work.count < 256 do
+            return false
+
+        let height     = result.height
+        let bandHeight = Math.max(16, (height - 1) / cast(s32, workers * 4) + 1)
+        let count      = cast(u64, (height - 1) / bandHeight + 1)
+        var indices: [32] Array'u32
+        var references: u64
+        for &item, index in work
+        {
+            let first = cast(s32, item.tile.y) / bandHeight
+            let last = (cast(s32, item.tile.bottom()) - 1) / bandHeight
+            references += cast(u64, last - first + 1)
+            if references > work.count * 4 do
+                return false
+            for band in first to last do
+                indices[band].add(cast(u32, index))
+        }
+
+        const ShapeBatch = 128'u64
+        let workItems = work.toSlice()
+        let scale     = transform.m11
+        parallel for |workItems, allocator, scale| batch in (workItems.count - 1) / ShapeBatch + 1
+        {
+            let first = batch * ShapeBatch
+            for index in first until Math.min(first + ShapeBatch, workItems.count)
+            {
+                for path in workItems[index].paths.paths
+                {
+                    if not path.polygon.points.allocator do
+                        path.polygon.points.allocator = allocator
+                    path.flattenPoints(.Normal, scale)
+                }
+            }
+        }
+
+        // Each row range consumes the prepared geometry in the drawing's order.
+        var state = {result: result, transform: transform, height: height, bandHeight: bandHeight}
+        parallel for |&state, &work, &indices| band in count
+        {
+            var scratch: ScanScratch
+            let top    = cast(s32, band) * state.bandHeight
+            let bottom = top + Math.min(state.bandHeight, state.height - top)
+            for index in indices[band]
+            {
+                let item  = &work[index]
+                let y     = cast(s32, item.tile.y)
+                let first = Math.max(0, top - y)
+                let end   = Math.min(cast(s32, item.tile.height), bottom - y)
+                item.scan.blendPreparedRows(item.paths, state.transform, state.result, &scratch,
+                                            item.tile, item.color, item.evenOdd, first, end)
+            }
+        }
+        return true
+    }
+
     private mtd const rasterizeScanFills(width, height, sampleTileSide: s32)->Image
     {
         var result = Image.create(width, height, .BGRA8)
@@ -6444,13 +6561,46 @@ impl Drawing
         let scale     = cast(f32, width) / .width
         let transform = Transform2.createScale(scale, scale, 0, 0)
         var scratch: ScanScratch
-        for item in .items
+        let items = .items.toSlice()
+        if items.count < 512 or Swag.workerCount() <= 1
         {
-            let shape = &.shapes[item.index]
-            .scanFills[shape.scanFill - 1].blend(.pathsFor(shape), transform, &result, &scratch, sampleTileSide, shape.fillColor, shape.evenOdd)
+            for item in items do
+                .blendScanShape(&result, &scratch, transform, sampleTileSide, item.index)
+            return result
+        }
+
+        var first = 0'u64
+        while first < items.count
+        {
+            let shape = &.shapes[items[first].index]
+            if .pathsFor(shape).paths.count >= 1024
+            {
+                .blendScanShape(&result, &scratch, transform, sampleTileSide, items[first].index)
+                first += 1
+                continue
+            }
+
+            var end   = first + 1
+            let limit = Math.min(first + 65_536, items.count)
+            while end < limit and .pathsFor(&.shapes[items[end].index]).paths.count < 1024 do
+                end += 1
+            let span = items[first until end]
+            if not .blendScanShapesInRows(&result, transform, sampleTileSide, span)
+            {
+                for item in span do
+                    .blendScanShape(&result, &scratch, transform, sampleTileSide, item.index)
+            }
+            first = end
         }
 
         return result
+    }
+
+    private mtd const blendScanShape(result: *Image, scratch: *ScanScratch, transform: Transform2,
+                                    tileSide: s32, index: u64)
+    {
+        let shape = &.shapes[index]
+        .scanFills[shape.scanFill - 1].blend(.pathsFor(shape), transform, result, scratch, tileSide, shape.fillColor, shape.evenOdd)
     }
 
     // Match the sampled grid's box resolve after the ordered fills have composed.

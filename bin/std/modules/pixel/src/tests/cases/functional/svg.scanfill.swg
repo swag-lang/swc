@@ -299,15 +299,69 @@ using Core
     let options   = Svg.ParseOptions{preferScanFills: true}
     let drawing   = expect Svg.Drawing.parse(compound.toString(), options)
     let reference = expect Svg.Drawing.parse(rows.toString(), options)
+    var cpu: RenderCpu
+    let renderer: IRenderer = &cpu
+    renderer.init()
+    defer renderer.end()
+
     for extent in [[108, 100], [432, 100], [432, 400], [432, 400]]
     {
         let width    = extent[0]
         let height   = extent[1]
-        let actual   = drawing.rasterize(width, height, 1)
+        let actual   = drawing.rasterizeWithSampleTileSide(renderer, width, height, 1, 128, &cpu)
         let expected = reference.rasterize(width, height, 1)
         Swag.require(actual.isValid() and expected.isValid())
         let probe = width / 36
         Swag.require(actual.pixelColor(probe, probe).a > 0)
         Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
     }
+}
+
+// Smaller fills follow the same order on either side of a compound path.
+#[Swag.TestTag("parallel")]
+#test
+{
+    func compound(source: *String, visible: bool)
+    {
+        source.append("<path fill-opacity='.37' fill-rule='evenodd' d='")
+        for 1024 do
+            source.append("M180 150h2v2h-2z ")
+        if visible do
+            source.append("M9.125 32.375h117.5v36.75h-117.5z")
+        source.append("'/>")
+    }
+
+    const Open = "<svg width='144' height='112' fill='#36537a'>"
+    var grouped = String.from(Open)
+    var serial  = String.from(Open)
+    for phase in 2
+    {
+        for index in 640
+        {
+            let x = 4 + (index * 31 + phase * 11) % 117
+            let y = 3 + (index * 19 + phase * 3) % 92
+            let path = Format.toString("<path fill-opacity='.0%' d='M%.125 %.375h19.5v16.5h-19.5z'/>",
+                                       (index % 7) + 2, x, y)
+            grouped.append(path.toString())
+            serial.append(path.toString())
+            if index == 319 do
+                compound(&serial, false)
+        }
+        if not phase
+        {
+            compound(&grouped, true)
+            compound(&serial, true)
+        }
+    }
+
+    grouped.append("</svg>")
+    serial.append("</svg>")
+    let options = Svg.ParseOptions{preferScanFills: true}
+    let drawing = expect Svg.Drawing.parse(grouped.toString(), options)
+    let reference = expect Svg.Drawing.parse(serial.toString(), options)
+    let actual = drawing.rasterize(144, 112, 1)
+    let expected = reference.rasterize(144, 112, 1)
+    Swag.require(actual.isValid() and expected.isValid())
+    Swag.require(actual.pixelColor(64, 56).a > 0)
+    Swag.require(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
 }

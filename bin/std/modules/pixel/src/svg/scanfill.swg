@@ -244,8 +244,50 @@ impl ScanFill
             .measureBuckets(paths)
 
         // Keep lazy, tile-local preparation when the destination crops away rows.
+        let scale = Math.max(transform.m11, 1.0)
         if area.height + 1 >= bounds.height do
-            .prepareContours(paths, Math.max(transform.m11, 1.0))
+            .prepareContours(paths, scale)
+
+        // A small remainder tile leaves the main tile's row bands as the better split.
+        let parallelTileSpan = cast(f32, tileSide) * 1.5
+        if .preparedScale >= scale and Swag.workerCount() > 1 and
+           (right - left >= parallelTileSpan or bottom - top >= parallelTileSpan) and
+           right <= 16_777_216 and bottom <= 16_777_216
+        {
+            let tolerance = LinePath.getFlattenDistance(.Normal) / scale
+            var cached = true
+            for path in paths.paths where not path.isPolyOnly
+            {
+                if path.isDirty or not path.isFlatten or path.flattenTolerance > tolerance
+                {
+                    cached = false
+                    break
+                }
+            }
+            if cached
+            {
+                let columns = cast(u64, Math.ceil((right - left) / cast(f32, tileSide)))
+                let rows = cast(u64, Math.ceil((bottom - top) / cast(f32, tileSide)))
+                let count = columns * rows
+                let jobs = Math.min(4'u64, cast(u64, Swag.workerCount()), count)
+                var state = {scan: me, paths: paths, transform: transform, result: result,
+                             left: left, top: top, right: right, bottom: bottom, tileSide: cast(f32, tileSide),
+                             columns: columns, count: count, jobs: jobs, color: color, evenOdd: evenOdd}
+                parallel for |&state| job in jobs
+                {
+                    var local: ScanScratch
+                    for var index = job; index < state.count; index += state.jobs
+                    {
+                        let x = state.left + cast(f32, index % state.columns) * state.tileSide
+                        let y = state.top + cast(f32, index / state.columns) * state.tileSide
+                        let tile = Rectangle{x, y, Math.min(state.right - x, state.tileSide), Math.min(state.bottom - y, state.tileSide)}
+                        state.scan.writeCoverage(state.paths, state.transform, 1, tile, state.color,
+                                                 state.evenOdd, &local, state.result, true, true)
+                    }
+                }
+                return
+            }
+        }
 
         var y = top
         while y < bottom
@@ -261,6 +303,12 @@ impl ScanFill
 
             y += height
         }
+    }
+
+    mtd const blendPreparedRows(paths: *LinePathList, transform: Transform2, result: *Image, scratch: *ScanScratch,
+                               tile: Rectangle, color: Color, evenOdd: bool, first, end: s32)
+    {
+        .writeCoverage(paths, transform, 1, tile, color, evenOdd, scratch, result, true, true, first, end)
     }
 }
 
@@ -368,7 +416,7 @@ private impl ScanFill
 
     // Fills spans from the winding of all contours. Horizontal coverage is integrated
     // across each pixel and vertical coverage sampled at four evenly spaced positions.
-    mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
+    mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool, prepared = false, firstRow = 0's32, endRow = -1's32)
     {
         let width     = cast(s32, tile.width)
         let height    = cast(s32, tile.height)
@@ -415,7 +463,8 @@ private impl ScanFill
             {
                 let path = paths.paths[useBuckets ? cast(u64, indices[index]) : index]
 
-                path.flattenPoints(.Normal, flattenScale)
+                if not prepared do
+                    path.flattenPoints(.Normal, flattenScale)
 
                 // A closed contour outside either tile axis contributes no visible span.
                 if (useColumns and scanIntervalMisses(path.minBounds.x, path.maxBounds.x, transform.m11, transform.tx, density, tile.x, tile.width)) or
@@ -443,7 +492,7 @@ private impl ScanFill
         // A band owns its crossing lists and the matching destination rows.
         // Join before the next tile or fill can composite over this one.
         const BandRows = 64
-        if composite and
+        if composite and not prepared and
            paths.paths.count >= ScanBandSize * 2 and
            height > BandRows and
            cast(u64, width) * cast(u64, height) >= 64 * 1024 and
@@ -460,6 +509,6 @@ private impl ScanFill
             return
         }
 
-        state.resolve(scratch, 0, height)
+        state.resolve(scratch, firstRow, endRow < 0 ? height : endRow)
     }
 }

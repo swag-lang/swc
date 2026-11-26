@@ -77,88 +77,77 @@ func typeSize(type: u32)->u32
     }
 }
 
-struct Entry
+private struct Entry
 {
-    tag:     u32
     type:    u32
     count:   u32
-    valoff:  u32     // raw value/offset field
+    valoff:  u32
     fieldAt: const [*] u8     // address of the 4-byte value/offset field
 }
 
-struct Ifd
+private func readEntry(p: const [*] u8, le: bool)->Entry
 {
-    entries: Array'Entry
+    return {rd16(p + 2, le), rd32(p + 4, le), rd32(p + 8, le), p + 8}
 }
 
-impl Ifd
+private struct Ifd
 {
-    mtd find(tag: u32)->*Entry?
+    fields: [TAG_EXTRA_SAMPLES - TAG_IMAGE_WIDTH + 1] (const [*] u8?)
+}
+
+private impl Ifd
+{
+    mtd const find(tag: u32)->const [*] u8? => .fields[tag - TAG_IMAGE_WIDTH]
+}
+
+private struct Values
+{
+    data:  const [*] u8
+    count: u32
+    type:  u32
+    le:    bool
+}
+
+private impl Values
+{
+    #[Swag.Inline]
+    mtd const read(index: u64)->u32
     {
-        for i in .entries.count
+        switch .type
         {
-            if .entries[i].tag == tag do
-                return &.entries[i]
-        }
-
-        return null
-    }
-}
-
-private func valuesAt(base, last: const [*] u8, entry: const *Entry, valueSize: u32)->const [*] u8 fail
-{
-    let size = cast(u64, entry.count) * valueSize
-    if size <= 4 do
-        return entry.fieldAt
-    let data = base + entry.valoff
-    try checkBuffer(data, last, size)
-    return data
-}
-
-// Read all scalar values (BYTE/SHORT/LONG) of an entry into an array.
-func readValues(base, last: const [*] u8, le: bool, entry: const *Entry)->Array'u32 fail
-{
-    let size = typeSize(entry.type)
-    if not size do
-        fail UnsupportedFormatError{"unsupported field type"}
-    let data = try valuesAt(base, last, entry, size)
-
-    var result: #returntype
-    result.reserve(entry.count)
-    for i in entry.count
-    {
-        let value = data + cast(u64, i) * size
-        switch entry.type
-        {
-        case TYPE_BYTE:  result.add(value[0])
-        case TYPE_SHORT: result.add(rd16(value, le))
-        case TYPE_LONG:  result.add(rd32(value, le))
+        case TYPE_BYTE:  return .data[index]
+        case TYPE_SHORT: return rd16(.data + index * 2, .le)
+        default:         return rd32(.data + index * 4, .le)
         }
     }
-
-    return result
 }
 
-func readScalar(base, last: const [*] u8, le: bool, ifd: *Ifd, tag: u32, defValue: u32)->u32 fail
+private func readValues(base, last, field: const [*] u8, le: bool)->Values fail
 {
-    let found = ifd.find(tag)
-    if not found do
-        return defValue
-    let entry = cast(const *Entry, found)
+    let entry = readEntry(field, le)
     let size  = typeSize(entry.type)
     if not size do
         fail UnsupportedFormatError{"unsupported field type"}
-    if not entry.count do
-        return defValue
 
-    // A count greater than one still requires the complete field to be present.
-    let data = try valuesAt(base, last, entry, size)
-    switch entry.type
+    // Validate the complete field even if the caller needs only its first value.
+    let bytes = cast(u64, entry.count) * size
+    var data  = entry.fieldAt
+    if bytes > 4
     {
-    case TYPE_BYTE:  return data[0]
-    case TYPE_SHORT: return rd16(data, le)
-    default:         return rd32(data, le)
+        data = base + entry.valoff
+        try checkBuffer(data, last, bytes)
     }
+
+    return {data, entry.count, entry.type, le}
+}
+
+private func readScalar(base, last: const [*] u8, le: bool, ifd: const *Ifd, tag: u32, defValue: u32)->u32 fail
+{
+    let field = ifd.find(tag)
+    if not field do
+        return defValue
+    let values = try readValues(base, last, field, le)
+    return values.count ? values.read(0) : defValue
 }
 
 // Decodes literal and repeated PackBits packets. For bottom-up output, packets
@@ -335,8 +324,8 @@ private struct StripReader
 {
     base, last:   const [*] u8
     destination:  [*] u8
-    offsets:      const [..] u32
-    counts:       const [..] u32
+    offsets:      Values
+    counts:       Values
     palette:      const [..] u32
     width:        u32
     height:       u32
@@ -365,8 +354,8 @@ private impl StripReader
         {
             let rowsInStrip = Math.min(.rowsPerStrip, .height - rowStart)
             let stripBytes  = rowBytes * rowsInStrip
-            let srcCount    = .counts[s]
-            let srcPtr      = .base + .offsets[s]
+            let srcCount    = .counts.read(s)
+            let srcPtr      = .base + .offsets.read(s)
             try checkBuffer(srcPtr, .last, srcCount)
             if .compression == COMPRESSION_NONE and srcCount < stripBytes do
                 fail InvalidFormatError{"invalid source buffer"}
@@ -457,21 +446,23 @@ impl Decoder
         if cast(u64, ifdOffset) + 2 > countof do
             fail InvalidFormatError{"invalid source buffer"}
 
-        // Parse the first IFD
+        // Index the field addresses in one pass. Keep the first value of a
+        // duplicate tag, including in files with unordered directories.
         var ifd: Ifd
         let numEntries = rd16(base + ifdOffset, le)
         try checkBuffer(base + ifdOffset, last, 2'u64 + cast(u64, numEntries) * 12)
-        ifd.entries.reserve(numEntries)
-        for i in numEntries
+        var field = base + ifdOffset + 2
+        for numEntries
         {
-            let ep = base + ifdOffset + 2 + cast(u64, i) * 12
-            var e: Entry
-            e.tag     = rd16(ep, le)
-            e.type    = rd16(ep + 2, le)
-            e.count   = rd32(ep + 4, le)
-            e.valoff  = rd32(ep + 8, le)
-            e.fieldAt = ep + 8
-            ifd.entries.add(e)
+            let tag = rd16(field, le)
+            if tag >= TAG_IMAGE_WIDTH and tag <= TAG_EXTRA_SAMPLES
+            {
+                let index = tag - TAG_IMAGE_WIDTH
+                if not ifd.fields[index] do
+                    ifd.fields[index] = field
+            }
+
+            field += 12
         }
 
         let width  = try readScalar(base, last, le, &ifd, TAG_IMAGE_WIDTH, 0)
@@ -487,7 +478,7 @@ impl Decoder
         let orientationEntry = ifd.find(TAG_ORIENTATION)
         if orientationEntry
         {
-            let entry = cast(*Entry, orientationEntry)
+            let entry = readEntry(orientationEntry, le)
             if entry.type != TYPE_SHORT or entry.count != 1 do
                 fail InvalidFormatError{"TIFF orientation entry is invalid"}
             orientation = rd16(entry.fieldAt, le)
@@ -517,17 +508,11 @@ impl Decoder
         let bpsEntry = ifd.find(TAG_BITS_PER_SAMPLE)
         if not bpsEntry do
             fail UnsupportedFormatError{"TIFF default bit depth is not supported"}
-        if bpsEntry
-        {
-            let bps = try readValues(base, last, le, cast(*Entry, (bpsEntry)))
-            if bps.count != samples do
-                fail InvalidFormatError{"TIFF bits per sample count differs from samples per pixel"}
-            for b in bps
-            {
-                if b != 8 do
-                    fail UnsupportedFormatError{"unsupported bit depth"}
-            }
-        }
+        let bps = try readValues(base, last, bpsEntry, le)
+        if bps.count != samples do
+            fail InvalidFormatError{"TIFF bits per sample count differs from samples per pixel"}
+        for i in bps.count where bps.read(i) != 8 do
+            fail UnsupportedFormatError{"unsupported bit depth"}
 
         // Determine output pixel format
         var pf: PixelFormat
@@ -561,7 +546,7 @@ impl Decoder
             let extraSamples = ifd.find(TAG_EXTRA_SAMPLES)
             if extraSamples
             {
-                let entry = cast(*Entry, (extraSamples))
+                let entry = readEntry(extraSamples, le)
                 if entry.type != TYPE_SHORT or entry.count != 1 do
                     fail InvalidFormatError{"TIFF extra samples entry is invalid"}
                 switch rd16(entry.fieldAt, le)
@@ -597,13 +582,14 @@ impl Decoder
             let cmEntry = ifd.find(TAG_COLOR_MAP)
             if not cmEntry do
                 fail InvalidFormatError{"missing color map"}
-            let cm      = try readValues(base, last, le, cast(*Entry, (cmEntry)))
+            let cm      = try readValues(base, last, cmEntry, le)
             let entries = cm.count / 3
+            palette.reserve(entries)
             for i in entries
             {
-                let r = cast(u32, (cm[i] >> 8))
-                let g = cast(u32, (cm[entries + i] >> 8))
-                let b = cast(u32, (cm[2 * entries + i] >> 8))
+                let r = cm.read(i) >> 8
+                let g = cm.read(entries + i) >> 8
+                let b = cm.read(2 * entries + i) >> 8
                 palette.add(Math.byteSwap((r << 16) | (g << 8) | b) >> 8)
             }
         }
@@ -613,8 +599,8 @@ impl Decoder
         let stripCntEntry = ifd.find(TAG_STRIP_BYTE_COUNTS)
         if not stripOffEntry or not stripCntEntry do
             fail InvalidFormatError{"missing strip data"}
-        let stripOffsets = try readValues(base, last, le, cast(*Entry, (stripOffEntry)))
-        let stripCounts  = try readValues(base, last, le, cast(*Entry, (stripCntEntry)))
+        let stripOffsets = try readValues(base, last, stripOffEntry, le)
+        let stripCounts  = try readValues(base, last, stripCntEntry, le)
         let stripCount   = cast(u64, (height - 1) / rowsPerStrip + 1)
         if stripOffsets.count != stripCounts.count or stripOffsets.count < stripCount do
             fail InvalidFormatError{"invalid strip data"}
@@ -625,8 +611,8 @@ impl Decoder
             .base         = base
             .last         = last
             .destination  = result.pixels.storage()
-            .offsets      = stripOffsets.toSlice()
-            .counts       = stripCounts.toSlice()
+            .offsets      = stripOffsets
+            .counts       = stripCounts
             .palette      = palette.toSlice()
             .width        = width
             .height       = height

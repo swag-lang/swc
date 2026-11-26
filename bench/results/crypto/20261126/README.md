@@ -58,3 +58,4 @@ optimizations moved each result.
 - [Direct SHA-3 and SHAKE sponge input](sha3-direct.md)
 - [Baseline public-key comparison](asymmetric-baseline.md)
 - [BLAKE2b and BLAKE2s direct input blocks](blake2-direct.md)
+- [Scrypt Salsa20/8 and BlockMix](scrypt.md)

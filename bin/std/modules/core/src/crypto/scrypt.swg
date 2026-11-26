@@ -2,103 +2,88 @@
 #global namespace Crypto
 #global #[Swag.Safety(.Overflow, false)]
 
-private func scryptRotateLeft(value: u32, count: u32)->u32 => (value << count) | (value >> (32 - count))
+private alias SalsaVector = Math.Simd.U32x4
+private alias SalsaBlock  = [4] SalsaVector
+private const SalsaChunkSize = #sizeof(SalsaBlock)
 
-private func scryptSalsa208(state: *[16] u32)
+private const SalsaShiftOne:   SalsaVector = [1, 2, 3, 0]
+private const SalsaShiftTwo:   SalsaVector = [2, 3, 0, 1]
+private const SalsaShiftThree: SalsaVector = [3, 0, 1, 2]
+
+// The packed layout makes each vector lane one row, starting at its diagonal
+// word. Integerify can still read the first word of the final chunk in place.
+#[Swag.Inline]
+private func scryptPack(block: *SalsaBlock)
 {
-    var original = state[]
-    for round in 4
-    {
-        discard round
-        state[][4]  ^= scryptRotateLeft(state[][0] + state[][12], 7)
-        state[][8]  ^= scryptRotateLeft(state[][4] + state[][0], 9)
-        state[][12] ^= scryptRotateLeft(state[][8] + state[][4], 13)
-        state[][0]  ^= scryptRotateLeft(state[][12] + state[][8], 18)
-        state[][9]  ^= scryptRotateLeft(state[][5] + state[][1], 7)
-        state[][13] ^= scryptRotateLeft(state[][9] + state[][5], 9)
-        state[][1]  ^= scryptRotateLeft(state[][13] + state[][9], 13)
-        state[][5]  ^= scryptRotateLeft(state[][1] + state[][13], 18)
-        state[][14] ^= scryptRotateLeft(state[][10] + state[][6], 7)
-        state[][2]  ^= scryptRotateLeft(state[][14] + state[][10], 9)
-        state[][6]  ^= scryptRotateLeft(state[][2] + state[][14], 13)
-        state[][10] ^= scryptRotateLeft(state[][6] + state[][2], 18)
-        state[][3]  ^= scryptRotateLeft(state[][15] + state[][11], 7)
-        state[][7]  ^= scryptRotateLeft(state[][3] + state[][15], 9)
-        state[][11] ^= scryptRotateLeft(state[][7] + state[][3], 13)
-        state[][15] ^= scryptRotateLeft(state[][11] + state[][7], 18)
-
-        state[][1]  ^= scryptRotateLeft(state[][0] + state[][3], 7)
-        state[][2]  ^= scryptRotateLeft(state[][1] + state[][0], 9)
-        state[][3]  ^= scryptRotateLeft(state[][2] + state[][1], 13)
-        state[][0]  ^= scryptRotateLeft(state[][3] + state[][2], 18)
-        state[][6]  ^= scryptRotateLeft(state[][5] + state[][4], 7)
-        state[][7]  ^= scryptRotateLeft(state[][6] + state[][5], 9)
-        state[][4]  ^= scryptRotateLeft(state[][7] + state[][6], 13)
-        state[][5]  ^= scryptRotateLeft(state[][4] + state[][7], 18)
-        state[][11] ^= scryptRotateLeft(state[][10] + state[][9], 7)
-        state[][8]  ^= scryptRotateLeft(state[][11] + state[][10], 9)
-        state[][9]  ^= scryptRotateLeft(state[][8] + state[][11], 13)
-        state[][10] ^= scryptRotateLeft(state[][9] + state[][8], 18)
-        state[][12] ^= scryptRotateLeft(state[][15] + state[][14], 7)
-        state[][13] ^= scryptRotateLeft(state[][12] + state[][15], 9)
-        state[][14] ^= scryptRotateLeft(state[][13] + state[][12], 13)
-        state[][15] ^= scryptRotateLeft(state[][14] + state[][13], 18)
-    }
-
-    for index in 16 do
-        state[][index] += original[index]
-    Crypto.secureClear(original)
+    let words = cast([*] u32, &block[][0])
+    for word in SalsaChunkSize / #sizeof(u32) do
+        words[word] = Math.littleEndianToNative(words[word])
+    block[][1] = Swag.vecShuffle(block[][1], SalsaShiftOne)
+    block[][2] = Swag.vecShuffle(block[][2], SalsaShiftTwo)
+    block[][3] = Swag.vecShuffle(block[][3], SalsaShiftThree)
+    Math.Simd.transpose4x4(block)
 }
 
-private func scryptBlockMix(block: [..] u8, work: [..] u8, r: u32)
+#[Swag.Inline]
+private func scryptUnpack(block: *SalsaBlock)
 {
-    var state: [16] u32
+    Math.Simd.transpose4x4(block)
+    block[][1] = Swag.vecShuffle(block[][1], SalsaShiftThree)
+    block[][2] = Swag.vecShuffle(block[][2], SalsaShiftTwo)
+    block[][3] = Swag.vecShuffle(block[][3], SalsaShiftOne)
+    let words = cast([*] u32, &block[][0])
+    for word in SalsaChunkSize / #sizeof(u32) do
+        words[word] = Math.nativeToLittleEndian(words[word])
+}
+
+#[Swag.Inline]
+private func scryptSalsaRound(a, b, c, d: *SalsaVector)
+{
+    b[] ^= Swag.rol(a[] + d[], 7'u8)
+    c[] ^= Swag.rol(b[] + a[], 9'u8)
+    d[] ^= Swag.rol(c[] + b[], 13'u8)
+    a[] ^= Swag.rol(d[] + c[], 18'u8)
+}
+
+private func scryptSalsa208(state: *SalsaBlock)
+{
+    var a = state[][0]
+    var b = state[][1]
+    var c = state[][2]
+    var d = state[][3]
+    for 4
+    {
+        // Rotate the lanes into columns, then restore the row arrangement.
+        var columnB = Swag.vecShuffle(d, SalsaShiftOne)
+        var columnC = Swag.vecShuffle(c, SalsaShiftTwo)
+        var columnD = Swag.vecShuffle(b, SalsaShiftThree)
+        scryptSalsaRound(&a, &columnB, &columnC, &columnD)
+        b = Swag.vecShuffle(columnD, SalsaShiftOne)
+        c = Swag.vecShuffle(columnC, SalsaShiftTwo)
+        d = Swag.vecShuffle(columnB, SalsaShiftThree)
+        scryptSalsaRound(&a, &b, &c, &d)
+    }
+
+    state[][0] += a
+    state[][1] += b
+    state[][2] += c
+    state[][3] += d
+}
+
+private func scryptBlockMix(source: const [*] SalsaBlock, target: [*] SalsaBlock, r: u32)
+{
     let blockCount = cast(u64, r) * 2
-    let lastOffset = (blockCount - 1) * 64
-    for word in 16
+    var state      = source[blockCount - 1]
+    for chunk in blockCount
     {
-        let offset = lastOffset + (word * 4)
-        state[word] = cast(u32, block[offset]) |
-                      (cast(u32, block[offset + 1]) << 8) |
-                      (cast(u32, block[offset + 2]) << 16) |
-                      (cast(u32, block[offset + 3]) << 24)
-    }
-
-    var chunk = 0'u64
-    while chunk < blockCount
-    {
-        let blockOffset = chunk * 64
-        for word in 16
-        {
-            let offset = blockOffset + (word * 4)
-            state[word] ^= cast(u32, block[offset]) |
-                           (cast(u32, block[offset + 1]) << 8) |
-                           (cast(u32, block[offset + 2]) << 16) |
-                           (cast(u32, block[offset + 3]) << 24)
-        }
-
+        state[0] ^= source[chunk][0]
+        state[1] ^= source[chunk][1]
+        state[2] ^= source[chunk][2]
+        state[3] ^= source[chunk][3]
         scryptSalsa208(&state)
-        for word in 16
-        {
-            let offset = blockOffset + (word * 4)
-            work[offset]     = cast(u8, state[word])
-            work[offset + 1] = cast(u8, state[word] >> 8)
-            work[offset + 2] = cast(u8, state[word] >> 16)
-            work[offset + 3] = cast(u8, state[word] >> 24)
-        }
 
-        chunk += 1
-    }
-
-    let halfSize   = cast(u64, r) * 64
-    var chunkIndex = 0'u32
-    while chunkIndex < r
-    {
-        let evenOffset = cast(u64, chunkIndex) * 128
-        let oddOffset  = evenOffset + 64
-        Swag.memcpy(block.buffer + cast(u64, chunkIndex) * 64, work.buffer + evenOffset, 64)
-        Swag.memcpy(block.buffer + halfSize + (cast(u64, chunkIndex) * 64), work.buffer + oddOffset, 64)
-        chunkIndex += 1
+        // BlockMix groups the even chunks before the odd chunks.
+        target[chunk / 2 + (chunk % 2) * r] = state
     }
 
     Crypto.secureClear(state)
@@ -106,43 +91,51 @@ private func scryptBlockMix(block: [..] u8, work: [..] u8, r: u32)
 
 private func scryptRomix(block: [..] u8, costN: u32, blockR: u32, blockSize: u64)
 {
-    let vectorSize = blockSize * costN
-    var vector: Array'u8
-    vector.resize(vectorSize)
-    var work: Array'u8
-    work.resize(blockSize)
-
-    var index = 0'u32
-    while index < costN
+    let vectorSize  = blockSize * costN
+    let scratchSize = vectorSize + blockSize
+    let storage     = cast([*] u8, Memory.alloc(scratchSize))
+    defer
     {
-        Swag.memcpy(vector.toSlice().buffer + (cast(u64, index) * blockSize), block.buffer, blockSize)
-        scryptBlockMix(block, work.toSlice(), blockR)
-        index += 1
+        Crypto.secureClear(Swag.makeSlice(storage, scratchSize))
+        Memory.free(storage, scratchSize)
     }
 
-    let integerOffset = blockSize - 64
-    let mask = cast(u64, costN - 1)
-    index = 0
-    while index < costN
-    {
-        var integer = 0'u64
-        for byte in 8 do
-            integer |= cast(u64, block[integerOffset + byte]) << (byte * 8)
-        let selected     = integer & mask
-        let vectorOffset = selected * blockSize
-        var byte         = 0'u64
-        while byte < blockSize
-        {
-            block[byte] ^= vector[vectorOffset + byte]
-            byte        += 1
-        }
+    let chunks = blockSize / SalsaChunkSize
+    let blocks = cast([*] SalsaBlock, block.buffer)
+    for chunk in chunks do
+        scryptPack(&blocks[chunk])
 
-        scryptBlockMix(block, work.toSlice(), blockR)
-        index += 1
+    var current = blocks
+    var next    = cast([*] SalsaBlock, storage + vectorSize)
+    for index in costN
+    {
+        Swag.memcpy(storage + (cast(u64, index) * blockSize), current, blockSize)
+        scryptBlockMix(current, next, blockR)
+        let completed = next
+        next    = current
+        current = completed
     }
 
-    Crypto.secureClear(vector.toSlice())
-    Crypto.secureClear(work.toSlice())
+    const VectorSize = #sizeof(SalsaVector)
+    let mask = costN - 1
+    for costN
+    {
+        // N fits in 32 bits, so Integerify needs only the low word.
+        let integer  = current[chunks - 1][0][0]
+        let selected = cast(const [*] SalsaVector, storage + (cast(u64, integer & mask) * blockSize))
+        let active   = cast([*] SalsaVector, current)
+        for group in blockSize / VectorSize do
+            active[group] ^= selected[group]
+
+        scryptBlockMix(current, next, blockR)
+        let completed = next
+        next    = current
+        current = completed
+    }
+
+    // The two N-step loops leave the final block in the caller's buffer.
+    for chunk in chunks do
+        scryptUnpack(&blocks[chunk])
 }
 
 // Derives a key with scrypt (RFC 7914) and an explicit upper bound on temporary memory.

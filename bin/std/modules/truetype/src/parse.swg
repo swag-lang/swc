@@ -76,10 +76,19 @@ func decodeNameRecord(nameTable: const [..] u8, stringOffset, recordOffset: u64)
         if (raw.count & 1) != 0 do
             fault(0x91)
 
+        if not raw.count do
+            return {}
+
         var chars: Array'u16
-        chars.resize(raw.count / 2)
-        for index in chars.count do
-            chars[index] = readU16(raw, cast(u64, index) * 2)
+        let count = cast(u32, raw.count / 2)
+        let words = chars.emplaceAddress(count)
+        var entry = raw.buffer
+        for index in count
+        {
+            words[index] = Math.make16(entry[0], entry[1])
+            entry        += 2
+        }
+
         return Utf8.fromUtf16(chars.toSlice())
     }
 
@@ -99,15 +108,20 @@ func decodeBestName(nameTable: const [..] u8, nameID: u16)->String fail
     let stringOffset = try readU16(nameTable, 4)
     var bestScore    = -1
 
+    // Every candidate needs its first eight bytes. Only qualifying records need the
+    // string length and offset.
+    if count do
+        try assertRange(nameTable, 6, cast(u64, count) * 12 - 4)
     for index in count
     {
-        let base = 6'u64 + cast(u64, index) * 12
-        if try readU16(nameTable, base + 6) != nameID do
+        let base  = 6'u64 + cast(u64, index) * 12
+        let entry = nameTable.buffer + base
+        if Math.make16(entry[6], entry[7]) != nameID do
             continue
 
-        let platformID = try readU16(nameTable, base + 0)
-        let encodingID = try readU16(nameTable, base + 2)
-        let languageID = try readU16(nameTable, base + 4)
+        let platformID = Math.make16(entry[0], entry[1])
+        let encodingID = Math.make16(entry[2], entry[3])
+        let languageID = Math.make16(entry[4], entry[5])
         let score      = scoreNameRecord(platformID, encodingID, languageID)
         if score <= bestScore do
             continue
@@ -542,28 +556,19 @@ func buildGlyphLocations(faceData: *FaceImpl) fail
     if faceData.indexToLocFormat != 0 and faceData.indexToLocFormat != 1 do
         try fault(0x08)
 
-    let loca          = try getTableSlice(faceData, TAG_LOCA, 0x90)
-    let glyf          = try getTableSlice(faceData, TAG_GLYF, 0x8E)
-    let locationCount = faceData.face.glyphCount + 1
-    let longFormat    = faceData.indexToLocFormat == 1
-    let entrySize     = longFormat ? 4'u64 : 2'u64
-    try assertRange(loca, 0, cast(u64, locationCount) * entrySize)
+    let loca       = try getTableSlice(faceData, TAG_LOCA, 0x90)
+    let glyf       = try getTableSlice(faceData, TAG_GLYF, 0x8E)
+    let glyphCount = faceData.face.glyphCount
+    let longFormat = faceData.indexToLocFormat == 1
+    let width      = longFormat ? 4'u64 : 2'u64
+    let locations  = try getSlice(loca, 0, (cast(u64, glyphCount) + 1) * width)
 
-    faceData.glyphLocations.reserve(locationCount)
-    let locations = unwrap faceData.glyphLocations.buffer
-    var entry     = loca.buffer
-    var previous  = 0'u32
-    for index in locationCount
-    {
-        let offset = longFormat ? Math.make32(entry[0], entry[1], entry[2], entry[3]) : cast(u32, Math.make16(entry[0], entry[1])) * 2
-        if offset < previous or cast(u64, offset) > glyf.count do
-            try fault(0x08)
-        locations[index] = offset
-        previous         = offset
-        entry            += entrySize
-    }
-
-    faceData.glyphLocations.count = locationCount
+    let lastOffset = longFormat ? (try validatePackedOffsets'4(locations.buffer, glyphCount)) :
+                     (try validatePackedOffsets'2(locations.buffer, glyphCount))
+    let end = longFormat ? cast(u64, lastOffset) : cast(u64, lastOffset) * 2
+    if end > glyf.count do
+        try fault(0x08)
+    faceData.glyphLocations = locations
 }
 
 private func keepOrderedKernPairs(faceData: *FaceImpl, pairs: const [..] u8)->bool

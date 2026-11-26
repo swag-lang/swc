@@ -271,6 +271,9 @@ variable TrueType, legacy kerning, new scripts, and three WOFF1 files rejected b
 loader. The updated decoder leads Pillow in 36 scenarios, and all eight remaining cases have
 lower medians than published Swag. [Expanded font results](font-decode-linux.md)
 
+The packed-table follow-up uses the same corpus and records separate timings for file reads and
+SFNT parsing. Swag leads in 38 of the 44 scenarios. [Packed glyph table results](font-decode-linux.md#packed-glyph-tables)
+
 ### SVG results already reported
 
 The prior four-file comparison measured Scope's SVG parse plus CPU rasterization against resvg

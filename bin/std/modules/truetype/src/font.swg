@@ -83,15 +83,36 @@ struct GposPairLookup
 struct GlyphNames
 {
     entries: Array'string
-    byName:  HashTable'(string, u32)
-    ready:   Swag.AtomicFlag
-    lock:    Swag.Mutex
+
+    // Format 2 maps glyphs to the standard names or to Pascal strings in the font.
+    // Only the custom strings need an index because their records have variable length.
+    postIndices:      const [..] u8?
+    late postStrings: const [..] u8
+    postOffsets:      Array'u32
+
+    byName: HashTable'(string, u32)
+    ready:  Swag.AtomicFlag
+    lock:   Swag.Mutex
 }
 
 impl GlyphNames
 {
+    mtd const count()->u64
+    {
+        if let indices = .postIndices do
+            return indices.count / 2
+        return .entries.count
+    }
+
     mtd const nameOf(glyphIndex: u32)->string?
     {
+        if let indices = .postIndices
+        {
+            if glyphIndex >= indices.count / 2 do
+                return null
+            return packedPostGlyphName(me, indices, glyphIndex)
+        }
+
         if glyphIndex >= .entries.count do
             return null
         let name = .entries[glyphIndex]
@@ -104,18 +125,23 @@ impl GlyphNames
         let previousAllocator = context.allocator
 
         // Allocate the reverse index with the same allocator as the forward names.
-        context.allocator = .entries.allocator orelse previousAllocator
+        context.allocator = .entries.allocator orelse .postOffsets.allocator orelse previousAllocator
         defer context.allocator = previousAllocator
 
-        .byName.reserve(.entries.count * 2)
-        for name, glyphIndex in .entries where name.count do
-            .byName.add(name, cast(u32, glyphIndex), updateValue: false)
+        let glyphCount = .count()
+        .byName.reserve(glyphCount * 2)
+        for glyphIndex in glyphCount
+        {
+            if let name = .nameOf(cast(u32, glyphIndex)) do
+                .byName.add(name, cast(u32, glyphIndex), updateValue: false)
+        }
+
         .ready.raise()
     }
 
     mtd glyphIndex(name: string)->u32
     {
-        if not name.count or .entries.isEmpty() do
+        if not name.count or not .count() do
             return 0
 
         if not .ready.isRaised()
@@ -141,7 +167,7 @@ struct FaceImpl
     tables:                 Array'TableRecord
     charstringAdvances:     Array'u16
     verticalGlyphMetrics:   Array'GlyphVerticalMetrics
-    glyphLocations:         Array'u32
+    glyphLocations:         const [..] u8?
     late horizontalMetrics: const [..] u8
     late chosenCMap:        const [..] u8
     cmapFormat:             u16
@@ -204,7 +230,6 @@ impl FaceImpl
         .tables.free()
         .charstringAdvances.free()
         .verticalGlyphMetrics.free()
-        .glyphLocations.free()
         .outlinePoints.free()
         .outlineTags.free()
         .outlineContours.free()
@@ -238,6 +263,23 @@ impl FaceImpl
         let index = Math.min(glyphIndex, cast(u32, .numLongMetrics - 1))
         let entry = .horizontalMetrics.buffer + cast(u64, index) * 4
         return Math.make16(entry[0], entry[1])
+    }
+
+    // Reads a validated pair of offsets for a glyph whose index the caller has checked.
+    #[Swag.Inline]
+    mtd const glyphByteRange(glyphIndex: u32)->{ start: u32, stop: u32 }
+    {
+        let locations = .glyphLocations
+        if not locations do
+            return {0, 0}
+        if .indexToLocFormat == 0
+        {
+            let entry = locations.buffer + cast(u64, glyphIndex) * 2
+            return {readPackedOffset(entry, 2) * 2, readPackedOffset(entry + 2, 2) * 2}
+        }
+
+        let entry = locations.buffer + cast(u64, glyphIndex) * 4
+        return {readPackedOffset(entry, 4), readPackedOffset(entry + 4, 4)}
     }
 
     // Returns the glyph selected by a PostScript glyph name, or zero when no name matches.

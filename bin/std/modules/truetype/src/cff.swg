@@ -69,18 +69,6 @@ struct CffIndex
     end:          u64     // First byte after the whole structure.
 }
 
-#[Swag.Inline]
-private func readCffOffset(entry: const [*] u8, width: u8)->u32
-{
-    switch width
-    {
-    case 1:  return entry[0]
-    case 2:  return Math.make16(entry[0], entry[1])
-    case 3:  return Math.make32(0, entry[0], entry[1], entry[2])
-    default: return Math.make32(entry[0], entry[1], entry[2], entry[3])
-    }
-}
-
 impl CffIndex
 {
     mtd const count()->u32 => .itemCount
@@ -92,8 +80,8 @@ impl CffIndex
             return ""
 
         let entry = .offsets.buffer + cast(u64, index) * .offsetSize
-        let from  = readCffOffset(entry, .offsetSize)
-        let stop  = readCffOffset(entry + .offsetSize, .offsetSize)
+        let from  = readPackedOffset(entry, .offsetSize)
+        let stop  = readPackedOffset(entry + .offsetSize, .offsetSize)
         return Swag.makeSlice(.data.buffer + (from - 1), stop - from)
     }
 }
@@ -267,26 +255,6 @@ func subrBias(count: u32)->s32
     return 32768
 }
 
-// Select the offset width once so the validator can walk entries at a fixed stride.
-private func(width: u8) validateCffOffsets(offsets: const [*] u8, count: u32)->u32 fail
-{
-    if readCffOffset(offsets, width) != 1 do
-        try fault(0x08)
-
-    var previous = 1'u32
-    var entry    = offsets + width
-    for count
-    {
-        let offset = readCffOffset(entry, width)
-        if offset < previous do
-            try fault(0x08)
-        previous = offset
-        entry    += width
-    }
-
-    return previous
-}
-
 func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
 {
     var result: #returntype
@@ -306,13 +274,16 @@ func readCffIndex(block: const [..] u8, offset: u64)->CffIndex fail
     let table     = offset + 3
     let offsets   = try getSlice(block, table, (cast(u64, count) + 1) * offSize)
     let dataStart = table + offsets.count
+    if readPackedOffset(offsets.buffer, offSize) != 1 do
+        try fault(0x08)
+
     var lastOffset: u32
     switch offSize
     {
-    case 1:  lastOffset = try validateCffOffsets'1(offsets.buffer, count)
-    case 2:  lastOffset = try validateCffOffsets'2(offsets.buffer, count)
-    case 3:  lastOffset = try validateCffOffsets'3(offsets.buffer, count)
-    default: lastOffset = try validateCffOffsets'4(offsets.buffer, count)
+    case 1:  lastOffset = try validatePackedOffsets'1(offsets.buffer, count)
+    case 2:  lastOffset = try validatePackedOffsets'2(offsets.buffer, count)
+    case 3:  lastOffset = try validatePackedOffsets'3(offsets.buffer, count)
+    default: lastOffset = try validatePackedOffsets'4(offsets.buffer, count)
     }
 
     let dataLength = cast(u64, lastOffset) - 1

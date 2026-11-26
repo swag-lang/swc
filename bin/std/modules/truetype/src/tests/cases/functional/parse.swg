@@ -150,6 +150,36 @@ func buildTwoGlyphCffWithFdSelectPrefix()->Array'u8
 
 #test
 {
+    // Check decreases in a vector group and across its boundaries, including the scalar tail.
+    const Offsets: [11] u8 = [1, 1, 2, 3, 5, 5, 6, 6, 7, 8, 8]
+    for width in [2'u8, 3, 4]
+    {
+        var bytes: Array'u8
+        bytes.resize(3 + Offsets.count * width + 7)
+        writeBigU16(&bytes, 0, Offsets.count - 1)
+        bytes[2] = width
+        for offset, index in Offsets do
+            bytes[2 + (index + 1) * width] = offset
+
+        let index = expect readCffIndex(bytes.toSlice(), 0)
+        Swag.require(index.count() == Offsets.count - 1)
+        Swag.require(index.end == bytes.count and index.item(0).count == 0 and index.item(3).count == 2)
+
+        for position in [2'u64, 5, 10]
+        {
+            let field = 2 + (position + 1) * width
+            let saved = bytes[field]
+            bytes[field] = 0
+            var rejected: Swag.Error
+            discard catch readCffIndex(bytes.toSlice(), 0) as rejected
+            Swag.require(rejected.value() != null)
+            bytes[field] = saved
+        }
+    }
+}
+
+#test
+{
     // The predefined Expert charsets map glyph IDs through their canonical SIDs.
     var expertBytes = buildPredefinedCffCharset(1)
     let expert      = expect parseCffFont(expertBytes.toSlice())

@@ -76,3 +76,30 @@ nine-batch check, the updated decoder saved 11% to 26% on the WOFF1 cases.
 | `SourceCodePro-Regular.otf` | 0 | `U+0041` | 46.09 | 46.37 | 95.85 |
 | `SourceCodePro-Regular.ttf` | 0 | `U+0041` | 59.28 | 37.15 | 66.67 |
 | `SourceSans3-Regular.woff` | 0 | `U+0041` | Rejected | 2250.43 | 2809.58 |
+
+## Packed glyph tables
+
+This round uses the same 44 scenarios and repeats the Linux Release comparison against
+`eab46cd563`. Glyph indices, advances, bitmap dimensions, and CRC-64 match across both Swag
+builds on all 44 scenarios. The timings use Pillow 12.3.0 in Basic layout mode with FreeType
+2.14.3 and the same warm-cache, 20 px workload described above. [Raw results](font-decode-linux-packed.json)
+
+Swag leads in 38 of 44 scenarios. It keeps validated `loca` entries and format-2 `post` name
+indices in the owned font buffer. It compares adjacent offsets in SIMD groups, including those
+in CFF indexes, and reads `name` records from bounded spans.
+
+The six CJK cases save 10% to 16% against the previous Swag build and take 2.2 to 2.8 times
+Pillow's time. An isolated `File.readAllBytes` probe takes 1.55 to 2.28 ms on the three distinct
+CJK files. The last two columns below come from seven separate instrumented batches of 11
+opens. They measure file acquisition and SFNT parsing inside `Face.loadFile`.
+
+| Fixture | Face | Swag before (µs) | Swag after (µs) | Pillow (µs) | Swag file read (µs) | SFNT parse before → after (µs) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.ttf` | 0 | 221.59 | 97.76 | 129.01 | 38.78 | 145.91 → 49.39 |
+| `DejaVuSerif.ttf` | 0 | 126.72 | 67.25 | 118.43 | 16.53 | 79.96 → 30.45 |
+| `NotoSansCJK-Regular.ttc` | 0 | 2459.49 | 2146.01 | 886.69 | 1821.61 | 622.06 → 292.98 |
+| `NotoSansCJK-Regular.ttc` | 1 | 2480.27 | 2202.11 | 871.59 | 1813.64 | 629.63 → 276.35 |
+| `NotoSansCJK-Regular.ttc` | 2 | 2427.12 | 2174.79 | 811.10 | 1756.02 | 573.22 → 292.34 |
+| `NotoSansCJK-Regular.ttc` | 7 | 2419.21 | 2133.10 | 864.25 | 1929.62 | 573.06 → 281.07 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 2113.72 | 1871.14 | 839.10 | 1578.20 | 607.93 → 285.79 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 3107.69 | 2619.43 | 932.10 | 2316.68 | 645.73 → 296.45 |

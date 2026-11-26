@@ -146,3 +146,81 @@ func scale26_6(value: s32, ppem, unitsPerEm: u32)->s32 fail
         try fault(0x17)
     return cast(s32, rounded)
 }
+
+#[Swag.Inline]
+func readPackedOffset(entry: const [*] u8, width: u8)->u32
+{
+    switch width
+    {
+    case 1:  return entry[0]
+    case 2:  return Math.make16(entry[0], entry[1])
+    case 3:  return Math.make32(0, entry[0], entry[1], entry[2])
+    default: return Math.make32(entry[0], entry[1], entry[2], entry[3])
+    }
+}
+
+// Validates `count` adjacent pairs in a bounded sequence of `count + 1` offsets.
+// The last offset bounds all earlier values once the sequence is known to be monotonic.
+func(width: u8) validatePackedOffsets(offsets: const [*] u8, count: u32)->u32 fail
+{
+    var checked = 0'u32
+    #static if Math.nativeToBigEndian(1'u16) != 1
+    {
+        #static if width == 2
+        {
+            const SwapWords = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+            while count - checked >= 8
+            {
+                let entry     = offsets + cast(u64, checked) * 2
+                let previous  = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry), SwapWords))
+                let following = cast #bit(Math.Simd.U16x8, Math.Simd.permute(Math.Simd.load(entry + 2), SwapWords))
+                if Swag.vecMask(previous > following) do
+                    try fault(0x08)
+                checked += 8
+            }
+        }
+        elif width == 3
+        {
+            const Previous  = cast(Math.Simd.U8x16, [2'u8, 1, 0, 128, 5, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128])
+            const Following = cast(Math.Simd.U8x16, [5'u8, 4, 3, 128, 8, 7, 6, 128, 11, 10, 9, 128, 14, 13, 12, 128])
+
+            // Five packed values occupy 15 bytes. Leave enough room for the full load.
+            while count - checked >= 5
+            {
+                let packed    = Math.Simd.load(offsets + cast(u64, checked) * 3)
+                let previous  = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(packed, Previous))
+                let following = cast #bit(Math.Simd.U32x4, Math.Simd.shuffle(packed, Following))
+                if Swag.vecMask(previous > following) do
+                    try fault(0x08)
+                checked += 4
+            }
+        }
+        elif width == 4
+        {
+            const SwapOffsets = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+            while count - checked >= 4
+            {
+                let entry     = offsets + cast(u64, checked) * 4
+                let previous  = cast #bit(Math.Simd.U32x4, Math.Simd.permute(Math.Simd.load(entry), SwapOffsets))
+                let following = cast #bit(Math.Simd.U32x4, Math.Simd.permute(Math.Simd.load(entry + 4), SwapOffsets))
+                if Swag.vecMask(previous > following) do
+                    try fault(0x08)
+                checked += 4
+            }
+        }
+    }
+
+    var scalarEntry = offsets + cast(u64, checked) * width
+    var lastOffset  = readPackedOffset(scalarEntry, width)
+    scalarEntry += width
+    for checked until count
+    {
+        let offset = readPackedOffset(scalarEntry, width)
+        if offset < lastOffset do
+            try fault(0x08)
+        lastOffset  = offset
+        scalarEntry += width
+    }
+
+    return lastOffset
+}

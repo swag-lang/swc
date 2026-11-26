@@ -295,16 +295,12 @@ func appendGlyph(faceData: *FaceImpl, glyphIndex: u32, xPpem, yPpem: u32, depth:
     if glyphIndex >= faceData.face.glyphCount do
         try fault(0x10)
 
-    if glyphIndex + 1 >= faceData.glyphLocations.count do
-        return
-
-    let start = faceData.glyphLocations[glyphIndex]
-    let stop  = faceData.glyphLocations[glyphIndex + 1]
-    if stop <= start do
+    let range = faceData.glyphByteRange(glyphIndex)
+    if range.stop <= range.start do
         return
 
     let glyf  = try getTableSlice(faceData, TAG_GLYF, 0x8E)
-    let data  = try getSlice(glyf, start, stop - start)
+    let data  = try getSlice(glyf, range.start, range.stop - range.start)
     let count = peekS16(data, 0)
     if count >= 0 do
         try appendSimpleGlyph(faceData, data, xPpem, yPpem)

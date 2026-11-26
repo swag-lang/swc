@@ -2,6 +2,21 @@
 
 using Swag, Core
 
+private func setCompositeTestGlyphs(faceData: *FaceImpl, first, second: const [..] u8)
+{
+    faceData.face.setGlyphCount(2)
+    faceData.fontData.add(first)
+    faceData.fontData.add(second)
+    let glyfLength = cast(u32, faceData.fontData.count)
+    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: glyfLength})
+    faceData.fontData.resize(cast(u64, glyfLength) + 12)
+    writeBigU32(&faceData.fontData, cast(u64, glyfLength) + 4, cast(u32, first.count))
+    writeBigU32(&faceData.fontData, cast(u64, glyfLength) + 8, glyfLength)
+    faceData.tables.add({tag: TAG_LOCA, offset: glyfLength, length: 12})
+    faceData.indexToLocFormat = 1
+    expect buildGlyphLocations(faceData)
+}
+
 #test
 {
     // Point numbers in a nested composite are relative to that composite's own
@@ -23,15 +38,9 @@ using Swag, Core
         0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00])
 
     var faceData: FaceImpl
-    faceData.face.setGlyphCount(2)
     faceData.unitsPerEm = 1000
     faceData.outlinePoints.add(Vector{x: 6400, y: 0})
-    faceData.fontData.add(firstGlyph.toSlice())
-    faceData.fontData.add(secondGlyph.toSlice())
-    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, faceData.fontData.count)})
-    faceData.glyphLocations.add(0)
-    faceData.glyphLocations.add(cast(u32, firstGlyph.count))
-    faceData.glyphLocations.add(cast(u32, faceData.fontData.count))
+    setCompositeTestGlyphs(&faceData, firstGlyph.toSlice(), secondGlyph.toSlice())
 
     expect appendCompositeGlyph(&faceData, nestedComposite.toSlice(), 1000, 1000, 0)
     Swag.require(faceData.outlinePoints.count == 3)
@@ -57,14 +66,8 @@ using Swag, Core
         0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00])
 
     var faceData: FaceImpl
-    faceData.face.setGlyphCount(2)
     faceData.unitsPerEm = 1000
-    faceData.fontData.add(parentGlyph.toSlice())
-    faceData.fontData.add(childGlyph.toSlice())
-    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, faceData.fontData.count)})
-    faceData.glyphLocations.add(0)
-    faceData.glyphLocations.add(cast(u32, parentGlyph.count))
-    faceData.glyphLocations.add(cast(u32, faceData.fontData.count))
+    setCompositeTestGlyphs(&faceData, parentGlyph.toSlice(), childGlyph.toSlice())
 
     // The second component's parent point index is outside the assembled outline.
     var rejected: Swag.Error
@@ -102,14 +105,8 @@ using Swag, Core
         0x00, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00])
 
     var faceData: FaceImpl
-    faceData.face.setGlyphCount(2)
     faceData.unitsPerEm = 1000
-    faceData.fontData.add(parentGlyph.toSlice())
-    faceData.fontData.add(childGlyph.toSlice())
-    faceData.tables.add({tag: TAG_GLYF, offset: 0, length: cast(u32, faceData.fontData.count)})
-    faceData.glyphLocations.add(0)
-    faceData.glyphLocations.add(cast(u32, parentGlyph.count))
-    faceData.glyphLocations.add(cast(u32, faceData.fontData.count))
+    setCompositeTestGlyphs(&faceData, parentGlyph.toSlice(), childGlyph.toSlice())
 
     expect appendCompositeGlyph(&faceData, compositeGlyph.toSlice(), 1000, 1000, 0)
     Swag.require(faceData.outlinePoints.count == 130)
@@ -141,9 +138,8 @@ using Swag, Core
 
     let faceData     = getFaceData(face)
     let glyf         = expect getTableSlice(faceData, TAG_GLYF, 0x10)
-    let glyphStart   = faceData.glyphLocations[glyphIndex]
-    let glyphEnd     = faceData.glyphLocations[glyphIndex + 1]
-    let glyphData    = expect getSlice(glyf, glyphStart, glyphEnd - glyphStart)
+    let range        = faceData.glyphByteRange(glyphIndex)
+    let glyphData    = expect getSlice(glyf, range.start, range.stop - range.start)
     let contourCount = expect readS16(glyphData, 0)
     Swag.require(contourCount < 0)
 

@@ -172,3 +172,34 @@ using Swag, Core
     let markerError = markerErrorOutcome.value()
     Swag.require(markerError != null)
 }
+
+// Uniform images emit complete 62-pixel packets across row boundaries and a final remainder.
+#test
+{
+    for format in [PixelFormat.RGB8, .BGR8, .RGBA8, .BGRA8]
+    {
+        var source = Image.create(37, 7, format)
+        for solid in [Color.fromRgb(0, 0, 0), Color.fromArgb(format.hasAlpha() ? 123'u8 : 255'u8, 19, 53, 241)]
+        {
+            source.fill(solid)
+            let encoded = expect source.encodeToBytes("uniform.qoi")
+            let prefix  = solid.argb == 0xFF000000 ? 0'u64 : (format.hasAlpha() ? 5'u64 : 4'u64)
+            Swag.require(encoded.count == 14 + prefix + 5 + 8)
+            for run in 4 do
+                Swag.require(encoded[14 + prefix + run] == 0xFD)
+            Swag.require(encoded[14 + prefix + 4] == (prefix ? 0xC9'u8 : 0xCA'u8))
+            let decoded = expect Image.decode("uniform.qoi", encoded.toSlice())
+            for y in source.height do
+                for x in source.width do
+                    Swag.require(decoded.pixelColor(x, y).argb == solid.argb)
+        }
+
+        // A different interior pixel must use the ordinary chunk writer.
+        source.pixels.storage()[source.rowStride + source.bytesPerPixel] = 43
+        let encoded = expect source.encodeToBytes("mixed.qoi")
+        let decoded = expect Image.decode("mixed.qoi", encoded.toSlice())
+        for y in source.height do
+            for x in source.width do
+                Swag.require(decoded.pixelColor(x, y).argb == source.pixelColor(x, y).argb)
+    }
+}

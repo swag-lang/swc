@@ -292,6 +292,51 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
     }
 }
 
+// Paeth-filter two rows along a diagonal. The second row trails one pixel
+// behind the first, making both rows' left, above, and upper-left pixels available.
+func defilterPaethPair(firstSource, secondSource, previous: const [*] u8, first, second: [*] u8, count, bytesPerPixel: u64)
+{
+    using Core, Math.Simd
+
+    // The first pixel's predictor is Up. For RGB8 the fourth byte of each
+    // store is provisional, and the next pixel or scalar tail replaces it.
+    let initialSource = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, firstSource)[0]), splat(0'u32)))
+    let initialUp     = cast #bit(U8x16, interleaveLow(splat(cast(const [*] u32, previous)[0]), splat(0'u32)))
+    var packed        = cast #bit(U32x4, (initialSource + initialUp))
+    cast([*] u32, first)[0] = packed[0]
+    var left   = cast #bit(S16x8, widenLow(cast #bit(U8x16, packed)))
+    var upLeft = cast #bit(S16x8, widenLow(initialUp))
+
+    var offset = bytesPerPixel
+    while offset + 4 <= count
+    {
+        let above  = splat(cast(const [*] u32, (previous + offset))[0])
+        let up     = cast #bit(S16x8, widenLow(cast #bit(U8x16, interleaveLow(above, packed))))
+        let top    = splat(cast(const [*] u32, (firstSource + offset))[0])
+        let bottom = splat(cast(const [*] u32, (secondSource + offset - bytesPerPixel))[0])
+        let delta  = cast #bit(S16x8, widenLow(cast #bit(U8x16, interleaveLow(top, bottom))))
+
+        left   = addPixelLanes(delta, paethPredict(left, up, upLeft))
+        upLeft = up
+        packed = cast #bit(U32x4, packUnsigned(left, left))
+        cast([*] u32, (first + offset))[0] = packed[0]
+        cast([*] u32, (second + offset - bytesPerPixel))[0] = packed[1]
+        offset += bytesPerPixel
+    }
+
+    for i in offset until count
+    {
+        let prediction = filterPaeth(first[i - bytesPerPixel], previous[i], previous[i - bytesPerPixel])
+        first[i] = cast #bit(u8, (firstSource[i] + #wrap prediction))
+    }
+
+    for i in offset - bytesPerPixel until count
+    {
+        let prediction = filterPaeth(second[i - bytesPerPixel], first[i], first[i - bytesPerPixel])
+        second[i] = cast #bit(u8, (secondSource[i] + #wrap prediction))
+    }
+}
+
 func(PIXEL_BYTES: u64) scatterAdam7Row(source: const [*] u8, target: [*] u8, width: u32, targetStep: u64)
 {
     var src = source
@@ -371,10 +416,23 @@ impl Decoder
         // PNG filtering references the previous byte of the same pixel. Packed samples
         // (bit depths below 8) have an effective byte offset of 1, even in a short Adam7 pass.
         let filterOffset = .header.bitDepth < 8 ? 1'u64 : cast(u64, .inChannels) * (.header.bitDepth / 8)
-        for height
+        let pairPaeth    = rowBytes >= 16 and (filterOffset == 3 or filterOffset == 4)
+        var row          = 0'u32
+        while row < height
         {
             let filter = src[0]
             src += 1
+
+            if filter == 4 and pairPaeth and row + 1 < height and src[rowBytes] == 4
+            {
+                let next = dest + rowStep
+                defilterPaethPair(src, src + rowBytes + 1, up, dest, next, rowBytes, filterOffset)
+                src  += 2 * rowBytes + 1
+                up   = next
+                dest = next + rowStep
+                row  += 2
+                continue
+            }
 
             switch filter
             {
@@ -389,6 +447,7 @@ impl Decoder
             src  += rowBytes
             up   = dest
             dest += rowStep
+            row  += 1
         }
 
         return true

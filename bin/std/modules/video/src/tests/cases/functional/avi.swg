@@ -456,6 +456,23 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
         expect random.decodeFrameInto(&image, rank)
         Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == checksums[rank])
     }
+
+    // Skip ahead within and between groups, alternating the two output representations.
+    var planes: PlanarFrame
+    for rank in [3'u64, 5, 8, 17, 26, 31, 35, 58, 59]
+    {
+        if rank & 1
+        {
+            expect random.decodeFramePlanesInto(&planes, rank)
+            planes.view().convertToRgb(&image)
+        }
+        else
+        {
+            expect random.decodeFrameInto(&image, rank)
+        }
+
+        Swag.require(Hash.Crc32.compute(image.pixels.toSlice()) == checksums[rank])
+    }
 }
 
 // Xvid writes empty AVI slots after the first anchor and packs later B-pictures with a P-picture.

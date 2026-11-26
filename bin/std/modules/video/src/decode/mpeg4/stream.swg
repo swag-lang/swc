@@ -172,8 +172,12 @@ impl Mpeg4Stream
     {
         if rank == .nextRank do
             return
+
+        // An AVI skip inside the active GOP can continue from its ready pictures and anchors.
+        // A new GOP may offer a shorter decode, and backward skips always need new anchors.
+        if .started and (not .slotTimestamps or rank < .nextRank or .decodeStartRank(rank) > .emitRank) do
+            .started = false
         .nextRank = rank
-        .started  = false
     }
 
     mtd releasePending() {}
@@ -276,9 +280,12 @@ impl Mpeg4Stream
 
         while true
         {
+            // A failed sample may have changed the reference pictures before reporting an error.
+            .started = false
             try .fill(source)
             if not .queued do
                 fail InvalidFormatError{"MPEG-4 stream ends before the picture asked for"}
+            .started = true
 
             let at = .earliest()
             if .emitRank == .nextRank

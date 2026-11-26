@@ -1,0 +1,534 @@
+{
+  "cpu": 1,
+  "batches": 13,
+  "cases": {
+    "fills": {
+      "medians": {
+        "baseline": {
+          "record_ms": 1.423671,
+          "draw_ms": 54.938304,
+          "total_ms": 56.47863,
+          "coverage": 214537732
+        },
+        "swag": {
+          "record_ms": 1.327444,
+          "draw_ms": 33.361352,
+          "total_ms": 34.847055,
+          "coverage": 214691936
+        },
+        "agg": {
+          "record_ms": 0.0,
+          "draw_ms": 26.08842,
+          "total_ms": 26.08842,
+          "coverage": 214708428
+        }
+      },
+      "samples": {
+        "baseline": [
+          {
+            "record_ms": 6.509872,
+            "draw_ms": 86.306059,
+            "total_ms": 92.815931,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 6.844262,
+            "draw_ms": 52.4729,
+            "total_ms": 59.317162,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.423671,
+            "draw_ms": 48.374971,
+            "total_ms": 49.798642,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.394289,
+            "draw_ms": 65.678891,
+            "total_ms": 67.07318,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.699357,
+            "draw_ms": 58.019729,
+            "total_ms": 59.719086,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 5.231796,
+            "draw_ms": 73.585885,
+            "total_ms": 78.817681,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.422684,
+            "draw_ms": 54.938304,
+            "total_ms": 56.360988,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.401293,
+            "draw_ms": 56.848661,
+            "total_ms": 58.249954,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.322874,
+            "draw_ms": 52.835323,
+            "total_ms": 54.158197,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.363522,
+            "draw_ms": 55.115108,
+            "total_ms": 56.47863,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 4.881853,
+            "draw_ms": 49.624303,
+            "total_ms": 54.506156,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 5.435742,
+            "draw_ms": 32.860715,
+            "total_ms": 38.296457,
+            "coverage": 214537732
+          },
+          {
+            "record_ms": 1.306834,
+            "draw_ms": 25.243583,
+            "total_ms": 26.550417,
+            "coverage": 214537732
+          }
+        ],
+        "swag": [
+          {
+            "record_ms": 1.2585,
+            "draw_ms": 36.159391,
+            "total_ms": 37.417891,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.276395,
+            "draw_ms": 30.948255,
+            "total_ms": 32.22465,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.305238,
+            "draw_ms": 31.653694,
+            "total_ms": 32.958932,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.670723,
+            "draw_ms": 34.166659,
+            "total_ms": 35.837382,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.485703,
+            "draw_ms": 33.361352,
+            "total_ms": 34.847055,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.29369,
+            "draw_ms": 31.704365,
+            "total_ms": 32.998055,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.597865,
+            "draw_ms": 35.874671,
+            "total_ms": 37.472536,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.409328,
+            "draw_ms": 32.92114,
+            "total_ms": 34.330468,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.25145,
+            "draw_ms": 31.472606,
+            "total_ms": 32.724056,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.443202,
+            "draw_ms": 33.716475,
+            "total_ms": 35.159677,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.327444,
+            "draw_ms": 36.919299,
+            "total_ms": 38.246743,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.765402,
+            "draw_ms": 36.763665,
+            "total_ms": 38.529067,
+            "coverage": 214691936
+          },
+          {
+            "record_ms": 1.238765,
+            "draw_ms": 16.240408,
+            "total_ms": 17.479173,
+            "coverage": 214691936
+          }
+        ],
+        "agg": [
+          {
+            "record_ms": 0.0,
+            "draw_ms": 24.610708,
+            "total_ms": 24.610708,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 26.08842,
+            "total_ms": 26.08842,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 35.10951,
+            "total_ms": 35.10951,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 37.038576,
+            "total_ms": 37.038576,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 33.152978,
+            "total_ms": 33.152978,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 39.925595,
+            "total_ms": 39.925595,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 26.400103,
+            "total_ms": 26.400103,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 22.255386,
+            "total_ms": 22.255386,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 23.299183,
+            "total_ms": 23.299183,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 29.537353,
+            "total_ms": 29.537353,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 17.830459,
+            "total_ms": 17.830459,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 24.174309,
+            "total_ms": 24.174309,
+            "coverage": 214708428
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 12.303073,
+            "total_ms": 12.303073,
+            "coverage": 214708428
+          }
+        ]
+      }
+    },
+    "strokes": {
+      "medians": {
+        "baseline": {
+          "record_ms": 5.733133,
+          "draw_ms": 28.374702,
+          "total_ms": 34.269843,
+          "coverage": 83861490
+        },
+        "swag": {
+          "record_ms": 5.517507,
+          "draw_ms": 28.414099,
+          "total_ms": 33.904143,
+          "coverage": 83861490
+        },
+        "agg": {
+          "record_ms": 0.0,
+          "draw_ms": 18.74849,
+          "total_ms": 18.74849,
+          "coverage": 84108243
+        }
+      },
+      "samples": {
+        "baseline": [
+          {
+            "record_ms": 6.657204,
+            "draw_ms": 27.955839,
+            "total_ms": 34.613043,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.424451,
+            "draw_ms": 27.921358,
+            "total_ms": 33.345809,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.645607,
+            "draw_ms": 28.374702,
+            "total_ms": 34.020309,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.720168,
+            "draw_ms": 27.201825,
+            "total_ms": 32.921993,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 6.530215,
+            "draw_ms": 28.760251,
+            "total_ms": 35.290466,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.801451,
+            "draw_ms": 29.093619,
+            "total_ms": 34.89507,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.598449,
+            "draw_ms": 28.671394,
+            "total_ms": 34.269843,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.50345,
+            "draw_ms": 28.343676,
+            "total_ms": 33.847126,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.475828,
+            "draw_ms": 27.950605,
+            "total_ms": 33.426433,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.733133,
+            "draw_ms": 31.094329,
+            "total_ms": 36.827462,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.81164,
+            "draw_ms": 28.125666,
+            "total_ms": 33.937306,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.758852,
+            "draw_ms": 32.409677,
+            "total_ms": 38.168529,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 6.194532,
+            "draw_ms": 28.731427,
+            "total_ms": 34.925959,
+            "coverage": 83861490
+          }
+        ],
+        "swag": [
+          {
+            "record_ms": 11.30311,
+            "draw_ms": 35.185156,
+            "total_ms": 46.488266,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 6.039039,
+            "draw_ms": 30.118628,
+            "total_ms": 36.157667,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.798846,
+            "draw_ms": 28.616117,
+            "total_ms": 34.414963,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.442865,
+            "draw_ms": 28.461278,
+            "total_ms": 33.904143,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.608197,
+            "draw_ms": 28.131096,
+            "total_ms": 33.739293,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.406628,
+            "draw_ms": 27.949233,
+            "total_ms": 33.355861,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.405415,
+            "draw_ms": 26.992901,
+            "total_ms": 32.398316,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.422788,
+            "draw_ms": 27.71962,
+            "total_ms": 33.142408,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.376551,
+            "draw_ms": 27.601697,
+            "total_ms": 32.978248,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.473794,
+            "draw_ms": 27.529392,
+            "total_ms": 33.003186,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.517507,
+            "draw_ms": 44.381194,
+            "total_ms": 49.898701,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.544217,
+            "draw_ms": 28.414099,
+            "total_ms": 33.958316,
+            "coverage": 83861490
+          },
+          {
+            "record_ms": 5.836677,
+            "draw_ms": 30.624514,
+            "total_ms": 36.461191,
+            "coverage": 83861490
+          }
+        ],
+        "agg": [
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.74849,
+            "total_ms": 18.74849,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 19.146155,
+            "total_ms": 19.146155,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 20.282054,
+            "total_ms": 20.282054,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.305122,
+            "total_ms": 18.305122,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.049931,
+            "total_ms": 18.049931,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.637488,
+            "total_ms": 18.637488,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.222205,
+            "total_ms": 18.222205,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.546195,
+            "total_ms": 18.546195,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.853554,
+            "total_ms": 18.853554,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.42133,
+            "total_ms": 18.42133,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 35.719855,
+            "total_ms": 35.719855,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 67.663775,
+            "total_ms": 67.663775,
+            "coverage": 84108243
+          },
+          {
+            "record_ms": 0.0,
+            "draw_ms": 18.960025,
+            "total_ms": 18.960025,
+            "coverage": 84108243
+          }
+        ]
+      }
+    }
+  }
+}

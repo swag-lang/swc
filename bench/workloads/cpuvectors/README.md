@@ -50,3 +50,13 @@ c++ -O3 -std=c++17 -I/tmp/agg-2.6/agg-src/include \
 python3 bench/workloads/cpuvectors/run.py --swag /tmp/cpuvectors/out/vectors \
   --agg /tmp/cpuvectors/agg --cpu 4 --output /tmp/cpuvectors/results.json
 ```
+
+## Cell area for simple Swag fills
+
+Thirteen alternating single-CPU Release runs compare Swag
+`5c169b416c` with the new simple-contour area path and the same AGG
+build. The fill workload takes 56.48 ms before and 34.85 ms after,
+with AGG at 26.09 ms in that series. Compared with AGG, the aggregate
+ink difference drops from 0.080% to 0.008%. The multi-contour stroke
+path still uses sampled intersections and renders the same ink.
+[Raw timings and coverage](linux-edge-area.json)

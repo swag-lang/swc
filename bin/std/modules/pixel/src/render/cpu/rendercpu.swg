@@ -27,6 +27,7 @@ struct RenderCpu
 
         surface:     Image
         scanScratch:   ScanScratch
+        areaScratch:   AreaScratch
         scanClip:      ScanIntersection
 
         stackReleasedRT: Array'(*RenderTarget?)
@@ -3851,61 +3852,68 @@ private impl RenderCpu
         {
             let deviceY = y + cast(s32, row)
             let {values: coverage, first: firstX, end: endX} = scratch.resolveRow(crossings, cast(s32, row), width, evenOdd, false)
-            let maskRow = stencil ? stencil + cast(u64, deviceY) * image.width + left : null
-            if .stencilWrite
-            {
-                let stencilPixels = unwrap maskRow
-                for x in firstX until endX where coverage[x] > 0
-                {
-                    let alpha = coverageAlpha(color.a, coverage[x] / VerticalSamples)
-                    if .stencilMode == .Set do
-                        stencilPixels[x] = Math.max(stencilPixels[x], alpha)
-                    else do
-                        stencilPixels[x] = cast(u8, (cast(u32, stencilPixels[x]) * (255 - cast(u32, alpha))) / 255)
-                }
+            .drawScanCoverageRow(image, left, deviceY, color, tint, alphaScale, stencil, coverage, firstX, endX)
+        }
+    }
 
+    #[Swag.Inline]
+    mtd drawScanCoverageRow(image: *Image, left, deviceY: s32, color: Color, tint: Math.Simd.U8x16, alphaScale: Math.Simd.F32x4,
+                            stencil: [*] u8?, coverage: [*] f32, firstX, endX: u64)
+    {
+        let maskRow = stencil ? stencil + cast(u64, deviceY) * image.width + left : null
+        if .stencilWrite
+        {
+            let stencilPixels = unwrap maskRow
+            for x in firstX until endX where coverage[x] > 0
+            {
+                let alpha = coverageAlpha(color.a, coverage[x] / VerticalSamples)
+                if .stencilMode == .Set do
+                    stencilPixels[x] = Math.max(stencilPixels[x], alpha)
+                else do
+                    stencilPixels[x] = cast(u8, (cast(u32, stencilPixels[x]) * (255 - cast(u32, alpha))) / 255)
+            }
+
+            return
+        }
+
+        let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
+        let dst       = image.pixels.storage() + dstOffset
+        var x         = firstX
+        while endX - x >= 4
+        {
+            var weight = scanAlpha4(coverage + x, alphaScale)
+            if maskRow
+            {
+                let clip = cast(Math.Simd.U32x4, [cast(u32, maskRow[x]), cast(u32, maskRow[x + 1]),
+                                                  cast(u32, maskRow[x + 2]), cast(u32, maskRow[x + 3])])
+                let product = weight * clip + 1'u32
+                weight = (product + (product >> 8)) >> 8
+            }
+
+            let weights = cast #bit(Math.Simd.U8x16, weight * 0x0101_0101'u32)
+            let target  = dst + x * 4
+            Math.Simd.store(target, blendAlphaBgra8x4(tint, Math.Simd.load(target), weights))
+            if let matte = .whiteMatte
+            {
+                let white = matte + dstOffset + x * 4
+                Math.Simd.store(white, blendAlphaBgra8x4(tint, Math.Simd.load(white), weights))
+            }
+
+            x += 4
+        }
+
+        for column in x until endX where coverage[column] > 0
+        {
+            var ink = color
+            ink.a = coverageAlpha(color.a, coverage[column] / VerticalSamples)
+            if maskRow do
+                ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
+            if not ink.a do
                 continue
-            }
 
-            let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
-            let dst       = image.pixels.storage() + dstOffset
-            var x         = firstX
-            while endX - x >= 4
-            {
-                var weight = scanAlpha4(coverage + x, alphaScale)
-                if maskRow
-                {
-                    let clip = cast(Math.Simd.U32x4, [cast(u32, maskRow[x]), cast(u32, maskRow[x + 1]),
-                                                      cast(u32, maskRow[x + 2]), cast(u32, maskRow[x + 3])])
-                    let product = weight * clip + 1'u32
-                    weight = (product + (product >> 8)) >> 8
-                }
-
-                let weights = cast #bit(Math.Simd.U8x16, weight * 0x0101_0101'u32)
-                let target  = dst + x * 4
-                Math.Simd.store(target, blendAlphaBgra8x4(tint, Math.Simd.load(target), weights))
-                if let matte = .whiteMatte
-                {
-                    let white = matte + dstOffset + x * 4
-                    Math.Simd.store(white, blendAlphaBgra8x4(tint, Math.Simd.load(white), weights))
-                }
-
-                x += 4
-            }
-
-            for column in x until endX where coverage[column] > 0
-            {
-                var ink = color
-                ink.a = coverageAlpha(color.a, coverage[column] / VerticalSamples)
-                if maskRow do
-                    ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
-                if not ink.a do
-                    continue
-
-                blendAlphaBgra8(dst + column * 4, ink)
-                if let matte = .whiteMatte do
-                    blendAlphaBgra8(matte + dstOffset + column * 4, ink)
-            }
+            blendAlphaBgra8(dst + column * 4, ink)
+            if let matte = .whiteMatte do
+                blendAlphaBgra8(matte + dstOffset + column * 4, ink)
         }
     }
 
@@ -3927,6 +3935,33 @@ private impl RenderCpu
         let width      = right - left
         let firstPoint = firstScanPoint(painter, fill)
         let pointCount = painter.scanContourEnds[fill.end - 1] - firstPoint
+        if fill.end == fill.first + 1 and pointCount >= 3 and pointCount <= 32 and
+           (cast(u64, width) + cast(u64, bottom - top)) * pointCount <= ScanBandCrossingBudget and not .stencilWrite
+        {
+            var local: [32] Vector2
+            let source = painter.scanPoints.storage() + firstPoint
+            let origin = Vector2{cast(f32, left), cast(f32, top)}
+            for i in pointCount do
+                local[i] = transform.transformPoint(source[i]) - origin
+            let final = local[0] == local[pointCount - 1] ? pointCount - 1 : pointCount
+            let points = local[until final]
+            if final >= 3 and isSimpleAreaContour(points)
+            {
+                .areaScratch.rasterize(points, width, bottom - top)
+                let color = fill.color
+                let tint = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
+                let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
+                let stencil = .stencilOn ? .currentStencil().pixels.storage() : null
+                for deviceY in top until bottom
+                {
+                    let {values: coverage, first: lo, end: hi} = .areaScratch.resolve(deviceY - top, width)
+                    .drawScanCoverageRow(image, left, deviceY, color, tint, alphaScale, stencil, coverage, lo, hi)
+                }
+
+                return
+            }
+        }
+
         let bandHeight = scanBandHeight(pointCount)
         if .stencilWrite and .stencilMode == .Set do
             .markStencilDirty({left, top, right - 1, bottom - 1})

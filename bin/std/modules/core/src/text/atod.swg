@@ -886,33 +886,40 @@ private func shortDecimal(s: const [..] u8, numberFormat: NumberFormatInfo)->{ v
     if s.count > 15 do
         return unmatched
 
-    let negative = s[0] == numberFormat.negativeSign
-    let first    = negative or s[0] == numberFormat.positiveSign ? 1'u64 : 0'u64
-    var mantissa = 0'u64
-    var divisor  = 1'u64
-    var sawDigit = false
-    var sawPoint = false
-    for i in first until s.count
+    let leading   = s[0]
+    let negative  = leading == numberFormat.negativeSign
+    let first     = negative or leading == numberFormat.positiveSign ? 1'u64 : 0'u64
+    let separator = numberFormat.decimalSeparator
+    var position  = first
+    var mantissa  = 0'u64
+    while position < s.count
     {
-        let c = s[i]
-        if c == numberFormat.decimalSeparator
-        {
-            if sawPoint do
-                return unmatched
-            sawPoint = true
-            continue
-        }
-
-        if not Latin1.isDigit(c) do
-            return unmatched
-
-        sawDigit = true
+        let c = s[position]
+        if c == separator or not Latin1.isDigit(c) do
+            break
         mantissa = mantissa * 10 + cast(u64, c - '0')
-        if sawPoint do
-            divisor *= 10
+        position += 1
     }
 
-    if not sawDigit do
+    let integerEnd = position
+    var divisor    = 1'u64
+    if position < s.count
+    {
+        if s[position] != separator do
+            return unmatched
+        position += 1
+        while position < s.count
+        {
+            let c = s[position]
+            if c == separator or not Latin1.isDigit(c) do
+                return unmatched
+            mantissa = mantissa * 10 + cast(u64, c - '0')
+            divisor  *= 10
+            position += 1
+        }
+    }
+
+    if integerEnd == first and divisor == 1 do
         return unmatched
 
     var value = cast(f64, mantissa)

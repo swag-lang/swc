@@ -1,0 +1,3 @@
+#import("core", location: "swag@std", link: "shared-library")
+#import("pixel", location: "swag@std", link: "shared-library")
+#import("linux", location: "swag@std")

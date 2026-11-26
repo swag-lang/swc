@@ -1,0 +1,1547 @@
+{
+  "swag_source": "17c5106bea",
+  "compiler_sha256": "fe29f22784980fc9f06c32bcb97fb95cd6739bd944c44cb090d4a58786529a7c",
+  "native_reference_source_sha256": "b523083e07abde7ae14170e543a2104620ef0aec95f10ba3610bfc7a14f920ab",
+  "native_reference_sha256": "840c183e98407661cb92856da190d51e83665bf0204cfad57df38affa145d839",
+  "libjpeg_turbo": "2.1.5",
+  "cpu": "AMD EPYC 9V74",
+  "affinity": [
+    4
+  ],
+  "repetitions": 5,
+  "comparison": [
+    {
+      "input": "desktop.rgb",
+      "equal_rgb_psnr": {
+        "turbo": {
+          "rgb_psnr": 35.39419,
+          "swag_bytes": 2644163,
+          "reference_bytes": 2634190,
+          "swag_size_change_pct": 0.3786,
+          "swag_cpu_us": 107382,
+          "reference_cpu_us": 37046,
+          "swag_cpu_ratio": 2.8986
+        },
+        "ffmpeg": {
+          "rgb_psnr": 33.54504,
+          "swag_bytes": 2235155,
+          "reference_bytes": 1877262,
+          "swag_size_change_pct": 19.0646,
+          "swag_cpu_us": 101489,
+          "reference_cpu_us": 75159,
+          "swag_cpu_ratio": 1.3503
+        }
+      }
+    },
+    {
+      "input": "gradient.rgb",
+      "equal_rgb_psnr": {
+        "turbo": null,
+        "ffmpeg": null
+      }
+    },
+    {
+      "input": "testsrc.rgb",
+      "equal_rgb_psnr": {
+        "turbo": {
+          "rgb_psnr": 42.31151,
+          "swag_bytes": 1050344,
+          "reference_bytes": 1020451,
+          "swag_size_change_pct": 2.9295,
+          "swag_cpu_us": 88205,
+          "reference_cpu_us": 30159,
+          "swag_cpu_ratio": 2.9247
+        },
+        "ffmpeg": {
+          "rgb_psnr": 40.33178,
+          "swag_bytes": 933766,
+          "reference_bytes": 697906,
+          "swag_size_change_pct": 33.7953,
+          "swag_cpu_us": 84286,
+          "reference_cpu_us": 52673,
+          "swag_cpu_ratio": 1.6002
+        }
+      }
+    },
+    {
+      "input": "street.rgb",
+      "equal_rgb_psnr": {
+        "turbo": {
+          "rgb_psnr": 43.93942,
+          "swag_bytes": 1311211,
+          "reference_bytes": 793497,
+          "swag_size_change_pct": 65.2445,
+          "swag_cpu_us": 92941,
+          "reference_cpu_us": 30680,
+          "swag_cpu_ratio": 3.0294
+        },
+        "ffmpeg": {
+          "rgb_psnr": 42.70514,
+          "swag_bytes": 885562,
+          "reference_bytes": 577088,
+          "swag_size_change_pct": 53.4534,
+          "swag_cpu_us": 88374,
+          "reference_cpu_us": 57362,
+          "swag_cpu_ratio": 1.5406
+        }
+      }
+    }
+  ],
+  "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "width": 640,
+  "height": 360,
+  "frames": 30,
+  "inputs": {
+    "desktop.rgb": "6cee0b175252228fe0da29f99c812c079513df88a090cb346d3be5613a10e032",
+    "gradient.rgb": "d8e376f1e83fffead807c15db80adfe8f208a210e5a4b01537701997a5c2bd18",
+    "testsrc.rgb": "9ac40841514c267f598d864af454c59e05516db6e012bf9a619e65f7029bf0b2",
+    "street.rgb": "4164fb5fe343bc315d46c9afcb10e27a3402c5df44bc724f3b963f459a05c89b"
+  },
+  "metric_self_check": {
+    "psnr": "inf",
+    "ssim": 1.0,
+    "decoded_sha256": "34aba2650171fc09d4b110d076e5a9f3a989af998e351db2dda570ace3153f7a"
+  },
+  "results": [
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "quality_setting": 40,
+      "encode_us": {
+        "median": 109770,
+        "runs": [
+          97789,
+          109770,
+          119978,
+          118477,
+          93738
+        ]
+      },
+      "cpu_us": {
+        "median": 109745,
+        "runs": [
+          97791,
+          109745,
+          119946,
+          118450,
+          93687
+        ]
+      },
+      "packet_bytes": 1657867,
+      "encoded_sha256": "f40a466996ff76e1fb4857d8efc4e94c5245b5717667bb3974b05f998cb70380",
+      "psnr": 30.188062,
+      "ssim": 0.956723,
+      "decoded_sha256": "7a3a12aea8fe6ee655c8151e217c01281d382cc771b92790daf525b3b7decb89"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "turbo",
+      "quality_setting": 70,
+      "encode_us": {
+        "median": 33789,
+        "runs": [
+          55872,
+          34488,
+          33664,
+          33789,
+          32849
+        ]
+      },
+      "cpu_us": {
+        "median": 33786,
+        "runs": [
+          55786,
+          34485,
+          33661,
+          33786,
+          32845
+        ]
+      },
+      "packet_bytes": 1670961,
+      "encoded_sha256": "ab02d19a83f3afb662f44370d90014d04918294fb3cf2472647b5a627b079e22",
+      "psnr": 30.276091,
+      "ssim": 0.957096,
+      "decoded_sha256": "91c2733fe2c51fc1decac78c95cbce2016f8652b25beb70d045d1903c3725c97"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 3,
+      "encode_us": {
+        "median": 88895,
+        "runs": [
+          88895,
+          114258,
+          89967,
+          83445,
+          83062
+        ]
+      },
+      "cpu_us": {
+        "median": 88891,
+        "runs": [
+          88891,
+          114252,
+          89963,
+          83440,
+          83057
+        ]
+      },
+      "packet_bytes": 2562552,
+      "encoded_sha256": "7ef85b73f0eb4f6de587cbdf7555d4925b0325a975ba3b7aab540a574e30b4ed",
+      "psnr": 36.902012,
+      "ssim": 0.988624,
+      "decoded_sha256": "365c365c151f6417986ac608787951e0774868db415cab378aaf6c362f21c8bb"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "quality_setting": 60,
+      "encode_us": {
+        "median": 98230,
+        "runs": [
+          139216,
+          114526,
+          98230,
+          95491,
+          96693
+        ]
+      },
+      "cpu_us": {
+        "median": 98193,
+        "runs": [
+          139158,
+          114480,
+          98193,
+          95458,
+          96651
+        ]
+      },
+      "packet_bytes": 2034686,
+      "encoded_sha256": "28bfdcd1506f4c95c266b545c78d472765751215b27c901a97a72e35438c8a51",
+      "psnr": 32.511009,
+      "ssim": 0.970944,
+      "decoded_sha256": "0cfe0663c217384c5c40aa3094f54298eff21eeb31ab9822d1b56e22c334a5c4"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "turbo",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 34059,
+        "runs": [
+          35862,
+          43972,
+          32430,
+          33623,
+          34059
+        ]
+      },
+      "cpu_us": {
+        "median": 34034,
+        "runs": [
+          35841,
+          43958,
+          32421,
+          33601,
+          34034
+        ]
+      },
+      "packet_bytes": 2054082,
+      "encoded_sha256": "0efb9ebddf01f39a9b202f7881d1fd1f8acd24ad281fc94ab58c8f247e6f1df4",
+      "psnr": 32.59467,
+      "ssim": 0.970692,
+      "decoded_sha256": "4d68a869d5c33a6488add660acb8721db3a4de0bff63beac3926b92ff9a21bbe"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 5,
+      "encode_us": {
+        "median": 75273,
+        "runs": [
+          75273,
+          89905,
+          79015,
+          71900,
+          69306
+        ]
+      },
+      "cpu_us": {
+        "median": 75227,
+        "runs": [
+          75227,
+          89835,
+          78993,
+          71871,
+          69280
+        ]
+      },
+      "packet_bytes": 1881254,
+      "encoded_sha256": "dce224066afda9fb53ae756368473ef4612b6fd5062dc31adadefe259501289f",
+      "psnr": 33.56542,
+      "ssim": 0.977303,
+      "decoded_sha256": "69b4dadf76c49b1212e75615ff458eb0a8a32d2289678bebc7680035bdde24e8"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 110595,
+        "runs": [
+          144794,
+          107629,
+          110595,
+          113051,
+          103130
+        ]
+      },
+      "cpu_us": {
+        "median": 110427,
+        "runs": [
+          144701,
+          107581,
+          110427,
+          113004,
+          103091
+        ]
+      },
+      "packet_bytes": 2884010,
+      "encoded_sha256": "46c0fc28b39ba9baeb170b0a9170972b2822608c265cdbb1656624a0dab95b41",
+      "psnr": 36.349627,
+      "ssim": 0.987051,
+      "decoded_sha256": "5f55b0416c8b90226fab08c8bb2346f2c4938847f357a003b2efca553e302ad4"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "turbo",
+      "quality_setting": 90,
+      "encode_us": {
+        "median": 38281,
+        "runs": [
+          46981,
+          38281,
+          38618,
+          36289,
+          35441
+        ]
+      },
+      "cpu_us": {
+        "median": 38261,
+        "runs": [
+          46968,
+          38261,
+          38579,
+          36271,
+          35425
+        ]
+      },
+      "packet_bytes": 2912093,
+      "encoded_sha256": "f448f5726e99b3fb2404ef97366e2ed19d3d5ffb37f2aae1f29cb07f4d2211e4",
+      "psnr": 36.522967,
+      "ssim": 0.987066,
+      "decoded_sha256": "ef97d14aaf657575230341d3da146f037f3ec2153f38fe1a486428647375d1c0"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 8,
+      "encode_us": {
+        "median": 65142,
+        "runs": [
+          93167,
+          65439,
+          65142,
+          63349,
+          62238
+        ]
+      },
+      "cpu_us": {
+        "median": 65121,
+        "runs": [
+          77349,
+          65423,
+          65121,
+          63335,
+          62154
+        ]
+      },
+      "packet_bytes": 1373231,
+      "encoded_sha256": "ebd25d98c8446871bd47b3f35b7d2599951b6067590d19ef5fbc114b12e5ee2b",
+      "psnr": 30.545197,
+      "ssim": 0.960016,
+      "decoded_sha256": "6414b7a0054e6ab7f2705b14664c195b83a5a2c370d4a8f106de3fabcee19c56"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "swag",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 131242,
+        "runs": [
+          131242,
+          131619,
+          129885,
+          128976,
+          220719
+        ]
+      },
+      "cpu_us": {
+        "median": 131201,
+        "runs": [
+          131201,
+          131570,
+          129822,
+          128936,
+          195747
+        ]
+      },
+      "packet_bytes": 5440455,
+      "encoded_sha256": "868007900cb9c054abbd706e0026bab63719e07cab45050199ded76c24503e8c",
+      "psnr": 43.815181,
+      "ssim": 0.997728,
+      "decoded_sha256": "9573024463e97ba40b24f37b13cb8e93decfa508d7020c88753a1470b4807acf"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "turbo",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 42231,
+        "runs": [
+          40661,
+          46506,
+          42231,
+          41212,
+          45167
+        ]
+      },
+      "cpu_us": {
+        "median": 42196,
+        "runs": [
+          40623,
+          46463,
+          42196,
+          41174,
+          45108
+        ]
+      },
+      "packet_bytes": 4107297,
+      "encoded_sha256": "9eda81f92db05e3744b941f24f6b8c0e37f09d050c05ba9105f1ca544780f7ed",
+      "psnr": 40.512281,
+      "ssim": 0.99449,
+      "decoded_sha256": "75d73b5f58141770cdc311d83769c8df455a8051b18e7c3d0fe921c200a1992f"
+    },
+    {
+      "input": "desktop.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 12,
+      "encode_us": {
+        "median": 60520,
+        "runs": [
+          58750,
+          57012,
+          60520,
+          69558,
+          62015
+        ]
+      },
+      "cpu_us": {
+        "median": 60490,
+        "runs": [
+          58730,
+          57000,
+          60490,
+          69545,
+          62001
+        ]
+      },
+      "packet_bytes": 1032176,
+      "encoded_sha256": "49307d186e64c800142e7027b5455bc379515c154b4cb7c25acd5c21148043b5",
+      "psnr": 28.159082,
+      "ssim": 0.939802,
+      "decoded_sha256": "aec6a513b225ecc580922044f1a4ee7cc566f800f435cce9a6810e6acdb2e66e"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "quality_setting": 40,
+      "encode_us": {
+        "median": 77195,
+        "runs": [
+          106289,
+          77195,
+          86996,
+          76133,
+          72693
+        ]
+      },
+      "cpu_us": {
+        "median": 77181,
+        "runs": [
+          105738,
+          77181,
+          86962,
+          76095,
+          72642
+        ]
+      },
+      "packet_bytes": 254728,
+      "encoded_sha256": "d6268f143fdefa0e57eee5a775b9cfde1bc183cc96560c47c0009f7e245c92ad",
+      "psnr": 43.58805,
+      "ssim": 0.997438,
+      "decoded_sha256": "156d8f0462eef3bd434f423f733990995ad855c5143a922c5589774955c387a8"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "turbo",
+      "quality_setting": 70,
+      "encode_us": {
+        "median": 25699,
+        "runs": [
+          25699,
+          25106,
+          33985,
+          25297,
+          34617
+        ]
+      },
+      "cpu_us": {
+        "median": 25676,
+        "runs": [
+          25676,
+          25097,
+          33954,
+          25277,
+          34585
+        ]
+      },
+      "packet_bytes": 255763,
+      "encoded_sha256": "b07a7ad2dca924e548f3ed4a681d05adb446c5bbf61a8aea1c618dddf54927c0",
+      "psnr": 48.460093,
+      "ssim": 0.997664,
+      "decoded_sha256": "c97a67a7a8ccdfcc17ce9f3b935ac5bdeff0a751dbedbfd3a827aa045cb9c3eb"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 3,
+      "encode_us": {
+        "median": 44882,
+        "runs": [
+          44563,
+          54856,
+          44882,
+          55762,
+          36433
+        ]
+      },
+      "cpu_us": {
+        "median": 44834,
+        "runs": [
+          44550,
+          54836,
+          44834,
+          55738,
+          36401
+        ]
+      },
+      "packet_bytes": 122757,
+      "encoded_sha256": "9e64daf6940593ccaf9cef2bc387d765504fc2bf1fd74fb3c2020caa3e20011c",
+      "psnr": 52.954772,
+      "ssim": 0.99896,
+      "decoded_sha256": "c99f9bf16ec5065f1a22dc60a89dbd7152945446ce12f7f84bf4e3492856e022"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "quality_setting": 60,
+      "encode_us": {
+        "median": 79778,
+        "runs": [
+          103918,
+          84476,
+          79778,
+          74956,
+          75003
+        ]
+      },
+      "cpu_us": {
+        "median": 79751,
+        "runs": [
+          103897,
+          84454,
+          79751,
+          74942,
+          74978
+        ]
+      },
+      "packet_bytes": 262411,
+      "encoded_sha256": "f5395e7d00866dc244f093310f2043f31131fce7879bef2ab7b94420c314d4a6",
+      "psnr": 46.564639,
+      "ssim": 0.998863,
+      "decoded_sha256": "b9d1c840da05118aa34358b31ba9f45de384ee2a97e6c4ef92dd102bde053070"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "turbo",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 24755,
+        "runs": [
+          23666,
+          26406,
+          25252,
+          24755,
+          24570
+        ]
+      },
+      "cpu_us": {
+        "median": 24738,
+        "runs": [
+          23656,
+          26392,
+          25241,
+          24738,
+          24554
+        ]
+      },
+      "packet_bytes": 263459,
+      "encoded_sha256": "8c0a6d6eb238b572b3d97ba19403e4f64e1e9a240213281c28b83e6d3fcc8110",
+      "psnr": 52.962676,
+      "ssim": 0.998962,
+      "decoded_sha256": "4153dcc6f70369832be19f60082aaea83e494e34c059ef1193c7c773c1691f26"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 5,
+      "encode_us": {
+        "median": 38193,
+        "runs": [
+          37843,
+          37171,
+          53664,
+          38193,
+          39958
+        ]
+      },
+      "cpu_us": {
+        "median": 38141,
+        "runs": [
+          37829,
+          37153,
+          53639,
+          38141,
+          39940
+        ]
+      },
+      "packet_bytes": 122757,
+      "encoded_sha256": "e88fbd9bd03bbe4aec5568613894bbc448f077adbc71845f2d21526096f28917",
+      "psnr": 52.954772,
+      "ssim": 0.99896,
+      "decoded_sha256": "c99f9bf16ec5065f1a22dc60a89dbd7152945446ce12f7f84bf4e3492856e022"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 75757,
+        "runs": [
+          75757,
+          75113,
+          74396,
+          78724,
+          108268
+        ]
+      },
+      "cpu_us": {
+        "median": 75753,
+        "runs": [
+          75753,
+          75089,
+          74373,
+          78670,
+          108240
+        ]
+      },
+      "packet_bytes": 285978,
+      "encoded_sha256": "ff4b14812a9b76d7fe9d0d06d167f68b81ecc699a4c3b2e1b497d1826cf0b001",
+      "psnr": 46.564639,
+      "ssim": 0.998863,
+      "decoded_sha256": "b9d1c840da05118aa34358b31ba9f45de384ee2a97e6c4ef92dd102bde053070"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "turbo",
+      "quality_setting": 90,
+      "encode_us": {
+        "median": 25264,
+        "runs": [
+          25656,
+          25264,
+          25093,
+          25296,
+          24156
+        ]
+      },
+      "cpu_us": {
+        "median": 25248,
+        "runs": [
+          25644,
+          25248,
+          25082,
+          25285,
+          24141
+        ]
+      },
+      "packet_bytes": 287037,
+      "encoded_sha256": "ad5de857e14d39cd2a10301bfba9afd7622741e4712a9bd2d942b9e5aac74e8c",
+      "psnr": 52.962676,
+      "ssim": 0.998962,
+      "decoded_sha256": "4153dcc6f70369832be19f60082aaea83e494e34c059ef1193c7c773c1691f26"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 8,
+      "encode_us": {
+        "median": 38736,
+        "runs": [
+          39354,
+          38736,
+          36927,
+          59017,
+          36626
+        ]
+      },
+      "cpu_us": {
+        "median": 38723,
+        "runs": [
+          39340,
+          38723,
+          36911,
+          59000,
+          36610
+        ]
+      },
+      "packet_bytes": 122757,
+      "encoded_sha256": "a922fdf6527e667982438656adebbcf4ff1d4e771743182b589390f9fb42835b",
+      "psnr": 52.954772,
+      "ssim": 0.99896,
+      "decoded_sha256": "c99f9bf16ec5065f1a22dc60a89dbd7152945446ce12f7f84bf4e3492856e022"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "swag",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 78400,
+        "runs": [
+          75791,
+          78400,
+          79435,
+          81519,
+          75896
+        ]
+      },
+      "cpu_us": {
+        "median": 78376,
+        "runs": [
+          75782,
+          78376,
+          79424,
+          81457,
+          75898
+        ]
+      },
+      "packet_bytes": 343797,
+      "encoded_sha256": "86f8d96ab4a69954a21da500d8b8779bdb07dc3c2e145fc4c8a32de96d4e00e9",
+      "psnr": 46.564639,
+      "ssim": 0.998863,
+      "decoded_sha256": "b9d1c840da05118aa34358b31ba9f45de384ee2a97e6c4ef92dd102bde053070"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "turbo",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 27289,
+        "runs": [
+          27289,
+          25331,
+          26564,
+          31469,
+          28798
+        ]
+      },
+      "cpu_us": {
+        "median": 27277,
+        "runs": [
+          27277,
+          25319,
+          26553,
+          31442,
+          28779
+        ]
+      },
+      "packet_bytes": 312278,
+      "encoded_sha256": "d29fe22e655e0100c6b3c9656fd0f06917f5f047f777fbd49819e4f77ba32949",
+      "psnr": 52.962676,
+      "ssim": 0.998962,
+      "decoded_sha256": "4153dcc6f70369832be19f60082aaea83e494e34c059ef1193c7c773c1691f26"
+    },
+    {
+      "input": "gradient.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 12,
+      "encode_us": {
+        "median": 42258,
+        "runs": [
+          42611,
+          40764,
+          41332,
+          42258,
+          48042
+        ]
+      },
+      "cpu_us": {
+        "median": 42232,
+        "runs": [
+          42598,
+          40739,
+          41317,
+          42232,
+          48005
+        ]
+      },
+      "packet_bytes": 122757,
+      "encoded_sha256": "cab5be8be4cfe1350746269f07b26a5db51de6c74cb51a53f263c1bb6b5fb528",
+      "psnr": 52.954772,
+      "ssim": 0.99896,
+      "decoded_sha256": "c99f9bf16ec5065f1a22dc60a89dbd7152945446ce12f7f84bf4e3492856e022"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "quality_setting": 40,
+      "encode_us": {
+        "median": 81128,
+        "runs": [
+          81779,
+          80302,
+          79886,
+          81365,
+          81128
+        ]
+      },
+      "cpu_us": {
+        "median": 81107,
+        "runs": [
+          81757,
+          80283,
+          79848,
+          81345,
+          81107
+        ]
+      },
+      "packet_bytes": 719288,
+      "encoded_sha256": "60c23177016d65d07330779217722fff94a1091f04a9ffa747318e481149f956",
+      "psnr": 35.96758,
+      "ssim": 0.943288,
+      "decoded_sha256": "3eb67252d5dbad229c26eee8ffbce2ea332c74a8d6495efb8058b7311e95dfe6"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "turbo",
+      "quality_setting": 70,
+      "encode_us": {
+        "median": 27340,
+        "runs": [
+          27083,
+          27340,
+          27905,
+          27550,
+          27072
+        ]
+      },
+      "cpu_us": {
+        "median": 27337,
+        "runs": [
+          27081,
+          27337,
+          27903,
+          27534,
+          27069
+        ]
+      },
+      "packet_bytes": 720706,
+      "encoded_sha256": "0df0abf4b6777dbc37d0a7555b0dcb11895a0c51ec5d821a1017a7c5cced3021",
+      "psnr": 36.289071,
+      "ssim": 0.938557,
+      "decoded_sha256": "6ea2a06c21378189f6bf100d33ef0e4d2c7b3e84799b295a0abaef1db6815626"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 3,
+      "encode_us": {
+        "median": 55186,
+        "runs": [
+          53690,
+          55186,
+          53524,
+          57200,
+          57596
+        ]
+      },
+      "cpu_us": {
+        "median": 55173,
+        "runs": [
+          53686,
+          55173,
+          53520,
+          57196,
+          57592
+        ]
+      },
+      "packet_bytes": 906122,
+      "encoded_sha256": "6983411ae8399e8d67b14079caad11fb883faf4b3e1e5af9f95352e9012eacff",
+      "psnr": 44.695973,
+      "ssim": 0.959264,
+      "decoded_sha256": "32685943954f11c85956b8c0f577d9a421a46fd9a1b0cce464922a5222a1e695"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "quality_setting": 60,
+      "encode_us": {
+        "median": 80903,
+        "runs": [
+          80903,
+          80462,
+          80590,
+          143220,
+          90123
+        ]
+      },
+      "cpu_us": {
+        "median": 80905,
+        "runs": [
+          80905,
+          80440,
+          80591,
+          124890,
+          90102
+        ]
+      },
+      "packet_bytes": 843649,
+      "encoded_sha256": "fd2af7c8b81a8a2dee623f8abe52288a2df4906e320b08b903e18fb449a11fc9",
+      "psnr": 38.623957,
+      "ssim": 0.955636,
+      "decoded_sha256": "db14ad1db67915ee50961cdb6a1ead73c26bf6e1578612abfd9cabc787127f46"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "turbo",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 28423,
+        "runs": [
+          28233,
+          27131,
+          28423,
+          29216,
+          33452
+        ]
+      },
+      "cpu_us": {
+        "median": 28420,
+        "runs": [
+          28230,
+          27127,
+          28420,
+          29213,
+          33448
+        ]
+      },
+      "packet_bytes": 845072,
+      "encoded_sha256": "aaedcfc9dd4804d6db6bb288224156000955890f58927ca1ba7e65a146e4e947",
+      "psnr": 38.856251,
+      "ssim": 0.908056,
+      "decoded_sha256": "82cbab7409c75306cec405863ef22533845d1c8080515d33ab7ccd35bc9e8d0a"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 5,
+      "encode_us": {
+        "median": 51996,
+        "runs": [
+          50365,
+          51996,
+          51031,
+          53493,
+          57936
+        ]
+      },
+      "cpu_us": {
+        "median": 51992,
+        "runs": [
+          50362,
+          51992,
+          51027,
+          53489,
+          57931
+        ]
+      },
+      "packet_bytes": 742773,
+      "encoded_sha256": "3331af666e092a367f7402b0e406c27f2eb0a276d65345bf06b0b2588c63eeb8",
+      "psnr": 41.220988,
+      "ssim": 0.951151,
+      "decoded_sha256": "04a81b3700666765202f59f2c10ac5c4fe7200271e8e09e3099e5dedde0d36ae"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 89485,
+        "runs": [
+          83842,
+          83603,
+          93653,
+          89485,
+          90703
+        ]
+      },
+      "cpu_us": {
+        "median": 89486,
+        "runs": [
+          83819,
+          83604,
+          93634,
+          89486,
+          90688
+        ]
+      },
+      "packet_bytes": 1091523,
+      "encoded_sha256": "492bb30189a27bd44c4ab070eb88dbecc502e2dd49b0d2fbdfa84ba507e24f63",
+      "psnr": 42.958631,
+      "ssim": 0.972989,
+      "decoded_sha256": "6e22111c16539712d4fed8b440768127ecef13c5b4de8bc13671b1104a95dd1b"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "turbo",
+      "quality_setting": 90,
+      "encode_us": {
+        "median": 30789,
+        "runs": [
+          37343,
+          27436,
+          29256,
+          30789,
+          34441
+        ]
+      },
+      "cpu_us": {
+        "median": 30786,
+        "runs": [
+          37340,
+          27434,
+          29253,
+          30786,
+          34437
+        ]
+      },
+      "packet_bytes": 1092252,
+      "encoded_sha256": "809cfaf8531d4120807e92d5372ec94e77da4bd38fbef6dd4dfcfd7d0b7fe919",
+      "psnr": 43.557404,
+      "ssim": 0.918132,
+      "decoded_sha256": "0d61517ea9167183d379bab7f47e7fcd8c3ce4c545ee65eddc1c4365aa3c6112"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 8,
+      "encode_us": {
+        "median": 54442,
+        "runs": [
+          67304,
+          48797,
+          54442,
+          53944,
+          82845
+        ]
+      },
+      "cpu_us": {
+        "median": 54431,
+        "runs": [
+          67299,
+          48794,
+          54431,
+          53941,
+          82791
+        ]
+      },
+      "packet_bytes": 594164,
+      "encoded_sha256": "75e55ceb89d671b62d9e9473e995cd3c4898c87e6d6d7c799a6652980dd2ba26",
+      "psnr": 38.035017,
+      "ssim": 0.943005,
+      "decoded_sha256": "d45f748cec84def8cfdc1a5c9adcc168b4a81485c1bb055d6be489a2820226e4"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "swag",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 92376,
+        "runs": [
+          92376,
+          92832,
+          90643,
+          91084,
+          153550
+        ]
+      },
+      "cpu_us": {
+        "median": 91067,
+        "runs": [
+          89947,
+          92808,
+          90621,
+          91067,
+          139921
+        ]
+      },
+      "packet_bytes": 1677624,
+      "encoded_sha256": "ed0d030aa5f3196f238085febab33cd0f3defe3077c64d77502740a7b0db557f",
+      "psnr": 49.082177,
+      "ssim": 0.993838,
+      "decoded_sha256": "019f7bbd618283c0b8eeaeb7c72c36da3c3131972536a1b3a574000a54af2250"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "turbo",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 30498,
+        "runs": [
+          36213,
+          39136,
+          30498,
+          29637,
+          30337
+        ]
+      },
+      "cpu_us": {
+        "median": 30494,
+        "runs": [
+          32336,
+          39133,
+          30494,
+          29634,
+          30334
+        ]
+      },
+      "packet_bytes": 1370109,
+      "encoded_sha256": "dc6d0af894f089615fb76383f065ea5784ab509de1db235e8d0f10f468a26b42",
+      "psnr": 48.333952,
+      "ssim": 0.929271,
+      "decoded_sha256": "9b8ab8ef3b9a15f820383c8e88fb1241b2124f90bbb679122604dac28e76fd0f"
+    },
+    {
+      "input": "testsrc.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 12,
+      "encode_us": {
+        "median": 51228,
+        "runs": [
+          51228,
+          51515,
+          51640,
+          47002,
+          50539
+        ]
+      },
+      "cpu_us": {
+        "median": 50535,
+        "runs": [
+          51213,
+          50370,
+          51637,
+          46998,
+          50535
+        ]
+      },
+      "packet_bytes": 482585,
+      "encoded_sha256": "1eb68c64e96d4f14cae10a98d1aac8625fb4ed36211040a64644970fcf3ec08a",
+      "psnr": 35.55139,
+      "ssim": 0.935174,
+      "decoded_sha256": "b914fea9806cb78a7a75c7c920ad248b745ef6467d2386a185e0db4a02c6b6de"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "quality_setting": 40,
+      "encode_us": {
+        "median": 83422,
+        "runs": [
+          83422,
+          86836,
+          261681,
+          81638,
+          82802
+        ]
+      },
+      "cpu_us": {
+        "median": 83399,
+        "runs": [
+          83399,
+          86789,
+          219943,
+          81606,
+          82773
+        ]
+      },
+      "packet_bytes": 693028,
+      "encoded_sha256": "a7b0c3b3a618961b05c1733bffcf8ca77aa0ea5fc739ef55109e7397dd8cd771",
+      "psnr": 41.293553,
+      "ssim": 0.975244,
+      "decoded_sha256": "fc48ca533cdcafe363c8a75af892bae54c339164dc080cb6d78a3b98cf370b8c"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "turbo",
+      "quality_setting": 70,
+      "encode_us": {
+        "median": 29463,
+        "runs": [
+          29463,
+          33869,
+          29452,
+          29823,
+          28721
+        ]
+      },
+      "cpu_us": {
+        "median": 29449,
+        "runs": [
+          29443,
+          33853,
+          29449,
+          29797,
+          28707
+        ]
+      },
+      "packet_bytes": 697602,
+      "encoded_sha256": "8c172090961c6e2753e7b139f3c8054c8d85401c3716bc4e8e5563bb81d47fda",
+      "psnr": 42.887439,
+      "ssim": 0.975399,
+      "decoded_sha256": "093c2bc29b42f0140d56c4df9cce0c99344cb66e4a9dbe107c54e606b70a31c1"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 3,
+      "encode_us": {
+        "median": 61314,
+        "runs": [
+          61464,
+          59167,
+          61441,
+          61143,
+          61314
+        ]
+      },
+      "cpu_us": {
+        "median": 61277,
+        "runs": [
+          61448,
+          59147,
+          61401,
+          61122,
+          61277
+        ]
+      },
+      "packet_bytes": 720727,
+      "encoded_sha256": "271397a7171e66bef5f886648520c0ba0b74fb53c4279e66a71d53eb608e102e",
+      "psnr": 44.116728,
+      "ssim": 0.980261,
+      "decoded_sha256": "71624bbb8d6ab24612977f3b7d76e1951b4cb690f8d4a11e20580981c23b14e3"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "quality_setting": 60,
+      "encode_us": {
+        "median": 88064,
+        "runs": [
+          269769,
+          87631,
+          88064,
+          86555,
+          91418
+        ]
+      },
+      "cpu_us": {
+        "median": 88045,
+        "runs": [
+          213668,
+          87624,
+          88045,
+          86540,
+          91419
+        ]
+      },
+      "packet_bytes": 857944,
+      "encoded_sha256": "a3d1c987e432a61fdd1095d70c7385913a9ea3fe62129561158191ca3aef79d5",
+      "psnr": 42.599348,
+      "ssim": 0.982386,
+      "decoded_sha256": "8b0fadf96339a701571d25d1cbb8e4353532e245ee014ee95b475f4ad9e5ee85"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "turbo",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 31529,
+        "runs": [
+          33314,
+          39918,
+          31529,
+          30331,
+          31335
+        ]
+      },
+      "cpu_us": {
+        "median": 31511,
+        "runs": [
+          33296,
+          39896,
+          31511,
+          30320,
+          31332
+        ]
+      },
+      "packet_bytes": 865641,
+      "encoded_sha256": "830bd15c43a903a6e782e3018fa0e6f18cd8f7b7359aae38c15c12eac156e7d3",
+      "psnr": 44.650144,
+      "ssim": 0.982608,
+      "decoded_sha256": "5891f7e75dc93f8c6b0d19251d24dfb1912f774426cc80ff7631959e1fddaf19"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 5,
+      "encode_us": {
+        "median": 55795,
+        "runs": [
+          58200,
+          55121,
+          55795,
+          56479,
+          54112
+        ]
+      },
+      "cpu_us": {
+        "median": 55792,
+        "runs": [
+          58183,
+          55098,
+          55792,
+          56453,
+          54102
+        ]
+      },
+      "packet_bytes": 527895,
+      "encoded_sha256": "2ca766d06a3a590150fac7819bd25edf143d7bc1689bf59ff733df4a3bd56be8",
+      "psnr": 42.139286,
+      "ssim": 0.969034,
+      "decoded_sha256": "a62091c0602f249bca533db94e4ab9f2e29f1ffaaff1755ebf88117bece20268"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "quality_setting": 80,
+      "encode_us": {
+        "median": 92043,
+        "runs": [
+          92043,
+          90945,
+          95586,
+          89105,
+          94086
+        ]
+      },
+      "cpu_us": {
+        "median": 91975,
+        "runs": [
+          91975,
+          90931,
+          95570,
+          89087,
+          94073
+        ]
+      },
+      "packet_bytes": 1253313,
+      "encoded_sha256": "6dc0fb9b2aa65ecd0325f7e2de7d5f6f0c08a51ae0e1c92edfb455515aedd8ac",
+      "psnr": 43.864882,
+      "ssim": 0.988705,
+      "decoded_sha256": "bdbc8b064a060fbc1da60d512c547b5bbad372114d95899ceb9775aa7af30afe"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "turbo",
+      "quality_setting": 90,
+      "encode_us": {
+        "median": 31697,
+        "runs": [
+          32079,
+          32340,
+          31370,
+          31697,
+          31346
+        ]
+      },
+      "cpu_us": {
+        "median": 31679,
+        "runs": [
+          32062,
+          32302,
+          31354,
+          31679,
+          31337
+        ]
+      },
+      "packet_bytes": 1263542,
+      "encoded_sha256": "b6f01f891b0b1fbec151a3384459c130e6b8652121cb5ff224d9cc8b903317a7",
+      "psnr": 46.788349,
+      "ssim": 0.988882,
+      "decoded_sha256": "90bd8c2c8c27e623149901891cf5bf56380e5bbf44ac06d6a9b9004c4c816ae6"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 8,
+      "encode_us": {
+        "median": 49349,
+        "runs": [
+          51344,
+          51774,
+          49127,
+          47721,
+          49349
+        ]
+      },
+      "cpu_us": {
+        "median": 49338,
+        "runs": [
+          51303,
+          51723,
+          49109,
+          47702,
+          49338
+        ]
+      },
+      "packet_bytes": 401064,
+      "encoded_sha256": "1ce22d2e1f47c54f714f9985ab1ec8e67df14888fe0520d67e5964890a80bc32",
+      "psnr": 39.971063,
+      "ssim": 0.949976,
+      "decoded_sha256": "9f42ab4335a9f87399c7787e8cddd27b21b5b1ecec28f1ddf522e585e5029b4d"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "swag",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 106631,
+        "runs": [
+          106631,
+          106222,
+          104701,
+          184450,
+          109670
+        ]
+      },
+      "cpu_us": {
+        "median": 106573,
+        "runs": [
+          106573,
+          106168,
+          104684,
+          155537,
+          109579
+        ]
+      },
+      "packet_bytes": 2480227,
+      "encoded_sha256": "e38c277b72c36103d58dcf9fd86518c03b67bc68fcb0f588ea70f271d1c81198",
+      "psnr": 44.991393,
+      "ssim": 0.993781,
+      "decoded_sha256": "accca07031498361b9fe64e877c7640bee41f016f4f19da3f1fce0c53e47c6b9"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "turbo",
+      "quality_setting": 95,
+      "encode_us": {
+        "median": 33755,
+        "runs": [
+          33600,
+          33755,
+          33387,
+          39907,
+          36440
+        ]
+      },
+      "cpu_us": {
+        "median": 33728,
+        "runs": [
+          33583,
+          33728,
+          33384,
+          39870,
+          36410
+        ]
+      },
+      "packet_bytes": 1850356,
+      "encoded_sha256": "511afe20720060d680d295940ef97e5189341331221effdc28ac733dca5a4cb1",
+      "psnr": 48.302619,
+      "ssim": 0.992122,
+      "decoded_sha256": "2ea471533fea08442f2e2ccf2ac2fdd7b31376ccd8ff9bc3162b1ad5116ea3ab"
+    },
+    {
+      "input": "street.rgb",
+      "encoder": "ffmpeg",
+      "quality_setting": 12,
+      "encode_us": {
+        "median": 46291,
+        "runs": [
+          46291,
+          45510,
+          45233,
+          49151,
+          48671
+        ]
+      },
+      "cpu_us": {
+        "median": 46265,
+        "runs": [
+          46265,
+          45481,
+          45211,
+          49107,
+          48613
+        ]
+      },
+      "packet_bytes": 329159,
+      "encoded_sha256": "d4569662481f8ed57f7712383b1f9b360f88fab9507a9dc7865f76504246d693",
+      "psnr": 38.216497,
+      "ssim": 0.927138,
+      "decoded_sha256": "e9edca7787f9cf72f3f02b2e670b4dc0689d063c95f2661166e638684af03ada"
+    }
+  ]
+}

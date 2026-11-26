@@ -85,3 +85,28 @@ taskset -c 0-2 python3 bench/workloads/h264/compare.py \
     --width 640 --height 360 --frames 30 --slices 4 --qp 21 25 29 33 \
     --output /tmp/h264-measurements
 ```
+
+## Motion JPEG 4:4:4
+
+The same four RGB clips were encoded with the JPEG codec used by Swag's AVI and MP4
+writers, FFmpeg MJPEG with its default optimal Huffman tables, and libjpeg-turbo 2.1.5.
+All three use baseline 4:4:4 sampling. One pinned CPU encoded each clip at four settings,
+with five repetitions in rotating order. The timers include RGB conversion and packet
+creation. The lossless RGB control had infinite PSNR and SSIM 1. All 1,440 pictures
+decoded in FFmpeg and packet hashes were stable between repetitions.
+
+Each column below compares packet bytes and total process CPU time at the midpoint of
+its shared measured RGB PSNR range with Swag. The interpolation is logarithmic for bytes
+and linear for median CPU time.
+
+| Input | Swag vs libjpeg-turbo bytes | Swag / libjpeg-turbo CPU | Swag vs FFmpeg bytes | Swag / FFmpeg CPU |
+| --- | ---: | ---: | ---: | ---: |
+| Scrolling desktop | +0.4% at 35.39 dB | 2.90× | +19.1% at 33.55 dB | 1.35× |
+| Animated test pattern | +2.9% at 42.31 dB | 2.92× | +33.8% at 40.33 dB | 1.60× |
+| Camera | +65.2% at 43.94 dB | 3.03× | +53.5% at 42.71 dB | 1.54× |
+
+The changing tiles have no shared quality range at the sampled settings. Swag plateaus
+at 46.56 dB from quality 60 through 95. libjpeg-turbo reaches 52.96 dB at quality 80, and
+FFmpeg reaches 52.95 dB at QP 3 through 12. This clip isolates a conversion or reconstruction
+floor that increasing the JPEG quality setting leaves unchanged.
+[Measurements](mjpeg-baseline.json) · [Reproduction](../../../workloads/mjpeg/README.md)

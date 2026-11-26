@@ -76,6 +76,7 @@ enum CommandId
     SetFontEffect             // Update MSDF font-effect uniforms.
     CaptureBackdrop           // Snapshot already drawn target colors before filtering.
     SetBackdropShader         // Select a portable backdrop filter or material pass.
+    DrawScanFill              // Composite one solid path fill through the CPU scan converter.
 }
 
 // Controls optional painter behaviors.
@@ -231,6 +232,20 @@ struct TriangleBatch
     }
 }
 
+// Identifies a scan fill in the painter's internal contour buffers.
+struct ScanFillBatch
+{
+    public
+    {
+        first: u64       // First contour index.
+        end:   u64       // Exclusive end of the contour range.
+        low:   Vector2   // Minimum path-space coordinates.
+        high:  Vector2   // Maximum path-space coordinates.
+        color: Color     // Straight-alpha solid paint.
+        rule:  PathFillRule   // Winding rule used to resolve the contours.
+    }
+}
+
 // Describes the paint source bound by a `BindTexture0` command.
 //
 // Records what the brush samples and how its coordinates map onto the shapes drawn with it.
@@ -272,6 +287,7 @@ struct Command
         {
             case .Clear:                                       clear:           struct{ color: Color }
             case .DrawTriangles:                               drawTriangles:   TriangleBatch
+            case .DrawScanFill:                                scanFill:        ScanFillBatch
             case .Transform:                                   transform:       struct{ tr: Transform2 }
             case .SetClippingRect:                             clippingRect:    struct{ rect: Math.Rectangle }
             case .StartClippingRegion, .SetClippingRegionMode: clippingRegion:  struct{ mode: ClippingMode }
@@ -326,6 +342,11 @@ struct Painter
     // Gradient stops referenced by command ranges. Keeping them beside the command stream
     // makes every recorded brush independent of the caller's lifetime without imposing a cap.
     gradientStops: Array'GradientStop
+
+    // Each range references its own immutable contour points through the contour end table.
+    scanPoints:       Array'Vector2
+    scanContourEnds:  Array'u64
+    useScanlineFills: bool
 
     // Reusable workspaces. They only hold intermediate results of the call in progress.
 
@@ -420,6 +441,18 @@ impl Painter
         return result
     }
 
+    // Creates a CPU painter that scan-converts eligible solid paths.
+    //
+    // The renderer is borrowed for the painter's lifetime. Antialiased fills with explicit
+    // winding rules and straight, flat-ended strokes on the main surface can be submitted
+    // as contours. Their edge coverage follows the device sample grid.
+    func createScanline(renderer: *RenderCpu)->Painter
+    {
+        var result = create(renderer)
+        result.useScanlineFills = true
+        return result
+    }
+
     // Selects the renderer used by [[Pixel.Painter.render]].
     //
     // Change it only when no recording is active and no renderer-owned resource is
@@ -427,7 +460,9 @@ impl Painter
     mtd setRenderer(renderer: IRenderer)
     {
         Swag.assert(not .drawingBegin)
-        .rendererItf = renderer
+        Swag.assert(not .submissionPending or .scanContourEnds.isEmpty())
+        .rendererItf      = renderer
+        .useScanlineFills = false
     }
 
     // Sets the number of physical device pixels per painter path-space unit.
@@ -1135,6 +1170,8 @@ impl Painter
         .commandBuffer.clear()
         .vertexBuffer.clear()
         .gradientStops.clear()
+        .scanPoints.clear()
+        .scanContourEnds.clear()
         .transientTextures.clear()
         .transientTargets.clear()
 

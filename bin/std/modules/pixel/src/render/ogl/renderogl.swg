@@ -2038,6 +2038,9 @@ impl RenderOgl
             .overlapMode = false
             .setBlendingMode(.blendingMode)
 
+        case .DrawScanFill:
+            fail RenderResourceError{"a CPU scan fill must be submitted to its CPU renderer"}
+
         case .DrawTriangles:
             let params = &cmd.drawTriangles
             if not .overlapMode

@@ -527,6 +527,9 @@ public impl Painter
     // ```
     mtd fillPath(pathList: *LinePathList, brush: Brush, rule: PathFillRule)
     {
+        if brush.type == .SolidColor and .recordScanFill(pathList, brush.color, rule) do
+            return
+
         pathList.flatten(.curState.paintQuality, .curFlattenScale)
 
         // A single simple contour encloses the same region under either rule; anything else is
@@ -540,6 +543,48 @@ public impl Painter
     mtd fillPath(pathList: *LinePathList, color: Color, rule: PathFillRule)
     {
         .fillPath(pathList, Brush.createSolid(color), rule)
+    }
+
+    private mtd const canRecordScanPath()->bool
+    {
+        let mask = .curState.colorMask
+        return .useScanlineFills and not .curRT and not .overlapMode and .usesDefaultShader and .canSetTexture0 and
+               (.curState.paintParams & .Antialiased) and .curState.blendingMode == .Alpha and
+               mask.r and mask.g and mask.b and not mask.a
+    }
+
+    private mtd emitScanFill(start: u64, lowest, highest: Vector2, color: Color, rule: PathFillRule)
+    {
+        let end = .scanContourEnds.count
+        if start < end do
+            .newCommand(.DrawScanFill).op = .DrawScanFill{first: start, end: end, low: lowest, high: highest, color: color, rule: rule}
+    }
+
+    // Stores the flattened contours so later edits and temporary paths cannot affect replay.
+    private mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
+    {
+        if not .canRecordScanPath() do
+            return false
+        if not color.a or .isEmptyClippingRect() do
+            return true
+
+        let start   = .scanContourEnds.count
+        var lowest  = Vector2.Max
+        var highest = Vector2.Min
+        for path in pathList.paths
+        {
+            path.flattenPoints(.curState.paintQuality, .curFlattenScale)
+            if path.polygon.points.count < 3 do
+                continue
+
+            .scanPoints.add(path.polygon.points.toSlice())
+            .scanContourEnds.add(.scanPoints.count)
+            lowest  = Vector2.min(lowest, path.minBounds)
+            highest = Vector2.max(highest, path.maxBounds)
+        }
+
+        .emitScanFill(start, lowest, highest, color, rule)
+        return true
     }
 
     // `ruled` says the list was prepared for a fill rule rather than for the winding direction,

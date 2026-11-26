@@ -433,8 +433,8 @@ private func writeClipRegion(painter: *Painter, clip: *ClipPath, pageToSurface: 
 // Draws the decoded items of a page through a painter, in paint order.
 //
 // This is the one drawing path: [[Pdf.Page.render]] runs it against an offline CPU target,
-// and [[Gui.PdfView]] runs it against the frame being painted, so a page looks the same on
-// both. `pageToSurface` maps page points to the painter's surface space and must only scale
+// and [[Gui.PdfView]] runs it against the frame being painted. `pageToSurface` maps page
+// points to the painter's surface space and must only scale
 // and translate, because item clips are axis-aligned page rectangles. `devicePerPoint` is
 // how many device pixels one PDF point covers on the target; it sizes hairline strokes,
 // never the geometry. `textures` carries one entry per image item in paint order, and an
@@ -737,7 +737,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     renderer.end()
 
-    var painter = Painter.create(renderer)
+    var painter = Painter.createScanline(&cpu)
     painter.setContentScale(options.scale)
     painter.begin()
 

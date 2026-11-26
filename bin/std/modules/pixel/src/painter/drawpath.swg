@@ -1157,11 +1157,42 @@ public impl Painter
             return
         if pen.size * deviceScale >= 1
         {
-            .strokePath(path, pen)
+            if not .recordScanLine(path, &pen) do
+                .strokePath(path, pen)
             return
         }
 
-        .strokePath(path, promoteHairline(pen, deviceScale))
+        let promoted = promoteHairline(pen, deviceScale)
+        if not .recordScanLine(path, &promoted) do
+            .strokePath(path, promoted)
+    }
+
+    // A flat-ended line is one four-edge outline with no join or dash state.
+    private mtd recordScanLine(path: const *LinePath, pen: const *Pen)->bool
+    {
+        if not .canRecordScanPath() or path.isClosed or path.elements.count != 1 or
+           path.elements[0].type != .Line or pen.brush.type != .SolidColor or
+           pen.dashStyle != .None or pen.begCapStyle != .None or pen.endCapStyle != .None or
+           pen.plotOffset != 0 or strokeHasOutline(pen[]) do
+            return false
+
+        let color = pen.brush.color
+        if not color.a or .isEmptyClippingRect() do
+            return true
+        let a = path.startPoint
+        let b = path.endPoint
+        let direction = b - a
+        if direction.isZeroEpsilon() do
+            return false
+
+        let normal = strokeUnitVector(direction).cross(1) * (pen.size * 0.5)
+        let points = [a - normal, b - normal, b + normal, a + normal]
+        let start  = .scanContourEnds.count
+        .scanPoints.add(points)
+        .scanContourEnds.add(.scanPoints.count)
+        let halfSize = Math.Vector2{Math.abs(normal.x), Math.abs(normal.y)}
+        .emitScanFill(start, Math.Vector2.min(a, b) - halfSize, Math.Vector2.max(a, b) + halfSize, color, .NonZero)
+        return true
     }
 
     // Fills in what a minified pass is allowed to leave out of a stroke.

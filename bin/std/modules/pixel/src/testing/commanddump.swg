@@ -202,6 +202,10 @@ private
                 let tr = cmd.transform.tr
                 .body.appendFormat(" % % % % % %", fmtF(tr.m11), fmtF(tr.m12), fmtF(tr.m21), fmtF(tr.m22), fmtF(tr.tx), fmtF(tr.ty))
 
+            case .DrawScanFill:
+                let fill = &cmd.scanFill
+                .body.appendFormat(" contours=% color=% rule=%", fill.end - fill.first, fmtColor(fill.color), fmtEnum(fill.rule))
+
             case .DrawTriangles:
                 .dumpTriangles(painter, cmd.drawTriangles.start, cmd.drawTriangles.count)
 

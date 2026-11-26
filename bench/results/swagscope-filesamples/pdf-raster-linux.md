@@ -99,3 +99,43 @@ unverified.
 | `sample2.pdf` | 1 | 0.18 | 2.50 | 48.04 | 51.00 | 0.08 | 0.78 | 7.14 | 8.06 | 6.33× |
 | `sample3.pdf` | 1 | 0.96 | 6.94 | 75.20 | 83.15 | 0.33 | 4.82 | 10.03 | 15.17 | 5.48× |
 | `pdfbox-jpeg.pdf` | 1 | 0.13 | 0.84 | 152.58 | 153.68 | 0.05 | 0.05 | 5.95 | 6.05 | 25.41× |
+
+## Direct CPU scan conversion of PDF paths
+
+The CPU painter can now record closed contours for antialiased solid fills and clips.
+A solid single-segment stroke with flat ends records its four outline points. During
+replay, the CPU renderer resolves winding and fractional coverage with the same
+scan converter used by SVG, then composites directly into the bitmap or the clip
+mask. Coverage buffers are reused across draws. The row writer visits the
+horizontal interval of the crossings.
+
+The comparison used Release builds on one logical AMD EPYC 7763 CPU, with
+`b031932f1c` as the baseline and PDFium 159.0.8149.0 as the reference.
+Both engines rendered a 1200 px long side. Each value below is a median in
+milliseconds from five interleaved measurements following warm-up. The full
+31-case corpus was also rerun with three interleaved measurements per case.
+[Raw before, after, and PDFium data](pdf-raster-linux-scanlines.json)
+
+| Page | Swag before | Swag scanlines | PDFium | Swag render before | Swag render scanlines | PDFium render |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample3.pdf` | 42.75 | 44.60 | 10.84 | 35.05 | 36.33 | 5.77 |
+| `pdfbox-tiger.pdf` | 85.54 | 32.99 | 13.59 | 82.09 | 30.86 | 10.41 |
+| `perf_paths_polygons.pdf` | 256.64 | 139.67 | 107.16 | 231.27 | 113.63 | 79.12 |
+| `perf_paths_map.pdf` | 368.46 | 337.75 | 104.17 | 356.51 | 324.58 | 93.64 |
+| `perf_paths_hairlines.pdf` | 275.48 | 136.24 | 112.43 | 245.93 | 104.74 | 96.17 |
+| `perf_paths_clips.pdf` | 666.94 | 214.77 | 37.05 | 463.20 | 43.10 | 30.09 |
+
+The clip fixture spends about 170 ms loading the revised Swag page. Nested clips
+still flatten and intersect contours before recording. PDFium loads it in 7 ms.
+On the full run, the forms fixture dropped from 594 to 306 ms end to end, with
+PDFium at 166 ms. The curves fixture is dominated by multi-segment and dashed
+strokes. Its Swag raster checksum matched the baseline and its total stayed
+around 1.6–1.7 seconds, against 255 ms for PDFium.
+
+Scan coverage changes the antialiasing on some edges. Across ten inspected pages,
+the mean absolute difference per 8-bit RGB channel from PDFium decreased or stayed
+within 0.01 levels. On the polygons it moved from 3.67 to 3.53, on the hairlines
+from 30.87 to 22.69, and on the map from 34.63 to 7.80. The map changes coverage
+on 34.91% of pixels. The three FileSamples change coverage or color on 0.13–1.46%
+of pixels, with total timings similar to the baseline. All six generated SVG
+benchmark fixtures kept their Swag CRC-64.

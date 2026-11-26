@@ -25,7 +25,8 @@ struct RenderCpu
         generation: TextureGeneration
         textures:   Array'CpuTexture
 
-        surface: Image
+        surface:     Image
+        scanScratch: ScanScratch
 
         stackReleasedRT: Array'(*RenderTarget?)
         stackRT:         Array'(*RenderTarget?)
@@ -3348,6 +3349,110 @@ private impl RenderCpu
         return true
     }
 
+    mtd markStencilDirty(bounds: PixelBounds)
+    {
+        let stencil = .currentStencil()
+        if stencil.dirty.isEmpty()
+        {
+            stencil.dirty = bounds
+        }
+        else
+        {
+            stencil.dirty.minX = Math.min(stencil.dirty.minX, bounds.minX)
+            stencil.dirty.minY = Math.min(stencil.dirty.minY, bounds.minY)
+            stencil.dirty.maxX = Math.max(stencil.dirty.maxX, bounds.maxX)
+            stencil.dirty.maxY = Math.max(stencil.dirty.maxY, bounds.maxY)
+        }
+    }
+
+    mtd drawScanFill(painter: *Painter, fill: const *ScanFillBatch)
+    {
+        let image = .currentImage()
+        if not image do
+            return
+
+        let transform  = .deviceTransform()
+        let local      = Math.Rectangle{fill.low.x, fill.low.y, fill.high.x - fill.low.x, fill.high.y - fill.low.y}
+        var area       = transform.transformBounds(local)
+        if not Math.isFinite(area.x) or not Math.isFinite(area.y) or
+           not Math.isFinite(area.right()) or not Math.isFinite(area.bottom()) do
+            return
+
+        area.intersect({0, 0, cast(f32, image.width), cast(f32, image.height)})
+        if .scissorOn do
+            area.intersect(.scissorRect)
+        if area.isEmpty() do
+            return
+
+        let left   = cast(s32, Math.floor(area.x))
+        let top    = cast(s32, Math.floor(area.y))
+        let right  = cast(s32, Math.ceil(area.right()))
+        let bottom = cast(s32, Math.ceil(area.bottom()))
+        let width  = right - left
+        let ends   = painter.scanContourEnds.toSlice()
+        let points = painter.scanPoints.toSlice()
+        let first  = fill.first == 0 ? 0'u64 : ends[fill.first - 1]
+
+        // Limit live crossing storage even for a dense path spanning the entire surface.
+        let edgeCount  = ends[fill.end - 1] - first
+        let bandHeight = cast(s32, Math.clamp(1_048_576'u64 / (edgeCount * VerticalSamples), 1, 256))
+        let color     = fill.color
+        let evenOdd   = fill.rule == .EvenOdd
+        let stencil   = .stencilOn ? .currentStencil().pixels.storage() : null
+        if .stencilWrite and .stencilMode == .Set do
+            .markStencilDirty({left, top, right - 1, bottom - 1})
+
+        for var y = top; y < bottom; y += bandHeight
+        {
+            let height = Math.min(bandHeight, bottom - y)
+            let crossings = .scanScratch.startRows(height)
+            let origin    = Vector2{cast(f32, left), cast(f32, y)}
+            var point     = first
+            for end in ends[fill.first until fill.end]
+            {
+                addScanContour(crossings, points[point until end], &transform, 1, origin, false, cast(f32, width))
+                point = end
+            }
+
+            for row in height
+            {
+                let deviceY  = y + cast(s32, row)
+                let {values: coverage, first: firstX, end: endX} = .scanScratch.resolveRow(crossings, cast(s32, row), width, evenOdd, false)
+                let maskRow  = stencil ? stencil + cast(u64, deviceY) * image.width + left : null
+                if .stencilWrite
+                {
+                    let stencilPixels = unwrap maskRow
+                    for x in firstX until endX where coverage[x] > 0
+                    {
+                        let alpha = coverageAlpha(color.a, coverage[x] / VerticalSamples)
+                        if .stencilMode == .Set do
+                            stencilPixels[x] = Math.max(stencilPixels[x], alpha)
+                        else do
+                            stencilPixels[x] = cast(u8, (cast(u32, stencilPixels[x]) * (255 - cast(u32, alpha))) / 255)
+                    }
+
+                    continue
+                }
+
+                let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
+                let dst       = image.pixels.storage() + dstOffset
+                for x in firstX until endX where coverage[x] > 0
+                {
+                    var ink = color
+                    ink.a   = coverageAlpha(color.a, coverage[x] / VerticalSamples)
+                    if maskRow do
+                        ink.a = cast(u8, (cast(u32, ink.a) * maskRow[x]) / 255)
+                    if not ink.a do
+                        continue
+
+                    blendAlphaBgra8(dst + x * 4, ink)
+                    if let matte = .whiteMatte do
+                        blendAlphaBgra8(matte + dstOffset + x * 4, ink)
+                }
+            }
+        }
+    }
+
     mtd drawTriangles(painter: *Painter, triangles: const *TriangleBatch)
     {
         let image = .currentImage()
@@ -3367,22 +3472,8 @@ private impl RenderCpu
         if bounds.isEmpty() do
             return
 
-        // Subtracting coverage cannot make a zero stencil pixel dirty.
-        if .stencilWrite and .stencilMode == .Set
-        {
-            let stencil = .currentStencil()
-            if stencil.dirty.isEmpty()
-            {
-                stencil.dirty = bounds
-            }
-            else
-            {
-                stencil.dirty.minX = Math.min(stencil.dirty.minX, bounds.minX)
-                stencil.dirty.minY = Math.min(stencil.dirty.minY, bounds.minY)
-                stencil.dirty.maxX = Math.max(stencil.dirty.maxX, bounds.maxX)
-                stencil.dirty.maxY = Math.max(stencil.dirty.maxY, bounds.maxY)
-            }
-        }
+        if .stencilWrite and .stencilMode == .Set do
+            .markStencilDirty(bounds)
 
         var batch: RasterBatch
         .setupBatch(&batch, image, painter, triangles, transform)
@@ -3902,6 +3993,9 @@ private impl RenderCpu
 
         case .DrawTriangles:
             .drawTriangles(painter, &cmd.drawTriangles)
+
+        case .DrawScanFill:
+            .drawScanFill(painter, &cmd.scanFill)
 
         case .StartFont:
             .program = CpuProgram_Font

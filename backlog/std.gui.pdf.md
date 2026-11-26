@@ -549,9 +549,14 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   scaled image painting. The curves fixture submits about 3.15 million stroke
   triangles. Nested clips add polygon intersection at load and stencil writes at render.
   The transformed-text fixture spends about 0.79 s in MSDF triangle draws.
-- Measure device-space image span resampling, direct scan conversion for strokes and
-  clips, and cached glyph masks for transformed PDF text. Retaining encoded images
-  for later zoom levels would let decoding use the requested image size.
+- [CPU scan conversion](../bench/results/swagscope-filesamples/pdf-raster-linux.md#direct-cpu-scan-conversion-of-pdf-paths)
+  brings the render phase of the public clip fixture from 463 to 43 ms. It still
+  spends 170 ms at load on nested clip geometry. The curved strokes fixture remains
+  dominated by multi-segment and dashed stroke geometry.
+- Measure scan conversion of joined and dashed stroke outlines and resolve nested
+  clip intersections on the raster grid. Measure device-space image span resampling
+  and cached glyph masks for transformed PDF text. Retaining encoded images for
+  later zoom levels would let decoding use the requested image size.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

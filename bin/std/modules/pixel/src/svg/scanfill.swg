@@ -3,7 +3,6 @@
 using Core, Core.Math
 
 private const ScanTileSide    = 1024
-private const VerticalSamples = 4
 
 private const ScanBandSize    = 64'u64
 private const ScanBucketCount = 128'u64
@@ -42,20 +41,6 @@ private struct ScanBucket
 {
     bounds:  ScanBand
     indices: Array'u32
-}
-
-// A crossing of a horizontal sample line and one directed contour edge.
-private struct Crossing
-{
-    x:       f32
-    winding: s32
-}
-
-struct ScanScratch
-{
-    rows:     Array'Array'Crossing
-    coverage: Array'f32
-    sorted:   Array'Crossing
 }
 
 // A dense solid fill keeps its authored contours and evaluates coverage at the device scale.
@@ -292,76 +277,6 @@ private impl ScanRows
 {
     mtd resolve(scratch: *ScanScratch, firstRow, lastRow: s32)
     {
-        func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
-        {
-            #[Swag.Inline]
-            func insertWithGap(points: [*] Crossing, count, gap: u64)
-            {
-                for index in gap until count
-                {
-                    let crossing = points[index]
-                    var target   = index
-                    while target >= gap and points[target - gap].x > crossing.x
-                    {
-                        points[target] = points[target - gap]
-                        target         -= gap
-                    }
-
-                    points[target] = crossing
-                }
-            }
-
-            if line.count < 128
-            {
-                let points = line.storage()
-
-                // A few coarse passes move out-of-order crossings before the final insertion pass.
-                if line.count > 8
-                {
-                    for gap in [23'u64, 10, 4] do
-                        insertWithGap(points, line.count, gap)
-                }
-
-                insertWithGap(points, line.count, 1)
-                return
-            }
-
-            // Nonnegative f32 values have the same order as their unsigned bits.
-            // Radix sorting long lines avoids repeated comparison calls at each sample.
-            scratch.resize(line.count)
-            var source = line.storage()
-            var target = scratch.storage()
-            for digit in 4
-            {
-                let shift = digit * 8
-                var offsets: [256] u64
-                for index in line.count
-                {
-                    let key = cast #bit(u32, source[index].x) & 0x7FFF_FFFF
-                    offsets[(key >> shift) & 0xFF] += 1
-                }
-
-                var total = 0'u64
-                for &offset in offsets
-                {
-                    let count = offset[]
-                    offset[] = total
-                    total    += count
-                }
-
-                for index in line.count
-                {
-                    let crossing = source[index]
-                    let key      = cast #bit(u32, crossing.x) & 0x7FFF_FFFF
-                    let bucket   = (key >> shift) & 0xFF
-                    target[offsets[bucket]] = crossing
-                    offsets[bucket]         += 1
-                }
-
-                swap(&source, &target)
-            }
-        }
-
         let crossings    = .crossings
         let image        = .image
         let width        = .width
@@ -371,48 +286,14 @@ private impl ScanRows
         let bottomRow    = .bottomRow
         let evenOdd      = .evenOdd
         let composite    = .composite
-        if scratch.coverage.count < cast(u64, width) do
-            scratch.coverage.resize(cast(u64, width))
-        let coverage = scratch.coverage.storage()
         for row in firstRow until lastRow
         {
-            Memory.clear(coverage, cast(u64, width) * #sizeof(f32))
-            for sample in VerticalSamples
-            {
-                let line = &crossings[row * VerticalSamples + sample]
-                sortLine(line, &scratch.sorted)
-                var winding:  s32
-                var previous: f32
-                for crossing in line
-                {
-                    let x = crossing.x
-                    if x > previous and (evenOdd ? (winding & 1) != 0 : winding != 0)
-                    {
-                        let first = cast(u64, Math.floor(previous))
-                        let last  = cast(u64, Math.ceil(x)) - 1
-                        if first == last
-                        {
-                            coverage[first] += x - previous
-                        }
-                        else
-                        {
-                            coverage[first] += cast(f32, first + 1) - previous
-                            for column in first + 1 until last do
-                                coverage[column] += 1
-                            coverage[last] += x - cast(f32, last)
-                        }
-                    }
-
-                    winding  += crossing.winding
-                    previous = x
-                }
-            }
-
+            let {values: coverage, first, end} = scratch.resolveRow(crossings, row, width, evenOdd, not composite)
             let pixels = image.pixels.storage() + cast(u64, bottomRow - row) * image.rowStride + columnOffset
             if composite
             {
                 let output = cast([*] u32, pixels)
-                for column in width
+                for column in first until end
                 {
                     if coverage[column] <= 0 do
                         continue
@@ -486,63 +367,9 @@ private impl ScanFill
     // across each pixel and vertical coverage sampled at four evenly spaced positions.
     mtd const writeCoverage(paths: *LinePathList, transform: Transform2, density: f32, tile: Rectangle, color: Color, evenOdd: bool, scratch: *ScanScratch, image: *Image, composite: bool)
     {
-        #[Swag.Inline]
-        func project(point: Vector2, transform: const *Transform2, density: f32, origin: Vector2, uniform: bool)->Vector2
-        {
-            if uniform do
-                return point * transform.m11 - origin
-            return transform.transformPoint(point) * density - origin
-        }
-
-        #[Swag.Inline]
-        func sampleRow(point: Vector2, limit: f32)->s64
-        {
-            if not point.isFinite() do
-                return -1
-            return cast(s64, Math.clamp(Math.ceil(point.y * VerticalSamples - 0.5), 0.0, limit))
-        }
-
-        func addEdge(rows: [..] Array'Crossing, a, b: Vector2, aRow, bRow: s64, width: f32)
-        {
-            let forward = aRow < bRow
-            let top     = forward ? a : b
-            let bottom  = forward ? b : a
-            let start   = cast(u64, forward ? aRow : bRow)
-            let end     = cast(u64, forward ? bRow : aRow)
-            let winding = forward ? 1 : -1
-            if top.x == bottom.x
-            {
-                let crossing = Crossing{Math.clamp(top.x, 0, width), winding}
-                for row in start until end do
-                    rows[row].add(crossing)
-                return
-            }
-
-            let topX = cast(f64, top.x)
-            let topY = cast(f64, top.y)
-            let dx   = cast(f64, bottom.x) - topX
-            let dy   = cast(f64, bottom.y) - topY
-            for row in start until end
-            {
-                let y       = (cast(f32, row) + 0.5) / VerticalSamples
-                let portion = (cast(f64, y) - topY) / dy
-                let x       = cast(f32, topX + dx * portion)
-
-                // Crossings outside the tile can share its boundary: between them
-                // there is no span of visible pixels, only a change of winding.
-                rows[row].add(Crossing{Math.clamp(x, 0, width), winding})
-            }
-        }
-
-        let width    = cast(s32, tile.width)
-        let height   = cast(s32, tile.height)
-        let rowCount = cast(u64, height) * VerticalSamples
-        if scratch.rows.count < rowCount do
-            scratch.rows.resize(rowCount)
-        let limit     = cast(f32, rowCount)
-        let crossings = scratch.rows.toSlice()[0 until rowCount]
-        for &line in crossings do
-            line.clear()
+        let width     = cast(s32, tile.width)
+        let height    = cast(s32, tile.height)
+        let crossings = scratch.startRows(height)
         let origin       = Vector2{tile.x, tile.y}
         let scale        = transform.axisScale()
         let flattenScale = Math.max(scale.x, scale.y) * density
@@ -602,22 +429,7 @@ private impl ScanFill
                         continue
                 }
 
-                let points = path.polygon.points.toSlice()
-                if points.count < 2 do
-                    continue
-
-                // Adjacent edges share the projected vertex and its sample row.
-                var previous    = project(points[points.count - 1], &transform, density, origin, uniform)
-                var previousRow = sampleRow(previous, limit)
-                for point in points
-                {
-                    let next = project(point, &transform, density, origin, uniform)
-                    let row  = sampleRow(next, limit)
-                    if previousRow >= 0 and row >= 0 and previousRow != row do
-                        addEdge(crossings, previous, next, previousRow, row, tile.width)
-                    previous    = next
-                    previousRow = row
-                }
+                addScanContour(crossings, path.polygon.points.toSlice(), &transform, density, origin, uniform, tile.width)
             }
         }
 

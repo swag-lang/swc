@@ -66,13 +66,16 @@ func fillAdlerPattern(buffer: [..] u8)
     var data: [11121] u8
     fillAdlerPattern(data)
 
-    for length in 65
+    for length in 130
     {
         assertAdler32(data[until length])
     }
 
     assertAdler32(data[until 255])
     assertAdler32(data[until 256])
+    assertAdler32(data[until 5503])
+    assertAdler32(data[until 5504])
+    assertAdler32(data[until 5505])
     assertAdler32(data[until 5551])
     assertAdler32(data[until 5552])
     assertAdler32(data[until 5553])
@@ -86,4 +89,13 @@ func fillAdlerPattern(buffer: [..] u8)
     split.update(data[16 until 5552])
     split.update(data[5552 until 11121])
     Swag.require(split.value() == Hash.Adler32.compute(data))
+
+    for index in data.count do
+        data[index] = 0xFF
+    assertAdler32(data[1 until])
+
+    split.reset()
+    split.update(data[1 until 257])
+    split.update(data[257 until])
+    Swag.require(split.value() == adler32Reference(data[1 until]))
 }

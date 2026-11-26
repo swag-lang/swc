@@ -388,3 +388,30 @@ agree on glyph indices, advances, dimensions, and CRC-64. [Raw samples](font-dec
 | `NotoSerifCJK-Regular.ttc` | 0 | 163.91 | 149.08 | 47.00 → 31.43 |
 | `NotoSerifCJK-Regular.ttc` | 4 | 174.16 | 160.59 | 48.42 → 35.37 |
 | `NotoSerifCJKjp-Regular.otf` | 0 | 190.26 | 154.93 | 47.75 → 29.36 |
+
+## Shared WOFF1 reconstruction
+
+A `FontSource` keeps its original WOFF1 snapshot and reconstructs the sfnt on
+the first metadata or face request. Swag Scope uses that reconstruction for both
+metadata and rendering. Later faces borrow the same sfnt and keep their own glyph
+and size state. Both byte buffers remain allocated until the last owner releases
+the source.
+
+The corpus adds generated WOFF1 forms of the pinned Noto Sans CJK JP OTF and Noto
+Sans SC variable TTF. It now covers 54 scenarios on 47 files, including the 12
+supplied fonts. The table compares open and render at 20 px on one CPU, using the
+median of 11 interleaved batches of 5 fresh faces after 5 warmups. The source
+columns omit the initial load. The file columns include independently opening the
+file, reading it, and reconstructing its tables on every iteration. FreeType
+2.14.3 opens the input from existing memory and reconstructs it for each face.
+Swag's glyph indices, advances, bitmap dimensions, and CRC-64 agree with the
+baseline `b50a786180`. FreeType selects the same glyph indices.
+[Raw timings](font-decode-linux-woff-source.json)
+
+| Fixture | Source before (ms) | Source after (ms) | File before (ms) | File after (ms) | FreeType memory (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `DejaVuSans.woff` | 4.926 | 0.064 | 4.816 | 5.029 | 5.828 |
+| `Inter-Variable.woff` | 6.544 | 0.037 | 6.045 | 5.891 | 9.701 |
+| `SourceSans3-Regular.woff` | 2.396 | 0.020 | 2.435 | 2.467 | 2.933 |
+| `NotoSansCJKjp-Regular.woff` | 140.022 | 0.068 | 144.358 | 142.367 | 153.263 |
+| `NotoSansSC-Variable.woff` | 137.758 | 0.077 | 142.215 | 139.633 | 157.508 |

@@ -101,6 +101,40 @@ using Swag, Core
     Swag.require(compressedTables < readBigU16(&woff, 12))
 }
 
+// Source metadata and faces share the reconstructed WOFF1 bytes.
+#test
+{
+    let original = loadFontBytes("arial.ttf")
+    var woff     = expect buildWoffFont(original.toSlice())
+    var allocator: Swag.Allocator
+    allocator.setup()
+    defer allocator.releaseAll()
+    let allocatorView: IAllocator = &allocator
+    let baseline = allocator.stats().countAlloc
+
+    var source   = FontSource.copy(woff.toSlice(), allocatorView)
+    let metadata = expect source.metadataAt()
+    Swag.require(metadata.familyName == "Arial")
+    let first  = expect source.loadFace()
+    let second = expect source.loadFace()
+    Swag.require((expect readU32(source.bytes(), 0)) == TAG_WOFF)
+    let firstImpl  = expect getFaceImpl(first)
+    let secondImpl = expect getFaceImpl(second)
+    Swag.require(firstImpl.fontBytes().buffer == secondImpl.fontBytes().buffer)
+
+    var badIndex: Swag.Error
+    discard catch source.loadFace(1) as badIndex
+    Swag.require(badIndex.value() != null)
+    source = {}
+    woff.fill(0)
+    first.destroy()
+    expect second.setPixelSize(0, 20)
+    expect second.loadChar('A', .Render)
+    Swag.require(countBitmapCoverage(&second.glyph.bitmap) > 0)
+    second.destroy()
+    Swag.require(allocator.stats().countAlloc == baseline)
+}
+
 // WOFF1 declarations cannot extend beyond the file or disagree with its declared length.
 #test
 {

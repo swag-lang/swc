@@ -73,10 +73,6 @@ private
         return (samples << 1) - Math.Simd.splat(256's32)
     }
 
-    // Centers the four low or four high chroma samples of an already widened group of eight.
-    func centeredChromaLow(samples: Math.Simd.U16x8)->Math.Simd.S32x4  => (cast #bit(Math.Simd.S32x4, Math.Simd.widenLow(samples)) << 1) - Math.Simd.splat(256's32)
-    func centeredChromaHigh(samples: Math.Simd.U16x8)->Math.Simd.S32x4 => (cast #bit(Math.Simd.S32x4, Math.Simd.widenHigh(samples)) << 1) - Math.Simd.splat(256's32)
-
     // The three corrections, in the fixed point the decoded value is defined in.
     func redBias(kr: Math.Simd.S32x4)->Math.Simd.S32x4       => (Math.Simd.splat(FixCrToR) * kr + Math.Simd.splat(1's32 << 15)) >> 16
     func blueBias(kb: Math.Simd.S32x4)->Math.Simd.S32x4      => (Math.Simd.splat(FixCbToB) * kb + Math.Simd.splat(1's32 << 15)) >> 16
@@ -109,21 +105,32 @@ private
         return result
     }
 
-    // Corrections of eight chroma samples, one per pixel.
+    // High-half multiplication plus the discarded high bit rounds exactly at 16 fractional bits.
+    func roundedHigh(samples: Math.Simd.S16x8, factor: s16)->Math.Simd.S16x8
+    {
+        let weights = Math.Simd.splat(factor)
+        let round   = cast #bit(Math.Simd.S16x8, cast #bit(Math.Simd.U16x8, samples * weights) >> 15)
+        return Math.Simd.mulHigh(samples, weights) + round
+    }
+
+    // Work with undoubled chroma centered at zero. Split off whole multiples of 65536 so
+    // the red and blue factors fit a signed 16-bit multiply. Sum the green terms before rounding.
     func chromaBias8Samples(cb, cr: Math.Simd.U8x16)->ChromaBias
     {
-        let blues = Math.Simd.widenLow(cb)
-        let reds  = Math.Simd.widenLow(cr)
+        using Math.Simd
 
-        let kbLow  = centeredChromaLow(blues)
-        let kbHigh = centeredChromaHigh(blues)
-        let krLow  = centeredChromaLow(reds)
-        let krHigh = centeredChromaHigh(reds)
-
+        const Green = cast(S16x8, [cast(s16, FixCbToG), cast(s16, FixCrToG),
+                                   cast(s16, FixCbToG), cast(s16, FixCrToG), cast(s16, FixCbToG), cast(s16, FixCrToG),
+                                   cast(s16, FixCbToG), cast(s16, FixCrToG)])
+        let blue    = cast #bit(S16x8, widenLow(cb)) - 128's16
+        let red     = cast #bit(S16x8, widenLow(cr)) - 128's16
+        let greenLo = (mulAddPairs(pairLow(blue, red), Green) + (1's32 << 14)) >> 15
         var result: #returntype
-        result.rc = Math.Simd.packSigned(redBias(krLow), redBias(krHigh))
-        result.gc = Math.Simd.packSigned(greenBias(krLow, kbLow), greenBias(krHigh, kbHigh))
-        result.bc = Math.Simd.packSigned(blueBias(kbLow), blueBias(kbHigh))
+        result.bc = roundedHigh(blue, cast(s16, 2 * FixCbToB - 2 * 65536)) + (blue << 1)
+        result.rc = roundedHigh(red, cast(s16, 2 * FixCrToR - 65536)) + red
+        let greenHi = (mulAddPairs(pairHigh(blue, red), Green) + (1's32 << 14)) >> 15
+        result.gc = packSigned(greenLo, greenHi)
+
         return result
     }
 

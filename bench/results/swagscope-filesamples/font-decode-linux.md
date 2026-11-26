@@ -297,3 +297,33 @@ A separate syscall trace counts bytes returned by reads of the font file.
 | `NotoSansJP-Variable.ttf` | 9589912 | 5840191 | 942.65 | 622.67 | 2443.57 |
 | `NotoSansTC-Variable.ttf` | 11941980 | 7223529 | 1119.88 | 748.68 | 2189.34 |
 | `NotoSansSC-Variable.ttf` | 17772312 | 10690532 | 1662.16 | 1067.02 | 2301.50 |
+
+## SIMD validation of Unicode groups
+
+The format-12 and format-13 validators load four packed groups at a time.
+Vector checks cover range order, Unicode bounds, and glyph counts. A bounded
+scalar pass handles the tail, and the first group can still start at U+0000.
+
+The 14 CJK scenarios use an existing in-memory source with its parsed CFF data
+already available where applicable. Each result is the median of 11 interleaved
+batches of 251 fresh faces at 20 px after five warmups. The baseline is
+`d47643249d`. Glyph indices, advances, bitmap dimensions, and CRC-64 match.
+The last column uses seven separate instrumented batches of 506 opens.
+[Raw phase and end-to-end timings](font-decode-linux-cmap.json)
+
+| Fixture | Face | Open and render before (µs) | After (µs) | CMap parse before → after (µs) |
+| --- | ---: | ---: | ---: | ---: |
+| `NotoSansCJK-Regular.ttc` | 0 | 63.89 | 50.08 | 38.15 → 27.59 |
+| `NotoSansCJK-Regular.ttc` | 1 | 75.66 | 62.06 | 40.09 → 25.22 |
+| `NotoSansCJK-Regular.ttc` | 2 | 66.12 | 50.96 | 39.70 → 24.76 |
+| `NotoSansCJK-Regular.ttc` | 7 | 62.36 | 51.03 | 39.38 → 25.15 |
+| `NotoSansCJKjp-Regular.otf` | 0 | 64.27 | 49.00 | 37.53 → 26.38 |
+| `NotoSerifCJK-Regular.ttc` | 0 | 66.38 | 52.85 | 38.78 → 24.83 |
+| `NotoSerifCJK-Regular.ttc` | 1 | 92.22 | 77.56 | 38.28 → 25.97 |
+| `NotoSerifCJK-Regular.ttc` | 2 | 69.16 | 52.20 | 38.35 → 23.80 |
+| `NotoSerifCJK-Regular.ttc` | 3 | 93.55 | 79.33 | 40.22 → 23.97 |
+| `NotoSerifCJK-Regular.ttc` | 4 | 72.49 | 59.24 | 36.57 → 23.36 |
+| `NotoSansJP-Variable.ttf` | 0 | 52.37 | 48.73 | 16.43 → 11.36 |
+| `NotoSansTC-Variable.ttf` | 0 | 70.16 | 58.07 | 13.97 → 10.05 |
+| `NotoSansSC-Variable.ttf` | 0 | 57.69 | 54.05 | 4.21 → 3.25 |
+| `NotoSerifCJKjp-Regular.otf` | 0 | 74.38 | 62.01 | 39.96 → 25.20 |

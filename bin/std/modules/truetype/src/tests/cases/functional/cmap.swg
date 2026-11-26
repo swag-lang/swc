@@ -77,7 +77,7 @@ func makeCmap13Fixture()->Array'u8
     return cmap
 }
 
-func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
+func parseTestCmap(faceData: *FaceImpl, cmap: Array'u8) fail
 {
     faceData.fontData.add(cmap.toSlice())
     faceData.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
@@ -421,11 +421,60 @@ func parseTestCmap13(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(glyphOutside == 0)
 }
 
+// Group validation covers adjacent SIMD batches, the final tail, and both glyph rules.
+#test
+{
+    const GroupCount = 9'u32
+    const Records    = 28'u64
+    const RecordSize = 12'u64
+    for format in [12'u16, 13'u16]
+    {
+        var cmap: Array'u8
+        cmap.add([0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
+        cmap.resize(Records + GroupCount * RecordSize)
+        writeBigU16(&cmap, 12, format)
+        writeBigU32(&cmap, 16, 16 + GroupCount * 12)
+        writeBigU32(&cmap, 24, GroupCount)
+        for group in GroupCount
+        {
+            let record = Records + group * RecordSize
+            writeBigU32(&cmap, record, cast(u32, 2 * group))
+            writeBigU32(&cmap, record + 4, cast(u32, 2 * group + 1))
+            writeBigU32(&cmap, record + 8, cast(u32, group + 1))
+        }
+
+        var valid: FaceImpl
+        expect parseTestCmap(&valid, cmap)
+        Swag.require(expect lookupGlyphIndex(&valid, 0) == 1)
+        Swag.require(expect lookupGlyphIndex(&valid, 9) == (format == 12 ? 6 : 5))
+
+        const Changes = [
+            {offset: Records + 4 * RecordSize,     value: 7'u32},
+            {offset: Records + 1 * RecordSize + 8, value: Swag.U32.Max},
+            {offset: Records + 8 * RecordSize + 4, value: 0x110000'u32}]
+        for change in Changes
+        {
+            var malformed = cmap
+            writeBigU32(&malformed, change.offset, change.value)
+            var face:     FaceImpl
+            var rejected: Swag.Error
+            catch parseTestCmap(&face, malformed) as rejected
+            Swag.require(rejected.value() != null)
+        }
+
+        writeBigU32(&cmap, Records + 5 * RecordSize + 8, 31)
+        var limit:    FaceImpl
+        var rejected: Swag.Error
+        catch parseTestCmap(&limit, cmap) as rejected
+        Swag.require((rejected.value() != null) == (format == 12))
+    }
+}
+
 // A Unicode format-13 map folds each group onto one glyph and leaves gaps unmapped.
 #test
 {
     var faceData: FaceImpl
-    expect parseTestCmap13(&faceData, makeCmap13Fixture())
+    expect parseTestCmap(&faceData, makeCmap13Fixture())
 
     Swag.require(faceData.cmapFormat == 13)
     Swag.require(faceData.face.charMap.platformID == 0)

@@ -1,6 +1,7 @@
 """Compare Swag's CPU SVG parse and raster stages with resvg."""
 
 import argparse
+import base64
 import hashlib
 import itertools
 import json
@@ -10,8 +11,10 @@ import random
 import re
 import shutil
 import statistics
+import struct
 import subprocess
 import tempfile
+import zlib
 from urllib.request import urlopen
 
 
@@ -23,6 +26,35 @@ FILESAMPLES = (
     ("1920×1280", 1920, 1280, "d6012d46eab66404f9c2c450942dc8874ba6fe057774a38ba19b9fa570062a2d"),
     ("5184×3456", 2048, 1365, "bf29681a8b952f06b8d5a61a4ac5a18e0194e9f6a207e57ab6ab9b32f4e64801"),
 )
+
+
+def clipped_image(scratch):
+    def chunk(tag, data):
+        payload = tag + data
+        return struct.pack(">I", len(data)) + payload + struct.pack(">I", zlib.crc32(payload))
+
+    width, height = 640, 420
+    rows = bytearray()
+    for y in range(height):
+        rows.append(0)
+        for x in range(width):
+            rows.extend(((x + 2 * y) % 256, (2 * x + y) % 256,
+                         (3 * x + y) % 256, 100 + (x + y) % 156))
+    header = struct.pack(">IIBBBBB", width, height, 8, 6, 0, 0, 0)
+    png = (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header)
+           + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+    payload = base64.b64encode(png).decode("ascii")
+    path = scratch / "clipped-image.svg"
+    path.write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" '
+        'width="1200" height="900">\n'
+        '<defs><clipPath id="clip"><path d="M20 200C120 40 1050 0 1150 300S1100 790 580 850'
+        'C110 790 80 600 20 200Z"/></clipPath></defs>\n'
+        '<g clip-path="url(#clip)"><image width="1200" height="900" preserveAspectRatio="none" '
+        f'xlink:href="data:image/png;base64,{payload}"/></g></svg>\n',
+        encoding="ascii",
+    )
+    return path, 1200, 900
 
 
 def fixtures(scratch, filesamples):
@@ -157,6 +189,8 @@ def fixtures(scratch, filesamples):
                           f'L{x}.875 {bottom - 20}.625Q{x + 75}.625 {y + 135}.125 {x}.125 {y}.375Z"/>\n')
             svg.write('</g></svg>\n')
         yield path, width, height
+
+    yield clipped_image(scratch)
 
 
 def public_fixtures(scratch):

@@ -845,3 +845,24 @@ The original bitmaps use the separate single-ink path. Their CRC-64s and
 those of the thumbnails, generated controls and public SVGs remain equal.
 A painter test compares overlapping translucent fills across several row
 ranges with the same fills separated by explicit painter commands.
+
+## Bilinear textures inside curved clips
+
+The specialized bilinear shader handles texture interiors through a
+stencil. It preserves the barycentric sample coordinates and multiplies
+the sampled alpha by clip coverage. The new `clipped-image` fixture
+scales an embedded RGBA image through a curved clip path.
+
+Thirteen alternating Release runs on one AMD EPYC 7763 logical CPU
+use baseline `5d5866d322`. The resvg 0.50.0 medians use seven samples
+at the same sizes. Times cover rasterization.
+[Timings and output checksums](resvg-clipped-image.json)
+
+| Long side | Swag before, ms | Swag after, ms | resvg, ms |
+| ---: | ---: | ---: | ---: |
+| 1200 px | 96.01 | 78.08 | 62.75 |
+| 2400 px | 799.70 | 654.85 | 254.61 |
+
+The two Swag builds produce identical RGBA rasters at both sizes.
+All 52 supported PDF corpus checksums match. The 981 Pixel tests
+include a partially covered stencil over a translucent texture.

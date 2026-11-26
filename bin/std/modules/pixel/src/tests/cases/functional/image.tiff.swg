@@ -775,6 +775,27 @@ func tiffDecodeFails(bytes: const [..] u8)->bool
         Swag.require(img.pixels.storage()[i] == 65'u8)
 }
 
+// Chained words preserve their order, and a clear restarts the dictionary.
+#test
+{
+    var writer: TestTiffLzwWriter
+    writer.bytes       = {}
+    writer.pending     = 0
+    writer.pendingBits = 0
+    for code in [256'u32, 65, 66, 258, 67, 260, 256, 68, 258, 257] do
+        writer.write(code, 9)
+    writer.finish()
+
+    let packed = nnBytes(writer.bytes.toSlice())
+    let buffer = buildTiff(true, 11, 1, 1, 1, 5, 1, 8, packed, null, false)
+    let image  = expect decodeTiff(nnBytes(buffer.toSlice()))
+    for sample, index in [65'u8, 66, 65, 66, 67, 65, 66, 67, 68, 68, 68] do
+        Swag.require(image.pixelColor(cast(s32, index), 0).r == sample)
+
+    let tooShort = buildTiff(true, 10, 1, 1, 1, 5, 1, 8, packed, null, false)
+    Swag.require(tiffDecodeFails(nnBytes(tooShort.toSlice())))
+}
+
 // Exercise independent literal streams across every TIFF LZW code-width edge.
 #test
 {

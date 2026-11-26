@@ -433,8 +433,9 @@ impl Decoder
         let grayscale   = samples == 1 and photometric != PHOTO_PALETTE
 
         // Borrow raw strips directly. Only compression or the predictor needs writable scratch.
-        var decoded:  Array'u8
-        var rowStart: u32
+        var decoded:       Array'u8
+        var lzwDictionary: Array'u64
+        var rowStart:      u32
         for s in stripOffsets.count
         {
             if rowStart == height do
@@ -442,7 +443,7 @@ impl Decoder
 
             let rowsInStrip = Math.min(rowsPerStrip, height - rowStart)
             let stripBytes  = rowBytes * rowsInStrip
-            let srcCount    = cast(u64, stripCounts[s])
+            let srcCount    = stripCounts[s]
             let srcPtr      = base + stripOffsets[s]
             try checkBuffer(srcPtr, last, srcCount)
             if compression == COMPRESSION_NONE and srcCount < stripBytes do
@@ -455,7 +456,7 @@ impl Decoder
                 let scratch = decoded.storage()
                 switch compression
                 {
-                case COMPRESSION_LZW:      try unpackLzw(scratch, stripBytes, srcPtr, srcCount)
+                case COMPRESSION_LZW:      try unpackLzw(scratch, stripBytes, srcPtr, srcCount, &lzwDictionary)
                 case COMPRESSION_PACKBITS: try unpackBits(scratch, stripBytes, srcPtr, srcPtr + srcCount)
                 default: Memory.copy(scratch, srcPtr, stripBytes)
                 }

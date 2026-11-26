@@ -7,28 +7,33 @@ alias HmacSha512Digest = [64] u8
 // Stores an HMAC-SHA-384 result as 48 bytes in network order.
 alias HmacSha384Digest = [48] u8
 
-private func sha512DigestBytes(digest: Hash.Sha512.Digest)->HmacSha512Digest
+#[Swag.Inline]
+private func(Words: u64) sha512DigestBytes(digest: [Words] u64)->[Words * #sizeof(u64)] u8
 {
     var result: #returntype
-    for index in digest.count
+    let destination = cast([*] u64, result.buffer)
+    for pair in Words / 2
     {
-        for byte in 8 do
-            result[index * 8 + byte] = Math.byteAt(digest[index], 7 - byte)
+        let index = pair * 2
+        Math.Simd.store(destination + index, Math.nativeToBigEndian(Math.Simd.load(digest.buffer + index)))
     }
 
     return result
 }
 
-private func sha384DigestBytes(digest: Hash.Sha384.Digest)->HmacSha384Digest
+#[Swag.Inline]
+private func fillSha512Pads(key: const [*] u8, inner, outer: [*] u8)
 {
-    var result: #returntype
-    for index in digest.count
+    let innerMask = Math.Simd.splat(0x36'u8)
+    let outerMask = Math.Simd.splat(0x5C'u8)
+    const Width = #sizeof(Math.Simd.U8x16)
+    for group in Hash.Sha512BlockSize / Width
     {
-        for byte in 8 do
-            result[index * 8 + byte] = Math.byteAt(digest[index], 7 - byte)
+        let offset = group * Width
+        let value  = Math.Simd.load(key + offset)
+        Math.Simd.store(inner + offset, value ^ innerMask)
+        Math.Simd.store(outer + offset, value ^ outerMask)
     }
-
-    return result
 }
 
 // Computes HMAC-SHA-512 incrementally while keeping its keyed state opaque.
@@ -68,11 +73,7 @@ public impl HmacSha512
 
         var innerPad: [Hash.Sha512BlockSize] u8
         var outerPad: [Hash.Sha512BlockSize] u8
-        for index in Hash.Sha512BlockSize
-        {
-            innerPad[index] = normalized[index] ^ 0x36
-            outerPad[index] = normalized[index] ^ 0x5C
-        }
+        fillSha512Pads(normalized.buffer, innerPad.buffer, outerPad.buffer)
 
         .inner.reset()
         .outer.reset()
@@ -149,7 +150,7 @@ public impl HmacSha384
         var normalized: [Hash.Sha512BlockSize] u8
         if key.count > Hash.Sha512BlockSize
         {
-            var hashed = sha384DigestBytes(Hash.Sha384.compute(key))
+            var hashed = sha512DigestBytes(Hash.Sha384.compute(key))
             Swag.memcpy(&normalized[0], &hashed[0], #sizeof(hashed))
             secureClear(hashed)
         }
@@ -160,11 +161,7 @@ public impl HmacSha384
 
         var innerPad: [Hash.Sha512BlockSize] u8
         var outerPad: [Hash.Sha512BlockSize] u8
-        for index in Hash.Sha512BlockSize
-        {
-            innerPad[index] = normalized[index] ^ 0x36
-            outerPad[index] = normalized[index] ^ 0x5C
-        }
+        fillSha512Pads(normalized.buffer, innerPad.buffer, outerPad.buffer)
 
         .inner.reset()
         .outer.reset()
@@ -187,9 +184,9 @@ public impl HmacSha384
     mtd finalize()->HmacSha384Digest
     {
         Swag.assert(.initialized, "HMAC-SHA-384 needs an initialized sequence")
-        var innerHash = sha384DigestBytes(.inner.finalize())
+        var innerHash = sha512DigestBytes(.inner.finalize())
         .outer.update(innerHash)
-        let result = sha384DigestBytes(.outer.finalize())
+        let result = sha512DigestBytes(.outer.finalize())
         secureClear(innerHash)
         .clear()
         return result

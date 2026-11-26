@@ -38,6 +38,7 @@ REFERENCES = {
     "aes-256-gcm": {"OpenSSL": "aes-256-gcm"},
 }
 DEFAULT_ALGORITHMS = tuple(REFERENCES)
+REFERENCES.update({name: {"OpenSSL": name} for name in ("hmac-sha384", "hmac-sha512")})
 PUBLIC_KEY_SIZES = {
     "x25519-public": (32,),
     "x25519-shared": (32,),

@@ -40,6 +40,18 @@ func blake2b(input: const [..] u8, output: [..] u8) => expect Hash.Blake2b.compu
 func blake2s(input: const [..] u8, output: [..] u8) => expect Hash.Blake2s.compute(input, output)
 func blake3(input: const [..] u8, output: [..] u8)  => expect Hash.Blake3.compute(input, output)
 
+func hmacSha384(input: const [..] u8, output: [..] u8)
+{
+    let tag = Crypto.HmacSha384.compute(Key, input)
+    Memory.copy(output.buffer, tag.buffer, tag.count)
+}
+
+func hmacSha512(input: const [..] u8, output: [..] u8)
+{
+    let tag = Crypto.HmacSha512.compute(Key, input)
+    Memory.copy(output.buffer, tag.buffer, tag.count)
+}
+
 func poly1305(input: const [..] u8, output: [..] u8)
 {
     let tag = expect Crypto.Poly1305.compute(Key, input)
@@ -95,6 +107,8 @@ func selectOperation(name: string, size: u64)->{operation: Operation, outputSize
     case "blake2b-512":       return {&blake2b, 64}
     case "blake2s-256":       return {&blake2s, 32}
     case "blake3":            return {&blake3, 32}
+    case "hmac-sha384":       return {&hmacSha384, 48}
+    case "hmac-sha512":       return {&hmacSha512, 64}
     case "poly1305":          return {&poly1305, 16}
     case "chacha20":          return {&chacha20, size}
     case "chacha20-poly1305": return {&chacha20Poly1305, size + 16}

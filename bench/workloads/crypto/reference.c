@@ -33,6 +33,7 @@ static EVP_CIPHER *cipher;
 static EVP_CIPHER_CTX *cipher_context;
 static EVP_MAC *mac;
 static EVP_MAC_CTX *mac_context;
+static size_t mac_size;
 static int authenticated;
 static int use_aes_ctr;
 static EC_GROUP *p256_group;
@@ -119,8 +120,8 @@ static void mac_evp(const unsigned char *p, size_t n, unsigned char *out)
     size_t length = 0;
     require(EVP_MAC_init(mac_context, key, sizeof(key) - 1, NULL) &&
             EVP_MAC_update(mac_context, p, n) &&
-            EVP_MAC_final(mac_context, out, &length, 16) && length == 16,
-            "OpenSSL Poly1305 failed");
+            EVP_MAC_final(mac_context, out, &length, mac_size) && length == mac_size,
+            "OpenSSL MAC failed");
 }
 
 static void encrypt_evp(const unsigned char *p, size_t n, unsigned char *out)
@@ -295,12 +296,25 @@ static operation select_operation(const char *name, size_t input_size, size_t *r
         return p256_sign;
     }
 
-    if (!strcmp(name, "poly1305")) {
-        mac = EVP_MAC_fetch(NULL, "POLY1305", NULL);
-        require(mac != NULL, "OpenSSL could not fetch Poly1305");
+    const int poly1305 = !strcmp(name, "poly1305");
+    const int hmac384 = !strcmp(name, "hmac-sha384");
+    const int hmac512 = !strcmp(name, "hmac-sha512");
+    if (poly1305 || hmac384 || hmac512) {
+        mac = EVP_MAC_fetch(NULL, poly1305 ? "POLY1305" : "HMAC", NULL);
+        require(mac != NULL, "OpenSSL could not fetch MAC");
         mac_context = EVP_MAC_CTX_new(mac);
         require(mac_context != NULL, "OpenSSL could not allocate a MAC context");
-        *result_size = 16;
+        if (!poly1305) {
+            char sha384[] = "SHA384";
+            char sha512[] = "SHA512";
+            OSSL_PARAM params[] = {
+                OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, hmac384 ? sha384 : sha512, 0),
+                OSSL_PARAM_construct_end(),
+            };
+            require(EVP_MAC_CTX_set_params(mac_context, params), "OpenSSL could not set HMAC digest");
+        }
+        mac_size = poly1305 ? 16 : hmac384 ? 48 : 64;
+        *result_size = mac_size;
         return mac_evp;
     }
 

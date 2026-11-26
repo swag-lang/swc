@@ -91,3 +91,4 @@ optimizations moved each result.
 - [Ed25519 projective signature verification](ed25519-projective.md)
 - [Native-word P-256 field storage](p256-fullwords.md)
 - [BLAKE3 worker scaling](blake3-worker-scaling.md)
+- [Packed HMAC-SHA-384 and HMAC-SHA-512](hmac-sha512.md)

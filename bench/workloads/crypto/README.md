@@ -66,6 +66,10 @@ against its own standard-library snapshot and output directories. The first buil
 is the baseline. Repeat `--algorithm` and `--size` to select a subset. `--verify-only` skips
 timings and can be combined with `--offset 1` to check unaligned input.
 
+Select HMAC with `--algorithm hmac-sha384` or `--algorithm hmac-sha512`. The
+one-shot operations use a deterministic 32-byte key. Include `--size 111 --size 112`
+to compare the payloads on either side of the SHA-384/512 padding boundary.
+
 ## Worker scaling
 
 Repeat `--cpu` to set a common affinity mask for every build and reference. Give each Swag

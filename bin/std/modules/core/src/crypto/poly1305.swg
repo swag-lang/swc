@@ -70,6 +70,37 @@ private func poly1305Carry(h, products: *[5] u64)
     h[][1] += carry
 }
 
+#[Swag.Inline]
+private func poly1305LoadPair(words: const [*] u64)->[5] Simd.U64x2
+{
+    let first  = Simd.load(words)
+    let second = Simd.load(words + 2)
+    let low    = Simd.interleaveLow(first, second)
+    let high   = Simd.interleaveHigh(first, second)
+    return [
+        low & LimbMask,
+        (low >> 26) & LimbMask,
+        ((low >> 52) | (high << 12)) & LimbMask,
+        (high >> 14) & LimbMask,
+        (high >> 40) | (1'u64 << 24)]
+}
+
+#[Swag.Inline]
+private func poly1305Power(left, right: [5] u64)->[5] u64
+{
+    var scratch: struct
+    {
+        scaled, products: [5] u64
+    }
+    for index in 1 to 4 do
+        scratch.scaled[index] = right[index] * 5
+    poly1305Multiply(left, right, scratch.scaled, &scratch.products)
+    var result: #returntype
+    poly1305Carry(&result, &scratch.products)
+    secureClear(Swag.makeSlice(&scratch, 1))
+    return result
+}
+
 // Authenticates a message under a one-time key, following RFC 8439.
 //
 // A Poly1305 key authenticates exactly one message. Reusing it across two
@@ -151,14 +182,14 @@ public impl Poly1305
         var blocks = (data.count - offset) / Poly1305BlockSize
         #static if not BIG_ENDIAN
         {
-            // Preparing r^2 pays off once the update contains a full run of blocks.
-            const PairedBlockThreshold = 128
-            if blocks >= PairedBlockThreshold
+            // Precompute the powers once for a run of full input blocks.
+            const QuadBlockThreshold = 64
+            if blocks >= QuadBlockThreshold
             {
-                let pairs = blocks / 2
-                .absorbPairs(data.buffer + offset, pairs)
-                offset += pairs * 2 * Poly1305BlockSize
-                blocks &= 1
+                let quads = blocks / 4
+                .absorbQuads(data.buffer + offset, quads)
+                offset += quads * 4 * Poly1305BlockSize
+                blocks &= 3
             }
         }
 
@@ -323,56 +354,48 @@ public impl Poly1305
         secureClear(Swag.makeSlice(&scratch, 1))
     }
 
-    private mtd absorbPairs(blocks: const [*] u8, count: u64)
+    private mtd absorbQuads(blocks: const [*] u8, count: u64)
     {
-        // Two successive blocks update h as (h + m0) * r^2 + m1 * r.
-        // Keep those products in separate vector lanes until the shared carry.
-        var scaled: [5] u64
-        for i in 1 to 4 do
-            scaled[i] = .r[i] * 5
-        var squared = .r
-        var products: [5] u64
-        poly1305Multiply(.r, .r, scaled, &products)
-        poly1305Carry(&squared, &products)
-
-        var factors, wrapped: [5] Simd.U64x2
-        for i in 5
+        // Expand four successive blocks into two products per lane. Every
+        // fourth block shares the same carry across the four contributions.
+        var scratch: struct
         {
-            factors[i] = cast(Simd.U64x2, [squared[i], .r[i]])
-            wrapped[i] = cast(Simd.U64x2, [squared[i] * 5, scaled[i]])
+            squared, cubed, fourth: [5] u64
+            firstFactors, firstWrapped, secondFactors, secondWrapped: [5] Simd.U64x2
+            first, second, firstProducts, secondProducts: [5] Simd.U64x2
+            h, products: [5] u64
         }
 
-        var h = .accumulator
-        var message, packedProducts: [5] Simd.U64x2
-        for pair in count
+        with scratch
         {
-            let words  = cast(const [*] u64, blocks + pair * 2 * Poly1305BlockSize)
-            let first  = Simd.load(words)
-            let second = Simd.load(words + 2)
-            let low    = Simd.interleaveLow(first, second)
-            let high   = Simd.interleaveHigh(first, second)
-            message[0] = low & LimbMask
-            message[1] = (low >> 26) & LimbMask
-            message[2] = ((low >> 52) | (high << 12)) & LimbMask
-            message[3] = (high >> 14) & LimbMask
-            message[4] = (high >> 40) | (1'u64 << 24)
-            for i in 5 do
-                message[i] += cast(Simd.U64x2, [h[i], 0'u64])
+            .squared = poly1305Power(me.r, me.r)
+            .cubed   = poly1305Power(.squared, me.r)
+            .fourth  = poly1305Power(.squared, .squared)
+            for i in 5
+            {
+                .firstFactors[i]  = cast(Simd.U64x2, [.fourth[i], .cubed[i]])
+                .firstWrapped[i]  = cast(Simd.U64x2, [.fourth[i] * 5, .cubed[i] * 5])
+                .secondFactors[i] = cast(Simd.U64x2, [.squared[i], me.r[i]])
+                .secondWrapped[i] = cast(Simd.U64x2, [.squared[i] * 5, me.r[i] * 5])
+            }
 
-            poly1305Multiply(message, factors, wrapped, &packedProducts)
-            for i in 5 do
-                products[i] = Simd.sum(packedProducts[i])
-            poly1305Carry(&h, &products)
+            .h = me.accumulator
+            for group in count
+            {
+                let words = cast(const [*] u64, blocks + group * 4 * Poly1305BlockSize)
+                .first  = poly1305LoadPair(words)
+                .second = poly1305LoadPair(words + 4)
+                for i in 5 do
+                    .first[i] += cast(Simd.U64x2, [.h[i], 0'u64])
+                poly1305Multiply(.first, .firstFactors, .firstWrapped, &.firstProducts)
+                poly1305Multiply(.second, .secondFactors, .secondWrapped, &.secondProducts)
+                for i in 5 do
+                    .products[i] = Simd.sum(.firstProducts[i] + .secondProducts[i])
+                poly1305Carry(&.h, &.products)
+            }
+
+            me.accumulator = .h
         }
-
-        .accumulator = h
-        secureClear(h)
-        secureClear(message)
-        secureClear(packedProducts)
-        secureClear(products)
-        secureClear(factors)
-        secureClear(wrapped)
-        secureClear(squared)
-        secureClear(scaled)
+        secureClear(Swag.makeSlice(&scratch, 1))
     }
 }

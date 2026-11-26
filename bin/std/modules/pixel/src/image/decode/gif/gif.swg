@@ -198,6 +198,29 @@ struct SetDecoder
     frames:  Array'IndexedFrame
 }
 
+private func clearTransparentMargins(canvas: *Image, frame: const *IndexedFrame)
+{
+    let pixels = canvas.pixels.storage()
+    let stride = cast(u64, canvas.rowStride)
+    let below  = cast(u64, (canvas.height - frame.y - frame.height))
+    let start  = pixels + below * stride
+    Memory.clear(pixels, below * stride)
+    Memory.clear(start + frame.height * stride, frame.y * stride)
+
+    let left  = cast(u64, frame.x) * 4
+    let end   = left + cast(u64, frame.width) * 4
+    let right = stride - end
+    if left or right
+    {
+        for y in frame.height
+        {
+            let row = start + y * stride
+            Memory.clear(row, left)
+            Memory.clear(row + end, right)
+        }
+    }
+}
+
 impl IImageDecoder for SetDecoder
 {
     mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
@@ -218,8 +241,14 @@ impl IImageDecoder for SetDecoder
         let indexed = &.frames[0]
         try .decoder.decodeIndices(indexed)
         result.allocPixels()
-        if descriptor.width != info.canvasWidth or descriptor.height != info.canvasHeight do
-            result.fill(info.background)
+        if descriptor.width != info.canvasWidth or descriptor.height != info.canvasHeight
+        {
+            // The first transparent frame starts on a transparent black canvas.
+            if result.pixelFormat == .RGBA8 do
+                clearTransparentMargins(&result, indexed)
+            else do
+                result.fill(info.background)
+        }
 
         // The decoded rectangle can be expanded directly into the final, bottom-up canvas.
         let bottom = result.height - descriptor.y - descriptor.height

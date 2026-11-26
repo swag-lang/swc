@@ -292,6 +292,27 @@ func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count
     }
 }
 
+func isZeroScanline(source: const [*] u8, count: u64)->bool
+{
+    let zero = Math.Simd.splat(0'u8)
+    var offset = 0'u64
+    while count - offset >= 16
+    {
+        if Math.Simd.anyTrue(Math.Simd.load(source + offset) != zero) do
+            return false
+        offset += 16
+    }
+
+    while offset < count
+    {
+        if source[offset] != 0 do
+            return false
+        offset += 1
+    }
+
+    return true
+}
+
 // Paeth-filter two rows along a diagonal. The second row trails one pixel
 // behind the first, making both rows' left, above, and upper-left pixels available.
 func defilterPaethPair(firstSource, secondSource, previous: const [*] u8, first, second: [*] u8, count, bytesPerPixel: u64)
@@ -423,7 +444,10 @@ impl Decoder
             let filter = src[0]
             src += 1
 
-            if filter == 4 and pairPaeth and row + 1 < height and src[rowBytes] == 4
+            // With zero residuals, the first pixel equals Up, and each
+            // following pixel has Left equal to UpLeft, so Paeth selects Up.
+            let copyPaeth = filter == 4 and isZeroScanline(src, rowBytes)
+            if filter == 4 and not copyPaeth and pairPaeth and row + 1 < height and src[rowBytes] == 4
             {
                 let next = dest + rowStep
                 defilterPaethPair(src, src + rowBytes + 1, up, dest, next, rowBytes, filterOffset)
@@ -440,7 +464,11 @@ impl Decoder
             case 1:  PackedPixel.restoreHorizontalDeltas(src, dest, rowBytes, filterOffset)
             case 2:  defilterUpRow(src, up, dest, rowBytes)
             case 3:  defilterAverageRow(src, up, dest, rowBytes, filterOffset)
-            case 4:  defilterPaethRow(src, up, dest, rowBytes, filterOffset)
+            case 4:
+                if copyPaeth do
+                    Memory.copy(dest, up, rowBytes)
+                else do
+                    defilterPaethRow(src, up, dest, rowBytes, filterOffset)
             default: return false
             }
 

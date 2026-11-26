@@ -496,10 +496,10 @@ private impl Ac3Codec
             try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
     }
 
-    mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi)
+    mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi, coefficients: [*] f64)
     {
         let block = &.block
-        readPreparedMantissas'false(reader, block, bsi.nfchans, bsi.lfeon, &.coefficients, &.mantissaGains, &.dither)
+        readPreparedMantissas'false(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
 
         for band in block.rematrixCount where block.rematrix[band]
         {
@@ -510,16 +510,17 @@ private impl Ac3Codec
             var bin = begin
             while bin < end
             {
-                let left  = .coefficients[0, bin]
-                let right = .coefficients[1, bin]
-                .coefficients[0, bin] = left + right
-                .coefficients[1, bin] = left - right
+                let left  = coefficients[bin]
+                let right = coefficients[SamplesPerBlock + bin]
+                coefficients[bin] = left + right
+                coefficients[SamplesPerBlock + bin] = left - right
                 bin += 1
             }
         }
     }
 
-    mtd decodeBlock(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32, destination: [*] s16) fail
+    #[Swag.Inline]
+    mtd parseBlock(reader: *BitReader, bsi: const *Ac3Bsi, blockIndex: u32, coefficients: [*] f64) fail
     {
         let block = &.block
         for channel in bsi.nfchans do
@@ -564,41 +565,44 @@ private impl Ac3Codec
             reader.skip(cast(u64, skipBytes) * 8)
         }
 
-        .readMantissas(reader, bsi)
+        .readMantissas(reader, bsi, coefficients)
         if reader.overrun do
             fail InvalidFormatError{"AC-3 audio block is truncated"}
+    }
 
-        if .channels == 2 and not block.blockSwitch[0] and (bsi.nfchans < 2 or not block.blockSwitch[1])
+    #[Swag.Inline]
+    mtd synthesizeBlock(bsi: const *Ac3Bsi, blockSwitch: const *[MaxFullBandwidthChannels] bool, coefficients: const [*] f64, destination: [*] s16, channels: u32)
+    {
+        if channels == 2 and not blockSwitch[][0] and (bsi.nfchans < 2 or not blockSwitch[][1])
         {
             if bsi.acmod == 2 do
-                .stereoImdct.processFused(&.imdct, &.coefficients, destination)
+                .stereoImdct.processFused(&.imdct, coefficients, destination)
             else do
-                .stereoImdct.process(&.imdct, &.coefficients, destination)
+                .stereoImdct.process(&.imdct, coefficients, destination)
             return
         }
 
-        if .channels == MaxChannels
+        if channels == MaxChannels
         {
-            .surroundImdct.process(&.imdct, &.coefficients, &block.blockSwitch, destination)
+            .surroundImdct.process(&.imdct, cast(const *[MaxChannels, SamplesPerBlock] f64, coefficients), blockSwitch, destination)
             return
         }
 
         .stereoImdct.restore(&.imdct)
-        for channel in .channels
+        for channel in channels
         {
             let source     = .sourceChannel(channel, bsi)
-            let shortBlock = source < bsi.nfchans and block.blockSwitch[source]
-            .imdct[source].process(&.coefficients[source, 0], shortBlock, destination + channel, .channels)
+            let shortBlock = source < bsi.nfchans and blockSwitch[][source]
+            .imdct[source].process(coefficients + source * SamplesPerBlock, shortBlock, destination + channel, channels)
         }
     }
 
     mtd sourceChannel(destination: u32, bsi: const *Ac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
 
-    mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
+    mtd readFrameHeader(reader: *BitReader, packetSize: u64)->Ac3Bsi fail
     {
-        var reader = BitReader.create(packet.buffer, packet.count)
-        let bsi    = try parseAc3Bsi(&reader)
-        if bsi.frameSize != packet.count do
+        let bsi = try parseAc3Bsi(reader)
+        if bsi.frameSize != packetSize do
             fail InvalidFormatError{"AC-3 packet size does not match its sync-frame header"}
         if SampleRates[bsi.fscod] != .sampleRate do
             fail InvalidFormatError{"AC-3 packet sample rate differs from its container track"}
@@ -606,9 +610,18 @@ private impl Ac3Codec
         if decodedChannels != .channels do
             fail InvalidFormatError{"AC-3 packet channel layout differs from its container track"}
 
+        return bsi
+    }
+
+    mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
+    {
+        var reader = BitReader.create(packet.buffer, packet.count)
+        let bsi    = try .readFrameHeader(&reader, packet.count)
         for blockIndex in BlocksPerAc3Frame
-            do
-            try .decodeBlock(&reader, &bsi, blockIndex, destination + blockIndex * SamplesPerBlock * .channels)
+        {
+            try .parseBlock(&reader, &bsi, blockIndex, &.coefficients[0, 0])
+            .synthesizeBlock(&bsi, &.block.blockSwitch, &.coefficients[0, 0], destination + blockIndex * SamplesPerBlock * .channels, .channels)
+        }
     }
 }
 
@@ -634,6 +647,93 @@ impl IPacketCodec for Ac3Codec
             fail BadParameterError{"AC-3 destination buffer is too small"}
         try .decodeFrame(packet, cast([*] s16, destination))
         return required
+    }
+}
+
+// The packet parser owns dither and bit allocation. The synthesis worker owns
+// overlap state and consumes completed batches in input order.
+private struct Ac3PreparedFrame
+{
+    bsi:         Ac3Bsi
+    blockSwitch: [BlocksPerAc3Frame, MaxFullBandwidthChannels] bool
+}
+
+internal const Ac3PipelineFrames     = BlocksPerAc3Frame * SamplesPerBlock
+private const Ac3StereoPacketSamples = 2 * Ac3PipelineFrames
+private const Ac3PipelineCapacity    = 16'u64
+
+internal struct Ac3DecodeBatch
+{
+    private headers: [Ac3PipelineCapacity] Ac3PreparedFrame
+    private spectra: Array'f64
+    pcm:             Array's16
+    count:           u64
+}
+
+internal impl Ac3DecodeBatch
+{
+    mtd initialize()
+    {
+        .spectra.reserve(Ac3PipelineCapacity * Ac3StereoPacketSamples)
+        .pcm.reserve(Ac3PipelineCapacity * Ac3StereoPacketSamples)
+    }
+
+    mtd const capacity()->u64 => Ac3PipelineCapacity
+}
+
+internal struct Ac3DecodePipeline
+{
+    private codec: Ac3Codec
+}
+
+internal func isNativeAc3Codec(type: const *Swag.TypeInfoStruct)->bool => type == #typeof(Ac3Codec)
+
+internal impl Ac3DecodePipeline
+{
+    mtd initialize(sampleRate: u32)
+    {
+        .codec.sampleRate = sampleRate
+        .codec.channels   = 2
+        .codec.resetState()
+    }
+
+    mtd decode(packet: const [..] u8, output: [*] s16) fail
+    {
+        try .codec.decodeFrame(packet, output)
+    }
+
+    mtd prepare(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
+    {
+        var reader = BitReader.create(packet.buffer, packet.count)
+        let header = &batch.headers[batch.count]
+        header.bsi = try .codec.readFrameHeader(&reader, packet.count)
+        let spectra = batch.spectra.storage() + batch.count * Ac3StereoPacketSamples
+        for blockIndex in BlocksPerAc3Frame
+        {
+            let destination = spectra + blockIndex * 2 * SamplesPerBlock
+            try .codec.parseBlock(&reader, &header.bsi, blockIndex, destination)
+            for channel in header.bsi.nfchans do
+                header.blockSwitch[blockIndex, channel] = .codec.block.blockSwitch[channel]
+        }
+
+        batch.count += 1
+    }
+
+    mtd synthesize(batch: *Ac3DecodeBatch)
+    {
+        let spectra = batch.spectra.storage()
+        let pcm     = batch.pcm.storage()
+        for packet in batch.count
+        {
+            let header = &batch.headers[packet]
+            for blockIndex in BlocksPerAc3Frame
+            {
+                let offset       = packet * Ac3StereoPacketSamples + blockIndex * 2 * SamplesPerBlock
+                let coefficients = spectra + offset
+                let switches     = cast(const *[MaxFullBandwidthChannels] bool, &header.blockSwitch[blockIndex, 0])
+                .codec.synthesizeBlock(&header.bsi, switches, coefficients, pcm + offset, 2)
+            }
+        }
     }
 }
 

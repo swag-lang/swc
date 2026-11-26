@@ -1211,3 +1211,48 @@ both generated voice cases improve in the four-core runs.
 
 Native Release passes 330 audio tests. Release-safe passes 68 focused
 Dolby, MP3, Opus, Ogg and Vorbis tests.
+
+## Thirty-seventh optimization pass
+
+The same native Release compiler compares the selected changes with the
+audio sources at `95ead18c34` and native FFmpeg 9.1. Each median has 42
+samples and includes opening and materializing up to ten seconds of PCM16.
+The single-core runs use CPU 0.
+
+[Raw stage times and PCM digests](audio-decode-linux-round37.json)
+
+| Input | Before 1 core (ms) | Swag 1 core (ms) | FFmpeg 9.1 1 core (ms) | Before 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 9.1 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample3.ac3` | 7.28 | 7.37 | 6.32 | 7.48 | 6.19 | 6.37 |
+| `sample3.ogg` | 6.75 | 6.88 | 7.05 | 7.41 | 6.57 | 6.70 |
+| `sample3.opus` | 21.00 | 20.26 | 19.05 | 20.44 | 19.82 | 18.68 |
+| `ac3-32k-mono.ac3` | 4.42 | 4.50 | 3.74 | 4.50 | 4.38 | 3.61 |
+| `ac3-32k-stereo.ac3` | 7.23 | 7.22 | 6.42 | 6.93 | 6.73 | 6.55 |
+| `ac3-44k-stereo.ac3` | 8.42 | 8.75 | 7.29 | 8.63 | 7.48 | 8.19 |
+| `ac3-48k-5.1.ac3` | 23.13 | 22.32 | 21.63 | 22.87 | 21.63 | 21.50 |
+| `ac3-48k-stereo.ac3` | 8.56 | 8.78 | 7.27 | 8.46 | 7.63 | 7.19 |
+| `eac3-48k-5.1.eac3` | 21.50 | 21.07 | 21.16 | 21.79 | 21.24 | 21.33 |
+| `vorbis-32k-mono.ogg` | 3.44 | 3.39 | 4.21 | 3.49 | 3.53 | 4.48 |
+| `vorbis-48k-5.1.ogg` | 27.18 | 26.91 | 26.23 | 19.57 | 18.98 | 26.82 |
+| `vorbis-48k-7.1.ogg` | 35.38 | 32.71 | 32.15 | 23.79 | 23.24 | 32.60 |
+| `vorbis-48k-stereo.ogg` | 8.93 | 8.99 | 9.67 | 9.04 | 9.17 | 9.37 |
+| `opus-20ms-48k-stereo.opus` | 28.69 | 28.15 | 26.92 | 28.63 | 29.01 | 28.15 |
+| `opus-5ms-48k-stereo.opus` | 27.37 | 27.16 | 29.43 | 28.56 | 27.54 | 30.94 |
+| `opus-voip-16k-mono.opus` | 7.95 | 7.97 | 9.83 | 7.44 | 7.65 | 9.42 |
+| `opus-voip-48k-mono.opus` | 14.74 | 14.59 | 13.49 | 14.17 | 13.79 | 13.05 |
+
+Native offline AC-3 stereo decodes can overlap parsing and synthesis through
+two bounded batches while keeping publication ordered. The initial packet
+remains serial. CELT reuses pulse-cache rows and commits the same range
+budget once. Vorbis uses contiguous residue vectors and skips zero floor tails
+in its eight-channel path.
+
+All 17 selected inputs are byte-identical to the previous build and across
+worker budgets. On FileSamples, AC-3 improves by 1.29 ms with four cores
+and leads FFmpeg in that run. On one core it still trails. Vorbis 7.1 gains
+2.68 ms on one core and trails by 0.55 ms. The four-core path continues
+to lead on 5.1 and 7.1. FileSamples Opus gains 0.62–0.74 ms and remains behind
+FFmpeg 9.1.
+
+Native Release passes 333 audio tests. Release-safe passes 47 focused
+Dolby, Opus, Ogg and Vorbis tests.

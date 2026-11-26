@@ -1353,20 +1353,23 @@ private impl Codec
         switch residue.kind
         {
         case 0:
-            try .decodeResidueKind'(0, false)(residue, reader, list, half)
+            try .decodeResidueKind'(0, false, false)(residue, reader, list, half)
 
         case 1:
-            try .decodeResidueKind'(1, false)(residue, reader, list, half)
+            if .channels == 8 do
+                try .decodeResidueKind'(1, false, true)(residue, reader, list, half)
+            else do
+                try .decodeResidueKind'(1, false, false)(residue, reader, list, half)
 
         default:
             if list.count == 2 do
-                try .decodeResidueKind'(2, true)(residue, reader, list, half)
+                try .decodeResidueKind'(2, true, false)(residue, reader, list, half)
             else do
-                try .decodeResidueKind'(2, false)(residue, reader, list, half)
+                try .decodeResidueKind'(2, false, false)(residue, reader, list, half)
         }
     }
 
-    mtd(Kind: u32, Stereo: bool) decodeResidueKind(residue: *Residue, reader: *BitReader, list: const [..] u32, half: u32) fail
+    mtd(Kind: u32, Stereo: bool, Surround: bool) decodeResidueKind(residue: *Residue, reader: *BitReader, list: const [..] u32, half: u32) fail
     {
         var active: [MaxChannels] u32
         var used = 0'u32
@@ -1450,8 +1453,14 @@ private impl Codec
                             var complete: bool
                             #static if Kind == 0 do
                                 complete = .decodeInterleaved(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
-                            elif Kind == 1 do
-                                complete = .decodeSequential(codebook, reader, .spectrum[active[vector]].storage() + offset, residue.partitionSize)
+                            elif Kind == 1
+                            {
+                                let target = .spectrum[active[vector]].storage() + offset
+                                #static if Surround do
+                                    complete = .decodePackedSequential(codebook, reader, target, residue.partitionSize)
+                                else do
+                                    complete = .decodeSequential(codebook, reader, target, residue.partitionSize)
+                            }
                             else
                             {
                                 if not Stereo and width == 5 and codebook.dimensions == 5 do
@@ -1499,6 +1508,16 @@ private impl Codec
         return true
     }
 
+    // The common type 1 surround lookup books store whole pairs or groups of four.
+    mtd decodePackedSequential(book: *Codebook, reader: *BitReader, target: [*] f32, count: u32)->bool
+    {
+        if book.dimensions == 2 and (count & 1) == 0 do
+            return .decodeWholeVectors'2(book, reader, target, count)
+        if book.dimensions == 4 and (count & 3) == 0 do
+            return .decodeWholeVectors'4(book, reader, target, count)
+        return .decodeSequential(book, reader, target, count)
+    }
+
     // Residue type 1: every vector fills the next `dimensions` values.
     mtd decodeSequential(book: *Codebook, reader: *BitReader, target: [*] f32, count: u32)->bool
     {
@@ -1515,6 +1534,69 @@ private impl Codec
             }
         }
 
+        return true
+    }
+
+    // An aligned partition can add one whole lookup vector at a time.
+    mtd(Width: u32) decodeWholeVectors(book: *Codebook, reader: *BitReader, target: [*] f32, count: u32)->bool
+    {
+        let values = book.values.storage()
+        let fastBoundary = reader.size < 8 ? 0 : (reader.size - 7) * 8
+        var output = target
+        var cursorOffset = reader.bitPos
+        var windowBits = 0'u64
+        var available = 0'u32
+        for count / Width
+        {
+            if available < PrefixBits and cursorOffset < fastBoundary
+            {
+                let byteAt = cursorOffset >> 3
+                let alignment = cast(u32, cursorOffset & 7)
+                var rawWindow: u64
+                Memory.copy(&rawWindow, unwrap reader.data + byteAt, #sizeof(u64))
+                windowBits = Math.littleEndianToNative(rawWindow) >> alignment
+                available = 64 - alignment
+            }
+
+            let prefixLeaf = available >= PrefixBits ? book.prefixes[windowBits & PrefixMask] : 0
+            var entry: s32
+            if prefixLeaf < 0
+            {
+                let leaf = -prefixLeaf
+                let size = cast(u32, leaf & LeafMask)
+                windowBits >>= size
+                available -= size
+                cursorOffset += size
+                entry = leaf >> LeafBits
+            }
+            else
+            {
+                reader.bitPos = cursorOffset
+                if prefixLeaf > 0
+                {
+                    reader.bitPos += PrefixBits
+                    entry = book.decodeTree(reader, cast(u32, prefixLeaf), PrefixBits)
+                }
+                else do
+                    entry = book.decode(reader)
+                if entry < 0 do
+                    return false
+                cursorOffset = reader.bitPos
+                available = 0
+            }
+
+            let vector = values + cast(u64, entry) * Width
+            #static if Width == 2
+            {
+                output[0] += vector[0]
+                output[1] += vector[1]
+            }
+            else do
+                Simd.store(output, Simd.load(output) + Simd.load(vector))
+            output += Width
+        }
+
+        reader.bitPos = cursorOffset
         return true
     }
 
@@ -1758,8 +1840,25 @@ private impl Codec
             let floor = &.floors[mapping.submapFloor[mapping.mux[channel]]]
             if floor.kind == 0 do
                 .applyFloor0(floor, which, channel, half)
-            else do
-                .applyFloor1(floor, channel, activeBins[channel])
+            else
+            {
+                var limit = activeBins[channel]
+                if .channels == 8
+                {
+                    // The floor's positive gain leaves a positive zero unchanged.
+                    let spectrum = .spectrum[channel].storage()
+                    while limit >= 4
+                    {
+                        let bits = cast #bit(Simd.U64x2, Simd.load(spectrum + (limit - 4)))
+                        if bits[0] | bits[1] do
+                            break
+                        limit -= 4
+                    }
+                    while limit and not cast #bit(u32, spectrum[limit - 1]) do
+                        limit -= 1
+                }
+                .applyFloor1(floor, channel, limit)
+            }
         }
 
         // Window the block, add it to the tail of the previous one, and keep its own tail.

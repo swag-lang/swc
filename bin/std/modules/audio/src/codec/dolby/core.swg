@@ -531,8 +531,8 @@ impl StereoImdct
     mtd restore(states: *[MaxChannels] Imdct)
         => .restorePair(&states[][0], &states[][1])
 
-    mtd process(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, output: [*] s16)
-        => .processPair'2(&states[][0], &states[][1], &coefficients[][0, 0], &coefficients[][1, 0], output)
+    mtd process(states: *[MaxChannels] Imdct, coefficients: const [*] f64, output: [*] s16)
+        => .processPair'2(&states[][0], &states[][1], coefficients, coefficients + SamplesPerBlock, output)
 }
 
 // Six decoded channels imply the 3/2 layout with LFE.
@@ -1008,7 +1008,7 @@ impl MantissaReader
     }
 }
 
-private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: *[MaxChannels, SamplesPerBlock] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
+private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: [*] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
 {
     var mantissas    = MantissaReader.create(reader)
     var couplingRead = false
@@ -1016,7 +1016,7 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
     var couplingMantissas: [216] f64
     for channel in channelCount
     {
-        let output = cast([*] f64, &coefficients[][channel, 0])
+        let output = coefficients + channel * SamplesPerBlock
         let codes  = cast(const [*] s32, &block.channelBap[channel, 0])
         let gains  = cast(const [*] f64, &prepared.channel[channel, 0])
         let end    = cast(u64, block.channelEnd[channel])
@@ -1073,10 +1073,10 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
 
     if lfe
     {
-        let channel = channelCount
-        Memory.set(&coefficients[][channel, 0], 0, SamplesPerBlock * #sizeof(f64))
+        let output = coefficients + channelCount * SamplesPerBlock
+        Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
         for bin in 7 do
-            coefficients[][channel, bin] = mantissas.getPrepared'UseTable(block.lfeBap[bin], prepared.lfe[bin])
+            output[bin] = mantissas.getPrepared'UseTable(block.lfeBap[bin], prepared.lfe[bin])
     }
 
     if block.coupling
@@ -1084,7 +1084,7 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
         for channel in channelCount where block.channelCoupled[channel]
         {
             let dither      = block.dither[channel]
-            let destination = cast([*] f64, &coefficients[][channel, block.couplingStart])
+            let destination = coefficients + channel * SamplesPerBlock + cast(u32, block.couplingStart)
             for subband in block.couplingSubbands
             {
                 let scale = block.couplingCoord[channel, subband] * 8.0
@@ -1279,7 +1279,7 @@ private func prepareStereoSpectrumFused(fft: *StereoSpectrum, left, right: const
 
 impl StereoImdct
 {
-    mtd processFused(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, output: [*] s16)
+    mtd processFused(states: *[MaxChannels] Imdct, coefficients: const [*] f64, output: [*] s16)
     {
         let left  = &states[][0]
         let right = &states[][1]
@@ -1295,7 +1295,7 @@ impl StereoImdct
         }
 
         var fft: StereoSpectrum
-        prepareStereoSpectrumFused(&fft, &coefficients[][0, 0], &coefficients[][1, 0])
+        prepareStereoSpectrumFused(&fft, coefficients, coefficients + SamplesPerBlock)
         writeStereoHalf'(false, 2)(&fft, &.delay[0], output)
         writeStereoHalf'(true, 2)(&fft, &.delay[0], output)
     }

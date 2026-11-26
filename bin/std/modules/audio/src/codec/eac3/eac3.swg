@@ -653,7 +653,7 @@ private impl Eac3Codec
                                   previousStart != .block.couplingStart or
                                   previousEnd != .block.couplingEndMantissa
             try .readAllocation(&reader, &bsi, &frame, blockIndex, &previousChannelEnd, couplingChanged)
-            readPreparedMantissas'true(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients, &.mantissaGains, &.dither)
+            readPreparedMantissas'true(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients[0, 0], &.mantissaGains, &.dither)
             if reader.overrun do
                 fail InvalidFormatError{"E-AC-3 audio block is truncated"}
 
@@ -662,7 +662,7 @@ private impl Eac3Codec
                not .block.blockSwitch[0] and
                (bsi.nfchans < 2 or not .block.blockSwitch[1])
             {
-                .stereoImdct.process(&.imdct, &.coefficients, target)
+                .stereoImdct.process(&.imdct, &.coefficients[0, 0], target)
                 continue
             }
 

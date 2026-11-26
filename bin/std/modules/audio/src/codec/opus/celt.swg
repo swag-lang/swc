@@ -208,6 +208,28 @@ private const PulseChoiceRows = #run
     return result
 }
 
+private struct CeltPartitionPlan
+{
+    base:  u16
+    limit: u16
+    row:   u8
+}
+
+// Each band's maximum and pulse-budget row depend only on its allocation cache.
+private const CeltPartitionPlans: [CeltCacheIndex.count] CeltPartitionPlan = #run
+{
+    var plans: [CeltCacheIndex.count] CeltPartitionPlan
+    for base, i in CeltCacheIndex where base >= 0
+    {
+        let start = cast(u32, base)
+        plans[i].base  = cast(u16, start)
+        plans[i].limit = cast(u16, CeltCacheBits[start + cast(u32, CeltCacheBits[start])]) + 12
+        plans[i].row   = PulseChoiceRows.indices[start]
+    }
+
+    return plans
+}
+
 // Map each possible requested eighth-bit budget to the nearest entry in its pulse cache.
 private const PulseChoices: [PulseChoiceRows.count, 256] u8 = #run
 {
@@ -1183,8 +1205,8 @@ internal impl CeltDecoder
         return codedBands
     }
 
-    mtd const bits2pulses(base: u32, bits: s32)->s32
-        => cast(s32, PulseChoices[PulseChoiceRows.indices[base], Math.clamp(bits - 1, 0, 255)])
+    mtd const bits2pulses(row: u32, bits: s32)->s32
+        => cast(s32, PulseChoices[row, Math.clamp(bits - 1, 0, 255)])
 
     mtd const pulses2bits(base: u32, pulses: s32)->s32
     {
@@ -1713,11 +1735,10 @@ internal impl CeltDecoder
                        fill: u32,
                        dec: *RangeDecoder)->u32
     {
-        let i     = ctx.band
-        var cm    = 0'u32
-        let base  = cast(u32, CeltCacheIndex[cast(u32, (lm + 1)) * CeltBandCount + i])
-        let limit = cast(s32, CeltCacheBits[base + cast(u32, CeltCacheBits[base])]) + 12
-        if lm != -1 and bBits > limit and n > 2
+        let i    = ctx.band
+        var cm   = 0'u32
+        let plan = &CeltPartitionPlans[cast(u32, (lm + 1)) * CeltBandCount + i]
+        if lm != -1 and bBits > cast(s32, plan.limit) and n > 2
         {
             var sctx: SplitContext
             let half    = n >> 1
@@ -1767,16 +1788,17 @@ internal impl CeltDecoder
             return cm
         }
 
-        var q        = .bits2pulses(base, bBits)
-        var currBits = .pulses2bits(base, q)
-        ctx.remainingBits -= currBits
-        while ctx.remainingBits < 0 and q > 0
+        let base      = cast(u32, plan.base)
+        var q         = .bits2pulses(cast(u32, plan.row), bBits)
+        var currBits  = .pulses2bits(base, q)
+        let available = ctx.remainingBits
+        while currBits > available and q > 0
         {
-            ctx.remainingBits += currBits
-            q                 -= 1
-            currBits          = .pulses2bits(base, q)
-            ctx.remainingBits -= currBits
+            q        -= 1
+            currBits = .pulses2bits(base, q)
         }
+
+        ctx.remainingBits = available - currBits
 
         if q != 0
         {

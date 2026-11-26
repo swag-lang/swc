@@ -219,6 +219,21 @@ private func readPcm16Packet(codec: IPacketCodec,
         fail InvalidFormatError{"compressed sound packet decoded to an unexpected size"}
 }
 
+private func publishAc3Batch(batch: *Dolby.Ac3DecodeBatch, range: *Pcm16Range, consumer: SoundPcm16Consumer)->bool
+{
+    const Samples = 2 * Dolby.Ac3PipelineFrames
+    let pcm = batch.pcm.storage()
+    for packet in batch.count
+    {
+        let output = pcm + packet * Samples
+        if not range.publish(output[until Samples], 2, consumer) do
+            return false
+    }
+
+    batch.count = 0
+    return true
+}
+
 private impl SoundFile
 {
     mtd const decodePacketPcm16(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer) fail
@@ -230,6 +245,15 @@ private impl SoundFile
         if descriptor.type == #typeof(Mp3.Codec) and
            not Swag.jit() and
            (try Mp3.decodeParallel(me, firstFrame, frameCount, consumer)) do
+            return
+
+        if .encoding == .Ac3 and
+           .channelCount == 2 and
+           frameCount >= 6 * Dolby.Ac3PipelineFrames and
+           not Swag.jit() and
+           Swag.workerCount() > 1 and
+           Dolby.isNativeAc3Codec(descriptor.type) and
+           (try .decodeAc3Pipeline(firstFrame, frameCount, consumer)) do
             return
 
         // The registered FLAC codec has no state that carries over between native frames
@@ -331,6 +355,83 @@ private impl SoundFile
                 return
             index += 1
         }
+    }
+
+    #[Swag.NoInline]
+    mtd const decodeAc3Pipeline(firstFrame, frameCount: u64, consumer: SoundPcm16Consumer)->bool fail
+    {
+        const PacketFrames  = Dolby.Ac3PipelineFrames
+        const PacketSamples = 2 * PacketFrames
+        let target = .leadingTrim + firstFrame
+        let end    = .packetAtDecodedFrame(target + frameCount - 1) + 1
+        for packet in .packets.toSlice()[until end]
+        {
+            // Caller-supplied packet maps may contain silence or different packet durations.
+            if not packet.byteSize or
+               packet.byteSize > ByteSource.WindowSize or
+               packet.sampleFrameCount != PacketFrames do
+                return false
+        }
+
+        var pipeline: Dolby.Ac3DecodePipeline
+        pipeline.initialize(.sampleRate)
+        var source  = try ByteSource.openFile(.path.toString(), .ReadWrite)
+        var range   = Pcm16Range{target, frameCount}
+        var first: [PacketSamples] s16
+        let packet0 = .packets[0]
+        try source.seek(packet0.sourceOffset)
+        let window = try source.peek(packet0.byteSize)
+        try pipeline.decode(window[until packet0.byteSize], &first[0])
+        if not range.publish(first[until PacketSamples], 2, consumer) do
+            return true
+
+        var batches: [2] Dolby.Ac3DecodeBatch
+        batches[0].initialize()
+        batches[1].initialize()
+        var next:  u64
+        var index   = 1'u64
+        var tasks: Swag.TaskGroup
+        let decoder = &pipeline
+        while index < end
+        {
+            let loading = &batches[next]
+            let pending = &batches[next ^ 1]
+            let stop    = Math.min(end, index + loading.capacity())
+            var error: Swag.Error
+            catch {
+                while index < stop
+                {
+                    let packet = .packets[index]
+                    try source.seek(packet.sourceOffset)
+                    let compressed = try source.peek(packet.byteSize)
+                    try pipeline.prepare(loading, compressed[until packet.byteSize])
+                    index += 1
+                }
+            }
+            {
+                error.capture(Swag.err)
+            }
+
+            try tasks.join()
+            if not publishAc3Batch(pending, &range, consumer) do
+                return true
+
+            if not error.isEmpty()
+            {
+                decoder.synthesize(loading)
+                if not publishAc3Batch(loading, &range, consumer) do
+                    return true
+                try error.raise()
+            }
+
+            if loading.count do
+                tasks.spawn(func|decoder, loading|() { decoder.synthesize(loading) })
+            next ^= 1
+        }
+
+        try tasks.join()
+        discard publishAc3Batch(&batches[next ^ 1], &range, consumer)
+        return true
     }
 
     #[Swag.NoInline]

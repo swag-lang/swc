@@ -179,7 +179,6 @@ private
     // Four BGRA pixels share these byte masks in the packed span kernels.
     const CpuBgraRgbMask   = cast(Math.Simd.U8x16, [255'u8, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0, 255, 255, 255, 0])
     const CpuBgraAlphaMask = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
-    const CpuPixelLanes    = cast(Math.Simd.F32x4, [0.0'f32, 1.0, 2.0, 3.0])
 
     // Alpha factor of the bitmap font shader per atlas byte: pow(byte / 255, FontGamma).
     //
@@ -523,20 +522,26 @@ private impl RenderCpu
         return bits <= 0x7F80_0000
     }
 
-    // Returns one coverage bit per horizontal pixel while preserving the scalar top-left rule.
-    func insideEdges4(edge0, edge1, edge2: Math.Simd.F32x4, edge0TopLeft, edge1TopLeft, edge2TopLeft: bool)->u32
+    // A rounded edge test is monotonic along a row. Once its outside columns are
+    // trimmed, every interior pixel can use the same coverage without rechecking it.
+    #[Swag.Inline]
+    func trimEdgeSpan(x0, x1: *s32, a, c, origin: f32, topLeft: bool)
     {
-        let zero  = Math.Simd.splat(0.0'f32)
-        var mask0 = edge0 > zero
-        var mask1 = edge1 > zero
-        var mask2 = edge2 > zero
-        if edge0TopLeft do
-            mask0 |= edge0 == zero
-        if edge1TopLeft do
-            mask1 |= edge1 == zero
-        if edge2TopLeft do
-            mask2 |= edge2 == zero
-        return Math.Simd.bitmask(mask0 & mask1 & mask2)
+        if a == 0
+        {
+            if not insideEdge(c, topLeft) do
+                x1[] = x0[] - 1
+        }
+        elif a > 0
+        {
+            while x0[] <= x1[] and not insideEdge(Math.mulAdd(a, cast(f32, x0[]) + 0.5 - origin, c), topLeft) do
+                x0[] += 1
+        }
+        else
+        {
+            while x0[] <= x1[] and not insideEdge(Math.mulAdd(a, cast(f32, x1[]) + 0.5 - origin, c), topLeft) do
+                x1[] -= 1
+        }
     }
 
     // Narrows the columns `x0` to `x1` of one row to those that can pass one edge test.
@@ -1701,19 +1706,28 @@ private impl RenderCpu
     }
 
     #[Swag.Inline]
-    func fontLinearAxis(base, size: s32, offset: f32)->FontLinearAxis
+    func fontLinearAxis(base, size: s32, position, floor: f32)->FontLinearAxis
     {
-        let position = offset - 0.5
-        let floor    = Math.floor(position)
-        let first    = base + cast(s32, floor)
+        let first = base + cast(s32, floor)
         return {Math.clamp(first, 0, size - 1), Math.clamp(first + 1, 0, size - 1), position - floor}
     }
 
     #[Swag.Inline]
     func msdfTexel(row: const [*] u8, x: s32)->Math.Simd.F32x4
     {
-        let pixel = row + cast(u64, x) * 4
-        return cast(Math.Simd.F32x4, [cast(f32, pixel[0]), cast(f32, pixel[1]), cast(f32, pixel[2]), cast(f32, pixel[3])]) / 255.0
+        #static if Core.BIG_ENDIAN
+        {
+            let pixel = row + cast(u64, x) * 4
+            return cast(Math.Simd.F32x4, [cast(f32, pixel[0]), cast(f32, pixel[1]), cast(f32, pixel[2]), cast(f32, pixel[3])]) / 255.0
+        }
+        else
+        {
+            // Each widened byte fits in the mantissa of 2^23. Subtracting 2^23
+            // converts all four lanes exactly, including the last texel of a row.
+            let pixel = cast #bit(Math.Simd.U8x16, Math.Simd.splat(loadBgra8(row, x)))
+            let lanes = Math.Simd.widenLow(Math.Simd.widenLow(pixel)) | 0x4B00_0000'u32
+            return (cast #bit(Math.Simd.F32x4, lanes) - 8388608.0) / 255.0
+        }
     }
 
     #[Swag.Inline]
@@ -1754,12 +1768,15 @@ private impl RenderCpu
             return fallback + msdfCoverage(atlas, pos.moved(offset), screenPxRange, 0.5, 1.0)
         }
 
-        let width  = cast(s32, (atlas.width / 4))
-        let height = cast(s32, atlas.height)
-        let left   = fontLinearAxis(pos.baseX, width, pos.offset.x - offset.x)
-        let right  = fontLinearAxis(pos.baseX, width, pos.offset.x + offset.x)
-        let top    = fontLinearAxis(pos.baseY, height, pos.offset.y - offset.y)
-        let bottom = fontLinearAxis(pos.baseY, height, pos.offset.y + offset.y)
+        let width    = cast(s32, (atlas.width / 4))
+        let height   = cast(s32, atlas.height)
+        let position = cast(Math.Simd.F32x4, [pos.offset.x - offset.x, pos.offset.x + offset.x,
+                                              pos.offset.y - offset.y, pos.offset.y + offset.y]) - 0.5
+        let floors = Math.floor(position)
+        let left   = fontLinearAxis(pos.baseX, width, position[0], floors[0])
+        let right  = fontLinearAxis(pos.baseX, width, position[1], floors[1])
+        let top    = fontLinearAxis(pos.baseY, height, position[2], floors[2])
+        let bottom = fontLinearAxis(pos.baseY, height, position[3], floors[3])
 
         let first = msdfRow(atlas, top.first, left, right)
         let next  = top.first == top.second ? first : msdfRow(atlas, top.second, left, right)
@@ -1955,6 +1972,17 @@ private impl RenderCpu
         let dcDy     = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
         let covWidth = Math.max(Math.abs(dcDx) + Math.abs(dcDy), 0.00001)
 
+        if let rows = batch.overlapRows
+        {
+            let triangle = TriangleSpan{
+                bounds: {minX: minX, minY: minY, maxX: maxX, maxY: maxY},
+                origin: [edge0Origin, edge1Origin, edge2Origin],
+                dx: [dx0, dx1, dx2], dy: [dy0, dy1, dy2],
+                topLeft: [edge0TopLeft, edge1TopLeft, edge2TopLeft], invArea: invArea}
+            .accumulateSolidStroke(batch, rows, &triangle, Color.fromArgb(v0.color).a, [v0.cov, v1.cov, v2.cov], covWidth)
+            return
+        }
+
         // Font fragments are located in texels from the first vertex, never in normalized atlas
         // coordinates, so a glyph shades alike wherever earlier text placed it; see AtlasPoint.
         let needFontPos = (.program == CpuProgram_Font or .program == CpuProgram_Msdf) and batch.atlas != null
@@ -2037,43 +2065,26 @@ private impl RenderCpu
                     let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
                     var x0         = minX
                     var x1         = maxX
+                    let rowEdge0   = dx0 * rowDy0
+                    let rowEdge1   = dx1 * rowDy1
+                    let rowEdge2   = dx2 * rowDy2
                     if narrowRows
                     {
-                        narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
-                        narrowEdgeSpan(&x0, &x1, -dy1, dx1 * rowDy1, edge1Origin.x)
-                        narrowEdgeSpan(&x0, &x1, -dy2, dx2 * rowDy2, edge2Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy0, rowEdge0, edge0Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy1, rowEdge1, edge1Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy2, rowEdge2, edge2Origin.x)
                     }
 
+                    trimEdgeSpan(&x0, &x1, -dy0, rowEdge0, edge0Origin.x, edge0TopLeft)
+                    trimEdgeSpan(&x0, &x1, -dy1, rowEdge1, edge1Origin.x, edge1TopLeft)
+                    trimEdgeSpan(&x0, &x1, -dy2, rowEdge2, edge2Origin.x, edge2TopLeft)
+
                     var x = x0
-                    while x <= x1
+                    if not stencilTest
                     {
-                        var coverage: u32
-                        var laneCount = 1
-                        if x1 - x >= 3
+                        while x1 - x >= 3
                         {
-                            let sx = Math.Simd.splat(cast(f32, x) + 0.5) + CpuPixelLanes
-                            let e0 = Math.mulAdd(Math.Simd.splat(-dy0), sx - edge0Origin.x, Math.Simd.splat(dx0 * rowDy0))
-                            let e1 = Math.mulAdd(Math.Simd.splat(-dy1), sx - edge1Origin.x, Math.Simd.splat(dx1 * rowDy1))
-                            let e2 = Math.mulAdd(Math.Simd.splat(-dy2), sx - edge2Origin.x, Math.Simd.splat(dx2 * rowDy2))
-                            coverage  = insideEdges4(e0, e1, e2, edge0TopLeft, edge1TopLeft, edge2TopLeft)
-                            laneCount = 4
-                        }
-                        else
-                        {
-                            let sx = cast(f32, x) + 0.5
-                            let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
-                            let e1 = Math.mulAdd(-dy1, sx - edge1Origin.x, dx1 * rowDy1)
-                            let e2 = Math.mulAdd(-dy2, sx - edge2Origin.x, dx2 * rowDy2)
-                            if insideEdge(e0, edge0TopLeft) and
-                               insideEdge(e1, edge1TopLeft) and
-                               insideEdge(e2, edge2TopLeft) do
-                                coverage = 1
-                        }
-
-                        let pixel = rowPixels + cast(u64, x) * 4
-
-                        if coverage == 0xF and not stencilTest
-                        {
+                            let pixel = rowPixels + cast(u64, x) * 4
                             if copyAll do
                                 Math.Simd.store(pixel, fill)
                             elif alphaMaskStore do
@@ -2089,65 +2100,58 @@ private impl RenderCpu
                             }
 
                             x += 4
-                            continue
                         }
+                    }
 
-                        for lane in laneCount
+                    for pixelX in x until x1 + 1
+                    {
+                        // The region cuts the coverage. A copy has no coverage to cut, so the
+                        // region decides alone whether the pixel is written.
+                        var laneColor = constColor
+                        if stencilTest
                         {
-                            if not (coverage & (1'u32 << lane)) do
+                            let clip = rowStencil[pixelX]
+                            if clip == 0 do
                                 continue
-                            let pixelX = x + cast(s32, lane)
-
-                            // The region cuts the coverage. A copy has no coverage to cut, so the
-                            // region decides alone whether the pixel is written.
-                            var laneColor = constColor
-                            if stencilTest
+                            if clip != 255
                             {
-                                let clip = rowStencil[pixelX]
-                                if clip == 0 do
-                                    continue
-                                if clip != 255
+                                if .blendingMode == .Copy
                                 {
-                                    if .blendingMode == .Copy
-                                    {
-                                        if clip < 128 do
-                                            continue
-                                    }
-                                    else
-                                    {
-                                        laneColor.a = cast(u8, ((cast(u32, laneColor.a) * clip) / 255))
-                                        if laneColor.a == 0 do
-                                            continue
-                                    }
+                                    if clip < 128 do
+                                        continue
+                                }
+                                else
+                                {
+                                    laneColor.a = cast(u8, ((cast(u32, laneColor.a) * clip) / 255))
+                                    if laneColor.a == 0 do
+                                        continue
                                 }
                             }
-
-                            let lanePixel = rowPixels + cast(u64, pixelX) * 4
-                            if fastAlpha
-                            {
-                                blendAlphaBgra8(lanePixel, laneColor)
-                                if let matte = whiteMatte do
-                                    blendAlphaBgra8(matte + rowOffset + cast(u64, pixelX) * 4, laneColor)
-                            }
-                            elif alphaMaskStore
-                            {
-                                // A cut alpha no longer stores as it is: it composites.
-                                if laneColor.a == constColor.a do
-                                    lanePixel[3] = laneColor.a
-                                else do
-                                    .blendPixel(image, pixelX, y, laneColor)
-                            }
-                            else
-                            {
-                                lanePixel[0] = laneColor.b
-                                lanePixel[1] = laneColor.g
-                                lanePixel[2] = laneColor.r
-                                if copyAll do
-                                    lanePixel[3] = laneColor.a
-                            }
                         }
 
-                        x += laneCount
+                        let lanePixel = rowPixels + cast(u64, pixelX) * 4
+                        if fastAlpha
+                        {
+                            blendAlphaBgra8(lanePixel, laneColor)
+                            if let matte = whiteMatte do
+                                blendAlphaBgra8(matte + rowOffset + cast(u64, pixelX) * 4, laneColor)
+                        }
+                        elif alphaMaskStore
+                        {
+                            // A cut alpha no longer stores as it is: it composites.
+                            if laneColor.a == constColor.a do
+                                lanePixel[3] = laneColor.a
+                            else do
+                                .blendPixel(image, pixelX, y, laneColor)
+                        }
+                        else
+                        {
+                            lanePixel[0] = laneColor.b
+                            lanePixel[1] = laneColor.g
+                            lanePixel[2] = laneColor.r
+                            if copyAll do
+                                lanePixel[3] = laneColor.a
+                        }
                     }
                 }
 
@@ -2271,10 +2275,58 @@ private impl RenderCpu
             }
         }
 
+        // The opaque interior of a textured triangle needs only bilinear sampling and
+        // compositing. Keep the general fragment path for coverage fringes and other paint.
+        if fastAlpha and
+           narrowRows and
+           not whiteMatte and
+           not stencilTest and
+           not .stencilWrite and
+           not batch.solidPaint and
+           not batch.paintPlanar and
+           paint.type == .Texture and
+           paint.uvMode == .Fill and
+           paint.interpolationMode == .Linear and
+           v0.color == white and
+           v1.color == white and
+           v2.color == white and
+           (.program == CpuProgram_Simple or (.program == CpuProgram_Default and v0.cov == 1 and v1.cov == 1 and v2.cov == 1))
+        {
+            if let source = batch.paintImage where source.alphaMode == .Straight
+            {
+                let triangle = TriangleSpan{
+                    bounds: {minX: minX, minY: minY, maxX: maxX, maxY: maxY},
+                    origin: [edge0Origin, edge1Origin, edge2Origin],
+                    dx: [dx0, dx1, dx2], dy: [dy0, dy1, dy2],
+                    topLeft: [edge0TopLeft, edge1TopLeft, edge2TopLeft],
+                    pos: [v0.pos, v1.pos, v2.pos], invArea: invArea}
+                switch source.pixelFormat
+                {
+                case .BGRA8:
+                    drawLinearTextureTriangle'(.BGRA8)(batch, source, &triangle, paint.boundRect)
+                    return
+
+                case .RGBA8:
+                    drawLinearTextureTriangle'(.RGBA8)(batch, source, &triangle, paint.boundRect)
+                    return
+
+                case .BGR8:
+                    drawLinearTextureTriangle'(.BGR8)(batch, source, &triangle, paint.boundRect)
+                    return
+
+                case .RGB8:
+                    drawLinearTextureTriangle'(.RGB8)(batch, source, &triangle, paint.boundRect)
+                    return
+
+                default:
+                    break
+                }
+            }
+        }
+
         let needPaintPos = not batch.solidPaint
         let needCoverage = .program == CpuProgram_Default
         let copyAll      = fastCopy and maskFull
-        let solidMask    = batch.overlapRows ? .overlapAlpha.storage() : null
 
         for var y = minY; y <= maxY; y += 1
         {
@@ -2292,14 +2344,6 @@ private impl RenderCpu
                 narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
                 narrowEdgeSpan(&x0, &x1, -dy1, dx1 * rowDy1, edge1Origin.x)
                 narrowEdgeSpan(&x0, &x1, -dy2, dx2 * rowDy2, edge2Origin.x)
-            }
-
-            // Workers own disjoint rows. Track the candidate span once per triangle row
-            // so a solid stroke can composite by reading its coverage plane.
-            if let rows = batch.overlapRows where x0 <= x1
-            {
-                rows[y].first = Math.min(rows[y].first, x0)
-                rows[y].last  = Math.max(rows[y].last, x1)
             }
 
             for var x = x0; x <= x1; x += 1
@@ -2321,19 +2365,10 @@ private impl RenderCpu
                         continue
                 }
 
-                let w0  = e0 * invArea
-                let w1  = e1 * invArea
-                let w2  = e2 * invArea
-                let cov = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
-                if let mask = solidMask
-                {
-                    let alpha   = needCoverage ? coverageAlpha(c0.a, cov) : c0.a
-                    let offset  = cast(u64, y) * batch.width + cast(u64, x)
-                    let clipped = cast(u8, (cast(u32, alpha) * clip / 255))
-                    mask[offset] = Math.max(mask[offset], clipped)
-                    continue
-                }
-
+                let w0          = e0 * invArea
+                let w1          = e1 * invArea
+                let w2          = e2 * invArea
+                let cov         = needCoverage ? Math.saturate(signedCoverage(v0.cov * w0 + v1.cov * w1 + v2.cov * w2) / covWidth + 0.5) : 0.0
                 let paintPos    = needPaintPos ? v0.pos * w0 + v1.pos * w1 + v2.pos * w2 : {}
                 let fontPos     = needFontPos ? fontFrame.at(w1, w2) : {}
                 let vertexColor = constantColor ? c0 : Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
@@ -2442,13 +2477,294 @@ private impl RenderCpu
         }
     }
 
+    struct TriangleSpan
+    {
+        bounds:  PixelBounds
+        origin:  [3] Vector2
+        dx, dy:  [3] f32
+        topLeft: [3] bool
+        pos:     [3] Vector2
+        invArea: f32
+    }
+
+    // The overlap mark pass stores only the greatest coverage of a solid stroke.
+    // It has no color, texture, destination or font work to do.
+    mtd accumulateSolidStroke(batch: *RasterBatch, rows: [*] OverlapRow, triangle: const *TriangleSpan, alpha: u8, coverage: [3] f32, covWidth: f32)
+    {
+        let bounds       = triangle.bounds
+        let origin       = triangle.origin
+        let dx           = triangle.dx
+        let dy           = triangle.dy
+        let topLeft      = triangle.topLeft
+        let invArea      = triangle.invArea
+        let mask         = .overlapAlpha.storage()
+        let stencil      = .stencilOn
+        let needCoverage = .program == CpuProgram_Default
+        for y in bounds.minY until bounds.maxY + 1
+        {
+            let sy = cast(f32, y) + 0.5
+            let c0 = dx[0] * (sy - origin[0].y)
+            let c1 = dx[1] * (sy - origin[1].y)
+            let c2 = dx[2] * (sy - origin[2].y)
+            var x0 = bounds.minX
+            var x1 = bounds.maxX
+            if x1 - x0 >= 8
+            {
+                narrowEdgeSpan(&x0, &x1, -dy[0], c0, origin[0].x)
+                narrowEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x)
+                narrowEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x)
+            }
+
+            trimEdgeSpan(&x0, &x1, -dy[0], c0, origin[0].x, topLeft[0])
+            trimEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x, topLeft[1])
+            trimEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x, topLeft[2])
+            if x0 > x1 do
+                continue
+
+            rows[y].first = Math.min(rows[y].first, x0)
+            rows[y].last  = Math.max(rows[y].last, x1)
+
+            let offset  = cast(u64, y) * batch.width
+            let row     = mask + offset
+            let clipRow = batch.stencil + offset
+            for x in x0 until x1 + 1
+            {
+                let clip = stencil ? clipRow[x] : 255'u8
+                if clip == 0 or row[x] >= alpha do
+                    continue
+
+                var ink = alpha
+                if needCoverage
+                {
+                    let sx  = cast(f32, x) + 0.5
+                    let w0  = Math.mulAdd(-dy[0], sx - origin[0].x, c0) * invArea
+                    let w1  = Math.mulAdd(-dy[1], sx - origin[1].x, c1) * invArea
+                    let w2  = Math.mulAdd(-dy[2], sx - origin[2].x, c2) * invArea
+                    let cov = Math.saturate(signedCoverage(coverage[0] * w0 + coverage[1] * w1 + coverage[2] * w2) / covWidth + 0.5)
+                    ink = coverageAlpha(alpha, cov)
+                }
+
+                let clipped = cast(u8, (cast(u32, ink) * clip / 255))
+                row[x] = Math.max(row[x], clipped)
+            }
+        }
+    }
+
+    func(const Format: PixelFormat) drawLinearTextureTriangle(batch: *RasterBatch, source: *Image, triangle: const *TriangleSpan, paintRect: Vector4)
+    {
+        let paintWidth  = Math.max(paintRect.z - paintRect.x, 0.000001)
+        let paintHeight = Math.max(paintRect.w - paintRect.y, 0.000001)
+        let origin      = triangle.origin
+        let dx          = triangle.dx
+        let dy          = triangle.dy
+        let topLeft     = triangle.topLeft
+        let p0          = triangle.pos[0]
+        let p1          = triangle.pos[1]
+        let p2          = triangle.pos[2]
+        let invArea     = triangle.invArea
+        for y in triangle.bounds.minY until triangle.bounds.maxY + 1
+        {
+            let sy = cast(f32, y) + 0.5
+            let c0 = dx[0] * (sy - origin[0].y)
+            let c1 = dx[1] * (sy - origin[1].y)
+            let c2 = dx[2] * (sy - origin[2].y)
+            var x0 = triangle.bounds.minX
+            var x1 = triangle.bounds.maxX
+            narrowEdgeSpan(&x0, &x1, -dy[0], c0, origin[0].x)
+            narrowEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x)
+            narrowEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x)
+            trimEdgeSpan(&x0, &x1, -dy[0], c0, origin[0].x, topLeft[0])
+            trimEdgeSpan(&x0, &x1, -dy[1], c1, origin[1].x, topLeft[1])
+            trimEdgeSpan(&x0, &x1, -dy[2], c2, origin[2].x, topLeft[2])
+
+            let row = batch.pixels + cast(u64, batch.height - y - 1) * batch.rowStride
+            for x in x0 until x1 + 1
+            {
+                let sx = cast(f32, x) + 0.5
+                let w0 = Math.mulAdd(-dy[0], sx - origin[0].x, c0) * invArea
+                let w1 = Math.mulAdd(-dy[1], sx - origin[1].x, c1) * invArea
+                let w2 = Math.mulAdd(-dy[2], sx - origin[2].x, c2) * invArea
+
+                // Keep the general sampler's barycentric and normalized coordinates, including
+                // their rounding. The only difference is resolving paint and format once.
+                let pos = p0 * w0 + p1 * w1 + p2 * w2
+                let u   = (pos.x - paintRect.x) / paintWidth
+                let v   = 1.0 - (pos.y - paintRect.y) / paintHeight
+                let fx  = Math.saturate(u) * source.width - 0.5
+                let fy  = (1.0 - Math.saturate(v)) * source.height - 0.5
+                let ix  = Math.floor(fx)
+                let iy  = Math.floor(fy)
+                let col = cast(s32, ix)
+                let src = cast(s32, iy)
+                let xLo = Math.clamp(col, 0, source.width - 1)
+                let xHi = Math.clamp(col + 1, 0, source.width - 1)
+                let yLo = Math.clamp(src, 0, source.height - 1)
+                let yHi = Math.clamp(src + 1, 0, source.height - 1)
+                let ink = sampleColor8Bilinear'Format(source, xLo, xHi, yLo, yHi, bilinearWeight(fx - ix), bilinearWeight(fy - iy))
+                let dst = row + cast(u64, x) * 4
+                #static if Format == .BGR8 or Format == .RGB8
+                {
+                    dst[0] = ink.b
+                    dst[1] = ink.g
+                    dst[2] = ink.r
+                }
+                else do
+                    blendAlphaBgra8(dst, ink)
+            }
+        }
+    }
+
+    // A bitmap glyph at its raster size has one atlas byte per destination pixel. Its triangles
+    // are only a transport for the quad, so composite the mask as rows without interpolating.
+    mtd tryDrawBitmapGlyph(batch: *RasterBatch, vertices: const [*] VertexLayout, bandMinY, bandMaxY: s32)->bool
+    {
+        let first   = vertices[0]
+        let last    = vertices[5]
+        let right   = Vector2{last.pos.x, first.pos.y}
+        let lower   = Vector2{first.pos.x, last.pos.y}
+        let uvRight = Vector2{last.uv.x, first.uv.y}
+        let uvLower = Vector2{first.uv.x, last.uv.y}
+        if vertices[1].pos != right or
+           vertices[2].pos != lower or
+           vertices[3].pos != lower or
+           vertices[4].pos != right or
+           vertices[1].uv != uvRight or
+           vertices[2].uv != uvLower or
+           vertices[3].uv != uvLower or
+           vertices[4].uv != uvRight do
+            return false
+
+        for vertex in Swag.makeSlice(vertices, 6) where vertex.color != first.color do
+            return false
+
+        // Limit the input range of both mappings so interpolation error stays within a texel.
+        func bounded(value: f32)->bool => Math.abs(value) <= 16384
+        func aligned(value, rounded: f32)->bool => bounded(rounded) and Math.abs(value - rounded) <= 0.001
+
+        let p0 = batch.transform.transformPoint(first.pos)
+        let p1 = batch.transform.transformPoint(last.pos)
+        if not bounded(p0.x) or not bounded(p0.y) or not bounded(p1.x) or not bounded(p1.y) do
+            return false
+
+        let size = Vector2{cast(f32, batch.atlasMaxX + 1), cast(f32, batch.atlasMaxY + 1)}
+        let uv0  = first.uv * size
+        let uv1  = last.uv * size
+        let u0   = Math.round(uv0.x)
+        let v0   = Math.round(uv0.y)
+        let u1   = Math.round(uv1.x)
+        let v1   = Math.round(uv1.y)
+        if u0 < 0 or
+           v0 < 0 or
+           u1 > size.x or
+           v1 > size.y or
+           u1 <= u0 or
+           v1 <= v0 or
+           Math.abs((u1 - u0) - (p1.x - p0.x)) > 0.002 or
+           Math.abs((v1 - v0) - (p1.y - p0.y)) > 0.002 or
+           not aligned(uv0.x, u0) or
+           not aligned(uv0.y, v0) or
+           not aligned(uv1.x, u1) or
+           not aligned(uv1.y, v1) do
+            return false
+
+        let x0 = Math.ceil(p0.x - 0.5)
+        let y0 = Math.ceil(p0.y - 0.5)
+        let x1 = x0 + u1 - u0
+        let y1 = y0 + v1 - v0
+
+        // If the pixel centers approach either edge of a texel, keep the original
+        // triangle coverage and sampling. Otherwise the fractional phase is irrelevant.
+        let phaseX = x0 + 0.5 - p0.x
+        let phaseY = y0 + 0.5 - p0.y
+        if phaseX < 0.01 or phaseX > 0.99 or phaseY < 0.01 or phaseY > 0.99 do
+            return false
+
+        var ink = Color.fromArgb(first.color)
+        if ink.a == 0 do
+            return true
+        let left   = Math.max(cast(s32, x0), batch.clipMinX)
+        let rightX = Math.min(cast(s32, x1), batch.clipMaxX + 1)
+        let top    = Math.max(cast(s32, y0), batch.clipMinY, bandMinY)
+        let bottom = Math.min(cast(s32, y1), batch.clipMaxY + 1, bandMaxY + 1)
+        if left >= rightX or top >= bottom do
+            return true
+
+        let atlas  = unwrap batch.atlas
+        let srcX   = cast(s32, u0) + left - cast(s32, x0)
+        let srcY   = cast(s32, v0) + top - cast(s32, y0)
+        let width  = rightX - left
+        let alpha  = ink.a
+        let fill   = cast #bit(Math.Simd.U8x16, Math.Simd.splat(first.color))
+        let pixels = atlas.data.storage()
+        for y in top until bottom
+        {
+            let row    = batch.atlasMaxY - (srcY + y - top)
+            let mask   = pixels + cast(u64, row) * atlas.width + cast(u64, srcX)
+            let target = batch.pixels + cast(u64, batch.height - y - 1) * batch.rowStride + cast(u64, left) * 4
+            var x      = 0's32
+            if alpha == 255 and not .stencilOn
+            {
+                while width - x >= 4
+                {
+                    let weight = cast(Math.Simd.U32x4, [cast(u32, g_FontGammaOpaque[mask[x]]), cast(u32, g_FontGammaOpaque[mask[x + 1]]),
+                                                        cast(u32, g_FontGammaOpaque[mask[x + 2]]), cast(u32, g_FontGammaOpaque[mask[x + 3]])])
+                    let weights = cast #bit(Math.Simd.U8x16, weight * 0x0101_0101'u32)
+                    let dst     = target + x * 4
+                    Math.Simd.store(dst, blendAlphaBgra8x4(fill, Math.Simd.load(dst), weights))
+                    x += 4
+                }
+            }
+
+            for column in x until width
+            {
+                let value = mask[column]
+                ink.a = alpha == 255 ? g_FontGammaOpaque[value] :
+                        cast(u8, Math.clamp(Math.round(cast(f32, alpha) * g_FontGammaLut[value]), 0.0, 255.0))
+                if .stencilOn
+                {
+                    let clip = batch.stencil[cast(u64, y) * batch.width + cast(u64, left + column)]
+                    ink.a = cast(u8, (cast(u32, ink.a) * clip) / 255)
+                }
+
+                blendAlphaBgra8(target + column * 4, ink)
+            }
+        }
+
+        return true
+    }
+
     mtd drawTriangleRange(batch: *RasterBatch, bandMinY, bandMaxY: s32)
     {
         let vertices = batch.painter!.vertexBuffer.storage()
         var i        = batch.start
         let end      = batch.start + batch.count
+        let bitmap   = .program == CpuProgram_Font and
+                       batch.solidPaint and
+                       batch.atlas and
+                       batch.atlas.bytesPerPixel == 1 and
+                       batch.image!.pixelFormat == .BGRA8 and
+                       .blendingMode == .Alpha and
+                       .colorMask.r and
+                       .colorMask.g and
+                       .colorMask.b and
+                       not .colorMask.a and
+                       not .stencilWrite and
+                       .overlapPass == 0 and
+                       not .alphaResolve and
+                       not .whiteMatte and
+                       batch.transform.m12 == 0 and
+                       batch.transform.m21 == 0 and
+                       batch.transform.m11 > 0 and
+                       batch.transform.m22 > 0
+
         while i + 2 < end
         {
+            if bitmap and i + 5 < end and .tryDrawBitmapGlyph(batch, vertices + i, bandMinY, bandMaxY)
+            {
+                i += 6
+                continue
+            }
+
             .drawTriangleBatch(batch, vertices + i, bandMinY, bandMaxY)
             i += 3
         }

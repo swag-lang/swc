@@ -93,10 +93,11 @@ private const MaxSubstituteCondense = 2.0'f32
 #[Swag.Opaque]
 internal struct RenderFontCache
 {
-    embedded:           Array'(*TypeFace?)     // Per page font index, once resolution was attempted.
-    embeddedResolved:   Array'bool
-    substitute:         Array'(*TypeFace?)     // Page fonts, followed by the standard faces for authored text.
-    substituteResolved: Array'bool
+    embedded:              Array'(*TypeFace?)     // Per page font index, once resolution was attempted.
+    embeddedResolved:      Array'bool
+    substitute:            Array'(*TypeFace?)     // Page fonts, followed by the standard faces for authored text.
+    substituteResolved:    Array'bool
+    rasterizeAtDeviceSize: bool
 }
 
 internal impl RenderFontCache
@@ -318,6 +319,19 @@ private func drawSubstitutedRun(painter: *Painter, item: const *Item, base: Tran
 private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *FontCache, page: const *Page, item: const *Item, base: Transform2, fallbackFontFile: string) fail
 {
     let fontSize = cast(u32, Math.max(1, Math.round(item.fontSize)))
+
+    // A bitmap export has one destination size. Rasterize ordinary horizontal glyphs at
+    // that size, then composite their cached coverage directly. Keep the scalable font for
+    // skewed, rotated or very large draws, where a bitmap loses quality or costs too much.
+    let effectiveSize = cast(f32, fontSize) * painter.textTransformScale()
+    let bitmap        = fonts.rasterizeAtDeviceSize and
+                        base.m12 == 0 and
+                        base.m21 == 0 and
+                        base.m11 > 0 and
+                        base.m22 > 0 and
+                        fontSize <= 256 and
+                        effectiveSize <= 256
+    let mode     = bitmap ? FontRenderMode.Bitmap : FontRenderMode.Auto
     var resource = item.fontIndex < page.fonts.count ? &page.fonts[item.fontIndex] : null
     var index    = item.fontIndex
     var standard: FontResource
@@ -337,14 +351,14 @@ private func drawTextItem(painter: *Painter, fonts: *RenderFontCache, cache: *Fo
         let embedded = fonts.embeddedFace(item.fontIndex, resource)
         if embedded
         {
-            let font = cache.createFont(embedded, fontSize)
+            let font = cache.createFont(embedded, fontSize, mode)
             if drawEmbeddedRun(painter, item, resource, font) do
                 return
         }
     }
 
     let substitute = try fonts.substituteFace(fallbackFontFile, index, resource)
-    drawSubstitutedRun(painter, item, base, resource, cache.createFont(substitute, fontSize))
+    drawSubstitutedRun(painter, item, base, resource, cache.createFont(substitute, fontSize, mode))
 }
 
 private func pathPen(item: const *Item, scale: f32)->Pen
@@ -734,6 +748,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     painter.setColorMaskColor()
 
     var fonts: RenderFontCache
+    fonts.rasterizeAtDeviceSize = true
     fonts.prepare(page.fonts.count)
 
     // A region render shifts every mark by the region origin; the whole page is the identity

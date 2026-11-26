@@ -176,13 +176,17 @@ impl FontResource
         return 0
     }
 
-    // Converts one PDF string into UTF-8 text.
-    mtd const decodeText(bytes: string)->String
+    // Decodes one shown string, retaining the font addresses and advances used to draw it.
+    // Accumulate the text matrix advance in the same order as the individual PDF operations.
+    mtd const decodeRun(bytes: string, fontSize, charSpacing, wordSpacing: f32, item: *Item)->f32
     {
-        var result: #returntype
-        let size = Math.max(.codeBytes, 1)
-        var pos  = 0'u64
-        while pos + size <= bytes.count
+        let size       = Math.max(.codeBytes, 1)
+        let count      = bytes.count / size
+        var runAdvance = 0.0'f32
+        var pos        = 0'u64
+        item.textCodes.reserve(count)
+        item.textAdvances.reserve(count)
+        for count
         {
             var code = 0'u32
             for i in size do
@@ -192,79 +196,30 @@ impl FontResource
             let mapped = .unicode.tryFind(code)
             if mapped
             {
-                result += mapped.value
-                continue
+                item.text += mapped.value
+            }
+            else
+            {
+                let value = .runeOf(code)
+                if value do
+                    item.text.append(value)
             }
 
-            let value = .runeOf(code)
-            if value do
-                result.append(value)
-        }
-
-        return result
-    }
-
-    // Retains the PDF character codes that address the embedded font program. Text extraction
-    // maps those codes to Unicode, but rasterization must keep the original font addresses.
-    mtd const decodeCodes(bytes: string)->Array'u32
-    {
-        var result: #returntype
-        let size = Math.max(.codeBytes, 1)
-        var pos  = 0'u64
-        result.reserve(bytes.count / size)
-        while pos + size <= bytes.count
-        {
-            var code = 0'u32
-            for i in size do
-                code = code << 8 | bytes[pos + i]
-            pos += size
-            result.add(code)
-        }
-
-        return result
-    }
-
-    // Returns each character code's declared PDF advance before horizontal text scaling.
-    mtd const codeAdvances(bytes: string, fontSize, charSpacing, wordSpacing: f32)->Array'f32
-    {
-        var result: #returntype
-        let codes = #move .decodeCodes(bytes)
-        result.reserve(codes.count)
-        for code in codes
-        {
             var advance = .codeWidth(code) * fontSize + charSpacing
-            if .codeBytes == 1 and code == 32 do
-                advance += wordSpacing
-            result.add(advance)
+            runAdvance += advance
+
+            // Word spacing applies to single-byte code 32, regardless of its Unicode mapping.
+            if size == 1 and code == 32
+            {
+                advance    += wordSpacing
+                runAdvance += wordSpacing
+            }
+
+            item.textCodes.add(code)
+            item.textAdvances.add(advance)
         }
 
-        return result
-    }
-
-    // Returns how far the text position moves after one shown string, in text-space units.
-    //
-    // Horizontal scaling is applied by the caller because it also scales the offsets a `TJ`
-    // array contributes.
-    mtd const runAdvance(bytes: string, fontSize, charSpacing, wordSpacing: f32)->f32
-    {
-        var result = 0.0'f32
-        let size   = Math.max(.codeBytes, 1)
-        var pos    = 0'u64
-        while pos + size <= bytes.count
-        {
-            var code = 0'u32
-            for i in size do
-                code = code << 8 | bytes[pos + i]
-            pos += size
-
-            result += .codeWidth(code) * fontSize + charSpacing
-
-            // Word spacing applies to the single-byte code 32 only, whatever glyph it maps to.
-            if size == 1 and code == 32 do
-                result += wordSpacing
-        }
-
-        return result
+        return runAdvance
     }
 }
 

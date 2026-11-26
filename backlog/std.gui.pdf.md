@@ -499,9 +499,38 @@ PDF-specific evidence, investigations, and intended outcomes stay together here.
   cut the Swag raster time on `sample1` from about 304 to 154 ms and on `sample3` from 130 to 66 ms.
   The pixel checksums changed. The automatic font policy selects MSDF at larger device sizes,
   which made MSDF shading alone cost 133 ms on `sample1` at that scale.
-- Next: batch the recording of adjacent, compatible PDF text runs while preserving the PDF's
-  positioned glyphs. Compare a reusable CPU raster context and a purpose-built bitmap text
-  path against the same inputs at 1200 and 2400 px, including output fidelity.
+- The follow-up against `bbb9380105` measured the same files on Linux with one Swag worker pinned
+  to one CPU. The numbers are medians in milliseconds of 14 interleaved measurements per
+  variant after warm-up. Each measurement reopened the file and materialized page one as BGRA.
+
+  | Fixture | 1200 px Swag before | Swag after | PDFium 159 | 2400 px Swag before | Swag after | PDFium 159 |
+  | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | `sample1.pdf` | 86.62 | 57.50 | 28.50 | 318.11 | 142.90 | 44.27 |
+  | `sample2.pdf` | 24.00 | 16.70 | 5.83 | 94.71 | 52.40 | 12.67 |
+  | `sample3.pdf` | 53.16 | 44.75 | 11.60 | 155.71 | 90.63 | 19.95 |
+
+  The CPU renderer now blends bitmap glyph masks directly in SIMD spans, shades interior
+  texture spans with the original bilinear weights, and accumulates stroke coverage without
+  entering the general fragment shader. MSDF taps convert packed atlas texels and floor their
+  coordinates with SIMD. PDF text decoding retains the Unicode text, font codes and advances
+  in the same pass. At 1200 px all three complete images match the baseline byte for byte.
+  At 2400 px the PDF bitmap export uses device-sized bitmap glyphs for eligible axis-aligned
+  runs. That changes some text pixels and avoids the cost of constructing and sampling MSDFs.
+
+  AGG composites coverage spans. On `sample3`, most of Swag's 53,000 path triangles came
+  from eight thin strokes with a 0.14-point on/off dash pattern. At 1200 px a repeat spans
+  about 0.4 pixels. Averaging the coverage made those rules visibly lighter in a test. The
+  exact stroke path still generates their geometry. A timing probe measured about 5 ms
+  recording paths, 7–8 ms rasterizing stroke overlaps, and 14–15 ms recording text.
+  [PDFium AGG backend](https://pdfium.googlesource.com/pdfium/+/refs/heads/chromium/8164/core/fxge/agg/cfx_agg_devicedriver.cpp)
+
+  On `sample1`, page loading still takes about 16 ms, including about 12 ms in the JPEG
+  stream read and decode. Swag materializes the images and their mask at the stored
+  resolution. PDFium supports reduced-scale JPEG decoding and can request a higher
+  resolution when needed. [PDFium JPEG decoding](https://pdfium.googlesource.com/pdfium/+/refs/heads/main/core/fpdfapi/page/cpdf_dib.cpp#562)
+- Measure direct scan conversion of dash patterns and size-aware JPEG decoding with the
+  encoded image retained for later zoom levels. Profile text recording and the remaining
+  image sampling on `sample2`.
 - Done when: the first-page gap has a stage-level explanation and the dominant work is within 1.25×
   of an equivalent PDFium render, or a concrete fidelity or safety tradeoff justifies the remainder.
 - Related: app.scope.viewers.009.

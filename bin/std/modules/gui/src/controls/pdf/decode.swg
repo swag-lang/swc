@@ -405,17 +405,19 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
     let index = fontIndex(parser, page, resourcesId, state.fontName.toString())
     let font  = index < page.fonts.count ? &page.fonts[index] : null
 
+    var item    = Item.createText()
     var advance = 0.0'f32
-    if font do
-        advance = font.runAdvance(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
-    else do
-        advance = cast(f32, bytes.count) * state.fontSize * 0.5
+    if font
+    {
+        advance = font.decodeRun(bytes, state.fontSize, state.charSpacing, state.wordSpacing, &item)
+    }
+    else
+    {
+        advance   = cast(f32, bytes.count) * state.fontSize * 0.5
+        item.text = #move Text.decode(cast(const [..] u8, bytes), .Windows1252)
+    }
 
-    // Render modes 3 and 7 add no marks, but their text and geometry still belong to search
-    // and selection. Keep the same runs in complete pages and text-only decoding.
-    let invisible = state.renderMode == 3 or state.renderMode == 7
-    let text      = #move (font ? font.decodeText(bytes) : Text.decode(cast(const [..] u8, bytes), .Windows1252))
-    if not text.isEmpty()
+    if not item.text.isEmpty()
     {
         var combined = Transform2{state.horizScale, 0, 0, 1, 0, state.rise}
         combined.multiply(state.textMatrix)
@@ -426,22 +428,15 @@ private func appendText(parser: *PdfParser, page: *Page, resourcesId: u32, state
         let m22       = combined.m22
         let baselineY = page.height - baseline.y
 
-        var item = Item.createText()
-        item.invisibleText = invisible
-        item.text = #move text
-        if font
-        {
-            item.textCodes    = #move font.decodeCodes(bytes)
-            item.textAdvances = #move font.codeAdvances(bytes, state.fontSize, state.charSpacing, state.wordSpacing)
-        }
-
-        item.fontSize  = state.fontSize
-        item.fillColor = dimmed(state.fillColor, state.fillAlpha)
-        item.fontIndex = index
-        item.transform = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
-        item.clip      = state.clip
-        item.hasClip   = state.hasClip
-        item.clipPath  = state.clipPath
+        // Render modes 3 and 7 add no marks. Keep their text for search and selection.
+        item.invisibleText = state.renderMode == 3 or state.renderMode == 7
+        item.fontSize      = state.fontSize
+        item.fillColor     = dimmed(state.fillColor, state.fillAlpha)
+        item.fontIndex     = index
+        item.transform     = Transform2{combined.m11, -combined.m12, m21, m22, baseline.x - state.fontSize * m21, baselineY - state.fontSize * m22}
+        item.clip          = state.clip
+        item.hasClip       = state.hasClip
+        item.clipPath      = state.clipPath
         if font and font.hasStandard do
             item.standardFont = font.standard
         appendPaintedItem(parser, page, state, #move item, depth, decode)

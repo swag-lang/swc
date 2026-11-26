@@ -104,9 +104,10 @@ impl Image
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
 
-        // JPEG and PNG enforce the geometry limits before allocating their decoded buffers.
+        // JPEG, PNG, and OpenEXR check geometry limits before allocating decoded pixels.
         if decoderType != #typeof(Png.Decoder) and
            decoderType != #typeof(Jpg.Decoder) and
+           decoderType != #typeof(Exr.Decoder) and
            options.decodePixels and
            (options.maxPixels or options.maxDecodedBytes)
         {

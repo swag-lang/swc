@@ -450,3 +450,26 @@ one PCM16 unit from the original Swag output.
 
 Native Release passes 314 functional and stress tests. Release-safe
 passes 27 focused MP3 tests.
+
+## Thirteenth optimization pass
+
+This follow-up compares the changed codecs with commit `58caf2ec57` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round13.json)
+
+| Format | R12 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R12 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AAC | 7.36 | 6.70 | 6.99 | 7.33 | 6.69 | 6.79 |
+
+| Format | R12 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| AAC | 5.45 | 5.07 | 6.91 |
+
+AAC combines four input rotations with the first two inverse FFT stages,
+then transposes the SIMD lanes into the order needed by the later stages.
+
+The PCM matches between the one-core and four-core runs, with a peak difference of
+one PCM16 unit from the original Swag output.
+
+Native Release passes 39 focused AAC tests. Release-safe passes the same
+39 tests.

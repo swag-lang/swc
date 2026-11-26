@@ -278,6 +278,24 @@ private impl ImdctPlan
         }
     }
 
+    #[Swag.Inline]
+    mtd(Quarter: u64) const storeQuartets(destination: [*] f32, first: u32, a, b, c, d: Simd.F32x4)
+    {
+        let ai     = cast #bit(Simd.U32x4, a)
+        let bi     = cast #bit(Simd.U32x4, b)
+        let ci     = cast #bit(Simd.U32x4, c)
+        let di     = cast #bit(Simd.U32x4, d)
+        let lowAB  = cast #bit(Simd.U64x2, Simd.interleaveLow(ai, bi))
+        let lowCD  = cast #bit(Simd.U64x2, Simd.interleaveLow(ci, di))
+        let highAB = cast #bit(Simd.U64x2, Simd.interleaveHigh(ai, bi))
+        let highCD = cast #bit(Simd.U64x2, Simd.interleaveHigh(ci, di))
+        let output = destination + first
+        Simd.store(output, cast #bit(Simd.F32x4, Simd.interleaveLow(lowAB, lowCD)))
+        Simd.store(output + Quarter / 2, cast #bit(Simd.F32x4, Simd.interleaveHigh(lowAB, lowCD)))
+        Simd.store(output + Quarter / 4, cast #bit(Simd.F32x4, Simd.interleaveLow(highAB, highCD)))
+        Simd.store(output + 3 * Quarter / 4, cast #bit(Simd.F32x4, Simd.interleaveHigh(highAB, highCD)))
+    }
+
     mtd(Quarter: u64) const run(spectrum: const [*] f32, output: [*] f32, window: const *ImdctOverlap? = null)
     {
         const Half = 2 * Quarter
@@ -288,63 +306,63 @@ private impl ImdctPlan
         let cos = cast(const [*] f32, &.fftReal[0])
         let sin = cast(const [*] f32, &.fftImag[0])
 
-        // A four-bin rotation consumes forward even bins and reverse odd bins.
+        // The first two FFT stages combine four equal offsets across the
+        // input quarters. Rotate each quarter and merge in that same order.
         const EvenBins = cast(Simd.U32x4, [0'u32, 2, 4, 6])
         const OddBins  = cast(Simd.U32x4, [7'u32, 5, 3, 1])
+        const Step     = Quarter / 4
         let twReal = cast(const [*] f32, &.twReal[0])
         let twImag = cast(const [*] f32, &.twImag[0])
-        for group in Quarter / 4
+        for group in Quarter / 16
         {
-            let k     = 4 * group
-            let lo    = spectrum + 2 * k
-            let hi    = spectrum + Half - 8 - 2 * k
-            let a     = Simd.permute2(Simd.load(lo), Simd.load(lo + 4), EvenBins) * 0.5
-            let b     = Simd.permute2(Simd.load(hi), Simd.load(hi + 4), OddBins) * -0.5
-            let c     = Simd.load(twReal + k)
-            let sin   = Simd.load(twImag + k)
-            let rotRe = a * c + b * sin
-            let rotIm = -a * sin + b * c
-            let i0    = .reverse[k]
-            let i1    = .reverse[k + 1]
-            let i2    = .reverse[k + 2]
-            let i3    = .reverse[k + 3]
-            re[i0] = rotRe[0]
-            im[i0] = rotIm[0]
-            re[i1] = rotRe[1]
-            im[i1] = rotIm[1]
-            re[i2] = rotRe[2]
-            im[i2] = rotIm[2]
-            re[i3] = rotRe[3]
-            im[i3] = rotIm[3]
-        }
-
-        // The first stages have twiddles of one and i. Keep one group of four
-        // adjacent complex coefficients in SIMD lanes for both stages.
-        const Even            = cast(Simd.U32x4, [0'u32, 0, 2, 2])
-        const Odd             = cast(Simd.U32x4, [1'u32, 1, 3, 3])
-        const First           = cast(Simd.U32x4, [0'u32, 1, 0, 1])
-        const Second          = cast(Simd.U32x4, [2'u32, 3, 2, 3])
-        const Sign            = 1'u32 << 31
-        const AlternateNegate = cast(Simd.U32x4, [0'u32, Sign, 0, Sign])
-        const LastNegate      = cast(Simd.U32x4, [0'u32, 0, Sign, Sign])
-        const Rotate          = cast(Simd.U32x4, [0'u32, ~0'u32, 0, ~0'u32])
-        for group in Quarter / 4
-        {
-            let index     = 4 * group
-            let valuesRe  = Simd.load(re + index)
-            let valuesIm  = Simd.load(im + index)
-            let oddRe     = cast #bit (Simd.F32x4, Simd.permute(cast #bit(Simd.U32x4, valuesRe), Odd) ^ AlternateNegate)
-            let oddIm     = cast #bit (Simd.F32x4, Simd.permute(cast #bit(Simd.U32x4, valuesIm), Odd) ^ AlternateNegate)
-            let sumsRe    = Simd.permute(valuesRe, Even) + oddRe
-            let sumsIm    = Simd.permute(valuesIm, Even) + oddIm
-            let secondRe  = Simd.permute(sumsRe, Second)
-            let secondIm  = Simd.permute(sumsIm, Second)
-            let rotatedRe = Simd.select(Rotate, -secondIm, secondRe)
-            let rotatedIm = Simd.select(Rotate, secondRe, secondIm)
-            let flipRe    = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, rotatedRe) ^ LastNegate)
-            let flipIm    = cast #bit(Simd.F32x4, cast #bit(Simd.U32x4, rotatedIm) ^ LastNegate)
-            Simd.store(re + index, Simd.permute(sumsRe, First) + flipRe)
-            Simd.store(im + index, Simd.permute(sumsIm, First) + flipIm)
+            let k           = 4 * group
+            let k0          = k + 0 * Step
+            let lo0         = spectrum + 2 * k0
+            let hi0         = spectrum + Half - 8 - 2 * k0
+            let a0          = Simd.permute2(Simd.load(lo0), Simd.load(lo0 + 4), EvenBins) * 0.5
+            let b0          = Simd.permute2(Simd.load(hi0), Simd.load(hi0 + 4), OddBins) * -0.5
+            let c0          = Simd.load(twReal + k0)
+            let s0          = Simd.load(twImag + k0)
+            let r0          = a0 * c0 + b0 * s0
+            let i0          = -a0 * s0 + b0 * c0
+            let k2          = k + 2 * Step
+            let lo2         = spectrum + 2 * k2
+            let hi2         = spectrum + Half - 8 - 2 * k2
+            let a2          = Simd.permute2(Simd.load(lo2), Simd.load(lo2 + 4), EvenBins) * 0.5
+            let b2          = Simd.permute2(Simd.load(hi2), Simd.load(hi2 + 4), OddBins) * -0.5
+            let c2          = Simd.load(twReal + k2)
+            let s2          = Simd.load(twImag + k2)
+            let r2          = a2 * c2 + b2 * s2
+            let i2          = -a2 * s2 + b2 * c2
+            let sumRe       = r0 + r2
+            let sumIm       = i0 + i2
+            let diffRe      = r0 - r2
+            let diffIm      = i0 - i2
+            let k1          = k + 1 * Step
+            let lo1         = spectrum + 2 * k1
+            let hi1         = spectrum + Half - 8 - 2 * k1
+            let a1          = Simd.permute2(Simd.load(lo1), Simd.load(lo1 + 4), EvenBins) * 0.5
+            let b1          = Simd.permute2(Simd.load(hi1), Simd.load(hi1 + 4), OddBins) * -0.5
+            let c1          = Simd.load(twReal + k1)
+            let s1          = Simd.load(twImag + k1)
+            let r1          = a1 * c1 + b1 * s1
+            let i1          = -a1 * s1 + b1 * c1
+            let k3          = k + 3 * Step
+            let lo3         = spectrum + 2 * k3
+            let hi3         = spectrum + Half - 8 - 2 * k3
+            let a3          = Simd.permute2(Simd.load(lo3), Simd.load(lo3 + 4), EvenBins) * 0.5
+            let b3          = Simd.permute2(Simd.load(hi3), Simd.load(hi3 + 4), OddBins) * -0.5
+            let c3          = Simd.load(twReal + k3)
+            let s3          = Simd.load(twImag + k3)
+            let r3          = a3 * c3 + b3 * s3
+            let i3          = -a3 * s3 + b3 * c3
+            let otherSumRe  = r1 + r3
+            let otherSumIm  = i1 + i3
+            let otherDiffRe = r1 - r3
+            let otherDiffIm = i1 - i3
+            let first       = .reverse[k]
+            .storeQuartets'Quarter(re, first, sumRe + otherSumRe, diffRe - otherDiffIm, sumRe - otherSumRe, diffRe + otherDiffIm)
+            .storeQuartets'Quarter(im, first, sumIm + otherSumIm, diffIm + otherDiffRe, sumIm - otherSumIm, diffIm - otherDiffRe)
         }
 
         var butterfly = 4'u32

@@ -330,14 +330,7 @@ impl ImageReader
 
             if packedCanvas and image.pixelFormat == .RGB8
             {
-                let output = cast([*] u32, target)
-                for x in frame.width
-                {
-                    let pixel = source + cast(u64, x) * 3
-                    let low   = cast(const [*] u16, pixel)[0]
-                    output[x] = 0xFF000000'u32 | (cast(u32, pixel[2]) << 16) | cast(u32, low)
-                }
-
+                expandRgb8Alpha(source, target, cast(u64, frame.width), false)
                 continue
             }
 

@@ -256,6 +256,39 @@
     ]
   },
   {
+    "file": "ZenKakuGothicNew-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/zenkakugothicnew/ZenKakuGothicNew-Regular.ttf",
+    "sha256": "b840cd07a67d89cacca44249ae49aa99ee7640eb5ce623be8d8983d6aabac801",
+    "cases": [
+      {
+        "character": 27704,
+        "profile": "Japanese static TrueType"
+      }
+    ]
+  },
+  {
+    "file": "MaShanZheng-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/mashanzheng/MaShanZheng-Regular.ttf",
+    "sha256": "6d2546bb189c732a8ca29af9e22457b152387d158aa459e4ac2ce1e51788b7fb",
+    "cases": [
+      {
+        "character": 40857,
+        "profile": "Chinese static TrueType calligraphy"
+      }
+    ]
+  },
+  {
+    "file": "GowunBatang-Regular.ttf",
+    "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/gowunbatang/GowunBatang-Regular.ttf",
+    "sha256": "466c593e7147412e748af4856d5ad14709b5a860bdf62b9c2546f2c5874e9849",
+    "cases": [
+      {
+        "character": 54620,
+        "profile": "Korean static TrueType"
+      }
+    ]
+  },
+  {
     "file": "NotoSansJP-Variable.ttf",
     "url": "https://raw.githubusercontent.com/google/fonts/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/notosansjp/NotoSansJP%5Bwght%5D.ttf",
     "sha256": "c2f3b4d463500a2ddcd3849cded1fceeb9fd6d1c32e6cbecd568453ba50fc68f",

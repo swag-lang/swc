@@ -690,3 +690,35 @@ func parseTestCmap(faceData: *FaceImpl, cmap: Array'u8) fail
     Swag.require(face.glyphIndexVariant('A', 0xFE0F) == face.glyphIndex('A'))
     Swag.require(face.glyphIndexVariant('A', 0xFE0F) > 0)
 }
+
+// Two faces can share a cmap range and declare different glyph counts.
+#test
+{
+    var cmap: Array'u8
+    cmap.add([
+        0x00, 0x00, 0x00, 0x01,
+        0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x0C])
+    cmap.add(Cmap12Fixture)
+    let source = FontSource.copy(cmap.toSlice())
+
+    var first: FaceImpl
+    first.fontSource = source
+    first.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    first.face.setGlyphCount(8)
+    expect parseCMap(&first, false)
+    Swag.require(first.cmapFormat == 12)
+    Swag.require(expect lookupGlyphIndex(&first, 0x10000) == 7)
+
+    var second: FaceImpl
+    second.fontSource = source
+    second.tables.add({tag: TAG_CMAP, length: cast(u32, cmap.count)})
+    second.face.setGlyphCount(7)
+    var rejected: Swag.Error
+    discard catch parseCMap(&second, false) as rejected
+    Swag.require(rejected.value() != null)
+
+    second.face.setGlyphCount(8)
+    expect parseCMap(&second, false)
+    Swag.require(second.cmapFormat == 12)
+    Swag.require(expect lookupGlyphIndex(&second, 0x10000) == 7)
+}

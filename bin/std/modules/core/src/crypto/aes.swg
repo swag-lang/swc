@@ -45,32 +45,34 @@ private func aesNibbleMap(value, lowTable, highTable: U8x16)->U8x16
 }
 
 #[Swag.Inline]
-private func aesGf16Multiply(left, right: U8x16)->U8x16
+private func aesGf16PowerIndex(leftLog, rightLog: U8x16)->U8x16
 {
-    const Zero   = Swag.vecSplat(0'u8)
-    const Logs   = cast(U8x16, [0x00, 0x00, 0x01, 0x04, 0x02, 0x08, 0x05, 0x0A, 0x03, 0x0E, 0x09, 0x07, 0x06, 0x0D, 0x0B, 0x0C])
-    const Powers = cast(U8x16, [0x01, 0x02, 0x04, 0x08, 0x03, 0x06, 0x0C, 0x0B, 0x05, 0x0A, 0x07, 0x0E, 0x0F, 0x0D, 0x09, 0x01])
-    let sum = shuffle(Logs, left) + shuffle(Logs, right)
-
-    // Since 16 is congruent to 1 modulo 15, fold the carry back into the low nibble.
-    let product = shuffle(Powers, (sum & 0x0F'u8) + (sum >> 4))
-    return product & (left != Zero) & (right != Zero)
+    // Reduce exponents modulo 15 by folding the high nibble. Zero has log 0x80,
+    // and the high bit survives addition with any other log and the fold.
+    let sum = leftLog + rightLog
+    return sum + (sum >> 4)
 }
 
 #[Swag.Inline]
 private func aesInvertTower(value: U8x16)->U8x16
 {
-    const Reciprocal   = cast(U8x16, [0x00, 0x01, 0x09, 0x0E, 0x0D, 0x0B, 0x07, 0x06, 0x0F, 0x02, 0x0C, 0x05, 0x0A, 0x04, 0x03, 0x08])
-    const ScaledSquare = cast(U8x16, [0x00, 0x0B, 0x0A, 0x01, 0x0E, 0x05, 0x04, 0x0F, 0x0D, 0x06, 0x07, 0x0C, 0x03, 0x08, 0x09, 0x02])
+    const Logs           = cast(U8x16, [0xC0, 0x00, 0x01, 0x04, 0x02, 0x08, 0x05, 0x0A, 0x03, 0x0E, 0x09, 0x07, 0x06, 0x0D, 0x0B, 0x0C])
+    const Powers         = cast(U8x16, [0x01, 0x02, 0x04, 0x08, 0x03, 0x06, 0x0C, 0x0B, 0x05, 0x0A, 0x07, 0x0E, 0x0F, 0x0D, 0x09, 0x01])
+    const HighPowers     = cast(U8x16, [0x10, 0x20, 0x40, 0x80, 0x30, 0x60, 0xC0, 0xB0, 0x50, 0xA0, 0x70, 0xE0, 0xF0, 0xD0, 0x90, 0x10])
+    const ReciprocalLogs = cast(U8x16, [0xC0, 0x00, 0x0E, 0x0B, 0x0D, 0x07, 0x0A, 0x05, 0x0C, 0x01, 0x06, 0x08, 0x09, 0x02, 0x04, 0x03])
+    const ScaledSquare   = cast(U8x16, [0x00, 0x0B, 0x0A, 0x01, 0x0E, 0x05, 0x04, 0x0F, 0x0D, 0x06, 0x07, 0x0C, 0x03, 0x08, 0x09, 0x02])
 
     // In the tower basis a*z + b, z^2 + z is the subfield element 0x0B.
     // The norm is b*(a+b) + 0x0B*a^2. The conjugate has coefficients a and a+b.
-    let a           = value >> 4
-    let b           = value & 0x0F'u8
-    let complement  = a ^ b
-    let norm        = aesGf16Multiply(b, complement) ^ shuffle(ScaledSquare, a)
-    let inverseNorm = shuffle(Reciprocal, norm)
-    return (aesGf16Multiply(a, inverseNorm) << 4) | aesGf16Multiply(complement, inverseNorm)
+    let a             = value >> 4
+    let b             = value & 0x0F'u8
+    let complementLog = shuffle(Logs, a ^ b)
+    let normProduct   = shuffle(Powers, aesGf16PowerIndex(shuffle(Logs, b), complementLog))
+    let norm          = normProduct ^ shuffle(ScaledSquare, a)
+    let inverseNormLog = shuffle(ReciprocalLogs, norm)
+    let high          = shuffle(HighPowers, aesGf16PowerIndex(shuffle(Logs, a), inverseNormLog))
+    let low           = shuffle(Powers, aesGf16PowerIndex(complementLog, inverseNormLog))
+    return high | low
 }
 
 #[Swag.Inline]

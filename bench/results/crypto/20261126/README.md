@@ -114,3 +114,4 @@ optimizations moved each result.
 - [BLAKE3 streaming updates and full SIMD batches](blake3-stream-updates.md)
 - [Affine Curve25519 generator table](ed25519-affine-generator.md)
 - [Signed affine Curve25519 generator tables](ed25519-signed-generator.md)
+- [AES software substitution with cached field logarithms](aes-software-logs.md)

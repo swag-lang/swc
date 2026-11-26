@@ -76,19 +76,29 @@ private struct Ac3Block
 // `chbwcod` is defined from 0 through 60; larger six-bit values are reserved.
 private const MaxChannelBandwidthCode = 60'u32
 
+// The lowest sample rate has up to six bytes per kbps in a sync frame.
+private const MaxAc3FrameBytes = 6 * BitRates[BitRates.count - 1]
+
+// At the start of mantissas, the cursor is still within the packet. A block
+// can read up to 256 16-bit mantissas per channel plus shared coupling.
+// Leave four more bytes for the last unaligned word.
+private const MantissaReadPadding = (MaxChannels + 1) * SamplesPerBlock * 2 + 4
+
 private struct Ac3Codec
 {
     using base: Codec
 
-    sampleRate:    u32
-    channels:      u32
-    block:         Ac3Block
-    imdct:         [MaxChannels] Imdct
-    stereoImdct:   StereoImdct
-    surroundImdct: SurroundImdct
-    mantissaGains: PreparedMantissaGains
-    coefficients:  [MaxChannels, SamplesPerBlock] f64
-    dither:        DitherGenerator
+    sampleRate:      u32
+    channels:        u32
+    block:           Ac3Block
+    imdct:           [MaxChannels] Imdct
+    stereoImdct:     StereoImdct
+    surroundImdct:   SurroundImdct
+    mantissaGains:   PreparedMantissaGains
+    coefficients:    [MaxChannels, SamplesPerBlock] f64
+    dither:          DitherGenerator
+    packetCopy:      [MaxAc3FrameBytes + MantissaReadPadding] u8
+    packetCopyBytes: u64
 }
 
 private func parseAc3Bsi(reader: *BitReader)->Ac3Bsi fail
@@ -496,10 +506,35 @@ private impl Ac3Codec
             try bitAllocation(bsi.fscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
     }
 
+    mtd preparePacketBits(packet: const [..] u8)->BitReader
+    {
+        if not packet.count or packet.count > MaxAc3FrameBytes do
+            return BitReader.create(packet.buffer, packet.count)
+
+        // Bytes after the logical packet remain zero even when sync sizes change.
+        let buffer = cast([*] u8, &.packetCopy[0])
+        Memory.copy(buffer, packet.buffer, packet.count)
+        if .packetCopyBytes > packet.count do
+            Memory.set(buffer + packet.count, 0, .packetCopyBytes - packet.count)
+        .packetCopyBytes = packet.count
+        return BitReader.create(buffer, packet.count)
+    }
+
     mtd readMantissas(reader: *BitReader, bsi: const *Ac3Bsi, coefficients: [*] f64)
     {
-        let block = &.block
-        readPreparedMantissas'false(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
+        let block  = &.block
+        let copied = reader.data == cast(const [*] u8, &.packetCopy[0])
+        if copied and not reader.overrun
+        {
+            // Reads stay within the padded allocation. The logical limit is
+            // checked once at the end of the block, before any PCM is emitted.
+            readPreparedMantissas'(false, false)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
+            reader.overrun = reader.bitPos > reader.size * 8
+        }
+        else
+        {
+            readPreparedMantissas'(false, true)(reader, block, bsi.nfchans, bsi.lfeon, coefficients, &.mantissaGains, &.dither)
+        }
 
         for band in block.rematrixCount where block.rematrix[band]
         {
@@ -615,7 +650,7 @@ private impl Ac3Codec
 
     mtd decodeFrame(packet: const [..] u8, destination: [*] s16) fail
     {
-        var reader = BitReader.create(packet.buffer, packet.count)
+        var reader = .preparePacketBits(packet)
         let bsi    = try .readFrameHeader(&reader, packet.count)
         for blockIndex in BlocksPerAc3Frame
         {
@@ -707,7 +742,7 @@ internal impl Ac3DecodePipeline
 
     mtd(FixedChannels: u32) prepareFrame(batch: *Ac3DecodeBatch, packet: const [..] u8) fail
     {
-        var reader = BitReader.create(packet.buffer, packet.count)
+        var reader = .codec.preparePacketBits(packet)
         let header = &batch.headers[batch.count]
         header.bsi = try .codec.readFrameHeader(&reader, packet.count)
         let channels = FixedChannels ? FixedChannels : .codec.channels

@@ -93,25 +93,32 @@ private impl BitReader
     {
         if not count do
             return 0
-        return cast(u32, (.readAligned(count) >> (32 - count)))
+        return cast(u32, (.readAligned'true(count) >> (32 - count)))
     }
 
     #[Swag.Inline]
-    mtd readAligned(count: u32)->u32
+    mtd(Guarded: bool) readAligned(count: u32)->u32
     {
         let start     = .bitPos
         let byteStart = start >> 3
         .bitPos = start + count
         var word: u32
-        if byteStart + 4 <= .size
+        #static if Guarded
         {
-            word = Math.bigEndianToNative(cast(const [*] u32, .data + byteStart)[0])
+            if byteStart + 4 <= .size
+            {
+                word = Math.bigEndianToNative(cast(const [*] u32, .data + byteStart)[0])
+            }
+            else
+            {
+                if .bitPos > .size * 8 do
+                    .overrun = true
+                word = .readTail(byteStart)
+            }
         }
         else
         {
-            if .bitPos > .size * 8 do
-                .overrun = true
-            word = .readTail(byteStart)
+            word = Math.bigEndianToNative(cast(const [*] u32, .data + byteStart)[0])
         }
 
         return word << cast(u32, (start & 7))
@@ -133,7 +140,7 @@ private impl BitReader
     {
         if not count do
             return 0
-        return cast(s32, (cast #bit(s32, .readAligned(count)) >> (32 - count)))
+        return cast(s32, (cast #bit(s32, .readAligned'true(count)) >> (32 - count)))
     }
 
     #[Swag.Inline]
@@ -150,6 +157,14 @@ private impl BitReader
 
         return (cast(u32, .data[byteStart]) >> (7 - cast(u32, (at & 7)))) & 1
     }
+
+    #[Swag.Inline]
+    mtd(Guarded: bool) readMantissa(count: u32)->u32
+        => .readAligned'Guarded(count) >> (32 - count)
+
+    #[Swag.Inline]
+    mtd(Guarded: bool) readSignedMantissa(count: u32)->s32
+        => cast #bit(s32, .readAligned'Guarded(count)) >> (32 - count)
 
     internal mtd skip(count: u64)
     {
@@ -655,18 +670,21 @@ private struct DitherSteps
     increments:  [4] u32
 }
 
-private const DitherQuads: DitherSteps = #run
+private const DitherQuads: [3] DitherSteps = #run
 {
-    var result: DitherSteps
+    var result: [3] DitherSteps
     var multiplier = 1'u32
     var increment  = 0'u32
-    for lane in 4
+    for quad in 3
     {
-        multiplier               *= #wrap DitherMultiplier
-        increment                *= #wrap DitherMultiplier
-        increment                += #wrap DitherIncrement
-        result.multipliers[lane] = multiplier
-        result.increments[lane]  = increment
+        for lane in 4
+        {
+            multiplier                     *= #wrap DitherMultiplier
+            increment                      *= #wrap DitherMultiplier
+            increment                      += #wrap DitherIncrement
+            result[quad].multipliers[lane] = multiplier
+            result[quad].increments[lane]  = increment
+        }
     }
 
     return result
@@ -697,14 +715,13 @@ private impl DitherGenerator
 
     // Four consecutive BAP-zero bins consume four dither states in order.
     #[Swag.Inline]
-    mtd(Scaled: bool) writeQuad(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
+    mtd(Scaled: bool, Quad: u64) writeDitherGroup(seed: Simd.U32x4, destination: [*] f64, gains: const [*] f64, couplingScale: f64)->u32
     {
-        const Advance   = cast(Simd.U32x4, DitherQuads.multipliers)
-        const Increment = cast(Simd.U32x4, DitherQuads.increments)
+        const Advance   = cast(Simd.U32x4, DitherQuads[Quad].multipliers)
+        const Increment = cast(Simd.U32x4, DitherQuads[Quad].increments)
         const Bias      = cast(Simd.U32x4, [0x4330_0000'u32, 0x4330_0000, 0x4330_0000, 0x4330_0000])
         const Center    = cast(Simd.F64x2, [4_503_599_635_759_104.0'f64, 4_503_599_635_759_104.0])
-        let states = Simd.splat(.state) * Advance + Increment
-        .state = states[3]
+        let states = seed * Advance + Increment
 
         // Put the 24-bit integer beside the exponent for 2^52, then subtract
         // 2^52 + 2^23 to recover the exact centered dither integers.
@@ -722,6 +739,30 @@ private impl DitherGenerator
 
         Simd.store(destination, first)
         Simd.store(destination + 2, second)
+        return states[3]
+    }
+
+    #[Swag.Inline]
+    mtd(Scaled: bool) writeQuad(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
+    {
+        .state = .writeDitherGroup'(Scaled, 0)(Simd.splat(.state), destination, gains, couplingScale)
+    }
+
+    // Compute adjacent groups directly from their shared starting state.
+    #[Swag.Inline]
+    mtd(Scaled: bool, Quads: u64) writeDitherRun(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
+    {
+        let seed = Simd.splat(.state)
+        discard .writeDitherGroup'(Scaled, 0)(seed, destination, gains, couplingScale)
+        if Quads == 2
+        {
+            .state = .writeDitherGroup'(Scaled, 1)(seed, destination + 4, gains + 4, couplingScale)
+        }
+        else
+        {
+            discard .writeDitherGroup'(Scaled, 1)(seed, destination + 4, gains + 4, couplingScale)
+            .state = .writeDitherGroup'(Scaled, 2)(seed, destination + 8, gains + 8, couplingScale)
+        }
     }
 }
 
@@ -950,29 +991,29 @@ impl MantissaReader
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 
     #[Swag.Inline]
-    mtd(Group: u32, Bits: u32) readPacked(packed: *u32)->s32
+    mtd(Group: u32, Bits: u32, Guarded: bool) readPacked(packed: *u32)->s32
     {
         if packed[] == 1 do
-            packed[] = LowMantissaValues[Group, .reader.read(Bits)]
+            packed[] = LowMantissaValues[Group, .reader.readMantissa'Guarded(Bits)]
         let value = cast(s32, cast #wrap(s8, packed[]))
         packed[] >>= 8
         return value
     }
 
     #[Swag.Inline]
-    mtd(UseTable: bool) getPrepared(code: s32, gain: f64)->f64
+    mtd(UseTable: bool, Guarded: bool) getPrepared(code: s32, gain: f64)->f64
     {
         if UseTable
         {
             if code >= 6 do
-                return cast(f64, .reader.readSigned(cast(u32, code - 1))) * gain
+                return cast(f64, .reader.readSignedMantissa'Guarded(cast(u32, code - 1))) * gain
             if not code do
                 return 0
 
             let index = code - 1
             var group = .packed[index]
             if group == 1 do
-                group = LowMantissaValues[index, .reader.read(LowMantissaWidths[index])]
+                group = LowMantissaValues[index, .reader.readMantissa'Guarded(LowMantissaWidths[index])]
             .packed[index] = group >> 8
             return cast(f64, cast #wrap(s8, group)) * gain
         }
@@ -984,31 +1025,31 @@ impl MantissaReader
             return 0
 
         case 1:
-            value = .readPacked'(0, 5)(&.packed[0])
+            value = .readPacked'(0, 5, Guarded)(&.packed[0])
 
         case 2:
-            value = .readPacked'(1, 7)(&.packed[1])
+            value = .readPacked'(1, 7, Guarded)(&.packed[1])
 
         case 3:
-            let raw = .reader.read(3)
+            let raw = .reader.readMantissa'Guarded(3)
             value = raw < 7 ? cast(s32, raw) - 3 : 0
 
         case 4:
-            value = .readPacked'(3, 7)(&.packed[3])
+            value = .readPacked'(3, 7, Guarded)(&.packed[3])
 
         case 5:
-            let raw = .reader.read(4)
+            let raw = .reader.readMantissa'Guarded(4)
             value = raw < 15 ? cast(s32, raw) - 7 : 0
 
         default:
-            value = .reader.readSigned(cast(u32, (code - 1)))
+            value = .reader.readSignedMantissa'Guarded(cast(u32, (code - 1)))
         }
 
         return cast(f64, value) * gain
     }
 }
 
-private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: [*] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
+private func(UseTable: bool, Guarded: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: [*] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
 {
     var mantissas    = MantissaReader.create(reader)
     var couplingRead = false
@@ -1029,12 +1070,21 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
             let code = codes[bin]
             if code
             {
-                output[bin] = mantissas.getPrepared'UseTable(code, gains[bin])
+                output[bin] = mantissas.getPrepared'(UseTable, Guarded)(code, gains[bin])
             }
             elif dither
             {
                 if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
                 {
+                    if not UseTable and
+                       bin + 8 <= end and
+                       Simd.allTrue(Simd.load(codes + bin + 4) == zero)
+                    {
+                        noise.writeDitherRun'(false, 2)(output + bin, gains + bin, 1.0)
+                        bin += 8
+                        continue
+                    }
+
                     noise.writeQuad'false(output + bin, gains + bin, 1.0)
                     bin += 4
                     continue
@@ -1063,7 +1113,7 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
                     let bin  = first + offset
                     let code = codes[bin]
                     if code do
-                        couplingMantissas[bin] = mantissas.getPrepared'UseTable(code, prepared.coupling[bin])
+                        couplingMantissas[bin] = mantissas.getPrepared'(UseTable, Guarded)(code, prepared.coupling[bin])
                 }
             }
 
@@ -1076,7 +1126,7 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
         let output = coefficients + channelCount * SamplesPerBlock
         Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
         for bin in 7 do
-            output[bin] = mantissas.getPrepared'UseTable(block.lfeBap[bin], prepared.lfe[bin])
+            output[bin] = mantissas.getPrepared'(UseTable, Guarded)(block.lfeBap[bin], prepared.lfe[bin])
     }
 
     if block.coupling
@@ -1087,7 +1137,15 @@ private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: co
             let destination = coefficients + channel * SamplesPerBlock + cast(u32, block.couplingStart)
             for subband in block.couplingSubbands
             {
-                let scale = block.couplingCoord[channel, subband] * 8.0
+                let scale     = block.couplingCoord[channel, subband] * 8.0
+                let firstQuad = subband * 3
+                if not UseTable and dither and ((zeroedQuads >> cast(u32, firstQuad)) & 7) == 7
+                {
+                    let offset = firstQuad * 4
+                    noise.writeDitherRun'(true, 3)(destination + offset, &prepared.coupling[offset], scale)
+                    continue
+                }
+
                 for quad in 3
                 {
                     let group  = subband * 3 + quad

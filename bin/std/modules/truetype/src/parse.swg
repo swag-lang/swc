@@ -1081,7 +1081,7 @@ func buildSyntheticCMap(faceData: *FaceImpl, cmap: *HashTable'(u32, u32))
     else
     {
         for name, gid in faceData.type1Font().glyphNames do
-            addNamedGlyph(cmap, name.toString(), gid)
+            addNamedGlyph(cmap, name, gid)
     }
 }
 

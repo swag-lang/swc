@@ -11,6 +11,11 @@ private const EexecCharstringKey = 4330'u16
 // Bytes of random padding the private section prefixes its plaintext with.
 private const EexecPrivateSkip = 4'u64
 
+struct Type1Code
+{
+    offset, length: u64
+}
+
 // A parsed Type 1 font program.
 //
 // Type 1 stores its outlines as encrypted charstrings in a PostScript dictionary keyed by
@@ -18,12 +23,16 @@ private const EexecPrivateSkip = 4'u64
 // the order the dictionary was read in.
 struct Type1Font
 {
-    charstrings: Array'(Array'u8)
-    subrs:       Array'(Array'u8)
-    glyphNames:  Array'String
-    nameToGid:   HashTable'(String, u32)
-    codeToGid:   HashTable'(u32, u32)
-    unitsPerEm:  u16 = 1000
+    charstrings: Array'Type1Code
+    subrs:       Array'Type1Code
+    codeBytes:   Array'u8
+
+    // Names point into this immutable decrypted dictionary.
+    privateSection: Array'u8
+    glyphNames:     Array'string
+    nameToGid:      HashTable'(string, u32)
+    codeToGid:      HashTable'(u32, u32)
+    unitsPerEm:     u16 = 1000
 
     // Identity and metrics the cleartext header declares, standing in for the sfnt tables
     // a Type 1 program has none of.
@@ -36,6 +45,35 @@ struct Type1Font
     bold:     bool
 }
 
+impl Type1Font
+{
+    #[Swag.Inline]
+    mtd const codeOf(code: Type1Code)->const [..] u8
+    {
+        if not code.length do
+            return ""
+        return Swag.makeSlice(.codeBytes.storage() + code.offset, code.length)
+    }
+
+    mtd storeCode(data: const [..] u8, lenIV: s32)->Type1Code
+    {
+        let skip = lenIV >= 0 ? cast(u64, lenIV) : 0
+        if data.count <= skip do
+            return {}
+
+        let length = data.count - skip
+        let offset = .codeBytes.count
+        .codeBytes.reserve(offset + length)
+        let target = unwrap .codeBytes.buffer + offset
+        if lenIV < 0 do
+            Memory.copy(target, data.buffer, length)
+        else do
+            eexecDecryptInto(target, data, EexecCharstringKey, skip)
+        .codeBytes.count = offset + length
+        return {offset, length}
+    }
+}
+
 // Reverses the stream cipher that protects a Type 1 private section or charstring.
 func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
 {
@@ -43,6 +81,15 @@ func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
     if data.count <= skip do
         return result
 
+    let size = data.count - skip
+    result.reserve(size)
+    eexecDecryptInto(unwrap result.buffer, data, key, skip)
+    result.count = size
+    return result
+}
+
+private func eexecDecryptInto(output: [*] u8, data: const [..] u8, key: u16, skip: u64)
+{
     var state = cast(u32, key)
     var input = data.buffer
     for skip
@@ -51,19 +98,12 @@ func eexecDecrypt(data: const [..] u8, key: u16, skip: u64)->Array'u8
         input += 1
     }
 
-    let size = data.count - skip
-    result.reserve(size)
-    let output = unwrap result.buffer
-    for index in size
+    for index in data.count - skip
     {
         let cipher = input[index]
         output[index] = cipher ^ cast(u8, state >> 8)
         state         = ((cast(u32, cipher) + state) * EexecC1 + EexecC2) & 0xFFFF
     }
-
-    result.count = size
-
-    return result
 }
 
 func findBytes(data: const [..] u8, from: u64, needle: string)->u64
@@ -250,17 +290,15 @@ private func isHexPrivateSection(data: const [..] u8)->bool
 }
 
 // Reads one `<length> RD <bytes>` block, whatever spelling the font gives the operator.
-func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Array'u8, next: u64 } fail
+func readCharstringData(data: const [..] u8, from: u64)->{ bytes: const [..] u8, next: u64 } fail
 {
-    var result: #returntype
+    var result: #returntype = {bytes: "", next: data.count}
     let length = readPostScriptNumber(data, from)
     let size   = cast(u64, length.value)
     let token  = readPostScriptToken(data, length.next)
     if not token.text.count
-    {
-        result.next = data.count
+        do
         return result
-    }
 
     // CRLF is one PostScript line separator; preserve any following binary whitespace.
     var start = token.next + 1
@@ -269,18 +307,12 @@ func readCharstringData(data: const [..] u8, from: u64, lenIV: s32)->{ bytes: Ar
        token.next + 1 < data.count and
        data[token.next + 1] == '\n' do
         start += 1
-    if start + size > data.count
-    {
-        result.next = data.count
+    if start > data.count or size > data.count - start
+        do
         return result
-    }
 
-    let encrypted = try getSlice(data, start, size)
-    if lenIV < 0 do
-        result.bytes.add(encrypted)
-    else do
-        result.bytes = eexecDecrypt(encrypted, EexecCharstringKey, cast(u64, lenIV))
-    result.next = start + size
+    result.bytes = try getSlice(data, start, size)
+    result.next  = start + size
     return result
 }
 
@@ -304,10 +336,10 @@ private func parseType1Subrs(font: *Type1Font, data: const [..] u8, lenIV: s32) 
             return
 
         let index = readPostScriptNumber(data, dup + 3)
-        var entry = try readCharstringData(data, index.next, lenIV)
+        let entry = try readCharstringData(data, index.next)
         let slot  = cast(u64, index.value)
         if slot < font.subrs.count do
-            font.subrs[slot] = #move entry.bytes
+            font.subrs[slot] = font.storeCode(entry.bytes, lenIV)
         pos = entry.next
     }
 }
@@ -325,9 +357,9 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
     // A Type 1 dictionary is unordered, so the first glyph it happens to spell out would
     // otherwise take index zero — the index every caller reads as "no such glyph". Holding
     // that index for `.notdef` is what makes an index answer mean what it says.
-    font.glyphNames.add(String.from(NotDefName))
-    font.charstrings.add(Array'u8{})
-    font.nameToGid.add(String.from(NotDefName), 0)
+    font.glyphNames.add(NotDefName)
+    font.charstrings.add(Type1Code{})
+    font.nameToGid.add(NotDefName, 0)
 
     // The dictionary body is a run of `/name <length> RD <bytes> ND` entries; `end` closes
     // it. Names are read in file order, which is the order glyph indices follow.
@@ -359,21 +391,21 @@ private func parseType1CharStrings(font: *Type1Font, data: const [..] u8, lenIV:
             continue
         }
 
-        var entry = try readCharstringData(data, name.next, lenIV)
-        if entry.bytes.isEmpty() and entry.next >= data.count do
+        let entry = try readCharstringData(data, name.next)
+        let code  = font.storeCode(entry.bytes, lenIV)
+        if not code.length and entry.next >= data.count do
             break
 
-        var owned = String.from(name.text)
-        if owned == NotDefName
+        if name.text == NotDefName
         {
-            font.charstrings[0] = #move entry.bytes
+            font.charstrings[0] = code
             pos = entry.next
             continue
         }
 
-        font.nameToGid.add(owned, cast(u32, font.charstrings.count), updateValue: false)
-        font.glyphNames.add(#move owned)
-        font.charstrings.add(#move entry.bytes)
+        font.nameToGid.add(name.text, cast(u32, font.charstrings.count), updateValue: false)
+        font.glyphNames.add(name.text)
+        font.charstrings.add(code)
         pos = entry.next
     }
 
@@ -395,7 +427,7 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
             let name = standardEncodingName(cast(u8, code))
             if not name.count do
                 continue
-            let found = font.nameToGid.tryFind(String.from(name))
+            let found = font.nameToGid.tryFind(name)
             if found do
                 font.codeToGid[code] = found.value
         }
@@ -425,7 +457,7 @@ private func parseType1Encoding(font: *Type1Font, clear: const [..] u8) fail
         }
 
         let name  = readPostScriptToken(clear, namePos + 1)
-        let found = font.nameToGid.tryFind(String.from(name.text))
+        let found = font.nameToGid.tryFind(name.text)
         if found do
             font.codeToGid[cast(u32, code.value)] = found.value
         pos = name.next
@@ -514,13 +546,13 @@ func parseType1Font(bytes: const [..] u8)->Type1Font fail
     let encoded = try getSlice(flat, start, flat.count - start)
     let binary  = isHexPrivateSection(encoded) ? decodeEexecHex(encoded) : Array'u8{}
 
-    var privateSection: Array'u8
     if binary.count do
-        privateSection = eexecDecrypt(binary.toSlice(), EexecPrivateKey, EexecPrivateSkip)
+        result.privateSection = eexecDecrypt(binary.toSlice(), EexecPrivateKey, EexecPrivateSkip)
     else do
-        privateSection = eexecDecrypt(encoded, EexecPrivateKey, EexecPrivateSkip)
+        result.privateSection = eexecDecrypt(encoded, EexecPrivateKey, EexecPrivateSkip)
 
-    let decrypted = privateSection.toSlice()
+    let decrypted = result.privateSection.toSlice()
+    result.codeBytes.reserve(decrypted.count)
 
     // Charstrings carry random padding of their own; the private section states how much.
     var lenIV  = 4's32

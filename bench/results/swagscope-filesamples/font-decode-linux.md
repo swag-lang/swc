@@ -1346,3 +1346,26 @@ native test compares the bitmap with a scalar reference.
 | `NotoSansCJKjp-Regular.otf` | 24 | 64 | 5294.61 | 4211.53 |
 | `NotoSerifCJKjp-Regular.otf` | 24 | 8 | 322.44 | 263.40 |
 | `NotoSerifCJKjp-Regular.otf` | 64 | 8 | 873.40 | 715.67 |
+
+## Packed Type 1 charstrings and borrowed glyph names
+
+Glyph names refer to the font's decrypted dictionary. Charstrings and
+local subroutines share one byte buffer, addressed by offsets. The
+buffer grows independently of the offsets, and faces still own the
+decrypted data through their program.
+
+Eleven interleaved batches of 31 opens on one CPU compare with
+`9734ba70c4`. Pathname open times fall by 21–27% across the six URW
+cases. Retained-source times remain around 1 µs. Glyph IDs, advances,
+dimensions and CRC-64 agree, and the native allocator test checks
+that the last face releases the program.
+[Raw timings and retained-source controls](font-decode-linux-type1-storage.json)
+
+| Fixture | Character | Pathname open before (µs) | After |
+| --- | ---: | ---: | ---: |
+| `NimbusSans-Regular.t1` | U+0041 | 1072.93 | 783.53 |
+| `NimbusSans-Regular.t1` | U+0067 | 1046.37 | 791.16 |
+| `NimbusMonoPS-Regular.t1` | U+0057 | 1277.48 | 1011.67 |
+| `NimbusMonoPS-Regular.t1` | U+0069 | 1315.26 | 964.01 |
+| `P052-Roman.t1` | U+0067 | 1401.91 | 1100.58 |
+| `P052-Roman.t1` | U+0045 | 1501.79 | 1089.82 |

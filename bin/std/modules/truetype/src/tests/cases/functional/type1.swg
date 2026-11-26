@@ -73,8 +73,8 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
 
     let font = expect parseType1Font(buildBinaryType1Fixture(HexLookingPrefix).toSlice())
     Swag.require(font.glyphNames.count == 2)
-    Swag.require(font.glyphNames[0].toString() == ".notdef")
-    Swag.require(font.glyphNames[1].toString() == "A")
+    Swag.require(font.glyphNames[0] == ".notdef")
+    Swag.require(font.glyphNames[1] == "A")
 
     let pfa = expect parseType1Font(buildBinaryType1Fixture(BinaryPrefix, true).toSlice())
     Swag.require(pfa.glyphNames.count == 2)
@@ -87,12 +87,14 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     let bytes = buildBinaryType1Fixture(BinaryPrefix, rdSeparator: "\r\n")
     let font  = expect parseType1Font(bytes.toSlice())
 
-    Swag.require(font.charstrings[0].count == 4)
-    Swag.require(font.charstrings[0][0] == 139 and font.charstrings[0][1] == 139)
-    Swag.require(font.charstrings[0][2] == 13 and font.charstrings[0][3] == 14)
-    Swag.require(font.charstrings[1].count == 4)
-    Swag.require(font.charstrings[1][0] == 139 and font.charstrings[1][1] == 189)
-    Swag.require(font.charstrings[1][2] == 13 and font.charstrings[1][3] == 14)
+    let notDef = font.codeOf(font.charstrings[0])
+    Swag.require(notDef.count == 4)
+    Swag.require(notDef[0] == 139 and notDef[1] == 139)
+    Swag.require(notDef[2] == 13 and notDef[3] == 14)
+    let glyph = font.codeOf(font.charstrings[1])
+    Swag.require(glyph.count == 4)
+    Swag.require(glyph[0] == 139 and glyph[1] == 189)
+    Swag.require(glyph[2] == 13 and glyph[3] == 14)
 }
 
 // A lone separator leaves a whitespace-valued first charstring byte untouched.
@@ -102,8 +104,9 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     let bytes = buildBinaryType1Fixture(BinaryPrefix, firstNotDefByte: '\n')
     let font  = expect parseType1Font(bytes.toSlice())
 
-    Swag.require(font.charstrings[0].count == 4)
-    Swag.require(font.charstrings[0][0] == '\n')
+    let notDef = font.codeOf(font.charstrings[0])
+    Swag.require(notDef.count == 4)
+    Swag.require(notDef[0] == '\n')
 }
 
 #test
@@ -138,12 +141,8 @@ func buildBinaryType1Fixture(firstCipher: const [4] u8,
     const Division: [8] u8 = [139, 247, 92, 141, 12, 12, 13, 14]
     const Vector:   [7] u8 = [139, 139, 246, 139, 12, 7, 14]
     var font: Type1Font
-    for code in [cast(const [..] u8, Direct), cast(const [..] u8, Division), cast(const [..] u8, Vector)]
-    {
-        var owned: Array'u8
-        owned.add(code)
-        font.charstrings.add(#move owned)
-    }
+    for code in [cast(const [..] u8, Direct), cast(const [..] u8, Division), cast(const [..] u8, Vector)] do
+        font.charstrings.add(font.storeCode(code, -1))
 
     let expected = [500.0, 100.0, 107.0]
     for width, gid in expected

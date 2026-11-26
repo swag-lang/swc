@@ -125,12 +125,67 @@ private impl BitReader
             destination[tail] = .readSigned(width)
     }
 
+    // Aligned native-depth runs can unpack complete vectors of big-endian samples.
+    mtd(Width: u32) readSignedAligned(destination: [*] s64, count: u32)->u32
+    {
+        const Samples = Width == 16 ? 8'u32 : 4'u32
+        const Stride  = Width == 24 ? 12'u32 : 16'u32
+        const Swap16  = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+        const Swap24  = cast(Math.Simd.U8x16, [0'u8, 2, 1, 0, 0, 5, 4, 3, 0, 8, 7, 6, 0, 11, 10, 9])
+        const Swap32  = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+        let bytes = .bitsLeft() >> 3
+        if bytes < 16 do
+            return 0
+        let groups = cast(u32, Math.min(cast(u64, count / Samples), (bytes - 16) / Stride + 1))
+        let source = unwrap .data + (.bitPos >> 3)
+        for index in groups
+        {
+            let input  = Math.Simd.load(source + index * Stride)
+            let output = destination + index * Samples
+            #static if Width == 16
+            {
+                let signed = cast #bit(Math.Simd.S16x8, Math.Simd.permute(input, Swap16))
+                let first  = Math.Simd.widenLow(signed)
+                let second = Math.Simd.widenHigh(signed)
+                Math.Simd.store(output, Math.Simd.widenLow(first))
+                Math.Simd.store(output + 2, Math.Simd.widenHigh(first))
+                Math.Simd.store(output + 4, Math.Simd.widenLow(second))
+                Math.Simd.store(output + 6, Math.Simd.widenHigh(second))
+            }
+            else
+            {
+                const Swap  = Width == 24 ? Swap24 : Swap32
+                const Shift = Width == 24 ? 8'u32 : 0
+                let signed = cast #bit(Math.Simd.S32x4, Math.Simd.permute(input, Swap)) >> Shift
+                Math.Simd.store(output, Math.Simd.widenLow(signed))
+                Math.Simd.store(output + 2, Math.Simd.widenHigh(signed))
+            }
+        }
+
+        .bitPos += cast(u64, groups) * Stride * 8
+        return groups * Samples
+    }
+
     mtd readSignedSamples(destination: [*] s64, count, width: u32)
     {
+        var start = 0'u32
+        #static if not Core.BIG_ENDIAN
+        {
+            if not (.bitPos & 7)
+            {
+                switch width
+                {
+                case 16: start = .readSignedAligned'16(destination, count)
+                case 24: start = .readSignedAligned'24(destination, count)
+                case 32: start = .readSignedAligned'32(destination, count)
+                }
+            }
+        }
+
         if width <= 28 do
-            .readSignedRun'2(destination, count, width)
+            .readSignedRun'2(destination + start, count - start, width)
         else do
-            .readSignedRun'1(destination, count, width)
+            .readSignedRun'1(destination + start, count - start, width)
     }
 
     // Counts the zero bits before the next set bit, and consumes that set bit.
@@ -911,34 +966,45 @@ private impl Codec
     }
 
     // Apply stereo decorrelation while interleaving, so the wide scratch is read once.
-    mtd(Assignment: u32, ScaleDown: bool) interleaveStereoPcm16(destination: [*] s16, blockSize, shift: u32)
+    mtd(Assignment: u32, ScaleDown: bool, FullWidth: bool) interleaveStereoPcm16(destination: [*] s16, blockSize, shift: u32)
     {
         #static if not ScaleDown do
             discard shift
-        let first  = .channels[0].storage()
-        let second = .channels[1].storage()
-        var done   = 0'u32
+        let firstPlane  = .channels[0].storage()
+        let secondPlane = .channels[1].storage()
+        var done        = 0'u32
         #static if not Core.BIG_ENDIAN
         {
-            const Bias = cast(Math.Simd.U64x2, [0x2000_0000'u64, 0x2000_0000])
-            const High = cast(Math.Simd.U64x2, [0xFFFF_FFFF_C000_0000'u64, 0xFFFF_FFFF_C000_0000])
-            const Zero = cast(Math.Simd.U64x2, [0'u64, 0])
-            const One  = cast(Math.Simd.S32x4, [1's32, 1, 1, 1])
             while blockSize - done >= 4
             {
-                let a0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(first + done))
-                let a1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(first + done + 2))
-                let b0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(second + done))
-                let b1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(second + done + 2))
+                var left, right: Math.Simd.S32x4
+                #static if FullWidth
+                {
+                    // Without decorrelation, signed-32 saturation still gives the same
+                    // PCM16 result after shifting by at most sixteen bits.
+                    left  = pcmWords(firstPlane + done)
+                    right = pcmWords(secondPlane + done)
+                }
+                else
+                {
+                    const Bias = cast(Math.Simd.U64x2, [0x2000_0000'u64, 0x2000_0000])
+                    const High = cast(Math.Simd.U64x2, [0xFFFF_FFFF_C000_0000'u64, 0xFFFF_FFFF_C000_0000])
+                    const Zero = cast(Math.Simd.U64x2, [0'u64, 0])
+                    let a0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(firstPlane + done))
+                    let a1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(firstPlane + done + 2))
+                    let b0 = cast #bit (Math.Simd.U64x2, Math.Simd.load(secondPlane + done))
+                    let b1 = cast #bit (Math.Simd.U64x2, Math.Simd.load(secondPlane + done + 2))
 
-                // Inputs in [-2^29, 2^29) keep the doubled mid and both sums in signed 32 bits.
-                // The bias maps that interval to the unsigned low thirty bits.
-                let large = ((a0 + Bias) | (a1 + Bias) | (b0 + Bias) | (b1 + Bias)) & High
-                if Math.Simd.bitmask(large == Zero) != 0b11 do
-                    break
+                    // Inputs in [-2^29, 2^29) keep decorrelation in signed 32 bits.
+                    // The bias maps that interval to the unsigned low thirty bits.
+                    let large = ((a0 + Bias) | (a1 + Bias) | (b0 + Bias) | (b1 + Bias)) & High
+                    if Math.Simd.bitmask(large == Zero) != 0b11 do
+                        break
 
-                var left  = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, a0), cast #bit(Math.Simd.U32x4, a1)))
-                var right = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, b0), cast #bit(Math.Simd.U32x4, b1)))
+                    left  = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, a0), cast #bit(Math.Simd.U32x4, a1)))
+                    right = cast #bit (Math.Simd.S32x4, Math.Simd.deinterleaveEven(cast #bit(Math.Simd.U32x4, b0), cast #bit(Math.Simd.U32x4, b1)))
+                }
+
                 #static if Assignment == 8
                 {
                     right = left - right
@@ -972,8 +1038,8 @@ private impl Codec
 
         for sample in done until blockSize
         {
-            var left  = first[sample]
-            var right = second[sample]
+            var left  = firstPlane[sample]
+            var right = secondPlane[sample]
             #static if Assignment == 8
             {
                 right = left - right
@@ -1004,10 +1070,10 @@ private impl Codec
     {
         switch header.channelAssignment
         {
-        case 8:  .interleaveStereoPcm16'(8'u32, ScaleDown)(destination, header.blockSize, shift)
-        case 9:  .interleaveStereoPcm16'(9'u32, ScaleDown)(destination, header.blockSize, shift)
-        case 10: .interleaveStereoPcm16'(10'u32, ScaleDown)(destination, header.blockSize, shift)
-        default: .interleaveStereoPcm16'(1'u32, ScaleDown)(destination, header.blockSize, shift)
+        case 8:  .interleaveStereoPcm16'(8'u32, ScaleDown, false)(destination, header.blockSize, shift)
+        case 9:  .interleaveStereoPcm16'(9'u32, ScaleDown, false)(destination, header.blockSize, shift)
+        case 10: .interleaveStereoPcm16'(10'u32, ScaleDown, false)(destination, header.blockSize, shift)
+        default: .interleaveStereoPcm16'(1'u32, ScaleDown, false)(destination, header.blockSize, shift)
         }
     }
 
@@ -1108,7 +1174,9 @@ private impl Codec
         let shift = cast(s32, header.bitsPerSample) - 16
         if shift >= 0 and header.channels == 2
         {
-            if shift do
+            if shift == 16 and header.channelAssignment == 1 do
+                .interleaveStereoPcm16'(1'u32, true, true)(destination, header.blockSize, 16)
+            elif shift do
                 .writeStereoPcm16'true(destination, header, cast(u32, shift))
             else do
                 .writeStereoPcm16'false(destination, header, 0)

@@ -444,6 +444,7 @@ private func execType2(state: *Type2State, code: const [..] u8, depth: u32) fail
             if entry < 0 or cast(u32, entry) >= table.count() do
                 try fault(0x86)
             try execType2(state, table.item(cast(u32, entry)), depth + 1)
+
             // The first stack-clearing operator fixes the width even inside a subroutine.
             if state.finished or (state.widthOnly and state.haveWidth) do
                 return
@@ -1043,7 +1044,7 @@ private func execType1(state: *Type1State, code: const [..] u8, depth: u32) fail
             let index = cast(s32, state.stack[state.depth])
             if index < 0 or cast(u64, index) >= state.font.subrs.count do
                 try fault(0x86)
-            try execType1(state, state.font.subrs[index].toSlice(), depth + 1)
+            try execType1(state, state.font.codeOf(state.font.subrs[index]), depth + 1)
             if state.finished do
                 return
 
@@ -1185,7 +1186,7 @@ func type1CharstringWidth(font: const *Type1Font, gid: u32)->f64 fail
     if gid >= font.charstrings.count do
         try fault(0x10)
 
-    let code = font.charstrings[gid].toSlice()
+    let code = font.codeOf(font.charstrings[gid])
     var pos  = 1'u64
     let lsb  = peekU8(code, 0)
     if lsb >= 32
@@ -1220,7 +1221,7 @@ func runType1Charstring(font: const *Type1Font, gid: u32, builder: *OutlineBuild
     state.builder   = builder
     state.widthOnly = builder == null
 
-    try execType1(&state, font.charstrings[gid].toSlice(), 0)
+    try execType1(&state, font.codeOf(font.charstrings[gid]), 0)
     builder?.closeContour()
 
     if builder and
@@ -1262,5 +1263,5 @@ func type1GlyphForStandardCode(font: const *Type1Font, code: u8)->u32
     let name = standardEncodingName(code)
     if not name.count do
         return 0
-    return font.nameToGid.getOrDefault(String.from(name), 0)
+    return font.nameToGid.getOrDefault(name, 0)
 }

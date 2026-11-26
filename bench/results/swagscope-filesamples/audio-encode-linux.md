@@ -309,3 +309,40 @@ higher. Swag encodes that input in 23.77 ms in the FDK series.
 Native Release passes 336 audio tests. Release-safe passes 49 focused AAC and
 MDCT tests. The audio API audit documents all 222 items and reports no unresolved
 references or broken anchors.
+
+## FLAC dual mono and WAV storage comparison
+
+Both Swag builds use the same native Release compiler and the previous audio
+sources are at `24f0f6bdf7`. FLAC medians use 12 observations per engine on
+CPU 3 for ten seconds of PCM16. FFmpeg is 9.1 and libFLAC is 1.5.0.
+
+[Raw stage times, output sizes, and lossless PCM checks](audio-encode-linux-round8.json)
+
+| FLAC input | Before (ms) | Swag (ms) | FFmpeg level 0 (ms) | libFLAC level 0 (ms) | Before bytes | Swag bytes | FFmpeg bytes | libFLAC bytes |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Dual mono 48 kHz | 9.32 | 7.12 | 9.12 | 11.47 | 802,670 | 402,519 | 416,565 | 843,010 |
+| FileSamples stereo 44.1 kHz | 8.85 | 8.71 | 11.31 | 10.34 | 1,051,716 | 1,051,716 | 1,078,821 | 1,052,820 |
+| Mono 48 kHz | 4.68 | 4.77 | 8.56 | 6.17 | 402,152 | 402,152 | 415,243 | 423,470 |
+| Stereo 44.1 kHz | 8.77 | 8.23 | 11.25 | 9.93 | 771,329 | 771,329 | 783,952 | 806,276 |
+| Stereo 48 kHz | 9.31 | 9.18 | 12.03 | 10.78 | 740,253 | 740,253 | 798,556 | 782,810 |
+| Stereo noise 48 kHz | 8.37 | 8.41 | 11.09 | 12.61 | 1,921,810 | 1,921,810 | 1,932,749 | 1,924,547 |
+| 5.1 at 48 kHz | 32.94 | 29.65 | 30.76 | 32.01 | 2,344,299 | 2,344,299 | 2,359,222 | 2,430,017 |
+
+For equal stereo samples, FLAC stores one signal and a constant zero side
+channel. The dual-mono fixture duplicates the canonical 48 kHz mono input.
+The six regular Swag files keep their exact compressed bytes. All 28 FLAC
+outputs restore the source PCM exactly.
+
+WAV medians use 30 observations per engine on CPU 3. Each engine restores
+the source PCM exactly. The two Swag binaries use the same WAV writer.
+
+| WAV input | Swag overlay (ms) | FFmpeg overlay (ms) | Swag tmpfs (ms) | FFmpeg tmpfs (ms) |
+| --- | ---: | ---: | ---: | ---: |
+| FileSamples stereo 44.1 kHz | 1.69 | 1.97 | 0.41 | 0.64 |
+| Mono 48 kHz | 1.04 | 0.97 | 0.24 | 0.32 |
+| Stereo 48 kHz | 1.39 | 1.28 | 0.44 | 0.61 |
+
+Swag writes 34 fewer header bytes in all three cases. It leads on all
+three tmpfs cases. FFmpeg leads on the generated mono and stereo inputs
+on overlay. The reported medians include opening, feeding, and finalizing
+each file.

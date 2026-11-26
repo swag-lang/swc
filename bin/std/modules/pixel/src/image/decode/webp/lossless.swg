@@ -759,6 +759,8 @@ func losslessClampAddSubtractHalf(a, b: u8)->u8
 
 func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, height: s32)
 {
+    using Math.Simd
+
     // The low seven bits of each channel add without carrying into the next channel.
     #[Swag.Inline]
     func addPixel(destination: [*] u32, prediction: u32)
@@ -771,6 +773,45 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
     #[Swag.Inline]
     func averagePixel(a, b: u32)->u32 => (a & b) + (((a ^ b) & 0xFEFEFEFE'u32) >> 1)
 
+    func addFromLeft(row: [*] u32, start, end: s32)
+    {
+        var column = start
+        if end - start >= 4
+        {
+            let zero  = splat(0'u8)
+            var carry = row[start - 1]
+            while end - column >= 4
+            {
+                // Two shifts accumulate four residuals independently in every channel.
+                let residual = cast #bit(U8x16, load(row + column))
+                let pairs    = residual + align(zero, residual, 12)
+                let sums     = pairs + align(zero, pairs, 8)
+                let pixels   = cast #bit(U32x4, (sums + cast #bit(U8x16, splat(carry))))
+                store(row + column, pixels)
+                carry  = pixels[3]
+                column += 4
+            }
+        }
+
+        for x in column until end do
+            addPixel(row + x, row[x - 1])
+    }
+
+    func addSpan(destination: [*] u32, prediction: const [*] u32, count: s32)
+    {
+        var i: s32
+        while count - i >= 4
+        {
+            let residual = cast #bit(U8x16, load(destination + i))
+            let above    = cast #bit(U8x16, load(prediction + i))
+            store(destination + i, cast #bit(U32x4, (residual + above)))
+            i += 4
+        }
+
+        for j in i until count do
+            addPixel(destination + j, prediction[j])
+    }
+
     let width = transform.oldWidth
     if width == 0 or height == 0 do
         return
@@ -780,7 +821,7 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
     for x in 1 until width do
         addPixel(data + x, data[x - 1])
 
-    let mask        = cast(s32, (1 << transform.bits)) - 1
+    let tileWidth   = 1's32 << transform.bits
     let tilesPerRow = losslessTileCount(width, transform.bits)
     let parameters  = transform.pixels.storage()
     for y in 1 until height
@@ -789,79 +830,96 @@ func losslessInversePredictor(transform: *LosslessTransform, pixels: *Array'u8, 
         let top = row - width
         addPixel(row, top[0])
 
-        var tile = cast(u64, (4 * (y >> transform.bits) * tilesPerRow)) + 1
-        var predictorMode = parameters[tile] & 0x0F
-        tile += 4
-        for x in 1 until width
+        var tile     = cast(u64, (4 * (y >> transform.bits) * tilesPerRow)) + 1
+        var x        = 1's32
+        var boundary = tileWidth
+        while x < width
         {
-            if (x & mask) == 0
-            {
-                predictorMode = parameters[tile] & 0x0F
-                tile += 4
-            }
-
-            let destination = row + x
-            switch predictorMode
+            let endX = Math.min(width, boundary)
+            switch parameters[tile] & 0x0F
             {
             case 0:
-                addPixel(destination, 0xFF000000)
+                for column in x until endX do
+                    addPixel(row + column, 0xFF000000)
 
             case 1:
-                addPixel(destination, row[x - 1])
+                addFromLeft(row, x, endX)
 
             case 2:
-                addPixel(destination, top[x])
+                addSpan(row + x, top + x, endX - x)
 
             case 3:
-                addPixel(destination, top[x + 1])
+                addSpan(row + x, top + x + 1, endX - x)
 
             case 4:
-                addPixel(destination, top[x - 1])
+                addSpan(row + x, top + x - 1, endX - x)
 
             case 5:
-                addPixel(destination, averagePixel(averagePixel(row[x - 1], top[x + 1]), top[x]))
+                for column in x until endX do
+                    addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column + 1]), top[column]))
 
             case 6:
-                addPixel(destination, averagePixel(row[x - 1], top[x - 1]))
+                for column in x until endX do
+                    addPixel(row + column, averagePixel(row[column - 1], top[column - 1]))
 
             case 7:
-                addPixel(destination, averagePixel(row[x - 1], top[x]))
+                for column in x until endX do
+                    addPixel(row + column, averagePixel(row[column - 1], top[column]))
 
             case 8:
-                addPixel(destination, averagePixel(top[x - 1], top[x]))
+                for column in x until endX do
+                    addPixel(row + column, averagePixel(top[column - 1], top[column]))
 
             case 9:
-                addPixel(destination, averagePixel(top[x], top[x + 1]))
+                for column in x until endX do
+                    addPixel(row + column, averagePixel(top[column], top[column + 1]))
 
             case 10:
-                addPixel(destination, averagePixel(averagePixel(row[x - 1], top[x - 1]), averagePixel(top[x], top[x + 1])))
+                for column in x until endX do
+                    addPixel(row + column, averagePixel(averagePixel(row[column - 1], top[column - 1]), averagePixel(top[column], top[column + 1])))
 
             case 11:
-                let left   = cast(const [*] u8, row + x - 1)
-                let above  = cast(const [*] u8, top + x)
-                let corner = cast(const [*] u8, top + x - 1)
-                var leftDistance, topDistance: s32
-                for channel in 4
+                for column in x until endX
                 {
-                    leftDistance += Math.abs(cast(s32, corner[channel]) - above[channel])
-                    topDistance  += Math.abs(cast(s32, corner[channel]) - left[channel])
+                    let left   = cast(const [*] u8, row + column - 1)
+                    let above  = cast(const [*] u8, top + column)
+                    let corner = cast(const [*] u8, top + column - 1)
+                    var leftDistance, topDistance: s32
+                    for channel in 4
+                    {
+                        leftDistance += Math.abs(cast(s32, corner[channel]) - above[channel])
+                        topDistance  += Math.abs(cast(s32, corner[channel]) - left[channel])
+                    }
+
+                    addPixel(row + column, leftDistance < topDistance ? row[column - 1] : top[column])
                 }
 
-                addPixel(destination, leftDistance < topDistance ? row[x - 1] : top[x])
-
-            case 12, 13:
-                let target = cast([*] u8, destination)
-                let left   = cast(const [*] u8, row + x - 1)
-                let above  = cast(const [*] u8, top + x)
-                let corner = cast(const [*] u8, top + x - 1)
-                for channel in 4
+            case 12:
+                for column in x until endX
                 {
-                    let prediction = predictorMode == 12
-                                     ? losslessClampAddSubtractFull(left[channel], above[channel], corner[channel])
-                                     : losslessClampAddSubtractHalf(losslessAverage(left[channel], above[channel]), corner[channel])
-                    target[channel] += #wrap prediction
+                    let target = cast([*] u8, row + column)
+                    let left   = cast(const [*] u8, row + column - 1)
+                    let above  = cast(const [*] u8, top + column)
+                    let corner = cast(const [*] u8, top + column - 1)
+                    for channel in 4 do
+                        target[channel] += #wrap losslessClampAddSubtractFull(left[channel], above[channel], corner[channel])
+                }
+
+            case 13:
+                for column in x until endX
+                {
+                    let target = cast([*] u8, row + column)
+                    let left   = cast(const [*] u8, row + column - 1)
+                    let above  = cast(const [*] u8, top + column)
+                    let corner = cast(const [*] u8, top + column - 1)
+                    for channel in 4 do
+                        target[channel] += #wrap losslessClampAddSubtractHalf(losslessAverage(left[channel], above[channel]), corner[channel])
                 }
             }
+
+            x        = endX
+            boundary += tileWidth
+            tile     += 4
         }
     }
 }

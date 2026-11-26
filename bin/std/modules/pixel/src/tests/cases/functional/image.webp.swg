@@ -6,23 +6,23 @@ using Swag, Core
 #test
 {
     const Expected: [14] u64 = [
-        0x4E8A69F98A21294B, 0xA8F09B5ED627982D, 0x03034165F509E4B2, 0x3C417BA0F4DB8777,
-        0x9140D68A61B4CEE9, 0x2A31D4FA2818B53D, 0x9ABD0FAFE277E019, 0x3787FD7E8FBC5ABF,
-        0x6DD168EBBA6F91EC, 0xFB09D2EDD0D4AD6F, 0x837866FBA9355227, 0xEC7FCEE8645680AB,
-        0x596112689177F1E9, 0x6027CB1A5335C96B]
+        0xFAE4AEBE82478458, 0x71D49ACE9BEF4DB4, 0x31594F33F04179F1, 0xF069DD1AC7A05EE4,
+        0x01A164CB662FD039, 0x9795408988CC2BF4, 0xFBA9719A69AC2A4A, 0x212E3A152D9C65CC,
+        0xC70E1B5E90C87493, 0xBC015A3733E8BCF3, 0x76D6355E2A138697, 0x7E360AD48D2D91F4,
+        0x8594343A78099043, 0x2BD81272494568BB]
     for mode in Expected.count
     {
-        var transform = Webp.LosslessTransform{oldWidth: 5, bits: 2}
+        var transform = Webp.LosslessTransform{oldWidth: 9, bits: 3}
         transform.pixels.resize(16)
         for tile in 4 do
             transform.pixels[tile * 4 + 1] = cast(u8, ((mode + tile) % Expected.count))
 
         var pixels: Array'u8
-        pixels.resize(100)
+        pixels.resize(324)
         for i in pixels.count do
             pixels[i] = cast(u8, ((i * 29 + (i / 4) * 17 + i / 2) % 256))
 
-        Webp.losslessInversePredictor(&transform, &pixels, 5)
+        Webp.losslessInversePredictor(&transform, &pixels, 9)
         Swag.require(Hash.Crc64.compute(pixels.toSlice()) == Expected[mode])
     }
 }

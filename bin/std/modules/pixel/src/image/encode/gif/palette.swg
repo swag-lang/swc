@@ -83,21 +83,27 @@ impl Encoder
         data.lzwMinCodeSize = Math.max(data.tableBits, 2'u8)
     }
 
-    func allGrayBytesEqual(pixels: const [*] u8, count: u64)->bool
+    #[Inline]
+    func(T) allMaskedSamplesEqual(pixels: const [*] T, count: u64, mask: T)->bool
     {
-        let gray    = pixels[0]
-        let pattern = Math.Simd.splat(gray)
-        var i       = 0'u64
-        while count - i >= 16
+        let sample = pixels[0] & mask
+        if (pixels[count - 1] & mask) != sample do
+            return false
+
+        let pattern  = Math.Simd.splat(sample)
+        let channels = Math.Simd.splat(mask)
+        const Lanes  = 16 / #sizeof(T)
+        var i        = 0'u64
+        while count - i >= Lanes
         {
-            if not Math.Simd.allTrue(Math.Simd.load(pixels + i) == pattern) do
+            if not Math.Simd.allTrue((Math.Simd.load(pixels + i) & channels) == pattern) do
                 return false
-            i += 16
+            i += Lanes
         }
 
         for tail in i until count
         {
-            if pixels[tail] != gray do
+            if (pixels[tail] & mask) != sample do
                 return false
         }
 
@@ -107,28 +113,36 @@ impl Encoder
     // A single color needs no index buffer; its only palette index is zero.
     func tryBuildUniformPalette(data: *PaletteData, image: Image, count: u64)->bool
     {
-        let pixels = image.pixels.storage()
-        let step   = image.bytesPerPixel
-        let last   = pixels + (count - 1) * step
+        let pixels      = image.pixels.storage()
+        let step        = image.bytesPerPixel
+        let transparent = (step == 2 or step == 4) and pixels[step - 1] < 128
         switch step
         {
         case 1:
-            if last[0] != pixels[0] or not allGrayBytesEqual(pixels, count) do
+            if not allMaskedSamplesEqual'u8(pixels, count, 0xFF) do
+                return false
+        case 2:
+            // GIF observes only the high alpha bit and discards fully hidden colors.
+            let mask = transparent ? 0x8000'u16 : 0x80FF'u16
+            if not allMaskedSamplesEqual'u16(cast(const [*] u16, pixels), count, mask) do
                 return false
         case 3:
+            let last = pixels + (count - 1) * 3
             if cast(const *u16, last)[] != cast(const *u16, pixels)[] or last[2] != pixels[2] or
                PackedPixel.countSame24(pixels, pixels + 3, count - 1) != count - 1 do
                 return false
-        case 4:
-            if cast(const *u32, last)[] != cast(const *u32, pixels)[] or
-               PackedPixel.countSame32(pixels, pixels + 4, count - 1) != count - 1 do
-                return false
         default:
-            return false
+            let words = cast(const [*] u32, pixels)
+            if words[0] != words[count - 1] or PackedPixel.countSame32(pixels, pixels + 4, count - 1) != count - 1
+            {
+                let mask = transparent ? 0x80000000'u32 : 0x80FFFFFF'u32
+                if not allMaskedSamplesEqual'u32(words, count, mask) do
+                    return false
+            }
         }
 
         let offsets = pixelChannelOffsets(image)
-        if step == 4 and pixels[3] < 128 do
+        if transparent do
             data.transparentIndex = 0
         else do
             data.colors[0] = {pixels[offsets.red], pixels[offsets.green], pixels[offsets.blue]}

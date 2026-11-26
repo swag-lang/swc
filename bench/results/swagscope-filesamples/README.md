@@ -1080,3 +1080,53 @@ measurements. All 16 files had the same Swag CRC64 and all eight lossless
 fixtures matched libwebp after reversing its rows. Native Release WebP and
 ImageReader tests passed all 42 cases, including a direct check of every
 bit alignment and the bits following the fast literal span.
+
+## Raster decoder follow-ups on Linux
+
+Each row is a separate paired or rotating comparison. Times are thread CPU
+medians in milliseconds, except the OpenEXR rows, which report elapsed time.
+Reference times include the output conversion used by each comparison.
+
+| Fixture | Swag before | Swag after | Reference |
+| --- | ---: | ---: | ---: |
+| JPEG 4:4:4 photo, transposed coefficients | 91.680 | 84.950 | libjpeg-turbo 78.320 |
+| JPEG 4:4:4 photo, packed Huffman tables and sign arithmetic | 90.410 | 84.140 | libjpeg-turbo 76.510 |
+| Progressive JPEG photo, packed Huffman tables and sign arithmetic | 185.250 | 164.160 | libjpeg-turbo 166.060 |
+| Noisy progressive JPEG, packed Huffman tables and sign arithmetic | 95.880 | 81.650 | libjpeg-turbo 84.120 |
+| JPEG 4:4:4 photo, eight chroma corrections | 86.760 | 78.260 | |
+| Small JPEG with restart markers, one geometry validation | 0.061 | 0.046 | libjpeg-turbo 0.024 |
+| Opaque VP8 FileSamples, local arithmetic state | 218.052 | 203.973 | libwebp 148.207 |
+| Flat RGB8 PNG, short Deflate matches | 5.480 | 1.685 | libpng + zlib-ng 2.210, Wuffs 4.948 |
+| Flat RGBA8 PNG, short Deflate matches | 6.535 | 2.300 | libpng + zlib-ng 2.570, Wuffs 6.665 |
+| RGB8 PNG with forced Paeth and noise, two rows per pass | 20.273 | 19.023 | |
+| Noisy indexed TGA, 1537 × 1031 | 53.211 | 4.679 | Pillow 6.876, ImageMagick 49.840 |
+| Gray TGA, 1537 × 1031 | 26.274 | 0.743 | Pillow 12.894, ImageMagick 45.693 |
+| Right-origin BGR555 TGA with literal RLE | 36.999 | 4.344 | ImageMagick 60.365 |
+| BGR24 TGA with one pixel per RLE packet, row cursor repeat | 78.439 | 65.985 | Pillow 21.781, ImageMagick 70.657 |
+| PSD RGB photo, PackBits composite | 5.177 | 1.743 | Pillow 27.099, ImageMagick 32.763 |
+| PSD noisy RGBA16, PackBits composite | 16.694 | 5.382 | ImageMagick 68.567 |
+| PSD RGBA16 layer, PackBits | 89.723 | 70.817 | ImageMagick 85.020 |
+| PSD RGBA8 layer, PackBits | 14.204 | 10.873 | ImageMagick 41.729 |
+| BMP 16-bit 9/3/4 fields, first packed path | 56.267 | 9.073 | |
+| BMP 16-bit 9/3/4 fields, high-multiply follow-up | 9.088 | 4.041 | |
+| BMP 32-bit 25/3/2/2 fields, high products | 88.079 | 8.839 | |
+| BMP FileSamples, latest packed masks | | 0.148 | GdkPixbuf 0.927 |
+| Flat full-palette GIF, first frame | 6.585 | 3.517 | Pillow 21.449, ImageMagick 63.601 |
+| Noisy alpha GIF, first frame | 22.481 | 17.050 | Pillow 27.508, ImageMagick 80.107 |
+| GIF first image with 8,192 frame records | 3.605 | 2.798 | |
+| Wide RGBA FLOAT ZIP EXR, four workers | 45.363 | 25.248 | OpenEXR 3.1.13 C++ 61.470 |
+| Gray FLOAT EXR, one worker | 4.530 | 0.099 | OpenEXR 3.5.5 C++ 1.992 |
+| Mixed-precision YA ZIP EXR, one worker | 12.924 | 6.046 | OpenEXR 3.5.5 C++ 9.605 |
+| Noisy RGBA HALF ZIPS EXR, four warmed workers | 25.020 | 15.760 | OpenEXR 3.1.13 C++ 22.240 |
+
+The EXR gray FLOAT path now keeps the stored luminance. The previous gray
+conversion rounded 8,208 of 164,737 values by one ULP in the 641 × 257
+uncompressed fixture. All 21 checked gray and mixed-precision fixtures
+matched OpenEXR 3.5.5 bit for bit. The other optimization comparisons kept
+the Swag output checksums on the measured corpora.
+
+The integrated checkpoint at `cb2f273ccf` passed 305 native Release Pixel
+tests and 32 native Release compression tests. Later scoped native checks
+passed on GIF, JPEG, BMP, WebP, EXR, TGA and PSD, including 51 JPEG Video
+consumer tests. The cloud instance restarted after these runs. This table
+preserves the recorded medians from completed runs.

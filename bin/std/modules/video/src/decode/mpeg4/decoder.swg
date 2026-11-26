@@ -432,11 +432,11 @@ impl Decoder
             fail InvalidFormatError{"MPEG-4 video packet states a zero quantiser"}
         header.quant = .quant
 
-        if reader.read(1) != 0
+        if reader.bit() != 0
         {
             // The packet repeats enough of the plane header to stand on its own.
             var guard = 0'u32
-            while reader.read(1) != 0
+            while reader.bit() != 0
             {
                 guard += 1
                 if guard > 64 do
@@ -478,7 +478,7 @@ impl Decoder
         }
 
         var coded = true
-        if header.codingType == VopPredicted and reader.read(1) != 0 do
+        if header.codingType == VopPredicted and reader.bit() != 0 do
             coded = false
 
         if not coded
@@ -511,7 +511,7 @@ impl Decoder
         let intra  = mbType == TypeIntra or mbType == TypeIntraQ
         var acPred = false
         if intra do
-            acPred = reader.read(1) != 0
+            acPred = reader.bit() != 0
 
         let cbpyEntry = reader.decode(CbpyTree)
         if cbpyEntry < 0 do
@@ -595,24 +595,24 @@ impl Decoder
         var mvForward:  Vector
         var mvBackward: Vector
 
-        if reader.read(1) == 0
+        if reader.bit() == 0
         {
-            let hasPattern = reader.read(1) == 0
+            let hasPattern = reader.bit() == 0
 
             // The type is a run of zeros closed by a one: 1, 01, 001, 0001.
-            if reader.read(1) == 0
+            if reader.bit() == 0
             {
-                if reader.read(1) != 0
+                if reader.bit() != 0
                 {
                     kind = TypeInterpolated
                 }
-                elif reader.read(1) != 0
+                elif reader.bit() != 0
                 {
                     kind = TypeBackward
                 }
                 else
                 {
-                    discard reader.read(1)
+                    discard reader.bit()
                     kind = TypeForward
                 }
             }
@@ -621,9 +621,9 @@ impl Decoder
                 pattern = reader.read(6)
 
             // The quantiser moves only when the macroblock carries something to quantise.
-            if kind != TypeDirect and pattern and reader.read(1) != 0
+            if kind != TypeDirect and pattern and reader.bit() != 0
             {
-                let step = reader.read(1) != 0 ? 2's32 : -2's32
+                let step = reader.bit() != 0 ? 2's32 : -2's32
                 .quant = cast(u32, Math.clamp(cast(s32, .quant) + step, 1's32, 31's32))
             }
 

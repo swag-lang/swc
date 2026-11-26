@@ -214,6 +214,7 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
   · [Wide FLAC and AAC band follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#seventeenth-optimization-pass)
   · [FLAC output, AAC escapes and MP3 synthesis follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#eighteenth-optimization-pass)
   · [MP3 overlap, Opus CELT, Vorbis and PCM16 follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#nineteenth-optimization-pass)
+  · [Dolby 5.1 follow-up](../bench/results/swagscope-filesamples/audio-decode-linux.md#twentieth-optimization-pass)
   · [Generated audio comparison](../bench/results/swagscope-filesamples/audio-decode-expanded-linux.md)
 - Next: reduce AC-3 block parsing and synthesis, MP3 spectrum and polyphase work,
   AAC spectral decoding, and Opus CELT allocation.

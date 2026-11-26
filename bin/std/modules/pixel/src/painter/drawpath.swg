@@ -1333,6 +1333,32 @@ public impl Painter
         .stopOverlapMode()
     }
 
+    // A solid stroke needs endpoints and bounds. Dashes still need the full perimeter.
+    private mtd prepareStrokePath(path: *LinePath, pen: Pen)->bool
+    {
+        if pen.dashStyle == .None
+        {
+            path.flattenPoints(.curState.paintQuality, .curFlattenScale)
+            if path.hasPolygonMetrics do
+                return not Math.isZeroEpsilon(path.polygon.perimeter)
+
+            let points = path.polygon.points.toSlice()
+            if points.count < 2 do
+                return false
+
+            // Measure short two-point contours the same way as Polygon.recompute.
+            if points.count == 2 and points[0].distanceSquaredTo(points[1]) < 0.5 * 0.5 do
+                return false
+
+            // One nonzero segment is enough when the caller only needs to reject empty ink.
+            if not Math.isZeroEpsilon(points[0].distanceTo(points[1])) do
+                return true
+        }
+
+        path.flatten(.curState.paintQuality, .curFlattenScale)
+        return not Math.isZeroEpsilon(path.polygon.perimeter)
+    }
+
     // One stroking pass over a single path, with the hairline promotion its width may need.
     private mtd strokeOnePath(path: *LinePath, pen: Pen, outline: f32)
     {
@@ -1340,8 +1366,7 @@ public impl Painter
         if pen.size <= 0 or deviceScale <= 0 do
             return
 
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter) do
+        if not .prepareStrokePath(path, pen) do
             return
 
         if pen.size * deviceScale >= 1
@@ -1355,8 +1380,7 @@ public impl Painter
 
     private mtd strokePath(path: *LinePath, pen: Pen)
     {
-        path.flatten(.curState.paintQuality, .curFlattenScale)
-        if Math.isZeroEpsilon(path.polygon.perimeter) do
+        if not .prepareStrokePath(path, pen) do
             return
 
         // The border is the same walk, one width wider and with every cap and dash end pushed

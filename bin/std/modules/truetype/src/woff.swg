@@ -1,5 +1,7 @@
 using Swag, Core
 
+private const LargeWoffTableBytes = 1024 * 1024
+
 // Header and directory fields needed to rebuild a WOFF1 font as sfnt.
 struct WoffHeader
 {
@@ -18,6 +20,7 @@ struct WoffTableRecord
     compLength: u32
     origLength: u32
     checksum:   u32
+    sfntOffset: u64
 }
 
 // WOFF blocks are four-byte aligned with at most three zero padding bytes.
@@ -36,7 +39,7 @@ func checkWoffPadding(block: const [..] u8, start, end: u64) fail
 }
 
 // Parses the WOFF1 header and table directory without expanding compressed tables.
-func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Array'WoffTableRecord } fail
+func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Array'WoffTableRecord, largeCompressedTables: u16 } fail
 {
     var result: #returntype
     if block.count < 44 do
@@ -124,6 +127,10 @@ func readWoffDirectory(block: const [..] u8)->{ header: WoffHeader, tables: Arra
 
         try assertRange(block, record.offset, record.compLength)
         physicalOrder.add((cast(u64, record.offset) << 32) | record.compLength)
+        if record.compLength >= LargeWoffTableBytes and record.compLength < record.origLength do
+            result.largeCompressedTables += 1
+
+        record.sfntOffset    = expectedSfntSize
         previousTag          = record.tag
         expectedSfntSize     += (cast(u64, record.origLength) + 3) & ~3'u64
         result.tables[index] = record
@@ -182,6 +189,42 @@ private func writeWoffU32(bytes: *Array'u8, offset: u64, value: u32)
     bytes[offset + 3] = cast(u8, value & 0xFF)
 }
 
+// The validated directory assigns every table its own destination range.
+private func inflateWoffTables(block: const [..] u8, tables: const [..] WoffTableRecord, destination: [*] u8) fail
+{
+    var errors: Array'Swag.Error
+    errors.resize(tables.count)
+    parallel for |block, tables, destination, &errors| index in tables.count
+    {
+        catch
+        {
+            let record = tables[index]
+            let output = destination + record.sfntOffset
+            let bytes  = try getSlice(block, record.offset, record.compLength)
+            if record.compLength == record.origLength
+            {
+                if bytes.count do
+                    Memory.copy(output, bytes.buffer, bytes.count)
+            }
+            else
+            {
+                var zlib: Compress.ZLib
+                let decoded = try zlib.decompress(bytes, record.origLength, record.origLength)
+                if decoded.count != record.origLength do
+                    try fault(0x08)
+                Memory.copy(output, unwrap decoded.buffer, decoded.count)
+            }
+
+            let padding = (4 - (record.origLength & 3)) & 3
+            if padding do
+                Memory.clear(output + record.origLength, padding)
+        } as errors[index]
+    }
+
+    for error in errors do
+        try error.raise()
+}
+
 // Rebuilds one WOFF1 font into the sfnt representation shared by the face parser.
 func inflateWoff(block: const [..] u8)->Array'u8 fail
 {
@@ -207,22 +250,31 @@ func inflateWoff(block: const [..] u8)->Array'u8 fail
     writeWoffU16(&result, 8, entrySelector)
     writeWoffU16(&result, 10, cast(u16, cast(u32, header.numTables) * 16 - searchRange))
 
-    var zlib: Compress.ZLib
     for record, index in directory.tables
     {
-        let tableOffset     = result.count
         let directoryOffset = 12'u64 + cast(u64, index) * 16
         writeWoffU32(&result, directoryOffset, record.tag)
         writeWoffU32(&result, directoryOffset + 4, record.checksum)
-        writeWoffU32(&result, directoryOffset + 8, cast(u32, tableOffset))
+        writeWoffU32(&result, directoryOffset + 8, cast(u32, record.sfntOffset))
         writeWoffU32(&result, directoryOffset + 12, record.origLength)
+    }
 
+    if directory.largeCompressedTables >= 2 and Swag.workerCount() > 1
+    {
+        result.count = header.totalSfntSize
+        try inflateWoffTables(block, directory.tables.toSlice(), unwrap result.buffer)
+        return result
+    }
+
+    var zlib: Compress.ZLib
+    for record in directory.tables
+    {
         let bytes = try getSlice(block, record.offset, record.compLength)
         if record.compLength == record.origLength do
             result.add(bytes)
         else do
             try zlib.decompress(&result, bytes, maxOutputSize: record.origLength)
-        if result.count - tableOffset != record.origLength do
+        if result.count - record.sfntOffset != record.origLength do
             try fault(0x08)
 
         result.resize((result.count + 3) & ~3'u64)

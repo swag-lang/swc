@@ -56,13 +56,15 @@ private struct Eac3Codec
 {
     using base: Codec
 
-    sampleRate:   u32
-    channels:     u32
-    block:        Ac3Block
-    imdct:        [MaxChannels] Imdct
-    stereoImdct:  StereoImdct
-    coefficients: [MaxChannels, SamplesPerBlock] f64
-    ditherState:  u32 = 0x6E624EB7
+    sampleRate:    u32
+    channels:      u32
+    block:         Ac3Block
+    imdct:         [MaxChannels] Imdct
+    stereoImdct:   StereoImdct
+    surroundImdct: SurroundImdct
+    mantissaGains: PreparedMantissaGains
+    coefficients:  [MaxChannels, SamplesPerBlock] f64
+    dither:        DitherGenerator
 }
 
 internal func eac3BitAllocationFscod(fscod, reducedFscod: u32)->u32 => fscod == 3 ? reducedFscod : fscod
@@ -270,16 +272,10 @@ private impl Eac3Codec
         Memory.set(&.block, 0, #sizeof(.block))
         Memory.set(&.coefficients, 0, #sizeof(.coefficients))
         .stereoImdct.active = false
+        .surroundImdct.reset()
         for channel in MaxChannels do
             .imdct[channel].reset()
-        .ditherState = 0x6E624EB7
-    }
-
-    mtd ditherValue()->f64
-    {
-        .ditherState *= #wrap 1_664_525
-        .ditherState += #wrap 1_013_904_223
-        return (cast(f64, (.ditherState >> 8)) / 16_777_216.0 - 0.5) * 1.4142135623730951
+        .dither.state = 0x6E624EB7
     }
 
     mtd readCoupling(reader: *BitReader, bsi: const *Eac3Bsi, frame: const *Eac3Frame, blockIndex: u32, firstCoordinates: *[MaxFullBandwidthChannels] bool, firstStrategy: *bool) fail
@@ -422,11 +418,16 @@ private impl Eac3Codec
             try decodeExponents(reader, 1, 2, reader.read(4), 1, &block.lfeExponents)
     }
 
-    mtd readAllocation(reader: *BitReader, bsi: const *Eac3Bsi, frame: const *Eac3Frame, blockIndex: u32) fail
+    mtd readAllocation(reader: *BitReader, bsi: const *Eac3Bsi, frame: const *Eac3Frame, blockIndex: u32, previousChannelEnd: const *[MaxFullBandwidthChannels] s32, couplingChanged: bool) fail
     {
         let block = &.block
+
+        // A new frame resets the allocation defaults, even when later blocks reuse them.
+        var refreshAll      = not blockIndex
+        var refreshCoupling = couplingChanged
         if frame.allocation and reader.read(1)
         {
+            refreshAll          = true
             block.slowDecayCode = reader.read(2)
             block.fastDecayCode = reader.read(2)
             block.slowGainCode  = reader.read(2)
@@ -462,6 +463,7 @@ private impl Eac3Codec
             let present = not blockIndex or reader.read(1) != 0
             if present
             {
+                refreshAll      = true
                 block.coarseSnr = reader.read(6)
                 if frame.snrStrategy == 1
                 {
@@ -485,6 +487,7 @@ private impl Eac3Codec
 
         if frame.fastGain and reader.read(1)
         {
+            refreshAll = true
             if block.coupling do
                 block.couplingFastGain = reader.read(3)
             for channel in bsi.nfchans do
@@ -500,6 +503,7 @@ private impl Eac3Codec
             let leakPresent = not blockIndex or reader.read(1) != 0
             if leakPresent
             {
+                refreshCoupling        = true
                 block.couplingFastLeak = reader.read(3)
                 block.couplingSlowLeak = reader.read(3)
             }
@@ -507,6 +511,7 @@ private impl Eac3Codec
 
         if frame.delta and reader.read(1)
         {
+            refreshAll = true
             if block.coupling
             {
                 block.couplingDelta.mode = reader.read(2)
@@ -573,68 +578,16 @@ private impl Eac3Codec
         let dbKnee          = DB_PER_BIT[block.dbPerBitCode]
         let floor           = FLOOR[block.floorCode]
         let allocationFscod = eac3BitAllocationFscod(bsi.fscod, bsi.reducedFscod)
-        for channel in bsi.nfchans do
-            try bitAllocation'false(allocationFscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, &block.channelDelta[channel], &block.channelBap[channel, 0])
-        if block.coupling do
-            try bitAllocation'false(allocationFscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap)
-        if bsi.lfeon do
-            try bitAllocation'false(allocationFscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap)
-    }
 
-    mtd readMantissas(reader: *BitReader, bsi: const *Eac3Bsi)
-    {
-        let block        = &.block
-        var mantissas    = MantissaReader.create(reader)
-        var couplingRead = false
-        var couplingMantissas: [216] f64
-        for channel in bsi.nfchans
-        {
-            Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in cast(u64, block.channelEnd[channel])
-            {
-                let bap      = block.channelBap[channel, bin]
-                let exponent = block.channelExponents[channel, bin]
-                if bap do
-                    .coefficients[channel, bin] = mantissas.getScaled(bap, exponent)
-                elif block.dither[channel] do
-                    .coefficients[channel, bin] = .ditherValue() * mantissaScale(exponent)
-            }
-
-            if block.coupling and block.channelCoupled[channel] and not couplingRead
-            {
-                let count = cast(u64, (block.couplingEndMantissa - block.couplingStart))
-                for bin in count where block.couplingBap[bin] do
-                    couplingMantissas[bin] = mantissas.getScaled(block.couplingBap[bin], block.couplingExponents[bin])
-                couplingRead = true
-            }
-        }
-
-        if bsi.lfeon
-        {
-            let channel = bsi.nfchans
-            Memory.set(&.coefficients[channel, 0], 0, SamplesPerBlock * #sizeof(f64))
-            for bin in 7 do
-                .coefficients[channel, bin] = mantissas.getScaled(block.lfeBap[bin], block.lfeExponents[bin])
-        }
-
-        if block.coupling
-        {
-            for channel in bsi.nfchans where block.channelCoupled[channel]
-            {
-                for subband in block.couplingSubbands
-                {
-                    for bin in 12
-                    {
-                        let source = subband * 12 + bin
-                        var value  = couplingMantissas[source]
-                        if not value and block.dither[channel] do
-                            value = .ditherValue() * mantissaScale(block.couplingExponents[source])
-                        let destination = block.couplingBegin * 12 + subband * 12 + bin + 37
-                        .coefficients[channel, destination] = value * block.couplingCoord[channel, subband] * 8.0
-                    }
-                }
-            }
-        }
+        // Coupling can alter the channel end even when its exponents are reused.
+        for channel in bsi.nfchans where refreshAll or
+                                         block.channelExpStrategy[channel] or
+                                         block.channelEnd[channel] != previousChannelEnd[][channel] do
+            try bitAllocation(allocationFscod, 0, block.channelEnd[channel], &block.channelExponents[channel, 0], FAST_GAIN[block.channelFastGain[channel]], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.channelFineSnr[channel])) * 4, 0, 0, &block.channelDelta[channel], &block.channelBap[channel, 0], &.mantissaGains.channel[channel, 0])
+        if block.coupling and (refreshAll or refreshCoupling or block.couplingExpStrategy) do
+            try bitAllocation(allocationFscod, block.couplingStart, block.couplingEndMantissa, &block.couplingExponents, FAST_GAIN[block.couplingFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.couplingFineSnr)) * 4, cast(s32, (block.couplingFastLeak << 8)) + 768, cast(s32, (block.couplingSlowLeak << 8)) + 768, &block.couplingDelta, &block.couplingBap, &.mantissaGains.coupling)
+        if bsi.lfeon and (refreshAll or block.lfeExpStrategy) do
+            try bitAllocation(allocationFscod, 0, 7, &block.lfeExponents, FAST_GAIN[block.lfeFastGain], slowGain, fastDecay, slowDecay, dbKnee, floor, ((cast(s32, block.coarseSnr) - 15) * 16 + cast(s32, block.lfeFineSnr)) * 4, 0, 0, null, &block.lfeBap, &.mantissaGains.lfe)
     }
 
     mtd sourceChannel(destination: u32, bsi: const *Eac3Bsi)->u32 => dolbySourceChannel(destination, bsi.acmod, bsi.nfchans, bsi.lfeon)
@@ -668,6 +621,10 @@ private impl Eac3Codec
             let spxStrategy = not blockIndex or reader.read(1) != 0
             if spxStrategy and reader.read(1) do
                 fail UnsupportedFormatError{"E-AC-3 spectral extension is not supported"}
+            let previousChannelEnd = .block.channelEnd
+            let hadCoupling        = .block.coupling
+            let previousStart      = .block.couplingStart
+            let previousEnd        = .block.couplingEndMantissa
             try .readCoupling(&reader, &bsi, &frame, blockIndex, &firstCoordinates, &firstStrategy)
             if bsi.acmod == 2
             {
@@ -692,8 +649,11 @@ private impl Eac3Codec
             }
 
             try .readExponents(&reader, &bsi, &frame, blockIndex)
-            try .readAllocation(&reader, &bsi, &frame, blockIndex)
-            .readMantissas(&reader, &bsi)
+            let couplingChanged = not hadCoupling or
+                                  previousStart != .block.couplingStart or
+                                  previousEnd != .block.couplingEndMantissa
+            try .readAllocation(&reader, &bsi, &frame, blockIndex, &previousChannelEnd, couplingChanged)
+            readPreparedMantissas'true(&reader, &.block, bsi.nfchans, bsi.lfeon, &.coefficients, &.mantissaGains, &.dither)
             if reader.overrun do
                 fail InvalidFormatError{"E-AC-3 audio block is truncated"}
 
@@ -703,6 +663,12 @@ private impl Eac3Codec
                (bsi.nfchans < 2 or not .block.blockSwitch[1])
             {
                 .stereoImdct.process(&.imdct, &.coefficients, target)
+                continue
+            }
+
+            if .channels == MaxChannels
+            {
+                .surroundImdct.process(&.imdct, &.coefficients, &.block.blockSwitch, target)
                 continue
             }
 

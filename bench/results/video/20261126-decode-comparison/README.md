@@ -161,6 +161,28 @@ difference from FFmpeg was three on Simple Profile, one on textured intra, two o
 the B-picture clip and four on the new 720p matrix fixture.
 [Raw observations and fixture command](quantization.json).
 
+## MPEG-4 Part 2 single-bit reads
+
+The bit reader now inlines bounded single-bit reads in the variable-length code tree,
+escape parsing and macroblock flags. The wider reader uses the same bounded primitive.
+An earlier word-read trial regressed the textured intra clip and was dropped.
+
+The medians of seven repetitions on one CPU compare against `44f1e36f64`, in
+milliseconds per picture. The runner builds each variant once and launches its
+executable directly for the quality and timing passes.
+
+| MPEG-4 Part 2 stream | Before | After | FFmpeg | Swag time change | Swag after / FFmpeg |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Simple Profile 720p | 1.709 | 1.535 | 0.555 | -10.2% | 2.77× |
+| Textured intra 640×360 | 2.539 | 2.250 | 0.628 | -11.4% | 3.58× |
+| B pictures with MPEG matrices | 0.953 | 0.903 | 0.377 | -5.2% | 2.39× |
+| P pictures with MPEG matrices, 720p | 1.486 | 1.412 | 0.570 | -4.9% | 2.48× |
+
+All 420 pictures were byte-exact against the previous Swag build and 82 native Release
+tests passed. The earlier matrix B-picture series was flat. Alternating the two
+executables on that clip found 4.2% lower median process CPU time.
+[Raw observations and quality hashes](mpeg4-bitreader.json).
+
 ## Matroska timing coverage
 
 The picture check established a dense display timeline before timing the file-backed

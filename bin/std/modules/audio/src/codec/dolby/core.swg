@@ -381,16 +381,16 @@ private func(Half: u64) fftStereoStage(fft: *StereoSpectrum)
     }
 }
 
-private func prepareStereoSpectrum(fft: *StereoSpectrum, coefficients: const *[MaxChannels, SamplesPerBlock] f64)
+private func prepareStereoSpectrum(fft: *StereoSpectrum, left, right: const [*] f64)
 {
     for k in 128
     {
         let hi     = 255 - 2 * k
         let lo     = 2 * k
-        let a      = cast(f32, coefficients[][0, hi])
-        let b      = cast(f32, coefficients[][0, lo])
-        let c      = cast(f32, coefficients[][1, hi])
-        let d      = cast(f32, coefficients[][1, lo])
+        let a      = cast(f32, left[hi])
+        let b      = cast(f32, left[lo])
+        let c      = cast(f32, right[hi])
+        let d      = cast(f32, right[lo])
         let index  = 2 * cast(u32, g_FftReverse[k])
         let cosine = g_StereoCos[lo]
         let sine   = g_StereoSin[lo]
@@ -437,7 +437,7 @@ private func prepareStereoSpectrum(fft: *StereoSpectrum, coefficients: const *[M
 }
 
 #[Swag.Inline]
-private func(Upper: bool) writeStereoHalf(fft: const *StereoSpectrum, delay: [*] f32, destination: [*] s16)
+private func(Upper: bool, Stride: u32) writeStereoHalf(fft: const *StereoSpectrum, delay: [*] f32, destination: [*] s16)
 {
     // Reverse the time samples and keep the two channel lanes in order.
     const ReverseFrames = cast(Simd.U32x4, [2'u32, 3, 0, 1])
@@ -474,7 +474,18 @@ private func(Upper: bool) writeStereoHalf(fft: const *StereoSpectrum, delay: [*]
         let sampleB = (b * Simd.load(&g_StereoWindow[offset + 4]) + Simd.load(delay + offset + 4)) * Gain
         let pcmA    = Simd.truncateToS32(Swag.min(Swag.max(sampleA, Low), High))
         let pcmB    = Simd.truncateToS32(Swag.min(Swag.max(sampleB, Low), High))
-        Simd.store(destination + offset, Simd.packSigned(pcmA, pcmB))
+        let packed  = Simd.packSigned(pcmA, pcmB)
+        if Stride == 2
+        {
+            Simd.store(destination + offset, packed)
+        }
+        else
+        {
+            let frames = cast #bit(Simd.U32x4, packed)
+            let output = destination + (offset / 2) * Stride
+            for lane in 4 do
+                cast([*] u32, output + lane * Stride)[0] = frames[lane]
+        }
 
         var nextA = Simd.permute2(futureEven, futureOdd, MixFirst)
         var nextB = Simd.permute2(futureEven, futureOdd, MixLast)
@@ -492,36 +503,88 @@ private func(Upper: bool) writeStereoHalf(fft: const *StereoSpectrum, delay: [*]
 impl StereoImdct
 {
     // Hand the previous block's delay back to the scalar path on a window switch.
-    mtd restore(states: *[MaxChannels] Imdct)
+    mtd restorePair(left, right: *Imdct)
     {
         if not .active do
             return
         for index in SamplesPerBlock
         {
-            states[][0].delay[index] = cast(f64, .delay[2 * index])
-            states[][1].delay[index] = cast(f64, .delay[2 * index + 1])
+            left.delay[index]  = cast(f64, .delay[2 * index])
+            right.delay[index] = cast(f64, .delay[2 * index + 1])
         }
 
         .active = false
     }
 
-    mtd process(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, output: [*] s16)
+    mtd(Stride: u32) processPair(left, right: *Imdct, leftSpectrum, rightSpectrum: const [*] f64, output: [*] s16)
     {
         if not .active
         {
             for index in SamplesPerBlock
             {
-                .delay[2 * index]     = cast(f32, states[][0].delay[index])
-                .delay[2 * index + 1] = cast(f32, states[][1].delay[index])
+                .delay[2 * index]     = cast(f32, left.delay[index])
+                .delay[2 * index + 1] = cast(f32, right.delay[index])
             }
 
             .active = true
         }
 
         var fft: StereoSpectrum
-        prepareStereoSpectrum(&fft, coefficients)
-        writeStereoHalf'false(&fft, &.delay[0], output)
-        writeStereoHalf'true(&fft, &.delay[0], output)
+        prepareStereoSpectrum(&fft, leftSpectrum, rightSpectrum)
+        writeStereoHalf'(false, Stride)(&fft, &.delay[0], output)
+        writeStereoHalf'(true, Stride)(&fft, &.delay[0], output)
+    }
+
+    mtd restore(states: *[MaxChannels] Imdct)
+        => .restorePair(&states[][0], &states[][1])
+
+    mtd process(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, output: [*] s16)
+        => .processPair'2(&states[][0], &states[][1], &coefficients[][0, 0], &coefficients[][1, 0], output)
+}
+
+// Six decoded channels imply the 3/2 layout with LFE.
+private const SurroundWaveChannels: [MaxChannels] u32 = #run
+{
+    var result: [MaxChannels] u32
+    for output in result.count do
+        result[output] = dolbySourceChannel(cast(u32, output), 7, MaxFullBandwidthChannels, true)
+    return result
+}
+
+private struct SurroundImdct
+{
+    pairs: [MaxChannels / 2] StereoImdct
+}
+
+impl SurroundImdct
+{
+    mtd reset()
+    {
+        for index in .pairs.count do
+            .pairs[index].active = false
+    }
+
+    mtd process(states: *[MaxChannels] Imdct, coefficients: const *[MaxChannels, SamplesPerBlock] f64, shortBlocks: const *[MaxFullBandwidthChannels] bool, destination: [*] s16)
+    {
+        for pair in .pairs.count
+        {
+            let output     = 2 * pair
+            let left       = SurroundWaveChannels[output]
+            let right      = SurroundWaveChannels[output + 1]
+            let leftShort  = left < MaxFullBandwidthChannels and shortBlocks[][left]
+            let rightShort = right < MaxFullBandwidthChannels and shortBlocks[][right]
+            let state      = &.pairs[pair]
+            if not leftShort and not rightShort
+            {
+                state.processPair'MaxChannels(&states[][left], &states[][right], &coefficients[][left, 0], &coefficients[][right, 0], destination + output)
+            }
+            else
+            {
+                state.restorePair(&states[][left], &states[][right])
+                states[][left].process(&coefficients[][left, 0], leftShort, destination + output, MaxChannels)
+                states[][right].process(&coefficients[][right, 0], rightShort, destination + output + 1, MaxChannels)
+            }
+        }
     }
 }
 
@@ -590,6 +653,85 @@ private func lowCompensation(value, first, second, bin: s32)->s32
     return Math.max(0, value - 128)
 }
 
+private const DitherMultiplier = 1_664_525'u32
+private const DitherIncrement  = 1_013_904_223'u32
+
+private struct DitherSteps
+{
+    multipliers: [4] u32
+    increments:  [4] u32
+}
+
+private const DitherQuads: DitherSteps = #run
+{
+    var result: DitherSteps
+    var multiplier = 1'u32
+    var increment  = 0'u32
+    for lane in 4
+    {
+        multiplier               *= #wrap DitherMultiplier
+        increment                *= #wrap DitherMultiplier
+        increment                += #wrap DitherIncrement
+        result.multipliers[lane] = multiplier
+        result.increments[lane]  = increment
+    }
+
+    return result
+}
+
+// A block reusing its bit allocation also reuses the matching dequantization gains.
+private struct PreparedMantissaGains
+{
+    channel:  [MaxFullBandwidthChannels, SamplesPerBlock] f64
+    coupling: [SamplesPerBlock] f64
+    lfe:      [7] f64
+}
+
+private struct DitherGenerator
+{
+    state: u32
+}
+
+private impl DitherGenerator
+{
+    #[Swag.Inline]
+    mtd get(gain: f64)->f64
+    {
+        .state *= #wrap DitherMultiplier
+        .state += #wrap DitherIncrement
+        return cast(f64, cast(s32, (.state >> 8)) - 8_388_608) * gain
+    }
+
+    // Four consecutive BAP-zero bins consume four dither states in order.
+    #[Swag.Inline]
+    mtd(Scaled: bool) writeQuad(destination: [*] f64, gains: const [*] f64, couplingScale: f64)
+    {
+        const Advance   = cast(Simd.U32x4, DitherQuads.multipliers)
+        const Increment = cast(Simd.U32x4, DitherQuads.increments)
+        const Bias      = cast(Simd.U32x4, [0x4330_0000'u32, 0x4330_0000, 0x4330_0000, 0x4330_0000])
+        const Center    = cast(Simd.F64x2, [4_503_599_635_759_104.0'f64, 4_503_599_635_759_104.0])
+        let states = Simd.splat(.state) * Advance + Increment
+        .state = states[3]
+
+        // Put the 24-bit integer beside the exponent for 2^52, then subtract
+        // 2^52 + 2^23 to recover the exact centered dither integers.
+        let fractions = states >> 8
+        let low       = cast #bit(Simd.F64x2, Simd.interleaveLow(fractions, Bias))
+        let high      = cast #bit(Simd.F64x2, Simd.interleaveHigh(fractions, Bias))
+        var first     = (low - Center) * Simd.load(gains)
+        var second    = (high - Center) * Simd.load(gains + 2)
+        if Scaled
+        {
+            let scale = Simd.splat(couplingScale)
+            first  *= scale
+            second *= scale
+        }
+
+        Simd.store(destination, first)
+        Simd.store(destination + 2, second)
+    }
+}
+
 private const PreparedMantissaWidth: [16] u32 = [0, 0, 0, 0, 0, 0, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16]
 
 // Keep group codes 0 through 5 and encode signed quantizers by width plus one.
@@ -618,7 +760,11 @@ private const PreparedMantissaGain: [16, 32] f64 = #run
     return result
 }
 
-private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32, gains: [*] f64? = null) fail
+#[Swag.Inline]
+private func psychoacousticMask(psd, excitation, knee, hearingThreshold: s32)->s32
+    => Math.max(excitation + (Math.max(knee - psd, 0) >> 2), hearingThreshold)
+
+private func bitAllocation(fscod: u32, start, end: s32, exponents: const [*] s32, fastGain, slowGain, fastDecay, slowDecay, dbKnee, floor, snrOffset, fastLeak, slowLeak: s32, delta: const *DeltaAllocation?, result: [*] s32, gains: [*] f64) fail
 {
     if start < 0 or end <= start or end > 253 do
         fail InvalidFormatError{"Dolby bit-allocation range is invalid"}
@@ -627,28 +773,20 @@ private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponent
     var currentSlowLeak = slowLeak
     let bandStart       = MASKTAB[start]
     let bandEnd         = MASKTAB[end - 1] + 1
-    var psd: [256] s32
-    var bandPsd, excitation, mask: [50] s32
+    var bandPsd, mask: [50] s32
     if bandStart < 0 or bandEnd <= bandStart or bandEnd > mask.count do
         fail InvalidFormatError{"Dolby bit-allocation bands exceed the core limit"}
-
-    var bin = start
-    while bin < end
-    {
-        psd[bin] = 3072 - (exponents[bin - start] << 7)
-        bin      += 1
-    }
 
     var source = start
     var band   = bandStart
     while band < bandEnd
     {
         let last = Math.min(BNDTAB[band] + BNDSZ[band], end)
-        bandPsd[band] = psd[source]
+        bandPsd[band] = 3072 - (exponents[source - start] << 7)
         source        += 1
         while source < last
         {
-            bandPsd[band] = logarithmicAdd(bandPsd[band], psd[source])
+            bandPsd[band] = logarithmicAdd(bandPsd[band], 3072 - (exponents[source - start] << 7))
             source        += 1
         }
 
@@ -659,19 +797,19 @@ private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponent
     var lowComp = 0's32
     if not bandStart
     {
-        lowComp       = lowCompensation(lowComp, bandPsd[0], bandPsd[1], 0)
-        excitation[0] = bandPsd[0] - fastGain - lowComp
-        lowComp       = lowCompensation(lowComp, bandPsd[1], bandPsd[2], 1)
-        excitation[1] = bandPsd[1] - fastGain - lowComp
-        begin         = 7
+        lowComp = lowCompensation(lowComp, bandPsd[0], bandPsd[1], 0)
+        mask[0] = psychoacousticMask(bandPsd[0], bandPsd[0] - fastGain - lowComp, dbKnee, HTH[fscod, 0])
+        lowComp = lowCompensation(lowComp, bandPsd[1], bandPsd[2], 1)
+        mask[1] = psychoacousticMask(bandPsd[1], bandPsd[1] - fastGain - lowComp, dbKnee, HTH[fscod, 1])
+        begin   = 7
         var current = 2's32
         while current < 7
         {
             if bandEnd != 7 or current != 6 do
                 lowComp = lowCompensation(lowComp, bandPsd[current], bandPsd[current + 1], current)
-            currentFastLeak     = bandPsd[current] - fastGain
-            currentSlowLeak     = bandPsd[current] - slowGain
-            excitation[current] = currentFastLeak - lowComp
+            currentFastLeak = bandPsd[current] - fastGain
+            currentSlowLeak = bandPsd[current] - slowGain
+            mask[current]   = psychoacousticMask(bandPsd[current], currentFastLeak - lowComp, dbKnee, HTH[fscod, current])
             if (bandEnd != 7 or current != 6) and bandPsd[current] <= bandPsd[current + 1]
             {
                 begin = current + 1
@@ -686,10 +824,10 @@ private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponent
         {
             if bandEnd != 7 or current != 6 do
                 lowComp = lowCompensation(lowComp, bandPsd[current], bandPsd[current + 1], current)
-            currentFastLeak     = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
-            currentSlowLeak     = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
-            excitation[current] = Math.max(currentFastLeak - lowComp, currentSlowLeak)
-            current             += 1
+            currentFastLeak = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
+            currentSlowLeak = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
+            mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak - lowComp, currentSlowLeak), dbKnee, HTH[fscod, current])
+            current         += 1
         }
 
         begin = 22
@@ -698,19 +836,10 @@ private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponent
     var current = begin
     while current < bandEnd
     {
-        currentFastLeak     = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
-        currentSlowLeak     = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
-        excitation[current] = Math.max(currentFastLeak, currentSlowLeak)
-        current             += 1
-    }
-
-    current = bandStart
-    while current < bandEnd
-    {
-        if bandPsd[current] < dbKnee do
-            excitation[current] += (dbKnee - bandPsd[current]) >> 2
-        mask[current] = Math.max(excitation[current], HTH[fscod, current])
-        current       += 1
+        currentFastLeak = Math.max(currentFastLeak - fastDecay, bandPsd[current] - fastGain)
+        currentSlowLeak = Math.max(currentSlowLeak - slowDecay, bandPsd[current] - slowGain)
+        mask[current]   = psychoacousticMask(bandPsd[current], Math.max(currentFastLeak, currentSlowLeak), dbKnee, HTH[fscod, current])
+        current         += 1
     }
 
     if delta and (delta.mode == 0 or delta.mode == 1)
@@ -745,22 +874,18 @@ private func(Prepared: bool) bitAllocation(fscod: u32, start, end: s32, exponent
         if masked < 0 do
             masked = 0
         masked = (masked & 0x1FE0) + floor
+
+        // One exponent step removes 128 PSD units, or four address units.
+        let addressBase = (3072 - masked) >> 5
         while source < last
         {
-            let address = Math.clamp((psd[source] - masked) >> 5, 0, 63)
-            let bap     = BAPTAB[address]
-            let index   = source - start
-            if Prepared
-            {
-                result[index] = preparedMantissaCode(bap)
-                gains![index] = PreparedMantissaGain[bap, exponents[index]]
-            }
-            else
-            {
-                result[index] = bap
-            }
-
-            source += 1
+            let index    = source - start
+            let exponent = exponents[index]
+            let address  = Math.clamp(addressBase - (exponent << 2), 0, 63)
+            let bap      = BAPTAB[address]
+            result[index] = preparedMantissaCode(bap)
+            gains[index]  = PreparedMantissaGain[bap, exponent]
+            source        += 1
         }
 
         band += 1
@@ -799,16 +924,32 @@ private func(Bits: u32, Levels: u32, Digits: u32) packedMantissaCodes()->[1 << B
     return result
 }
 
-private const Bap1Packed = #run packedMantissaCodes'(5, 3, 3)()
-private const Bap2Packed = #run packedMantissaCodes'(7, 5, 3)()
-private const Bap4Packed = #run packedMantissaCodes'(7, 11, 2)()
+private const LowMantissaWidths: [5] u32      = [5, 7, 3, 7, 4]
+private const LowMantissaValues: [5, 128] u32 = #run
+{
+    let table1 = packedMantissaCodes'(5, 3, 3)()
+    let table2 = packedMantissaCodes'(7, 5, 3)()
+    let table3 = packedMantissaCodes'(3, 7, 1)()
+    let table4 = packedMantissaCodes'(7, 11, 2)()
+    let table5 = packedMantissaCodes'(4, 15, 1)()
+    var result: [5, 128] u32
+    for i in table1.count do
+        result[0, i] = table1[i]
+    for i in table2.count do
+        result[1, i] = table2[i]
+    for i in table3.count do
+        result[2, i] = table3[i]
+    for i in table4.count do
+        result[3, i] = table4[i]
+    for i in table5.count do
+        result[4, i] = table5[i]
+    return result
+}
 
 private struct MantissaReader
 {
     reader: *BitReader
-    bap1:   u32 = 1
-    bap2:   u32 = 1
-    bap4:   u32 = 1
+    packed: [5] u32 = [1, 1, 1, 1, 1]
 }
 
 impl MantissaReader
@@ -816,18 +957,33 @@ impl MantissaReader
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 
     #[Swag.Inline]
-    mtd readPacked(bits: u32, packed: *u32, table: const [*] u32)->s32
+    mtd(Group: u32, Bits: u32) readPacked(packed: *u32)->s32
     {
         if packed[] == 1 do
-            packed[] = table[.reader.read(bits)]
+            packed[] = LowMantissaValues[Group, .reader.read(Bits)]
         let value = cast(s32, cast #wrap(s8, packed[]))
         packed[] >>= 8
         return value
     }
 
     #[Swag.Inline]
-    mtd getPrepared(code: s32, gain: f64)->f64
+    mtd(UseTable: bool) getPrepared(code: s32, gain: f64)->f64
     {
+        if UseTable
+        {
+            if code >= 6 do
+                return cast(f64, .reader.readSigned(cast(u32, code - 1))) * gain
+            if not code do
+                return 0
+
+            let index = code - 1
+            var group = .packed[index]
+            if group == 1 do
+                group = LowMantissaValues[index, .reader.read(LowMantissaWidths[index])]
+            .packed[index] = group >> 8
+            return cast(f64, cast #wrap(s8, group)) * gain
+        }
+
         var value: s32
         switch code
         {
@@ -835,17 +991,17 @@ impl MantissaReader
             return 0
 
         case 1:
-            value = .readPacked(5, &.bap1, &Bap1Packed[0])
+            value = .readPacked'(0, 5)(&.packed[0])
 
         case 2:
-            value = .readPacked(7, &.bap2, &Bap2Packed[0])
+            value = .readPacked'(1, 7)(&.packed[1])
 
         case 3:
             let raw = .reader.read(3)
             value = raw < 7 ? cast(s32, raw) - 3 : 0
 
         case 4:
-            value = .readPacked(7, &.bap4, &Bap4Packed[0])
+            value = .readPacked'(3, 7)(&.packed[3])
 
         case 5:
             let raw = .reader.read(4)
@@ -857,10 +1013,111 @@ impl MantissaReader
 
         return cast(f64, value) * gain
     }
+}
 
-    #[Swag.Inline]
-    mtd getScaled(bap, exponent: s32)->f64
-        => .getPrepared(preparedMantissaCode(bap), PreparedMantissaGain[bap, exponent])
+private func(UseTable: bool) readPreparedMantissas(reader: *BitReader, block: const *Ac3Block, channelCount: u32, lfe: bool, coefficients: *[MaxChannels, SamplesPerBlock] f64, prepared: const *PreparedMantissaGains, noise: *DitherGenerator)
+{
+    var mantissas    = MantissaReader.create(reader)
+    var couplingRead = false
+    var zeroedQuads:       u64
+    var couplingMantissas: [216] f64
+    for channel in channelCount
+    {
+        let output = cast([*] f64, &coefficients[][channel, 0])
+        let codes  = cast(const [*] s32, &block.channelBap[channel, 0])
+        let gains  = cast(const [*] f64, &prepared.channel[channel, 0])
+        let end    = cast(u64, block.channelEnd[channel])
+        let dither = block.dither[channel]
+        let zero   = Simd.splat(0's32)
+        Memory.set(output, 0, SamplesPerBlock * #sizeof(f64))
+        var bin = 0'u64
+        while bin < end
+        {
+            let code = codes[bin]
+            if code
+            {
+                output[bin] = mantissas.getPrepared'UseTable(code, gains[bin])
+            }
+            elif dither
+            {
+                if bin + 4 <= end and Simd.allTrue(Simd.load(codes + bin) == zero)
+                {
+                    noise.writeQuad'false(output + bin, gains + bin, 1.0)
+                    bin += 4
+                    continue
+                }
+
+                output[bin] = noise.get(gains[bin])
+            }
+
+            bin += 1
+        }
+
+        if block.coupling and block.channelCoupled[channel] and not couplingRead
+        {
+            let codes = cast(const [*] s32, &block.couplingBap)
+            for quad in block.couplingSubbands * 3
+            {
+                let first = quad * 4
+                if Simd.allTrue(Simd.load(codes + first) == zero)
+                {
+                    zeroedQuads |= 1'u64 << cast(u32, quad)
+                    continue
+                }
+
+                for offset in 4
+                {
+                    let bin  = first + offset
+                    let code = codes[bin]
+                    if code do
+                        couplingMantissas[bin] = mantissas.getPrepared'UseTable(code, prepared.coupling[bin])
+                }
+            }
+
+            couplingRead = true
+        }
+    }
+
+    if lfe
+    {
+        let channel = channelCount
+        Memory.set(&coefficients[][channel, 0], 0, SamplesPerBlock * #sizeof(f64))
+        for bin in 7 do
+            coefficients[][channel, bin] = mantissas.getPrepared'UseTable(block.lfeBap[bin], prepared.lfe[bin])
+    }
+
+    if block.coupling
+    {
+        for channel in channelCount where block.channelCoupled[channel]
+        {
+            let dither      = block.dither[channel]
+            let destination = cast([*] f64, &coefficients[][channel, block.couplingStart])
+            for subband in block.couplingSubbands
+            {
+                let scale = block.couplingCoord[channel, subband] * 8.0
+                for quad in 3
+                {
+                    let group  = subband * 3 + quad
+                    let source = group * 4
+                    if dither and (zeroedQuads & (1'u64 << cast(u32, group)))
+                    {
+                        noise.writeQuad'true(destination + source, &prepared.coupling[source], scale)
+                    }
+                    else
+                    {
+                        for offset in 4
+                        {
+                            let index = source + offset
+                            var value = couplingMantissas[index]
+                            if not value and dither do
+                                value = noise.get(PreparedMantissaGain[0, block.couplingExponents[index]])
+                            destination[index] = value * scale
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 private func initializeDolbyCore()

@@ -518,7 +518,6 @@
   {
     "file": "NotoSansCJKjp-Regular.woff",
     "source": "NotoSansCJKjp-Regular.otf",
-    "sha256": "54b96c2b7f861f448dc9c03f236b889de19fe0089d7abe78c74bf65b96e1dd3e",
     "cases": [
       {
         "character": 26085,
@@ -529,10 +528,29 @@
   {
     "file": "NotoSansSC-Variable.woff",
     "source": "NotoSansSC-Variable.ttf",
-    "sha256": "444ee5c63c5e0d0cf1c53cc15dc8dafc768081f7e47f02b8b054ad556b22dc5f",
     "cases": [
       {
         "character": 40845,
+        "profile": "WOFF1 variable TrueType CJK at the default instance"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansJP-Variable.woff",
+    "source": "NotoSansJP-Variable.ttf",
+    "cases": [
+      {
+        "character": 134071,
+        "profile": "WOFF1 variable TrueType CJK with a supplementary-plane glyph"
+      }
+    ]
+  },
+  {
+    "file": "NotoSansTC-Variable.woff",
+    "source": "NotoSansTC-Variable.ttf",
+    "cases": [
+      {
+        "character": 12295,
         "profile": "WOFF1 variable TrueType CJK at the default instance"
       }
     ]

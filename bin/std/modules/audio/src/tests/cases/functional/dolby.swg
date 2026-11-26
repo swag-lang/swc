@@ -630,3 +630,37 @@ private func eac3TestChannelBandwidthFrame(bandwidth: u32, invalidDelta: bool)->
             Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
     }
 }
+
+// Paired 5.1 synthesis writes PCM in speaker order and retains independent window history.
+#test
+{
+    const StreamChannel: [6] u32 = [0, 2, 1, 5, 3, 4]
+    var baseline, mixed:  [6] Dolby.Imdct
+    var surround:         Dolby.SurroundImdct
+    var spectrum:         [6, 256] f64
+    var expected, actual: [6 * 256] s16
+
+    for block in 8
+    {
+        var shortWindow: [5] bool
+        for output in 6
+        {
+            let source   = StreamChannel[output]
+            let useShort = source < shortWindow.count and (source + block * 2) % 7 == 5
+            if source < shortWindow.count do
+                shortWindow[source] = useShort
+            for bin in 256
+            {
+                let centered = cast(s32, ((bin * 13 + source * 53 + block * 17) & 63)) - 32
+                spectrum[source, bin] = cast(f64, centered) / 16_384.0
+            }
+
+            baseline[source].process(&spectrum[source, 0], useShort, &expected[output], 6)
+        }
+
+        surround.process(&mixed, &spectrum, &shortWindow, &actual[0])
+
+        for sample in actual.count do
+            Swag.require(Math.abs(cast(s32, expected[sample]) - cast(s32, actual[sample])) <= 1)
+    }
+}

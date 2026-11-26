@@ -41,27 +41,26 @@ impl BitReader
     mtd read(count: u32)->u32
     {
         var result = 0'u32
-        for count
-        {
-            result <<= 1
-            if .bitPos < .bitEnd
-            {
-                let byte = .data![.bitPos >> 3]
-                result |= cast(u32, (byte >> (7 - cast(u32, (.bitPos & 7))))) & 1
-            }
-
-            .bitPos += 1
-        }
-
+        for count do
+            result = (result << 1) | .bit()
         return result
     }
 
-    mtd bit()->u32 => .read(1)
+    #[Swag.Inline]
+    mtd bit()->u32
+    {
+        let at = .bitPos
+        .bitPos += 1
+        if at >= .bitEnd do
+            return 0
+        let byte = .data![at >> 3]
+        return (cast(u32, byte) >> (7 - cast(u32, at & 7))) & 1
+    }
 
     // Reads the marker bit the format inserts to keep start codes out of a header.
     mtd marker() fail
     {
-        if .read(1) != 1 do
+        if .bit() != 1 do
             fail InvalidFormatError{"MPEG-4 marker bit is not set"}
     }
 
@@ -73,7 +72,7 @@ impl BitReader
         var node = 0's32
         for 24'u32
         {
-            let slot = cast(u64, (node * 2)) + cast(u64, .read(1))
+            let slot = cast(u64, (node * 2)) + cast(u64, .bit())
             if slot >= tree.count do
                 return -1
 
@@ -228,7 +227,7 @@ impl Layer
         if not .obmcDisabled do
             fail UnsupportedFormatError{"video decoder does not read overlapped block motion compensation"}
 
-        .spriteEnable = .versionId == 1 ? reader.read(1) : reader.read(2)
+        .spriteEnable = .versionId == 1 ? reader.bit() : reader.read(2)
         if .spriteEnable do
             fail UnsupportedFormatError{"video decoder does not read MPEG-4 sprites or global motion compensation"}
 
@@ -239,7 +238,7 @@ impl Layer
             fail UnsupportedFormatError{"video decoder reads eight-bit MPEG-4 Part 2 only"}
         }
 
-        .quantType = reader.read(1)
+        .quantType = reader.bit()
         .useDefaultMatrices()
         if .quantType != 0
         {

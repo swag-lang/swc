@@ -21,3 +21,37 @@ using Swag, Core
     // A pen with no width at all still draws nothing.
     Swag.require(strokeDarkness(0) == 0)
 }
+
+// A solid stroke can draw the flattened contour before fill metrics are computed.
+#test
+{
+    var curve: LinePath
+    curve.start(4, 10)
+    curve.bezierTo(27, 10, 10, 1, 21, 1)
+
+    var short: LinePath
+    short.start(8, 23)
+    short.lineTo(8.25, 23)
+    let pen = Pen.createSolid(Color.fromArgb(Argb.White), 4)
+    var images: [2] Image
+    for pass in 2
+    {
+        var path = curve
+        if pass do
+            path.flatten()
+
+        var painter: Painter
+        painter.begin()
+        painter.drawPath(&path, pen)
+        painter.drawPath(&short, pen)
+        painter.end()
+        images[pass] = renderCpu(32, 28, &painter)
+        Swag.require(path.hasPolygonMetrics == (pass != 0))
+        Swag.require(path.flattenedPolygon().perimeter > 0)
+    }
+
+    Swag.require(images[0].pixelColor(6, 8).r != 0)
+    Swag.require(images[0].pixelColor(8, 23).r == 0)
+    for byte, index in images[0].pixels do
+        Swag.require(byte == images[1].pixels[index])
+}

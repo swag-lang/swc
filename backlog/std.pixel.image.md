@@ -169,9 +169,10 @@ ships; history lives in Git, not here.
   resvg takes 570 ms. Clipped curves drop from 66 to 18 ms against 17 ms for
   resvg. Thin and dashed strokes still spend time generating and scanning their
   outline fragments.
-- Next: measure stroke outline preparation, crossing collection and fill resolution on
-  the colored fixtures. Rerun the original Windows comparison at one worker and at the
-  runtime default.
+- Evidence: [deferred stroke metrics](../bench/workloads/svgraster/resvg-comparison.md#preparing-undashed-strokes)
+  reduce first raster time for undashed strokes without changing the tested pixels.
+- Next: measure crossing collection and fill resolution on dense colored paths. Rerun the
+  original Windows comparison at one worker and at the runtime default.
 - Done when: the original corpus meets agreed parse and raster budgets against resvg and the
   renderer's verified output behavior is preserved.
 - Related: std.pixel.image.039, app.scope.image.010

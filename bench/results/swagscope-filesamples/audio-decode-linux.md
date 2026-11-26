@@ -728,3 +728,39 @@ bit for bit.
 
 Native Release passes 320 audio tests. Release-safe passes
 64 focused MP3, Opus, Vorbis and WAV tests.
+
+## Twentieth optimization pass
+
+This follow-up compares the changed codecs with commit `d642c28933` and native FFmpeg.
+Each median uses 56 samples and includes opening and materializing ten seconds of PCM16.
+[Raw stage times and PCM deltas](audio-decode-linux-round20.json)
+
+| Format | R19 CPU 0 (ms) | Swag CPU 0 (ms) | FFmpeg CPU 0 (ms) | R19 CPU 1 (ms) | Swag CPU 1 (ms) | FFmpeg CPU 1 (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| AC-3 | 9.36 | 9.04 | 8.22 | 9.22 | 8.82 | 8.41 |
+
+| Format | R19 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: |
+| AC-3 | 9.08 | 8.78 | 8.34 |
+
+
+The generated-fixture medians use 42 samples per worker budget.
+
+| Fixture | R19 1 core (ms) | Swag 1 core (ms) | FFmpeg 1 core (ms) | R19 4 cores (ms) | Swag 4 cores (ms) | FFmpeg 4 cores (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `ac3-32k-mono.ac3` | 5.09 | 5.04 | 4.46 | 5.05 | 5.01 | 4.44 |
+| `ac3-44k-stereo.ac3` | 10.56 | 10.53 | 10.19 | 10.29 | 9.77 | 9.68 |
+| `ac3-48k-5.1.ac3` | 31.52 | 24.43 | 25.68 | 33.18 | 23.54 | 26.10 |
+| `eac3-48k-5.1.eac3` | 42.43 | 23.87 | 26.45 | 44.47 | 24.63 | 27.50 |
+
+E-AC-3 reuses prepared allocation across compatible blocks, processes
+grouped mantissas with lookup tables, and shares the AC-3 dither and synthesis
+primitives. Both codecs synthesize long 5.1 blocks in channel pairs. The
+matched Swag builds use the same compiler and Core sources.
+
+The PCM matches between the one-core and four-core runs. The FileSamples,
+generated mono, and generated stereo outputs match R19 bit for bit. The
+generated 5.1 outputs differ by at most one PCM16 unit from R19.
+
+Native Release passes 321 audio tests. Release-safe passes
+17 focused Dolby tests.

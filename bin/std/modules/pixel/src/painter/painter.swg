@@ -77,6 +77,7 @@ enum CommandId
     CaptureBackdrop           // Snapshot already drawn target colors before filtering.
     SetBackdropShader         // Select a portable backdrop filter or material pass.
     DrawScanFill              // Composite one solid path fill through the CPU scan converter.
+    DrawScanClip              // Write the intersection of CPU scan fills into the clipping region.
 }
 
 // Controls optional painter behaviors.
@@ -288,6 +289,7 @@ struct Command
             case .Clear:                                       clear:           struct{ color: Color }
             case .DrawTriangles:                               drawTriangles:   TriangleBatch
             case .DrawScanFill:                                scanFill:        ScanFillBatch
+            case .DrawScanClip:                                scanClip:        struct{ first, end: u64 }
             case .Transform:                                   transform:       struct{ tr: Transform2 }
             case .SetClippingRect:                             clippingRect:    struct{ rect: Math.Rectangle }
             case .StartClippingRegion, .SetClippingRegionMode: clippingRegion:  struct{ mode: ClippingMode }
@@ -346,6 +348,7 @@ struct Painter
     // Each range references its own immutable contour points through the contour end table.
     scanPoints:       Array'Vector2
     scanContourEnds:  Array'u64
+    scanClipShapes:   Array'ScanFillBatch
     useScanlineFills: bool
 
     // Reusable workspaces. They only hold intermediate results of the call in progress.
@@ -460,7 +463,7 @@ impl Painter
     mtd setRenderer(renderer: IRenderer)
     {
         Swag.assert(not .drawingBegin)
-        Swag.assert(not .submissionPending or .scanContourEnds.isEmpty())
+        Swag.assert(not .submissionPending or (.scanContourEnds.isEmpty() and .scanClipShapes.isEmpty()))
         .rendererItf      = renderer
         .useScanlineFills = false
     }
@@ -1172,6 +1175,7 @@ impl Painter
         .gradientStops.clear()
         .scanPoints.clear()
         .scanContourEnds.clear()
+        .scanClipShapes.clear()
         .transientTextures.clear()
         .transientTargets.clear()
 

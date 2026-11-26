@@ -139,3 +139,33 @@ from 30.87 to 22.69, and on the map from 34.63 to 7.80. The map changes coverage
 on 34.91% of pixels. The three FileSamples change coverage or color on 0.13–1.46%
 of pixels, with total timings similar to the baseline. All six generated SVG
 benchmark fixtures kept their Swag CRC-64.
+
+## Nested clips in device space
+
+The decoder retains the authored shapes and their parents. The opaque CPU bitmap
+path intersects their filled intervals at the four vertical sample positions,
+then resolves coverage once. The polygon fallback is materialized on demand for
+textured clips, transparent bitmap output and the general painter. Interior
+coverage accumulation, color blending and writing the intersected clip mask
+process four pixels at a time with SIMD.
+
+These are Release medians of 14 interleaved measurements on one AMD EPYC 7763
+logical CPU, against Swag `838d348519` and PDFium 159.0.8149.0. Each measurement
+reopens and renders the clip fixture into a BGRA bitmap. Times are milliseconds.
+[Raw phase timings, full corpus and RGB measurements](pdf-raster-linux-nested-clips.json)
+
+| Long side | Previous load | Swag load | PDFium load | Previous total | Swag total | PDFium total |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 600 | 194.82 | 7.43 | 7.07 | 218.95 | 31.53 | 22.38 |
+| 1200 | 189.27 | 7.52 | 7.36 | 244.36 | 54.46 | 42.73 |
+| 2400 | 178.25 | 7.17 | 6.98 | 314.85 | 110.51 | 97.05 |
+
+Comparing the new coverage kernels with the same intersection code using scalar
+composition took the 1200 px clip fixture from 59.43 to 50.06 ms and the
+polygons fixture from 139.24 to 116.61 ms, with PDFium at 41.19 and 106.97 ms
+in that interleaved run. The three pages in that comparison kept their Swag
+CRC-32 after SIMD. All 31 cases in the full corpus kept their CRC-32 after SIMD.
+Compared with the published baseline, 30 of 31 pages kept their CRC-32.
+Only the nested-clip fixture changed. Its mean absolute 8-bit RGB difference
+from PDFium was 3.0642 before and 3.0618 after at 1200 px. The mean difference
+also decreased at 600 and 2400 px.

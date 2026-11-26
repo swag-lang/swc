@@ -406,9 +406,6 @@ private func pathPen(item: const *Item, scale: f32)->Pen
     return result
 }
 
-// Returns the rule a clip shape is filled under.
-private func clipFillRule(clip: const *ClipPath)->PathFillRule => clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero
-
 // Returns how many page points the longer side of an image's unit square spans.
 internal func unitSquareScale(transform: Transform2)->f32
 {
@@ -420,13 +417,30 @@ internal func unitSquareScale(transform: Transform2)->f32
 //
 // The region carries coverage, so the shape is filled the way any shape is: its antialiased
 // edge becomes the edge of every mark cut by it.
-private func writeClipRegion(painter: *Painter, clip: *ClipPath, pageToSurface: Transform2)
+private func writeClipRegion(painter: *Painter, page: *Page, index: u32, pageToSurface: Transform2, scanClips: bool, paths: *Array'ClippingPath)
 {
     if painter.transform() != pageToSurface do
         painter.setTransform(pageToSurface)
 
+    let leaf = unwrap page.clipPaths[index]
+    if scanClips and leaf.parent != InvalidClipPath
+    {
+        paths.clear()
+        var next = index
+        while next != InvalidClipPath
+        {
+            let clip = unwrap page.clipPaths[next]
+            paths.add(ClippingPath{&clip.path, clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero})
+            next = clip.parent
+        }
+
+        if painter.trySetClippingPathIntersection(paths.toSlice()) do
+            return
+    }
+
+    let clip = page.resolveClipPath(index)
     painter.startClippingRegion(.Set)
-    painter.fillPath(&clip.path, Color.fromArgb(Argb.White), clipFillRule(clip))
+    painter.fillPath(clip.path, Color.fromArgb(Argb.White), clip.rule)
     painter.endClippingRegion()
 }
 
@@ -448,7 +462,7 @@ private func writeClipRegion(painter: *Painter, clip: *ClipPath, pageToSurface: 
 //
 // Fills cache their tessellation inside the page items, which is what makes drawing the same
 // page again cheap. The caller owns the painter's transform state and restores it afterwards.
-internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint, flattenScale: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture) fail
+internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Transform2, devicePerPoint, flattenScale: f32, fonts: *RenderFontCache, fallbackFontFile: string, textures: const [..] Texture, scanClips = false) fail
 {
     let previousBlend = painter.blendingMode()
     defer painter.setBlendingMode(previousBlend)
@@ -482,6 +496,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
     // A shaped clip is a clipping region, and consecutive items usually share one the same way
     // they share a rectangle, so it is written when the shape changes and held across the run.
     var activeRegion = InvalidClipPath
+    var clipPaths: Array'ClippingPath
     defer if activeRegion != InvalidClipPath do
         painter.resetClippingRegion()
 
@@ -527,7 +542,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             if activeRegion != InvalidClipPath do
                 painter.resetClippingRegion()
             if region != InvalidClipPath do
-                writeClipRegion(painter, unwrap page.clipPaths[region], pageToSurface)
+                writeClipRegion(painter, page, region, pageToSurface, scanClips, &clipPaths)
             activeRegion = region
         }
 
@@ -636,9 +651,9 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             var brush = Brush.createTexture(textures[textureIndex])
             brush.mapOver({0, 0, 1, 1})
             brush.setTint(item.fillColor)
-            let clip = unwrap page.clipPaths[item.clipPath]
+            let rule = page.prepareImageClip(item)
             painter.setFlattenScale(flattenScale * unitSquareScale(item.transform))
-            painter.fillPath(&item.imageClip, brush, clipFillRule(clip))
+            painter.fillPath(&item.imageClip, brush, rule)
             painter.setFlattenScale(flattenScale)
         }
 
@@ -753,7 +768,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
 
     // A region render shifts every mark by the region origin; the whole page is the identity
     // region, so the same path serves both.
-    try drawPageItems(&painter, page, Transform2.createTranslation(-region.x, -region.y), options.scale, options.scale, &fonts, options.fallbackFontFile, textures.toSlice())
+    try drawPageItems(&painter, page, Transform2.createTranslation(-region.x, -region.y), options.scale, options.scale, &fonts, options.fallbackFontFile, textures.toSlice(), scanClips: not paintAlpha)
 
     painter.resetTransform()
 

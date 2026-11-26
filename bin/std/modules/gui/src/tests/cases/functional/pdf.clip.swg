@@ -124,6 +124,11 @@ private func circlePath(cx, cy, r: f32)->String
     Swag.require(isBlue(image.pixelColor(65, 50)))
     Swag.require(isWhite(image.pixelColor(20, 50)))
     Swag.require(isWhite(image.pixelColor(110, 50)))
+
+    let transparent = expect document.editPage(0).render({background: Color.fromArgb(Argb.Zero)})
+    Swag.require(transparent.pixelColor(65, 50).a == 255)
+    Swag.require(transparent.pixelColor(20, 50).a == 0)
+    Swag.require(transparent.pixelColor(110, 50).a == 0)
 }
 
 // `Q` restores the clip that was in force before the shape was established.
@@ -136,4 +141,27 @@ private func circlePath(cx, cy, r: f32)->String
     var document = clipDocument(content.toString())
     Swag.require(onlyItem(document.pages[0], .Path).clipPath == InvalidClipPath)
     Swag.require(isBlue(renderClipped(&document).pixelColor(150, 50)))
+}
+
+// Editing a nested-clipped image preserves its original local clip before or after a render.
+#test
+{
+    const Content = "q 10 10 m 90 10 l 50 90 l h W n 40 10 m 120 10 l 80 90 l h W n 110 0 0 80 10 10 cm /Im0 Do Q"
+
+    var warm     = clipDocument(Content)
+    var cold     = clipDocument(Content)
+    let original = renderClipped(&warm)
+    Swag.require(isRed(original.pixelColor(65, 50)))
+    Swag.require(isWhite(original.pixelColor(20, 50)))
+    Swag.require(isWhite(original.pixelColor(110, 50)))
+
+    var transform = warm.pages[0].items[0].itemTransform()
+    transform.tx += 12
+    warm.editPage(0).setItemTransform(0, transform)
+    cold.editPage(0).setItemTransform(0, transform)
+    let before = renderClipped(&cold)
+    let after  = renderClipped(&warm)
+    Swag.require(before.pixels.count == after.pixels.count)
+    for byte, index in before.pixels do
+        Swag.require(byte == after.pixels[index])
 }

@@ -70,8 +70,13 @@ struct Page
 // One clip shape a content stream established, beyond the rectangle every item carries.
 internal struct ClipPath
 {
-    path:    LinePathList     // The shape, in page coordinates.
+    path:    LinePathList     // The authored shape in page coordinates.
     evenOdd: bool             // Whether `W*` chose the alternating rule over the winding count.
+    parent:  u32 = InvalidClipPath   // Shaped clip already in force when this one was defined.
+
+    // The polygon fallback is built on demand for tessellation or textured image fills.
+    intersection:    LinePathList
+    hasIntersection: bool
 }
 
 // Marks an item confined by its rectangle alone.
@@ -196,8 +201,12 @@ impl Page
     {
         Swag.assert(index < .items.count, "item index out of range")
         Swag.assert(isFiniteTransform(transform), "invalid item transform")
-        .items[index].transform = transform
-        .items[index].refreshPaintBounds()
+        let item = &.items[index]
+        // Capture a decoded image's clip in its original image coordinates before moving it.
+        if item.kind == .Image and item.clipPath != InvalidClipPath and not item.imageClipReady do
+            discard .prepareImageClip(item)
+        item.transform = transform
+        item.refreshPaintBounds()
     }
 
     // Replaces the fill color of a text or path item.
@@ -297,8 +306,11 @@ internal impl Page
         var result = cast(u64, #sizeof(Page))
         for item in .items do
             result += item.memoryUsage()
-        for clip in .clipPaths do
-            result += clip!.path.memoryUsage()
+        for value in .clipPaths
+        {
+            let clip = unwrap value
+            result += clip.path.memoryUsage() + clip.intersection.memoryUsage()
+        }
         return result
     }
 
@@ -317,12 +329,67 @@ internal impl Page
     }
 
     // Records one clip shape and returns the index items name it by.
-    mtd addClipPath(path: #move LinePathList, evenOdd: bool)->u32
+    mtd addClipPath(path: #move LinePathList, evenOdd: bool, parent: u32)->u32
     {
         let clip = .clipPaths.addNew()
         clip.path    = #move path
         clip.evenOdd = evenOdd
+        clip.parent  = parent
         return cast(u32, (.clipPaths.count - 1))
+    }
+
+    // Resolves the fallback polygon only for a consumer that needs tessellated geometry.
+    mtd resolveClipPath(index: u32)->{path: *LinePathList, rule: PathFillRule}
+    {
+        let leaf = unwrap .clipPaths[index]
+        if leaf.parent == InvalidClipPath do
+            return {&leaf.path, leaf.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero}
+        if leaf.hasIntersection do
+            return {&leaf.intersection, PathFillRule.NonZero}
+
+        // Walk to the nearest cached ancestor, then populate descendants in clip order.
+        var pending: Array'(*ClipPath)
+        var ancestor = leaf
+        while ancestor.parent != InvalidClipPath and not ancestor.hasIntersection
+        {
+            pending.add(ancestor)
+            ancestor = unwrap .clipPaths[ancestor.parent]
+        }
+
+        var framePath = ancestor.parent == InvalidClipPath ? &ancestor.path : &ancestor.intersection
+        var frameRule = ancestor.parent == InvalidClipPath and ancestor.evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero
+
+        // Preserve the page-space tolerance of the polygon fallback at deep zoom levels.
+        const IntersectionScale = 20.0'f32
+        for index in reversed(pending.count)
+        {
+            let child = pending[index]
+            var frame = framePath[]
+            var shape = child.path
+            frame.flatten(.High, IntersectionScale)
+            shape.flatten(.High, IntersectionScale)
+            shape.intersect(&frame, child.evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero, frameRule)
+            child.intersection    = #move shape
+            child.hasIntersection = true
+            framePath = &child.intersection
+            frameRule = .NonZero
+        }
+
+        return {&leaf.intersection, PathFillRule.NonZero}
+    }
+
+    // Caches the clip in image coordinates for a textured fill.
+    mtd prepareImageClip(item: *Item)->PathFillRule
+    {
+        let clip = .resolveClipPath(item.clipPath)
+        if not item.imageClipReady
+        {
+            item.imageClip = clip.path[]
+            item.imageClip.transform(item.transform.inverse())
+            item.imageClipReady = true
+        }
+
+        return clip.rule
     }
 
     // Returns the item at `index` for a decoder that has to revise a mark it already recorded.
@@ -338,8 +405,8 @@ internal impl Page
     // between steps.
     mtd prepareClipPath(index: u64, scale: f32, preparer: *Pixel.FillPreparer)
     {
-        let clip = unwrap .clipPaths[index]
-        preparer.prepare(&clip.path, scale, clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero)
+        let clip = .resolveClipPath(cast(u32, index))
+        preparer.prepare(clip.path, scale, clip.rule)
     }
 
     // Prepares one item for a draw at `scale`, as [[Gui.Pdf.Page.prepare]] describes.
@@ -367,8 +434,8 @@ internal impl Page
             // page as the image is wide in points.
             if item.clipPath != InvalidClipPath
             {
-                let clip = unwrap .clipPaths[item.clipPath]
-                preparer.prepare(&item.imageClip, scale * unitSquareScale(item.transform), clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero)
+                let rule = .prepareImageClip(item)
+                preparer.prepare(&item.imageClip, scale * unitSquareScale(item.transform), rule)
             }
         }
     }

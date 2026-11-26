@@ -237,12 +237,6 @@ private func currentPath(path: *LinePathList, current: *(*LinePath?), start: Vec
     return result
 }
 
-// How finely two clip shapes are flattened before they intersect.
-//
-// The intersection is polygonal, and it is stated in page points, so at this density its
-// facets stay far below what any zoom of a page can show.
-private const ClipIntersectionScale = 20.0'f32
-
 // Largest distance between two coordinates that still reads as the same edge of a rectangle.
 private const RectangleEpsilon = 0.001'f32
 
@@ -290,15 +284,7 @@ private func isAxisAlignedRectangle(path: const *LinePathList)->bool
     return true
 }
 
-// Returns the fill rule a clip operator named, as the boolean solver states it.
-private func clipFillType(evenOdd: bool)->Clipper.PolyFillType => evenOdd ? Clipper.PolyFillType.EvenOdd : Clipper.PolyFillType.NonZero
-
-// Narrows the graphics state to the path a `W` or `W*` operator marked as the next clip.
-//
-// An axis-aligned rectangle, which nearly every clip is, narrows the rectangle alone and
-// exactly. Any other shape narrows the rectangle to its bounds and is kept as a shape of its
-// own, so the marks painted through it are cut where the author cut them; a shape established
-// inside another intersects with it.
+// Narrows the graphics state to the next path marked by a `W` or `W*` operator.
 private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePathList, evenOdd: bool, pending: *bool, decode: PageDecode)
 {
     if not pending[] do
@@ -312,18 +298,7 @@ private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePat
         return
 
     var shape: LinePathList = path[]
-    if state.clipPath == InvalidClipPath
-    {
-        state.clipPath = page.addClipPath(#move shape, evenOdd)
-        return
-    }
-
-    let outer = unwrap page.clipPaths[state.clipPath]
-    var frame: LinePathList = outer.path
-    frame.flatten(.High, ClipIntersectionScale)
-    shape.flatten(.High, ClipIntersectionScale)
-    shape.intersect(&frame, clipFillType(evenOdd), clipFillType(outer.evenOdd))
-    state.clipPath = page.addClipPath(#move shape, false)
+    state.clipPath = page.addClipPath(#move shape, evenOdd, state.clipPath)
 }
 
 private func appendPathItem(parser: *PdfParser, page: *Page, path: *LinePathList, state: const *GraphicsState, fill, stroke, close: bool, depth: u32, decode: PageDecode, evenOdd = false)
@@ -456,13 +431,6 @@ private func appendImageItem(parser: *PdfParser, page: *Page, state: const *Grap
     item.clip      = state.clip
     item.hasClip   = state.hasClip
     item.clipPath  = state.clipPath
-    if state.clipPath != InvalidClipPath
-    {
-        // The shape is restated in the image's own unit square, so drawing the shape filled with
-        // the texture puts every sample exactly where drawing the rectangle would have.
-        item.imageClip = page.clipPaths[state.clipPath]!.path
-        item.imageClip.transform(item.transform.inverse())
-    }
 
     // An image carries no colour of its own to dim, so the constant alpha travels as the tint the
     // painter modulates its texture by.

@@ -12,6 +12,16 @@ public enum PathFillRule
     EvenOdd     // Inside wherever the winding count is odd.
 }
 
+// Describes one path and its winding rule in a clipping intersection.
+public struct ClippingPath
+{
+    public
+    {
+        late path: *LinePathList   // Contours in the painter's current path space.
+        rule:      PathFillRule    // Rule used to determine the inside of those contours.
+    }
+}
+
 // Identifies one contour point by its exact coordinates. The tessellator copies the points it is
 // given, so the two bit patterns are the same value and not merely a close one.
 private func contourPointKey(point: Vector2)->u64 => cast(u64, cast #bit(u32, point.x)) << 32 | cast(u64, cast #bit(u32, point.y))
@@ -560,14 +570,32 @@ public impl Painter
             .newCommand(.DrawScanFill).op = .DrawScanFill{first: start, end: end, low: lowest, high: highest, color: color, rule: rule}
     }
 
-    // Stores the flattened contours so later edits and temporary paths cannot affect replay.
-    private mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
+    // Replaces the active clipping region with the intersection of several paths.
+    //
+    // This operation is available on a scanline painter's main surface when antialiasing
+    // is enabled. The paths are copied into the recording and may change after this call.
+    // Returns false with the region unchanged when the path list is empty or this drawing
+    // state needs a polygon fallback.
+    mtd trySetClippingPathIntersection(paths: const [..] ClippingPath)->bool
     {
-        if not .canRecordScanPath() do
+        if not paths.count or not .useScanlineFills or .curRT or .overlapMode or
+           not (.curState.paintParams & .Antialiased) do
             return false
-        if not color.a or .isEmptyClippingRect() do
-            return true
 
+        let first = .scanClipShapes.count
+        let white = Color.fromArgb(Argb.White)
+        for shape in paths do
+            .scanClipShapes.add(.recordScanContours(shape.path, white, shape.rule))
+
+        .startClippingRegion(.Set)
+        .newCommand(.DrawScanClip).op = .DrawScanClip{first: first, end: .scanClipShapes.count}
+        .endClippingRegion()
+        return true
+    }
+
+    // Stores the flattened contours so later edits and temporary paths cannot affect replay.
+    private mtd recordScanContours(pathList: *LinePathList, color: Color, rule: PathFillRule)->ScanFillBatch
+    {
         let start   = .scanContourEnds.count
         var lowest  = Vector2.Max
         var highest = Vector2.Min
@@ -583,7 +611,19 @@ public impl Painter
             highest = Vector2.max(highest, path.maxBounds)
         }
 
-        .emitScanFill(start, lowest, highest, color, rule)
+        return {first: start, end: .scanContourEnds.count, low: lowest, high: highest, color: color, rule: rule}
+    }
+
+    private mtd recordScanFill(pathList: *LinePathList, color: Color, rule: PathFillRule)->bool
+    {
+        if not .canRecordScanPath() do
+            return false
+        if not color.a or .isEmptyClippingRect() do
+            return true
+
+        let batch = .recordScanContours(pathList, color, rule)
+        if batch.first != batch.end do
+            .newCommand(.DrawScanFill).op = .DrawScanFill{batch}
         return true
     }
 

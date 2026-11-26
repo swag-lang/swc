@@ -84,8 +84,9 @@ struct Item
         // own unit square, where its edge stays antialiased and it moves with the image.
         //
         // The default is spelled out because it is part of the exported layout.
-        clipPath:  u32 = Swag.U32.Max
-        imageClip: LinePathList
+        clipPath:       u32 = Swag.U32.Max
+        imageClip:      LinePathList
+        imageClipReady: bool
 
         // How this item's marks combine with what is already on the page. A document states it
         // through `/BM`, and every mode it can name is one the painter composites natively.

@@ -73,3 +73,39 @@ using Core
     Swag.require(image.pixelColor(13, 4).argb == 0xFFFF_FFFF)
     Swag.require(image.pixelColor(5, 3).argb == 0xFFFF_FFFF)
 }
+
+// Clip coverage is the intersection of the actual sample spans at a shared pixel.
+#test
+{
+    var cpu: RenderCpu
+    cpu.begin(8, 8)
+    let renderer: IRenderer = &cpu
+    defer renderer.end()
+    var painter = Painter.createScanline(&cpu)
+    painter.begin()
+    painter.setColorMaskFull()
+    painter.clear(Color.fromArgb(Argb.White))
+    painter.setColorMaskColor()
+
+    var a, b: LinePathList
+    a.newPath().setRectRaw(1, 0, 0.75, 8)
+    a.newPath().setRectRaw(3, 0, 0.25, 8)
+    a.newPath().setRectRaw(4, 0, 3, 8)
+    a.newPath().setRectRaw(5, 1, 1, 6)
+    b.newPath().setRectRaw(1.5, 0, 0.5, 8)
+    b.newPath().setRectRaw(3.5, 0, 0.25, 8)
+    b.newPath().setRectRaw(4, 0, 3, 8)
+    let recorded = painter.trySetClippingPathIntersection([ClippingPath{&a, .EvenOdd}, ClippingPath{&b, .NonZero}])
+    Swag.require(recorded)
+    a.clear()
+    b.clear()
+    a.newPath().setRectRaw(0, 0, 8, 8)
+    painter.fillPath(&a, Color.fromArgb(Argb.Black), .NonZero)
+    painter.end()
+    expect renderer.draw(&painter)
+    let image = cpu.surfaceImage()
+    Swag.require(image.pixelColor(1, 4).argb == 0xFFBF_BFBF)
+    Swag.require(image.pixelColor(3, 4).argb == 0xFFFF_FFFF)
+    Swag.require(image.pixelColor(4, 4).argb == 0xFF00_0000)
+    Swag.require(image.pixelColor(5, 4).argb == 0xFFFF_FFFF)
+}

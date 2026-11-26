@@ -44,79 +44,79 @@ internal impl ScanScratch
         return crossings
     }
 
-    // Integrates horizontal coverage at four vertical sample positions per device row.
-    mtd resolveRow(crossings: [..] ScanSample, row, width: s32, evenOdd, fullRow: bool)->{values: [*] f32, first, end: u64}
+    mtd sortLine(line: *Array'Crossing)
     {
-        func sortLine(line: *Array'Crossing, scratch: *Array'Crossing)
+        #[Swag.Inline]
+        func insertWithGap(points: [*] Crossing, count, gap: u64)
         {
-            #[Swag.Inline]
-            func insertWithGap(points: [*] Crossing, count, gap: u64)
+            for index in gap until count
             {
-                for index in gap until count
+                let crossing = points[index]
+                var target   = index
+                while target >= gap and points[target - gap].x > crossing.x
                 {
-                    let crossing = points[index]
-                    var target   = index
-                    while target >= gap and points[target - gap].x > crossing.x
-                    {
-                        points[target] = points[target - gap]
-                        target         -= gap
-                    }
-
-                    points[target] = crossing
-                }
-            }
-
-            if line.count < 128
-            {
-                let points = line.storage()
-
-                // A few coarse passes move out-of-order crossings before the final insertion pass.
-                if line.count > 8
-                {
-                    for gap in [23'u64, 10, 4] do
-                        insertWithGap(points, line.count, gap)
+                    points[target] = points[target - gap]
+                    target         -= gap
                 }
 
-                insertWithGap(points, line.count, 1)
-                return
-            }
-
-            // Nonnegative f32 values have the same order as their unsigned bits.
-            // Radix sorting long lines avoids repeated comparison calls at each sample.
-            scratch.resize(line.count)
-            var source = line.storage()
-            var target = scratch.storage()
-            for digit in 4
-            {
-                let shift = digit * 8
-                var offsets: [256] u64
-                for index in line.count
-                {
-                    let key = cast #bit(u32, source[index].x) & 0x7FFF_FFFF
-                    offsets[(key >> shift) & 0xFF] += 1
-                }
-
-                var total = 0'u64
-                for &offset in offsets
-                {
-                    let count = offset[]
-                    offset[] = total
-                    total    += count
-                }
-
-                for index in line.count
-                {
-                    let crossing = source[index]
-                    let key      = cast #bit(u32, crossing.x) & 0x7FFF_FFFF
-                    let bucket   = (key >> shift) & 0xFF
-                    target[offsets[bucket]] = crossing
-                    offsets[bucket]         += 1
-                }
-
-                swap(&source, &target)
+                points[target] = crossing
             }
         }
 
+        if line.count < 128
+        {
+            let points = line.storage()
+
+            // A few coarse passes move out-of-order crossings before the final insertion pass.
+            if line.count > 8
+            {
+                for gap in [23'u64, 10, 4] do
+                    insertWithGap(points, line.count, gap)
+            }
+
+            insertWithGap(points, line.count, 1)
+            return
+        }
+
+        // Nonnegative f32 values have the same order as their unsigned bits.
+        // Radix sorting long lines avoids repeated comparison calls at each sample.
+        .sorted.resize(line.count)
+        var source = line.storage()
+        var target = .sorted.storage()
+        for digit in 4
+        {
+            let shift = digit * 8
+            var offsets: [256] u64
+            for index in line.count
+            {
+                let key = cast #bit(u32, source[index].x) & 0x7FFF_FFFF
+                offsets[(key >> shift) & 0xFF] += 1
+            }
+
+            var total = 0'u64
+            for &offset in offsets
+            {
+                let count = offset[]
+                offset[] = total
+                total    += count
+            }
+
+            for index in line.count
+            {
+                let crossing = source[index]
+                let key      = cast #bit(u32, crossing.x) & 0x7FFF_FFFF
+                let bucket   = (key >> shift) & 0xFF
+                target[offsets[bucket]] = crossing
+                offsets[bucket]         += 1
+            }
+
+            swap(&source, &target)
+        }
+    }
+
+    // Integrates horizontal coverage at four vertical sample positions per device row.
+    mtd resolveRow(crossings: [..] ScanSample, row, width: s32, evenOdd, fullRow: bool, sortedRows = false)->{values: [*] f32, first, end: u64}
+    {
         if .coverage.count < cast(u64, width) do
             .coverage.resize(cast(u64, width))
         let coverage = .coverage.storage()
@@ -128,7 +128,8 @@ internal impl ScanScratch
         for &sample in samples where sample.crossings.count > 1
         {
             let line = &sample.crossings
-            sortLine(line, &.sorted)
+            if not sortedRows do
+                .sortLine(line)
             low  = Math.min(low, line[0].x)
             high = Math.max(high, line[line.count - 1].x)
         }
@@ -158,8 +159,17 @@ internal impl ScanScratch
                     else
                     {
                         coverage[start] += cast(f32, start + 1) - previous
-                        for column in start + 1 until last do
-                            coverage[column] += 1
+                        var column = start + 1
+                        let one    = Math.Simd.splat(1.0'f32)
+                        while last - column >= 4
+                        {
+                            let pixels = coverage + column
+                            Math.Simd.store(pixels, Math.Simd.load(pixels) + one)
+                            column += 4
+                        }
+
+                        for tail in column until last do
+                            coverage[tail] += 1
                         coverage[last] += x - cast(f32, last)
                     }
                 }

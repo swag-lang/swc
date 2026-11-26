@@ -16,6 +16,17 @@ ships; history lives in Git, not here.
 
 ## Entries
 
+### std.pixel.044 — Tessellation can fault on a nested textured clip
+
+- Evidence: the tessellation fallback for a PDF image clipped by two overlapping curved
+  paths can fault inside `Tessellate.addEdgeEvent` after mapping the intersection into
+  the image's nonuniform local coordinates. This reproduces on the Linux Release
+  baseline at `838d348519` and after adding the solid scanline clip intersection.
+- Next: isolate the constrained-edge traversal on that contour and route failed
+  sweeps to the existing slab tessellation.
+- Done when: all renderers draw the clipped image, including a fractional boundary,
+  and the spline and hole tessellation tests continue to pass.
+
 ### std.pixel.039 — GPU glyph output can vary by one antialiasing level
 
 - Evidence: `text.drawingorder.swg` is exact on the CPU renderer. On Linux's offscreen OpenGL

@@ -26,7 +26,8 @@ struct RenderCpu
         textures:   Array'CpuTexture
 
         surface:     Image
-        scanScratch: ScanScratch
+        scanScratch:   ScanScratch
+        scanClip:      ScanIntersection
 
         stackReleasedRT: Array'(*RenderTarget?)
         stackRT:         Array'(*RenderTarget?)
@@ -3365,22 +3366,66 @@ private impl RenderCpu
         }
     }
 
+    mtd scanBounds(image: *Image, fill: const *ScanFillBatch, transform: const *Transform2)->Rectangle
+    {
+        let local = Rectangle{fill.low.x, fill.low.y, fill.high.x - fill.low.x, fill.high.y - fill.low.y}
+        var area  = transform.transformBounds(local)
+        if not Math.isFinite(area.x) or not Math.isFinite(area.y) or
+           not Math.isFinite(area.right()) or not Math.isFinite(area.bottom()) do
+            return {}
+
+        area.intersect({0, 0, cast(f32, image.width), cast(f32, image.height)})
+        if .scissorOn do
+            area.intersect(.scissorRect)
+        return area
+    }
+
+    func firstScanPoint(painter: const *Painter, fill: const *ScanFillBatch)->u64
+    {
+        return fill.first == 0 ? 0'u64 : painter.scanContourEnds[fill.first - 1]
+    }
+
+    // Limit live crossing storage even for dense paths spanning the entire surface.
+    func scanBandHeight(pointCount: u64)->s32
+    {
+        return cast(s32, Math.clamp(1_048_576'u64 / (pointCount * VerticalSamples), 1, 256))
+    }
+
+    mtd gatherScanRows(painter: const *Painter, fill: const *ScanFillBatch, transform: const *Transform2, origin: Vector2, width, height: s32)->[..] ScanSample
+    {
+        let crossings = .scanScratch.startRows(height)
+        let points    = painter.scanPoints.toSlice()
+        let ends      = painter.scanContourEnds.toSlice()
+        var point     = firstScanPoint(painter, fill)
+        for end in ends[fill.first until fill.end]
+        {
+            addScanContour(crossings, points[point until end], transform, 1, origin, false, cast(f32, width))
+            point = end
+        }
+
+        return crossings
+    }
+
+    #[Swag.Inline]
+    func scanAlpha4(values: const [*] f32, scale: Math.Simd.F32x4)->Math.Simd.U32x4
+    {
+        let scaled = Math.Simd.load(values) * scale
+        let whole  = Math.floor(scaled)
+        // Keep the scalar rounding at values just below a half-integer.
+        let roundUp = (scaled - whole >= Math.Simd.splat(0.5'f32)) & 1'u32
+        // Integers this small map directly to the low mantissa bits at 2^23.
+        let biased = cast #bit(Math.Simd.U32x4, whole + Math.Simd.splat(8_388_608.0'f32))
+        return biased - 0x4B00_0000'u32 + roundUp
+    }
+
     mtd drawScanFill(painter: *Painter, fill: const *ScanFillBatch)
     {
         let image = .currentImage()
         if not image do
             return
 
-        let transform  = .deviceTransform()
-        let local      = Math.Rectangle{fill.low.x, fill.low.y, fill.high.x - fill.low.x, fill.high.y - fill.low.y}
-        var area       = transform.transformBounds(local)
-        if not Math.isFinite(area.x) or not Math.isFinite(area.y) or
-           not Math.isFinite(area.right()) or not Math.isFinite(area.bottom()) do
-            return
-
-        area.intersect({0, 0, cast(f32, image.width), cast(f32, image.height)})
-        if .scissorOn do
-            area.intersect(.scissorRect)
+        let transform = .deviceTransform()
+        let area      = .scanBounds(image, fill, &transform)
         if area.isEmpty() do
             return
 
@@ -3389,14 +3434,10 @@ private impl RenderCpu
         let right  = cast(s32, Math.ceil(area.right()))
         let bottom = cast(s32, Math.ceil(area.bottom()))
         let width  = right - left
-        let ends   = painter.scanContourEnds.toSlice()
-        let points = painter.scanPoints.toSlice()
-        let first  = fill.first == 0 ? 0'u64 : ends[fill.first - 1]
-
-        // Limit live crossing storage even for a dense path spanning the entire surface.
-        let edgeCount  = ends[fill.end - 1] - first
-        let bandHeight = cast(s32, Math.clamp(1_048_576'u64 / (edgeCount * VerticalSamples), 1, 256))
-        let color     = fill.color
+        let bandHeight = scanBandHeight(painter.scanContourEnds[fill.end - 1] - firstScanPoint(painter, fill))
+        let color      = fill.color
+        let tint       = cast #bit(Math.Simd.U8x16, Math.Simd.splat(color.argb))
+        let alphaScale = Math.Simd.splat(cast(f32, color.a) / VerticalSamples)
         let evenOdd   = fill.rule == .EvenOdd
         let stencil   = .stencilOn ? .currentStencil().pixels.storage() : null
         if .stencilWrite and .stencilMode == .Set do
@@ -3404,15 +3445,9 @@ private impl RenderCpu
 
         for var y = top; y < bottom; y += bandHeight
         {
-            let height = Math.min(bandHeight, bottom - y)
-            let crossings = .scanScratch.startRows(height)
+            let height    = Math.min(bandHeight, bottom - y)
             let origin    = Vector2{cast(f32, left), cast(f32, y)}
-            var point     = first
-            for end in ends[fill.first until fill.end]
-            {
-                addScanContour(crossings, points[point until end], &transform, 1, origin, false, cast(f32, width))
-                point = end
-            }
+            let crossings = .gatherScanRows(painter, fill, &transform, origin, width, height)
 
             for row in height
             {
@@ -3435,20 +3470,114 @@ private impl RenderCpu
                 }
 
                 let dstOffset = cast(u64, image.height - deviceY - 1) * image.rowStride + cast(u64, left) * 4
-                let dst       = image.pixels.storage() + dstOffset
-                for x in firstX until endX where coverage[x] > 0
+                let dst = image.pixels.storage() + dstOffset
+                var x   = firstX
+                while endX - x >= 4
+                {
+                    var weight = scanAlpha4(coverage + x, alphaScale)
+                    if maskRow
+                    {
+                        let clip = cast(Math.Simd.U32x4, [cast(u32, maskRow[x]), cast(u32, maskRow[x + 1]),
+                                                         cast(u32, maskRow[x + 2]), cast(u32, maskRow[x + 3])])
+                        let product = weight * clip + 1'u32
+                        weight = (product + (product >> 8)) >> 8
+                    }
+
+                    let weights = cast #bit(Math.Simd.U8x16, weight * 0x0101_0101'u32)
+                    let target  = dst + x * 4
+                    Math.Simd.store(target, blendAlphaBgra8x4(tint, Math.Simd.load(target), weights))
+                    if let matte = .whiteMatte
+                    {
+                        let white = matte + dstOffset + x * 4
+                        Math.Simd.store(white, blendAlphaBgra8x4(tint, Math.Simd.load(white), weights))
+                    }
+
+                    x += 4
+                }
+
+                for column in x until endX where coverage[column] > 0
                 {
                     var ink = color
-                    ink.a   = coverageAlpha(color.a, coverage[x] / VerticalSamples)
+                    ink.a   = coverageAlpha(color.a, coverage[column] / VerticalSamples)
                     if maskRow do
-                        ink.a = cast(u8, (cast(u32, ink.a) * maskRow[x]) / 255)
+                        ink.a = cast(u8, (cast(u32, ink.a) * maskRow[column]) / 255)
                     if not ink.a do
                         continue
 
-                    blendAlphaBgra8(dst + x * 4, ink)
+                    blendAlphaBgra8(dst + column * 4, ink)
                     if let matte = .whiteMatte do
-                        blendAlphaBgra8(matte + dstOffset + x * 4, ink)
+                        blendAlphaBgra8(matte + dstOffset + column * 4, ink)
                 }
+            }
+        }
+    }
+
+    mtd drawScanClip(painter: *Painter, first, end: u64)
+    {
+        let image = .currentImage()
+        if not image do
+            return
+
+        let shapes    = painter.scanClipShapes.toSlice()[first until end]
+        let transform = .deviceTransform()
+        var area      = .scanBounds(image, &shapes[0], &transform)
+        for &shape, index in shapes
+        {
+            if shape.first == shape.end do
+                return
+            if index do
+                area.intersect(.scanBounds(image, shape, &transform))
+            if area.isEmpty() do
+                return
+        }
+
+        let left   = cast(s32, Math.floor(area.x))
+        let top    = cast(s32, Math.floor(area.y))
+        let right  = cast(s32, Math.ceil(area.right()))
+        let bottom = cast(s32, Math.ceil(area.bottom()))
+        let width  = right - left
+        let points = painter.scanContourEnds[shapes[shapes.count - 1].end - 1] - firstScanPoint(painter, &shapes[0])
+        let bandHeight = scanBandHeight(points)
+        let stencil    = .currentStencil().pixels.storage()
+        let alphaScale = Math.Simd.splat(255.0'f32 / VerticalSamples)
+        const Pack = cast(Math.Simd.U8x16, [0'u8, 4, 8, 12, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80])
+        .markStencilDirty({left, top, right - 1, bottom - 1})
+
+        // Intersect subrow intervals before resolving fractional coverage. Two shapes can
+        // touch the same pixel without sharing any part of it.
+        for var y = top; y < bottom; y += bandHeight
+        {
+            let height      = Math.min(bandHeight, bottom - y)
+            let origin      = Vector2{cast(f32, left), cast(f32, y)}
+            let sampleCount = cast(u64, height) * VerticalSamples
+            .scanClip.startBand(sampleCount)
+            var covered = true
+            for &shape, index in shapes
+            {
+                let crossings = .gatherScanRows(painter, shape, &transform, origin, width, height)
+                covered = .scanClip.intersect(&.scanScratch, crossings, shape.rule == .EvenOdd, index == 0)
+                if not covered do
+                    break
+            }
+
+            if not covered do
+                continue
+
+            let rows = .scanClip.rows.toSlice()[0 until sampleCount]
+            for row in height
+            {
+                let {values, first: startX, end: endX} = .scanScratch.resolveRow(rows, cast(s32, row), width, false, false, sortedRows: true)
+                let dst = stencil + (cast(u64, y) + row) * image.width + left
+                var x = startX
+                while endX - x >= 4
+                {
+                    let alpha = cast #bit(Math.Simd.U8x16, scanAlpha4(values + x, alphaScale))
+                    Math.Simd.storeLow4(dst + x, Math.Simd.shuffle(alpha, Pack))
+                    x += 4
+                }
+
+                for column in x until endX do
+                    dst[column] = coverageAlpha(255, values[column] / VerticalSamples)
             }
         }
     }
@@ -3996,6 +4125,9 @@ private impl RenderCpu
 
         case .DrawScanFill:
             .drawScanFill(painter, &cmd.scanFill)
+
+        case .DrawScanClip:
+            .drawScanClip(painter, cmd.scanClip.first, cmd.scanClip.end)
 
         case .StartFont:
             .program = CpuProgram_Font

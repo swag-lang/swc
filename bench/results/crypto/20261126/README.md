@@ -158,3 +158,4 @@ optimizations moved each result.
 - [OpenSSL release comparison](openssl-current-references.md)
 - [Cached inverse round keys for AES-XTS](aes-xts-inverse-schedule.md)
 - [BLAKE3 worker cutoff for small one-shot inputs](blake3-oneshot-cutoff.md)
+- [Unified P-256 point addition in fixed windows](p256-unified-windows.md)

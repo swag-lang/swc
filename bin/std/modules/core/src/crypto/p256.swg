@@ -522,36 +522,6 @@ private func p256FinishPointAdd(left, right, doubled: P256Point, u1, u2, s1, s2,
     return result
 }
 
-private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P256Point
-{
-    // The table depends only on the input point. Each window scans every entry.
-    var multiples: [16] P256Point
-    multiples[1] = point
-    let doubledPoint = p256PointDouble(point)
-    for index in 2 until multiples.count do
-        multiples[index] = p256PointAdd(point, multiples[index - 1], doubledPoint)
-
-    var result = p256Infinity()
-    for window in 64
-    {
-        for 4 do
-            result = p256PointDouble(result)
-
-        let nibbleIndex = 63 - window
-        let nibble      = (scalar[].limbs[nibbleIndex / 16] >> ((nibbleIndex % 16) * 4)) & 15
-        var selected    = p256Infinity()
-        for index in 1 until multiples.count do
-            selected = p256PointSelect(selected, multiples[index], index == nibble)
-
-        var doubled = p256PointDouble(result)
-        result = p256PointAdd(result, selected, doubled)
-        Crypto.secureClear(Swag.makeSlice(&selected, 1))
-        Crypto.secureClear(Swag.makeSlice(&doubled, 1))
-    }
-
-    return result
-}
-
 private struct P256AffinePoint
 {
     x: P256Field
@@ -692,6 +662,28 @@ private struct P256HomogeneousPoint
 
 private const P256MontgomeryB = P256Field{limbs: [0xD89CDF6229C4BDDF, 0xACF005CD78843090, 0xE5A220ABF7212ED6, 0xDC30061D04874834]}
 
+#[Swag.Inline]
+private func p256HomogeneousToJacobian(point: P256HomogeneousPoint)->P256Point
+{
+    return {x: p256FieldMultiply(point.x, point.z),
+            y: p256FieldMultiply(point.y, p256FieldSquare(point.z)),
+            z: point.z}
+}
+
+#[Swag.Inline]
+private func p256HomogeneousFinishAdd(xx, yy, zz, xy, yz, xz: P256Field)->P256HomogeneousPoint
+{
+    let mixedZ = p256FieldTriple(p256FieldSubtract(xz, p256FieldMultiply(P256MontgomeryB, zz)))
+    let upper  = p256FieldAdd(yy, mixedZ)
+    let lower  = p256FieldSubtract(yy, mixedZ)
+    let scaledXZ = p256FieldTriple(p256FieldSubtract(p256FieldSubtract(p256FieldMultiply(P256MontgomeryB, xz), p256FieldTriple(zz)), xx))
+    let scaledXX = p256FieldTriple(p256FieldSubtract(xx, zz))
+
+    return {x: p256FieldSubtract(p256FieldMultiply(xy, upper), p256FieldMultiply(yz, scaledXZ)),
+            y: p256FieldAdd(p256FieldMultiply(upper, lower), p256FieldMultiply(scaledXX, scaledXZ)),
+            z: p256FieldAdd(p256FieldMultiply(yz, lower), p256FieldMultiply(xy, scaledXX))}
+}
+
 // The unified mixed addition of Renes, Costello and Batina uses a finite
 // affine second point and also handles coincident and opposite points.
 private func p256HomogeneousAdd(point: P256HomogeneousPoint, affine: P256AffinePoint)->P256HomogeneousPoint
@@ -701,38 +693,74 @@ private func p256HomogeneousAdd(point: P256HomogeneousPoint, affine: P256AffineP
     let xy = p256FieldSubtract(p256FieldMultiply(p256FieldAdd(point.x, point.y), p256FieldAdd(affine.x, affine.y)), p256FieldAdd(xx, yy))
     let yz = p256FieldAdd(p256FieldMultiply(affine.y, point.z), point.y)
     let xz = p256FieldAdd(p256FieldMultiply(affine.x, point.z), point.x)
-
-    let mixedZ = p256FieldTriple(p256FieldSubtract(xz, p256FieldMultiply(P256MontgomeryB, point.z)))
-    let upper  = p256FieldAdd(yy, mixedZ)
-    let lower  = p256FieldSubtract(yy, mixedZ)
-    let scaledXZ = p256FieldTriple(p256FieldSubtract(p256FieldSubtract(p256FieldMultiply(P256MontgomeryB, xz), p256FieldTriple(point.z)), xx))
-    let scaledXX = p256FieldTriple(p256FieldSubtract(xx, point.z))
-
-    return {x: p256FieldSubtract(p256FieldMultiply(xy, upper), p256FieldMultiply(yz, scaledXZ)),
-            y: p256FieldAdd(p256FieldMultiply(upper, lower), p256FieldMultiply(scaledXX, scaledXZ)),
-            z: p256FieldAdd(p256FieldMultiply(yz, lower), p256FieldMultiply(xy, scaledXX))}
+    return p256HomogeneousFinishAdd(xx, yy, point.z, xy, yz, xz)
 }
 
-// Complete doubling in the same projective coordinates.
+// Both operands are valid homogeneous points, including infinity.
+private func p256HomogeneousAddProjective(left, right: P256HomogeneousPoint)->P256HomogeneousPoint
+{
+    let xx = p256FieldMultiply(left.x, right.x)
+    let yy = p256FieldMultiply(left.y, right.y)
+    let zz = p256FieldMultiply(left.z, right.z)
+    let xy = p256FieldSubtract(p256FieldMultiply(p256FieldAdd(left.x, left.y), p256FieldAdd(right.x, right.y)), p256FieldAdd(xx, yy))
+    let yz = p256FieldSubtract(p256FieldMultiply(p256FieldAdd(left.y, left.z), p256FieldAdd(right.y, right.z)), p256FieldAdd(yy, zz))
+    let xz = p256FieldSubtract(p256FieldMultiply(p256FieldAdd(left.x, left.z), p256FieldAdd(right.x, right.z)), p256FieldAdd(xx, zz))
+    return p256HomogeneousFinishAdd(xx, yy, zz, xy, yz, xz)
+}
+
 private func p256HomogeneousDouble(point: P256HomogeneousPoint)->P256HomogeneousPoint
 {
-    let xx = p256FieldSquare(point.x)
-    let yy = p256FieldSquare(point.y)
-    let zz = p256FieldSquare(point.z)
-    let xy = p256FieldDouble(p256FieldMultiply(point.x, point.y))
-    let xz = p256FieldDouble(p256FieldMultiply(point.x, point.z))
-    let yz = p256FieldDouble(p256FieldMultiply(point.y, point.z))
+    let w = p256FieldTriple(p256FieldMultiply(p256FieldSubtract(point.x, point.z), p256FieldAdd(point.x, point.z)))
+    let s = p256FieldDouble(p256FieldMultiply(point.y, point.z))
+    let r = p256FieldMultiply(point.y, s)
+    let beta = p256FieldDouble(p256FieldMultiply(point.x, r))
+    let h    = p256FieldSubtract(p256FieldSquare(w), p256FieldDouble(beta))
+    let y    = p256FieldSubtract(p256FieldMultiply(w, p256FieldSubtract(beta, h)), p256FieldDouble(p256FieldSquare(r)))
 
-    let term  = p256FieldTriple(p256FieldSubtract(p256FieldMultiply(P256MontgomeryB, zz), xz))
-    let lower = p256FieldSubtract(yy, term)
-    let upper = p256FieldAdd(yy, term)
-    let scaledXZ = p256FieldTriple(p256FieldSubtract(p256FieldSubtract(p256FieldMultiply(P256MontgomeryB, xz), p256FieldTriple(zz)), xx))
-    let scaledXX = p256FieldTriple(p256FieldSubtract(xx, zz))
-    let product  = p256FieldMultiply(yz, yy)
+    // This doubling gives X = Z = 0 at infinity. Supply its nonzero Y.
+    let infinity = p256FieldEqual(point.z, P256Field{})
+    return {x: p256FieldMultiply(h, s),
+            y: p256FieldSelect(y, P256Field{limbs: P256MontgomeryOne}, infinity),
+            z: p256FieldMultiply(s, p256FieldSquare(s))}
+}
 
-    return {x: p256FieldSubtract(p256FieldMultiply(lower, xy), p256FieldMultiply(yz, scaledXZ)),
-            y: p256FieldAdd(p256FieldMultiply(lower, upper), p256FieldMultiply(scaledXX, scaledXZ)),
-            z: p256FieldDouble(p256FieldDouble(product))}
+private func p256ScalarMultiply(scalar: const *P256Field, point: P256Point)->P256Point
+{
+    // The decoded peer key has affine coordinates. Table construction
+    // uses only that point and every scalar window scans the whole table.
+    let one      = P256Field{limbs: P256MontgomeryOne}
+    let identity = P256HomogeneousPoint{y: one}
+    let affine   = P256AffinePoint{x: point.x, y: point.y}
+    var multiples: [16] P256HomogeneousPoint
+    multiples[1] = P256HomogeneousPoint{x: point.x, y: point.y, z: one}
+    for index in 2 until multiples.count do
+        multiples[index] = p256HomogeneousAdd(multiples[index - 1], affine)
+
+    var result = identity
+    for window in 64
+    {
+        for 4 do
+            result = p256HomogeneousDouble(result)
+
+        let nibbleIndex = 63 - window
+        let nibble      = (scalar[].limbs[nibbleIndex / 16] >> ((nibbleIndex % 16) * 4)) & 15
+        var selected    = identity
+        for index in 1 until multiples.count
+        {
+            let candidate = multiples[index]
+            let matched = index == nibble
+            selected.x = p256FieldSelect(selected.x, candidate.x, matched)
+            selected.y = p256FieldSelect(selected.y, candidate.y, matched)
+            selected.z = p256FieldSelect(selected.z, candidate.z, matched)
+        }
+
+        result = p256HomogeneousAddProjective(result, selected)
+        Crypto.secureClear(Swag.makeSlice(&selected, 1))
+    }
+
+    let converted = p256HomogeneousToJacobian(result)
+    Crypto.secureClear(Swag.makeSlice(&result, 1))
+    return converted
 }
 
 private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
@@ -770,9 +798,7 @@ private func p256MultiplyGenerator(scalar: const *P256Field)->P256Point
         }
     }
 
-    let converted = P256Point{x: p256FieldMultiply(result.x, result.z),
-                               y: p256FieldMultiply(result.y, p256FieldSquare(result.z)),
-                               z: result.z}
+    let converted = p256HomogeneousToJacobian(result)
     Crypto.secureClear(Swag.makeSlice(&result, 1))
     return converted
 }

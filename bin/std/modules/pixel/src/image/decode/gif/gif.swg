@@ -171,18 +171,25 @@ public impl IImageDecoder for Decoder
     }
 }
 
+enum LzwMode
+{
+    Chained
+    CopyPrefixes
+    DenseLiterals
+}
+
 struct IndexedFrame
 {
-    data:            const [*] u8?
-    palette:         Palette
-    control:         Gce
-    x:               u16
-    y:               u16
-    width:           u16
-    height:          u16
-    minKeySize:      u8
-    interlaced:      bool
-    copyLzwPrefixes: bool
+    data:       const [*] u8?
+    palette:    Palette
+    control:    Gce
+    x:          u16
+    y:          u16
+    width:      u16
+    height:     u16
+    minKeySize: u8
+    interlaced: bool
+    lzwMode:    LzwMode
 }
 
 struct SetDecoder
@@ -333,6 +340,16 @@ private func(HAS_ALPHA: bool) writeSmallPaletteRow(source: const [*] u8, target:
     return x
 }
 
+#[Swag.Inline]
+private func(HAS_ALPHA: bool) writeGatheredColors(target: [*] u8, table: const [*] s32, keys: Math.Simd.U32x4)
+{
+    let pixels = cast #bit(Math.Simd.U8x16, Math.Simd.gather(table, keys))
+    #static if HAS_ALPHA do
+        Math.Simd.store(target, pixels)
+    else do
+        Image.storeLow12(target, Math.Simd.shuffle(pixels, GifDropAlpha))
+}
+
 impl Decoder
 {
     mtd writePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, hasAlpha, clearTransparent: bool) fail
@@ -356,6 +373,17 @@ impl Decoder
         if palette.size <= 16 and width >= 32 and cast(u64, width) * height >= 256
         {
             try .writeSmallPalettePixels(indexed, pixels, stride, hasAlpha, cast(const [*] u32, &packed[0]))
+            return
+        }
+
+        // A full palette covers every possible index and needs no separate range scan.
+        if palette.size == 256 and width >= 64
+        {
+            let table = cast(const [*] u32, &packed[0])
+            if hasAlpha do
+                .writeFullPalettePixels'(true)(indexed, pixels, stride, table)
+            else do
+                .writeFullPalettePixels'(false)(indexed, pixels, stride, table)
             return
         }
 
@@ -457,5 +485,49 @@ impl Decoder
         let invalidBits = ~cast(u8, (paletteSize - 1))
         if combinedIndices >= paletteSize or Math.Simd.anyTrue((combinedVectors & invalidBits) != Math.Simd.splat(0'u8)) do
             fail InvalidFormatError{"GIF palette index is out of range"}
+    }
+
+    #[Swag.NoInline]
+    private mtd(HAS_ALPHA: bool) writeFullPalettePixels(indexed: const *IndexedFrame, pixels: [*] u8, stride: s32, packed: const [*] u32)
+    {
+        const Step = HAS_ALPHA ? 4 : 3
+        let width   = cast(s32, indexed.width)
+        let height  = cast(s32, indexed.height)
+        let indices = .frame.storage()
+        let table   = cast(const [*] s32, packed)
+        for y in height
+        {
+            let source = indices + cast(u64, y) * width
+            let row    = indexed.interlaced ? Decoder.interlacedLineIndex(height, y) : y
+            let target = pixels + cast(u64, (height - row - 1)) * stride
+            var x      = 0
+            while width - x >= 16
+            {
+                let keys        = Math.Simd.load(source + x)
+                let lo          = Math.Simd.widenLow(keys)
+                let hi          = Math.Simd.widenHigh(keys)
+                let destination = target + x * Step
+                writeGatheredColors'(HAS_ALPHA)(destination, table, Math.Simd.widenLow(lo))
+                writeGatheredColors'(HAS_ALPHA)(destination + 4 * Step, table, Math.Simd.widenHigh(lo))
+                writeGatheredColors'(HAS_ALPHA)(destination + 8 * Step, table, Math.Simd.widenLow(hi))
+                writeGatheredColors'(HAS_ALPHA)(destination + 12 * Step, table, Math.Simd.widenHigh(hi))
+                x += 16
+            }
+
+            for i in x until width
+            {
+                let color       = packed[source[i]]
+                let destination = target + i * Step
+                #static if HAS_ALPHA
+                {
+                    cast([*] u32, destination)[0] = color
+                }
+                else
+                {
+                    cast([*] u16, destination)[0] = cast(u16, (color & 0xFFFF))
+                    destination[2] = cast(u8, (color >> 16))
+                }
+            }
+        }
     }
 }

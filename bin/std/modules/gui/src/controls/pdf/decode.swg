@@ -787,28 +787,80 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
 {
     if not item.image.isValid() or not coverage.isValid() do
         return
+    Swag.assert(coverage.pixelFormat == .RGBA8)
     if item.image.pixelFormat != .RGBA8
     {
         var opaque = #move item.image.convertedTo(.RGBA8)
         item.image = #move opaque
     }
 
-    let width  = cast(u64, item.image.width)
-    let height = cast(u64, item.image.height)
+    #[Swag.Inline]
+    func maskCoordinate(point, origin, length: f32, count: s32)->s32
+    {
+        return Math.clamp(cast(s32, (point - origin) / length * cast(f32, count)), 0, count - 1)
+    }
+
+    let width    = cast(u64, item.image.width)
+    let height   = cast(u64, item.image.height)
+    let mask     = coverage.pixels.storage()
+    let maskLast = coverage.height - 1
+    let stride   = cast(u64, coverage.rowStride)
+
+    if item.transform.m12 == 0 and item.transform.m21 == 0
+    {
+        // The image's horizontal samples are shared by every row.
+        var columns: Array'u32
+        columns.resize(width)
+        for column in width
+        {
+            let u     = (cast(f32, column) + 0.5) / cast(f32, width)
+            let point = item.transform.transformPoint({u, 0})
+            columns[column] = cast(u32, maskCoordinate(point.x, region.x, region.width, coverage.width))
+        }
+
+        let source = columns.storage()
+        for row in height
+        {
+            let v      = (cast(f32, height - row - 1) + 0.5) / cast(f32, height)
+            let point  = item.transform.transformPoint({0, v})
+            let y      = maskCoordinate(point.y, region.y, region.height, coverage.height)
+            let alpha  = mask + cast(u64, maskLast - y) * stride
+            let words  = cast(const [*] s32, alpha)
+            let pixels = item.image.pixels.storage() + row * cast(u64, item.image.rowStride)
+            var column = 0'u64
+            while width - column >= 4
+            {
+                let dst = pixels + column * 4
+                let colors = cast #bit(Math.Simd.U32x4, Math.Simd.load(dst))
+                let weights = cast #bit(Math.Simd.U32x4, Math.Simd.gather(words, Math.Simd.load(source + column))) >> 24
+                let product = (colors >> 24) * weights + 1'u32
+                let covered = (product + (product >> 8)) >> 8
+                let rgba = (colors & 0x00FF_FFFF'u32) | (covered << 24)
+                Math.Simd.store(dst, cast #bit(Math.Simd.U8x16, rgba))
+                column += 4
+            }
+
+            for i in column until width do
+                pixels[i * 4 + 3] = cast(u8, (cast(u32, pixels[i * 4 + 3]) * alpha[cast(u64, source[i]) * 4 + 3]) / 255)
+        }
+
+        return
+    }
+
     for row in height
     {
         // An image stores its rows bottom-up while its unit square runs top-down.
-        let v      = (cast(f32, (height - row - 1)) + 0.5) / cast(f32, height)
+        let v      = (cast(f32, height - row - 1) + 0.5) / cast(f32, height)
         var pixels = item.image.pixels.storage() + row * cast(u64, item.image.rowStride)
         for column in width
         {
             let u     = (cast(f32, column) + 0.5) / cast(f32, width)
-            let point = item.transform.transformPoint(Math.Vector2{u, v})
-            let x     = cast(s32, ((point.x - region.x) / region.width * cast(f32, coverage.width)))
-            let y     = cast(s32, ((point.y - region.y) / region.height * cast(f32, coverage.height)))
-            let alpha = coverage.pixelColor(x, y).a
+            let point = item.transform.transformPoint({u, v})
+            let x     = maskCoordinate(point.x, region.x, region.width, coverage.width)
+            let y     = maskCoordinate(point.y, region.y, region.height, coverage.height)
+            let alpha = mask[cast(u64, maskLast - y) * stride + cast(u64, x) * 4 + 3]
             pixels[3] = cast(u8, ((cast(u32, pixels[3]) * alpha) / 255))
-            pixels    += 4
+            pixels   += 4
         }
     }
 }

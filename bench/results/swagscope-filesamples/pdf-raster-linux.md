@@ -376,3 +376,31 @@ metric improved on the nested forms fixture and `sample3.pdf`. It rose
 from 8.588 to 8.632 on `sample1.pdf` at 1200 px, with 0.46% of pixels
 changing. A test renders two rotated embedded glyphs and checks their
 position, spacing and counters.
+
+## Applying soft mask coverage to images
+
+The soft mask sampler reuses its horizontal lookup across the image
+rows when the transform preserves the axes. SIMD gathers four coverage
+texels and multiplies their alpha by the destination's alpha. The
+general affine path also reads the mask bytes directly after clipping
+each coordinate. The transformed mask fixture applies its coverage to
+more than 17 million image samples during load.
+
+Nine interleaved Release runs at each size on one AMD EPYC 7763 logical
+CPU compare Swag `d3150abf15` and PDFium 159.0.8149.0. Both Swag
+builds use the same compiler and software SHA-1 and SHA-256 sources.
+Times are milliseconds.
+[Phase timings and corpus checksums](pdf-raster-linux-soft-mask-simd.json)
+
+| PDF | Long side | Swag before | Swag after | PDFium | Load before | Load after | PDFium load |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| `sample1.pdf` | 1200 | 43.16 | 54.37 | 28.26 | 14.52 | 16.83 | 2.48 |
+| `perf_images_smask.pdf` | 1200 | 88.44 | 93.32 | 55.98 | 33.75 | 34.16 | 0.38 |
+| `perf_transparency_soft_masks.pdf` | 1200 | 926.92 | 173.64 | 105.60 | 840.17 | 82.53 | 0.48 |
+| `sample1.pdf` | 2400 | 81.80 | 81.99 | 39.94 | 14.44 | 17.81 | 2.35 |
+| `perf_images_smask.pdf` | 2400 | 138.65 | 121.35 | 67.96 | 31.67 | 29.90 | 0.48 |
+| `perf_transparency_soft_masks.pdf` | 2400 | 1064.25 | 326.23 | 246.73 | 805.09 | 76.55 | 0.37 |
+
+All 43 supported cases kept the same Swag bitmap CRC-32. The
+targeted image test exercises a four-pixel block and its tail,
+mirrored axes, and a rotated image sampling beyond the mask edges.

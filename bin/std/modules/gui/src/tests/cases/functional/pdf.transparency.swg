@@ -223,3 +223,51 @@ private func markedPixels(frame: const *Image)->u64
     Swag.require(item.maskImage.pixelColor(20, 180).a == 255)
     Swag.require(item.maskImage.pixelColor(180, 20).a == 0)
 }
+
+// Image soft masks sample one coverage field in page space, including mirrored and rotated draws.
+#test
+{
+    var coverage = Pixel.Image.create(5, 2, .RGBA8)
+    for index in coverage.pixels.count / 4
+    {
+        let bytes = coverage.pixels.storage() + index * 4
+        bytes[0], bytes[1], bytes[2] = 255
+        bytes[3] = cast(u8, index * 27)
+    }
+
+    var source = Pixel.Image.create(7, 3, .RGBA8)
+    for index in source.pixels.count / 4
+    {
+        let bytes = source.pixels.storage() + index * 4
+        bytes[0] = 51
+        bytes[1] = 99
+        bytes[2] = 201
+        bytes[3] = cast(u8, 127 + index * 5)
+    }
+
+    const Region = Math.Rectangle{2, 3, 8, 6}
+    const Transforms: [3] Math.Transform2 = [{9, 0, 0, 6, 1, 3},
+                                             {-9, 0, 0, -6, 11, 9},
+                                             {7, 2, -3, 6, 3, 2}]
+    for transform in Transforms
+    {
+        var item: Pdf.Item
+        item.image     = source
+        item.transform = transform
+        maskImagePixels(&item, &coverage, Region)
+        for y in source.height
+        {
+            let v = (cast(f32, y) + 0.5) / cast(f32, source.height)
+            for x in source.width
+            {
+                let u     = (cast(f32, x) + 0.5) / cast(f32, source.width)
+                let point = transform.transformPoint({u, v})
+                let maskX = cast(s32, ((point.x - Region.x) / Region.width * coverage.width))
+                let maskY = cast(s32, ((point.y - Region.y) / Region.height * coverage.height))
+                let color = source.pixelColor(x, y)
+                let alpha = cast(u8, (cast(u32, color.a) * coverage.pixelColor(maskX, maskY).a) / 255)
+                Swag.require(item.image.pixelColor(x, y) == color.withAlpha(alpha))
+            }
+        }
+    }
+}

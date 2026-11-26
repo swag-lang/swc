@@ -175,6 +175,7 @@ struct Drawing
     images:          Array'SvgImage               // Raster placements referenced by the paint-order list.
     rasterImages:    Array'Image                  // Decoded bitmaps shared by their placements.
     items:           Array'DrawingItem            // Visible elements in paint order.
+    clipRanges:      Array'ClipRange              // Clips with more than one shape.
     paintIndex:      Array'PaintIndex             // Owned spatial index, mutable when text is first measured.
     paintBlocks:     Array'PaintBlock             // Bounds of consecutive runs of paint items.
     strokes:         Array'ShapeStroke            // Paint and line style for stroked shapes.
@@ -188,6 +189,11 @@ struct Drawing
     contourCount:    u64
     patterns:        HashTable'(u64, Pattern)       // Resolved repeating paint servers by their interned identifier.
     filters:         HashTable'(u64, SvgFilter)     // Resolved filter primitive chains by their interned identifier.
+}
+
+private struct ClipRange
+{
+    first, count: u64
 }
 
 private enum DrawingItemKind
@@ -210,12 +216,12 @@ internal struct DrawingItem
     hasBounds: bool
     index:     u64
 
-    // Shapes the item is clipped by, as a range of the drawing's hidden shapes.
+    // Zero for no clip, a positive shape index plus one, or a negative range index minus one.
     //
     // A `clip-path` is instantiated once per element it applies to, under the transform of the
     // element that named it, so a group's clip stays where the group put it however its
-    // children are transformed. An empty range is an unclipped item.
-    clipFirst, clipCount: u64
+    // children are transformed.
+    clip: s64
 
     // Drawing-space rectangle outside which the item cannot lay ink, already reduced by the
     // clip it is drawn under.
@@ -4214,38 +4220,36 @@ private impl Parser
         if clip.count == 0 do
             return
 
-        var intersections: HashTable'(u64, u64)
+        let outer = .drawing.storeClip(clip.first, clip.count)
+        var intersections: HashTable'(s64, s64)
         for i in .drawing.items.count - firstItem
         {
             let item = &.drawing.items[firstItem + i]
-            if item.clipCount
+            if not item.clip
             {
-                let previous = item.clipFirst
-                let found    = intersections.tryFind(previous)
-                if found
-                {
-                    item.clipFirst = found.value
-                }
-                else
-                {
-                    var inner = .clipGeometry(item.clipFirst, item.clipCount)
-                    var outer = .clipGeometry(clip.first, clip.count)
-                    inner.intersect(&outer)
-                    var shape: Shape
-                    .drawing.storeContours(shape, #move inner)
-                    shape.hidden   = true
-                    item.clipFirst = .drawing.shapes.count
-                    .drawing.shapes.add(#move shape)
-                    intersections.add(previous, item.clipFirst)
-                }
-
-                // An empty intersection is still a clip; zero would mean unbounded ink.
-                item.clipCount = 1
+                item.clip = outer
                 continue
             }
 
-            item.clipFirst = clip.first
-            item.clipCount = clip.count
+            let previous = item.clip
+            if let found = intersections.tryFind(previous)
+            {
+                item.clip = found.value
+                continue
+            }
+
+            let range   = .drawing.clipRange(previous)
+            var inside  = .clipGeometry(range.first, range.count)
+            var outside = .clipGeometry(clip.first, clip.count)
+            inside.intersect(&outside)
+            var shape: Shape
+            .drawing.storeContours(shape, #move inside)
+            shape.hidden = true
+
+            // An empty intersection is still a clip; zero would mean unbounded ink.
+            item.clip = .drawing.storeClip(.drawing.shapes.count, 1)
+            .drawing.shapes.add(#move shape)
+            intersections.add(previous, item.clip)
         }
     }
 
@@ -4977,7 +4981,7 @@ impl Drawing
     // shaping can give, so the first paint measures it and every later one rejects it.
     private mtd measureItems()
     {
-        var clipFirst, clipCount: u64
+        var clip:       s64
         var clipBounds: Rectangle
         for &item in .items
         {
@@ -5003,14 +5007,13 @@ impl Drawing
                 break
             }
 
-            if item.hasBounds and item.clipCount
+            if item.hasBounds and item.clip
             {
                 // A group can apply the same complex clip to every one of its children.
-                if item.clipFirst != clipFirst or item.clipCount != clipCount
+                if item.clip != clip
                 {
-                    clipFirst  = item.clipFirst
-                    clipCount  = item.clipCount
-                    clipBounds = .clipRangeBounds(clipFirst, clipCount)
+                    clip       = item.clip
+                    clipBounds = .clipRangeBounds(clip)
                 }
 
                 item.bounds.intersect(clipBounds)
@@ -5160,13 +5163,32 @@ impl Drawing
         return true
     }
 
-    // Returns the rectangle a clip range can keep, which is the union of its shapes.
-    private mtd const clipRangeBounds(first, count: u64)->Rectangle
+    private mtd storeClip(first, count: u64)->s64
     {
+        if count == 1 do
+            return cast(s64, first) + 1
+
+        .clipRanges.add(ClipRange{first, count})
+        return -cast(s64, .clipRanges.count)
+    }
+
+    private mtd const clipRange(clip: s64)->ClipRange
+    {
+        if clip > 0 do
+            return ClipRange{cast(u64, clip - 1), 1}
+        if clip < 0 do
+            return .clipRanges[cast(u64, -clip - 1)]
+        return {}
+    }
+
+    // Returns the rectangle a clip range can keep, which is the union of its shapes.
+    private mtd const clipRangeBounds(clip: s64)->Rectangle
+    {
+        let range = .clipRange(clip)
         var result: #returntype
-        for i in count
+        for i in range.count
         {
-            let bounds = .pathsFor(&.shapes[first + i]).controlBounds()
+            let bounds = .pathsFor(&.shapes[range.first + i]).controlBounds()
             if not i do
                 result = bounds
             else do
@@ -5558,7 +5580,7 @@ impl Drawing
         // exchanged when it changes: the outgoing clip is taken back out with a `Clear` pass
         // before the incoming one is put in. Consecutive items of one clipped group therefore
         // stamp their clip once.
-        var activeFirst, activeCount: u64
+        var activeClip: s64
 
         // What the painter can still reach, in surface space. An item landing outside it is
         // not drawn, and does not stamp its clip either: a document is normally much larger
@@ -5597,11 +5619,10 @@ impl Drawing
                         continue
                 }
 
-                if item.clipFirst != activeFirst or item.clipCount != activeCount
+                if item.clip != activeClip
                 {
-                    .exchangeClip(painter, activeFirst, activeCount, item.clipFirst, item.clipCount)
-                    activeFirst = item.clipFirst
-                    activeCount = item.clipCount
+                    .exchangeClip(painter, activeClip, item.clip)
+                    activeClip = item.clip
                 }
 
                 switch item.kind
@@ -5634,8 +5655,8 @@ impl Drawing
                     if not item.hasBounds
                     {
                         item.bounds = inked
-                        if item.clipCount do
-                            item.bounds.intersect(.clipRangeBounds(item.clipFirst, item.clipCount))
+                        if item.clip do
+                            item.bounds.intersect(.clipRangeBounds(item.clip))
                         item.hasBounds = true
                         measuredText   = true
                     }
@@ -5646,7 +5667,7 @@ impl Drawing
             }
         }
 
-        .exchangeClip(painter, activeFirst, activeCount, 0, 0)
+        .exchangeClip(painter, activeClip, 0)
 
         // Use the new text bounds to cull both authored runs and spatial bins.
         if measuredText
@@ -5662,26 +5683,28 @@ impl Drawing
     //
     // A region persists until coverage is taken back out of it, so the outgoing clip is drawn
     // again in `Clear` mode rather than assumed gone.
-    private mtd const exchangeClip(painter: *Painter, outFirst, outCount, inFirst, inCount: u64)
+    private mtd const exchangeClip(painter: *Painter, outgoing, incoming: s64)
     {
         let white = Brush.createSolid(Color.fromArgb(Argb.White))
-        if outCount
+        if outgoing
         {
+            let range = .clipRange(outgoing)
             painter.startClippingRegion(.Clear)
-            for i in outCount do
-                painter.fillPath(.pathsFor(&.shapes[outFirst + i]), white)
+            for i in range.count do
+                painter.fillPath(.pathsFor(&.shapes[range.first + i]), white)
             painter.endClippingRegion()
         }
 
-        if inCount == 0
+        if not incoming
         {
             painter.resetClippingRegion()
             return
         }
 
+        let range = .clipRange(incoming)
         painter.startClippingRegion(.Set)
-        for i in inCount do
-            painter.fillPath(.pathsFor(&.shapes[inFirst + i]), white)
+        for i in range.count do
+            painter.fillPath(.pathsFor(&.shapes[range.first + i]), white)
         painter.endClippingRegion()
     }
 
